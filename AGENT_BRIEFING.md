@@ -1,88 +1,98 @@
 # Agent Briefing
 
-> **Read this first.** This file is written specifically for AI agent sessions picking up this project. It contains everything you need to be productive immediately.
+> Read this first. This file is written specifically for AI agent sessions picking up this project. It should give a fast, accurate picture of where the app stands right now.
 
 ## What You Need to Know Right Now
 
 ### Project in One Paragraph
-SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend with Node.js/Express and PostgreSQL (PostGIS) on the backend. The app features interactive map search, rich church profiles with photos and service times, user reviews/ratings, and an events calendar. We are currently in the **planning/architecture phase** — no code has been written yet. The immediate focus is finalizing data models, API design, and setting up the initial project scaffold.
+SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. The app now queries a live Supabase Postgres/PostGIS database through Prisma instead of the old in-memory data layer.
 
 ### Current Priority
-Set up the initial monorepo structure with the React frontend (Vite + TypeScript) and Express backend. Get a basic dev environment running with database migrations and a seed script for San Antonio churches.
+Finish the Render deployment flow end-to-end. The repo already contains a backend + frontend `render.yaml` blueprint, but the remaining work is manual: trigger the deploys in Render, wire `VITE_API_URL` and `CLIENT_URL`, and smoke-test the live site.
 
 ### Recently Completed
-- Completed architecture and planning documents
-- Defined data models, API specifications, and feature specs
-- Established coding conventions and project structure
+- Replaced the in-memory data layer with Prisma + PostGIS spatial queries
+- Connected the app to a live Supabase Postgres/PostGIS database and seeded sample data
+- Added the interactive Mapbox map with clustering and viewport-based querying
+- Implemented shareable URL search state, mobile map/list UX, loading skeletons, and no-results suggestions
+- Added Render deployment configuration for both backend and frontend
+- Re-stabilized the local baseline so lint, typecheck, tests, and production builds all pass
 
 ### Known Blockers
-- Need Mapbox API key for map integration
-- Need Cloudinary account for image hosting
-- Need to decide on church data seeding strategy (manual entry vs. scraping Google Places)
+- Render deployment still needs dashboard access to kick off the services and wire final environment URLs
+- A Mapbox token is still required anywhere the live interactive map should be enabled
+- Dependency maintenance remains open (`eslint` 9, `multer` 2, `supertest` 7)
 
 ## Where Things Are
 
 ### File Structure Overview
-```
+```text
 sa-church-finder/
-├── PROJECT_CONTEXT.md         ← What this project is and why
-├── AGENT_BRIEFING.md          ← You are here — start of every session
-├── ARCHITECTURE.md            ← System design, components, data flow
-├── CONVENTIONS.md             ← Code style rules (follow these strictly)
-├── DECISIONS.md               ← Why we chose what we chose
-├── PROGRESS.md                ← Session-by-session work log
-├── TODO.md                    ← Prioritized task board
-├── FEATURES.md                ← Feature specifications
-├── DATA_MODELS.md             ← Database schema and relationships
-├── API_SPEC.md                ← REST API endpoint specifications
-└── docs/
-    ├── mockups/               ← UI wireframes and design references
-    └── api/                   ← Detailed API documentation
+|-- client/                     # React + Vite frontend
+|   `-- src/
+|       |-- components/         # Church cards, filters, layout, map UI
+|       |-- pages/              # Home, search, and church profile pages
+|       |-- hooks/              # React Query + URL state hooks
+|       |-- stores/             # Zustand search state
+|       `-- api/                # Frontend API layer
+|-- server/                     # Express + Prisma backend
+|   |-- src/
+|   |   |-- routes/             # REST endpoints
+|   |   |-- services/           # Church search/detail data access
+|   |   |-- middleware/         # Validation + error handling
+|   |   `-- lib/                # Logger and Prisma client
+|   `-- prisma/                 # Schema, migrations, seed
+|-- render.yaml                 # Render blueprint for frontend + backend
+|-- PROGRESS.md                 # Session-by-session work log
+|-- TODO.md                     # Prioritized task board
+|-- QUICKSTART.md               # Local setup and useful commands
+`-- docs/                       # Supporting project docs
 ```
 
 ### Important Files to Read
 1. This file (`AGENT_BRIEFING.md`)
-2. `PROJECT_CONTEXT.md` — full project context
-3. `ARCHITECTURE.md` — system design
-4. `CONVENTIONS.md` — coding rules (mandatory)
-5. `DECISIONS.md` — past architectural decisions
+2. `PROJECT_CONTEXT.md` for the broader product context
+3. `ARCHITECTURE.md` for system design and data flow
+4. `CONVENTIONS.md` for coding rules
+5. `DECISIONS.md` for past architectural choices
+6. `PROGRESS.md` and `TODO.md` for current execution state
 
 ## Conventions to Follow
 
 ### Naming
 - Files: kebab-case (`church-service.ts`, `review-card.tsx`)
-- Components: PascalCase (`ChurchCard.tsx`, `MapView.tsx`)
-- Functions/variables: camelCase (`getChurchById`, `currentFilters`)
+- Components: PascalCase (`ChurchCard.tsx`, `InteractiveMap.tsx`)
+- Functions and variables: camelCase (`getChurchById`, `currentFilters`)
 - Database: snake_case (`church_services`, `user_reviews`)
 - API endpoints: kebab-case plural (`/api/v1/churches`, `/api/v1/reviews`)
 - Branches: `type/description` (`feature/church-search`, `fix/map-clustering`)
 
 ### Style
-- TypeScript strict mode — no `any` types
-- Functional components with hooks only — no class components
-- Named exports preferred over default exports (except page components)
-- All API responses follow a consistent envelope: `{ data, meta, error }`
+- TypeScript strict mode; avoid `any`
+- Functional components with hooks only
+- Named exports preferred over default exports except page components
+- API responses should follow the `{ data, meta, error }` envelope pattern
 
 ### Workflow
 - Feature branches off `main`
 - Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.)
-- All new features require at minimum unit tests
+- New features should include tests where practical
 - Run `npm run lint` and `npm run typecheck` before committing
 
-## Do NOT Do These Things
-1. Do NOT add dependencies without checking if an existing dependency covers the use case
-2. Do NOT use `any` type in TypeScript — use `unknown` and narrow, or define proper types
-3. Do NOT write raw SQL — use Prisma for all database operations
-4. Do NOT store API keys or secrets in code — use environment variables
-5. Do NOT skip error handling on API routes — every route needs try/catch with proper HTTP status codes
-6. Do NOT modify the database schema without updating DATA_MODELS.md
+## Do Not Do These Things
+1. Do not add dependencies without checking whether existing dependencies already cover the use case.
+2. Do not use `any` in TypeScript; use `unknown` and narrow, or define proper types.
+3. Do not store secrets in code; use environment variables.
+4. Do not skip error handling on API routes.
+5. Do not modify the database schema without updating `DATA_MODELS.md`.
+6. Do not assume old docs describing the in-memory data layer are still accurate; the app now depends on Prisma/PostGIS.
 
 ## Session End Checklist
 When you finish a session, update:
-- [ ] This file's "Current Priority" and "Recently Completed" sections
-- [ ] `PROGRESS.md` with what was accomplished
-- [ ] `DECISIONS.md` if any significant choices were made
-- [ ] `TODO.md` to reflect completed and new tasks
+- This file's current state summary if priorities changed
+- `PROGRESS.md` with what was accomplished
+- `DECISIONS.md` if any significant choices were made
+- `TODO.md` to reflect completed and new tasks
 
 ---
-*Last updated: 2026-03-26 by human*
+*Last updated: 2026-03-28 by Codex*

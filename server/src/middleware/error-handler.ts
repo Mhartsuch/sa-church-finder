@@ -46,15 +46,23 @@ export const errorHandler = (
     const code = err.code
     const message = err.message
     const details = err.details
+    const errorPayload: {
+      code: string
+      message: string
+      details?: unknown
+    } = {
+      code,
+      message,
+    }
+
+    if (details !== undefined) {
+      errorPayload.details = details
+    }
 
     logger.error({ statusCode, code, message }, 'AppError occurred')
 
     res.status(statusCode).json({
-      error: {
-        code,
-        message,
-        ...(details && { details }),
-      },
+      error: errorPayload,
     })
     return
   }

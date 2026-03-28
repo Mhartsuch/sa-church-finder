@@ -33,7 +33,9 @@ export const ChurchCard = ({ church, isHovered, onHover, onClick }: ChurchCardPr
       onMouseEnter={() => onHover(church.id)}
       onMouseLeave={() => onHover(null)}
       onClick={() => onClick(church.slug)}
-      className='group cursor-pointer'
+      className={`group cursor-pointer transition-transform duration-200 ${
+        isHovered ? 'scale-[1.01]' : ''
+      }`}
     >
       {/* Image container — Airbnb uses ~20:19 aspect */}
       <div className='relative aspect-[20/19] overflow-hidden rounded-xl mb-3'>

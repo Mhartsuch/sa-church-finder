@@ -40,8 +40,10 @@ router.get(
       const response = await searchChurches(params)
 
       res.json(response)
+      return
     } catch (error) {
       next(error)
+      return
     }
   }
 )
@@ -61,19 +63,22 @@ router.get(
       const church = await getChurchDetailsBySlug(slug)
 
       if (!church) {
-        return res.status(404).json({
+        res.status(404).json({
           error: {
             code: 'NOT_FOUND',
             message: `Church with slug "${slug}" not found`,
           },
         })
+        return
       }
 
       res.json({
         data: church,
       })
+      return
     } catch (error) {
       next(error)
+      return
     }
   }
 )

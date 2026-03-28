@@ -17,7 +17,6 @@ import { useSearchStore } from '@/stores/search-store'
 import {
   DENOMINATION_OPTIONS,
 } from '@/constants'
-import { useState } from 'react'
 
 interface CategoryItem {
   label: string

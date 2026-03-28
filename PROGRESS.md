@@ -11,6 +11,78 @@
 ---
 
 ## Log
+ 
+### 2026-03-28 - Repo Baseline Stabilization + Docs Refresh
+**Focus:** Re-established a trustworthy local baseline after the Prisma/Render work, then refreshed stale onboarding docs to match the actual codebase state.
+
+**Completed:**
+- **Client cleanup:** Fixed stale lint/type issues in `ChurchCard`, `MapPlaceholder`, `CategoryFilter`, `SearchBar`, and `Header`. Restored a real hover effect on cards and switched browser-side timeout refs away from `NodeJS.Timeout`.
+- **Server cleanup:** Fixed the server ESLint config typo for `@typescript-eslint/explicit-function-return-type`, corrected `pino` / `pino-http` imports for NodeNext typing, cleaned unused params in `server/src/index.ts`, tightened error payload construction in `error-handler.ts`, and made church route handlers return `void` consistently.
+- **Verification:** Confirmed `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` all pass. `test` and `build` required elevated execution in this environment because the sandbox blocked child-process spawning for esbuild/Vitest.
+- **Build warning fix:** Removed the Vite CSS warning by moving the Google Fonts import ahead of Tailwind directives in `client/src/index.css`.
+- **Docs refresh:** Updated `AGENT_BRIEFING.md` and `QUICKSTART.md` so they no longer describe the project as pre-scaffold / in-memory-only.
+
+**Remaining Notes:**
+- Vite still warns that the lazy-loaded `mapbox-gl` chunk is large (~1.7 MB minified). The app already code-splits the interactive map, so this is currently a performance warning rather than a release blocker.
+- Render deployment remains the main outstanding manual step.
+
+**Files Changed:**
+- `client/src/components/church/ChurchCard.tsx`
+- `client/src/components/map/MapPlaceholder.tsx`
+- `client/src/components/search/CategoryFilter.tsx`
+- `client/src/components/search/SearchBar.tsx`
+- `client/src/components/layout/Header.tsx`
+- `client/src/index.css`
+- `server/.eslintrc.cjs`
+- `server/src/index.ts`
+- `server/src/lib/logger.ts`
+- `server/src/middleware/error-handler.ts`
+- `server/src/routes/church.routes.ts`
+- `AGENT_BRIEFING.md`
+- `QUICKSTART.md`
+
+**Next Steps for Codex/Next Session:**
+1. Finish the manual Render deploy flow and verify the live URLs are wired correctly
+2. Decide whether to tackle dependency upgrades next (`eslint` 9, `multer` 2, `supertest` 7) or begin Milestone 2 feature work
+3. Optionally reduce the size of the lazy-loaded Mapbox chunk if production performance becomes a concern
+
+### 2026-03-28 — Supabase Cloud DB + Prisma Data Layer + Render Deployment (IN PROGRESS)
+**Focus:** Got the database live on Supabase cloud, swapped in-memory data layer to Prisma+PostGIS, and started deploying to Render.
+
+**Completed:**
+- **Supabase cloud database:** Connected to Supabase PostgreSQL (us-west-2) with PostGIS 3.3. Uses Session Pooler URL for IPv4 compatibility (`aws-0-us-west-2.pooler.supabase.com:5432`). Direct connection is IPv6-only. Password has special chars that need URL-encoding.
+- **Prisma data layer swap:** Replaced all in-memory data with Prisma client. Created `server/src/lib/prisma.ts` (singleton pattern). Rewrote `server/src/services/church.service.ts` to use `$queryRaw` with PostGIS spatial functions (`ST_DWithin`, `ST_Distance`, `ST_MakePoint`). Updated routes to be async with `await`.
+- **Database seeded:** 22 churches, admin user, test user, 5 reviews, 3 saved churches. PostGIS spatial queries verified working.
+- **Render deployment config:** Created `render.yaml` blueprint. Made `client/src/api/churches.ts` use configurable `VITE_API_URL`.
+
+**In Progress — Render Deployment:**
+- Backend Web Service (`sa-church-finder-api`): Created on Render with Git Provider connected to GitHub. Configuration:
+  - Root directory: `server`
+  - Build command: `npm install && npx prisma generate && npm run build`
+  - Start command: `npm start`
+  - Instance: Free tier ($0/month)
+  - Env vars set: `DATABASE_URL`, `NODE_ENV=production`, `SESSION_SECRET` (auto-generated), `CLIENT_URL=*`
+  - **Status: "Deploy Web Service" button NOT YET clicked — deployment not started**
+- Frontend Static Site: Not yet created on Render
+- After both deploy: update `CLIENT_URL` on backend to frontend URL, set `VITE_API_URL` on frontend to backend URL
+
+**Files Changed:**
+- `server/src/lib/prisma.ts` (new — Prisma client singleton)
+- `server/src/services/church.service.ts` (rewritten — Prisma+PostGIS queries)
+- `server/src/services/church-detail.service.ts` (updated — async)
+- `server/src/routes/church.routes.ts` (updated — async await)
+- `server/src/index.ts` (updated — Prisma import, graceful shutdown, CORS wildcard)
+- `server/src/services/church.service.test.ts` (updated — mocks Prisma)
+- `client/src/api/churches.ts` (updated — configurable VITE_API_URL)
+- `render.yaml` (new — Render deployment blueprint)
+- `server/.env` (updated — Supabase connection string)
+
+**Next Steps for Codex/Next Session:**
+1. Click "Deploy Web Service" on Render dashboard (backend is fully configured, just needs the button click)
+2. Create a Render Static Site for the frontend (root dir: `client`, build cmd: `npm install && npm run build`, publish dir: `dist`)
+3. Set `VITE_API_URL` on frontend to the backend URL (e.g., `https://sa-church-finder-api.onrender.com`)
+4. Update `CLIENT_URL` on backend to the frontend URL
+5. Test the live site end-to-end
 
 ### 2026-03-27 — PostGIS Database Migration & Loading Skeletons
 **Focus:** Prepared the full PostGIS database layer (schema, migration, seed) so that spinning up Docker is all that's needed to go live with persistent data. Also added polished loading skeletons.

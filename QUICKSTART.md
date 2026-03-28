@@ -2,7 +2,7 @@
 
 ## Prerequisites
 - Node.js 20+ and npm 10+
-- Docker Desktop (for PostgreSQL + PostGIS)
+- Docker Desktop (optional, for local PostgreSQL + PostGIS)
 
 ## Setup
 
@@ -13,27 +13,43 @@ npm install --prefix client
 npm install --prefix server
 
 # 2. Start the database
+# Skip this if you are using Supabase or another hosted Postgres/PostGIS DB
 docker compose up -d
 
 # 3. Copy and configure environment variables
 cp server/.env.example server/.env
-# Edit server/.env — set DATABASE_URL to:
-# DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sa_church_finder
-# (This matches the docker-compose.yml defaults)
+# Set DATABASE_URL to either:
+# postgresql://postgres:postgres@localhost:5432/sa_church_finder
+# or your hosted Postgres/PostGIS connection string
 
-# 4. Run database migrations
-cd server && npx prisma migrate dev --name init && cd ..
+# 4. Apply committed migrations
+cd server && npx prisma migrate deploy && cd ..
 
-# 5. Seed the database with sample churches
+# 5. Seed sample data
 cd server && npx prisma db seed && cd ..
 
 # 6. Start both frontend and backend
 npm run dev
 ```
 
-The frontend runs at http://localhost:5173 and the backend at http://localhost:3001.
+The frontend runs at `http://localhost:5173` and the backend at `http://localhost:3001`.
 
-**Note:** The backend includes an in-memory data layer (22 San Antonio churches) that works without a database connection. If you skip steps 2-5, the search API will still function with the in-memory data.
+## Important Note
+
+The backend now reads from Prisma/PostGIS. You need a reachable PostgreSQL database with the `postgis` extension enabled before the church API will return data.
+
+## Render Deployment
+
+The repo includes a `render.yaml` blueprint for both services:
+
+- Backend web service: `sa-church-finder-api`
+- Frontend static site: `sa-church-finder`
+
+After the first deploy, set:
+
+- `VITE_API_URL` on the frontend to the backend Render URL
+- `CLIENT_URL` on the backend to the frontend Render URL
+- `DATABASE_URL` on the backend to the Supabase session pooler URL or another reachable Postgres/PostGIS URL
 
 ## Useful Commands
 
@@ -48,56 +64,55 @@ The frontend runs at http://localhost:5173 and the backend at http://localhost:3
 | `npm run test` | Run all tests |
 | `npm run db:migrate` | Run Prisma migrations |
 | `npm run db:seed` | Seed the database |
-| `npm run db:studio` | Open Prisma Studio (database GUI) |
-| `npm run docker:up` | Start PostgreSQL container |
-| `npm run docker:down` | Stop PostgreSQL container |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run docker:up` | Start the local PostgreSQL container |
+| `npm run docker:down` | Stop the local PostgreSQL container |
 
 ## API Endpoints (Milestone 1)
 
 ### Search Churches
-```
+```text
 GET /api/v1/churches?lat=29.4241&lng=-98.4936&radius=10&q=baptist&denomination=Baptist&sort=distance&page=1&pageSize=20
 ```
 
-Query parameters: `lat`, `lng`, `radius`, `q` (text search), `denomination`, `day` (0-6), `time` (morning/afternoon/evening), `language`, `amenities`, `sort` (distance/rating/name), `page`, `pageSize`, `bounds` (sw_lat,sw_lng,ne_lat,ne_lng)
+Query parameters: `lat`, `lng`, `radius`, `q`, `denomination`, `day`, `time`, `language`, `amenities`, `sort`, `page`, `pageSize`, `bounds`
 
 ### Church Detail
-```
+```text
 GET /api/v1/churches/:slug
 ```
 
 ## Project Structure
 
-```
+```text
 sa-church-finder/
-├── client/                 # React + Vite + TypeScript frontend
-│   ├── src/
-│   │   ├── pages/          # SearchPage, ChurchProfilePage
-│   │   ├── components/
-│   │   │   ├── church/     # ChurchCard, ChurchList
-│   │   │   ├── map/        # MapPlaceholder (Mapbox later)
-│   │   │   ├── search/     # SearchBar, FilterPanel
-│   │   │   └── layout/     # Header
-│   │   ├── hooks/          # useChurches (React Query)
-│   │   ├── api/            # API client (fetchChurches, fetchChurchBySlug)
-│   │   ├── stores/         # Zustand search store
-│   │   ├── types/          # IChurch, ISearchParams, etc.
-│   │   ├── utils/          # formatDistance, getNextService, etc.
-│   │   ├── constants/      # SA_CENTER, denomination/day/time options
-│   │   └── lib/            # cn() helper
-│   └── ...config files
-├── server/                 # Express + TypeScript backend
-│   ├── src/
-│   │   ├── routes/         # church.routes.ts, auth.routes.ts
-│   │   ├── middleware/     # validate.ts, error-handler.ts
-│   │   ├── services/       # church.service.ts (search + filters)
-│   │   ├── schemas/        # Zod validation schemas
-│   │   ├── data/           # In-memory church data (22 churches)
-│   │   ├── types/          # IChurch, ISearchParams, ISearchResponse
-│   │   └── lib/            # Logger
-│   └── prisma/
-│       ├── schema.prisma   # Database schema (ready for Postgres)
-│       └── seed.ts         # Database seeder
-├── docker-compose.yml      # PostgreSQL + PostGIS
-└── package.json            # Root scripts
+|-- client/                 # React + Vite + TypeScript frontend
+|   |-- src/
+|   |   |-- pages/          # Home, search, church profile
+|   |   |-- components/
+|   |   |   |-- church/     # Cards, lists, skeleton states
+|   |   |   |-- map/        # MapContainer, InteractiveMap, fallback map
+|   |   |   |-- search/     # Search/filter UI
+|   |   |   `-- layout/     # Header, shared layout
+|   |   |-- hooks/          # React Query, URL state
+|   |   |-- api/            # Church API client
+|   |   |-- stores/         # Zustand search store
+|   |   |-- types/          # Church/search types
+|   |   `-- utils/          # Formatting helpers
+|   `-- ...config files
+|-- server/                 # Express + TypeScript backend
+|   |-- src/
+|   |   |-- routes/         # church.routes.ts, auth.routes.ts
+|   |   |-- middleware/     # validate.ts, error-handler.ts
+|   |   |-- services/       # Prisma/PostGIS query services
+|   |   |-- schemas/        # Zod validation schemas
+|   |   |-- types/          # IChurch, ISearchParams, ISearchResponse
+|   |   `-- lib/            # Logger, Prisma client
+|   `-- prisma/
+|       |-- schema.prisma   # Prisma schema with PostGIS support
+|       |-- migrations/     # Committed SQL migrations
+|       `-- seed.ts         # Database seeder
+|-- docker-compose.yml      # Local PostgreSQL + PostGIS
+|-- render.yaml             # Render blueprint
+`-- package.json            # Root scripts
 ```

@@ -11,11 +11,19 @@ export const SearchBar = ({ variant = 'compact', onSubmit }: SearchBarProps) => 
   const query = useSearchStore((state) => state.query)
   const setQuery = useSearchStore((state) => state.setQuery)
   const [localValue, setLocalValue] = useState(query)
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setLocalValue(query)
   }, [query])
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -40,6 +48,10 @@ export const SearchBar = ({ variant = 'compact', onSubmit }: SearchBarProps) => 
     onSubmit?.()
   }
 
+  const inputSizeClass = variant === 'hero' ? 'py-3 text-base' : 'py-[10px] text-sm'
+  const placeholder =
+    variant === 'hero' ? 'Search churches, denomination, neighborhood...' : 'Search churches...'
+
   return (
     <form onSubmit={handleSubmit} className='relative w-full'>
       <div className='search-pill'>
@@ -48,8 +60,8 @@ export const SearchBar = ({ variant = 'compact', onSubmit }: SearchBarProps) => 
           type='text'
           value={localValue}
           onChange={handleChange}
-          placeholder='Search churches...'
-          className='flex-1 px-3 py-[10px] text-sm text-[#222222] placeholder-gray-400 bg-transparent border-0 outline-none font-medium'
+          placeholder={placeholder}
+          className={`flex-1 px-3 text-[#222222] placeholder-gray-400 bg-transparent border-0 outline-none font-medium ${inputSizeClass}`}
         />
         {localValue && (
           <button

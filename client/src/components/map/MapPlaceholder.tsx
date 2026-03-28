@@ -13,7 +13,6 @@ export const MapPlaceholder = () => {
   const hoveredChurchId = useSearchStore((state) => state.hoveredChurchId)
   const selectedChurchId = useSearchStore((state) => state.selectedChurchId)
   const setHoveredChurch = useSearchStore((state) => state.setHoveredChurch)
-  const setSelectedChurch = useSearchStore((state) => state.setSelectedChurch)
 
   const searchParams = {
     lat: SA_CENTER.lat,

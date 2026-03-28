@@ -1,8 +1,8 @@
 import 'dotenv/config'
-import express, { Request, Response, NextFunction } from 'express'
+import express, { Request, Response } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import pinoHttp from 'pino-http'
+import { pinoHttp } from 'pino-http'
 
 import logger from './lib/logger.js'
 import prisma from './lib/prisma.js'
@@ -27,7 +27,7 @@ app.use(
 app.use(pinoHttp({ logger }))
 
 // Health check endpoint (used by CI/CD health checks and rollback verification)
-app.get('/api/v1/health', (req: Request, res: Response) => {
+app.get('/api/v1/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     version: process.env.APP_VERSION || 'dev',
