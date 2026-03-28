@@ -1,0 +1,216 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  USER
+  CHURCH_ADMIN
+  SITE_ADMIN
+
+  @@map("role")
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("claim_status")
+}
+
+// Models
+model User {
+  id                    String                 @id @default(uuid())
+  email                 String                 @unique
+  passwordHash          String?
+  name                  String
+  avatarUrl             String?
+  role                  Role                   @default(USER)
+  googleId              String?                @unique
+  emailVerified         Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  reviews               Review[]
+  savedChurches         UserSavedChurch[]
+  claimedChurches       ChurchClaim[]          @relation("claimUser")
+  reviewedClaims        ChurchClaim[]          @relation("reviewedBy")
+  photos                ChurchPhoto[]
+  events                Event[]
+  reviewVotes           ReviewVote[]
+  passwordResetTokens   PasswordResetToken[]
+
+  @@map("users")
+}
+
+model Church {
+  id                    String                 @id @default(uuid())
+  name                  String
+  slug                  String                 @unique
+  denomination          String?
+  denominationFamily    String?
+  description           String?
+  address               String
+  city                  String                 @default("San Antonio")
+  state                 String                 @default("TX")
+  zipCode               String
+  neighborhood          String?
+  latitude              Decimal                @db.Decimal(10, 8)
+  longitude             Decimal                @db.Decimal(11, 8)
+  phone                 String?
+  email                 String?
+  website               String?
+  pastorName            String?
+  yearEstablished       Int?
+  avgRating             Decimal                @default(0) @db.Decimal(3, 2)
+  reviewCount           Int                    @default(0)
+  isClaimed             Boolean                @default(false)
+  claimedById           String?
+  languages             String[]               @default([])
+  amenities             String[]               @default([])
+  coverImageUrl         String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  services              ChurchService[]
+  photos                ChurchPhoto[]
+  reviews               Review[]
+  events                Event[]
+  claims                ChurchClaim[]
+  savedByUsers          UserSavedChurch[]
+
+  @@index([slug])
+  @@index([denominationFamily])
+  @@index([latitude, longitude])
+  @@map("churches")
+}
+
+model ChurchService {
+  id                    String                 @id @default(uuid())
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  dayOfWeek             Int
+  startTime             String
+  endTime               String?
+  serviceType           String
+  language              String                 @default("English")
+  description           String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@map("church_services")
+}
+
+model ChurchPhoto {
+  id                    String                 @id @default(uuid())
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  url                   String
+  altText               String?
+  displayOrder          Int                    @default(0)
+  uploadedById          String?
+  uploadedBy            User?                  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt             DateTime               @default(now())
+
+  @@map("church_photos")
+}
+
+model Review {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  rating                Decimal                @db.Decimal(3, 2)
+  body                  String
+  welcomeRating         Int?
+  worshipRating         Int?
+  sermonRating          Int?
+  facilitiesRating      Int?
+  helpfulCount          Int                    @default(0)
+  isFlagged             Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  votes                 ReviewVote[]
+
+  @@unique([userId, churchId])
+  @@map("reviews")
+}
+
+model ReviewVote {
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewId              String
+  review                Review                 @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  createdAt             DateTime               @default(now())
+
+  @@id([userId, reviewId])
+  @@map("review_votes")
+}
+
+model Event {
+  id                    String                 @id @default(uuid())
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  title                 String
+  description           String?
+  eventType             String
+  startTime             DateTime
+  endTime               DateTime?
+  locationOverride      String?
+  isRecurring           Boolean                @default(false)
+  recurrenceRule        String?
+  createdById           String?
+  createdBy             User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@map("events")
+}
+
+model ChurchClaim {
+  id                    String                 @id @default(uuid())
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  userId                String
+  user                  User                   @relation("claimUser", fields: [userId], references: [id], onDelete: Cascade)
+  roleTitle             String
+  verificationEmail     String
+  status                ClaimStatus            @default(PENDING)
+  reviewedById          String?
+  reviewedBy            User?                  @relation("reviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt             DateTime               @default(now())
+  reviewedAt            DateTime?
+
+  @@map("church_claims")
+}
+
+model PasswordResetToken {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash             String                 @unique
+  expiresAt             DateTime
+  usedAt                DateTime?
+  createdAt             DateTime               @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+model UserSavedChurch {
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  savedAt               DateTime               @default(now())
+
+  @@id([userId, churchId])
+  @@map("user_saved_churches")
+}

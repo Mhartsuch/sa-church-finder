@@ -1,0 +1,142 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rollback_to:
+        description: 'Commit SHA to rollback to (leave empty for normal deploy)'
+        required: false
+        type: string
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── Gate: CI must pass before deploy ──
+  ci-check:
+    name: CI Gate
+    uses: ./.github/workflows/ci.yml
+
+  # ── Tag each deployment for rollback tracking ──
+  tag-release:
+    name: Tag Release
+    needs: ci-check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate version tag
+        id: version
+        run: |
+          TAG="v$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Tagging release: $TAG"
+      - name: Create git tag
+        run: |
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
+
+  # ── Database migration (runs before app deploy) ──
+  migrate:
+    name: Run Migrations
+    needs: tag-release
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.rollback_to || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: cd server && npm ci
+      - name: Apply database migrations
+        run: cd server && npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  # ── Deploy backend ──
+  deploy-server:
+    name: Deploy Server
+    needs: migrate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.rollback_to || github.sha }}
+      - name: Deploy to Railway/Render
+        run: |
+          echo "Deploy backend to hosting provider"
+          echo "Commit: ${{ inputs.rollback_to || github.sha }}"
+          # Uncomment and configure for your provider:
+          # railway up --service server
+          # OR: render deploy --service-id ${{ secrets.RENDER_SERVER_ID }}
+
+  # ── Deploy frontend ──
+  deploy-client:
+    name: Deploy Client
+    needs: migrate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.rollback_to || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: cd client && npm ci
+      - run: cd client && npm run build
+        env:
+          VITE_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          VITE_API_URL: ${{ secrets.API_URL }}
+      - name: Deploy to Vercel
+        run: |
+          echo "Deploy frontend to Vercel"
+          echo "Commit: ${{ inputs.rollback_to || github.sha }}"
+          # Uncomment: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  # ── Post-deploy health check ──
+  health-check:
+    name: Health Check
+    needs: [deploy-server, deploy-client]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check API health
+        run: |
+          echo "Running post-deploy health check..."
+          # Uncomment when API_URL is configured:
+          # for i in 1 2 3 4 5; do
+          #   STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.API_URL }}/api/v1/health)
+          #   if [ "$STATUS" = "200" ]; then
+          #     echo "Health check passed!"
+          #     exit 0
+          #   fi
+          #   echo "Attempt $i: got $STATUS, retrying in 10s..."
+          #   sleep 10
+          # done
+          # echo "Health check failed after 5 attempts"
+          # exit 1
+          echo "Health check placeholder - configure API_URL secret to enable"
+
+  # ── Notify on failure ──
+  notify-failure:
+    name: Notify on Failure
+    needs: [deploy-server, deploy-client, health-check]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alert team
+        run: |
+          echo "Deployment failed! Consider rolling back."
+          echo "To rollback, run the Deploy workflow manually with"
+          echo "rollback_to set to the last known good commit SHA."
+          echo ""
+          echo "Recent tags (potential rollback targets):"
+          echo "  git tag --sort=-creatordate | head -5"
