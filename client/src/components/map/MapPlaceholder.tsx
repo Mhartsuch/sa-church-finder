@@ -1,9 +1,11 @@
 import { MapPin, AlertCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useSearchStore } from '@/stores/search-store'
 import { useChurches } from '@/hooks/useChurches'
 import { SA_CENTER, DEFAULT_RADIUS, PAGE_SIZE } from '@/constants'
 
 export const MapPlaceholder = () => {
+  const navigate = useNavigate()
   const query = useSearchStore((state) => state.query)
   const filters = useSearchStore((state) => state.filters)
   const sort = useSearchStore((state) => state.sort)
@@ -98,7 +100,7 @@ export const MapPlaceholder = () => {
             return (
               <g
                 key={church.id}
-                onClick={() => setSelectedChurch(church.id)}
+                onClick={() => navigate(`/churches/${church.slug}`)}
                 onMouseEnter={() => setHoveredChurch(church.id)}
                 onMouseLeave={() => setHoveredChurch(null)}
                 style={{ cursor: 'pointer' }}

@@ -72,7 +72,7 @@ GET /api/v1/churches/:slug
 sa-church-finder/
 ├── client/                 # React + Vite + TypeScript frontend
 │   ├── src/
-│   │   ├── pages/          # SearchPage (main view)
+│   │   ├── pages/          # SearchPage, ChurchProfilePage
 │   │   ├── components/
 │   │   │   ├── church/     # ChurchCard, ChurchList
 │   │   │   ├── map/        # MapPlaceholder (Mapbox later)

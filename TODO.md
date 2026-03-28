@@ -21,7 +21,7 @@
 - [ ] Start Docker PostgreSQL, run Prisma migrations, seed database
 
 ### P1 — High
-- [ ] Build Church Profile Page (F1.3 — hero, about, services, location, contact)
+- [x] Build Church Profile Page (F1.3 — hero, about, services, location, contact) — completed 2026-03-27
 - [ ] Integrate Mapbox GL JS when token is available (replace MapPlaceholder)
 - [ ] Implement map pin clustering for zoomed-out views
 - [ ] Add viewport-based querying (update results as map pans)
@@ -36,11 +36,16 @@
 
 ### P3 — Low
 - [ ] Add Husky + lint-staged for pre-commit hooks
-- [ ] Set up GitHub Actions CI (lint, typecheck, test on PRs)
+- [x] Set up GitHub Actions CI (lint, typecheck, test on PRs) — workflows created, CI fixes applied (2026-03-27)
 - [ ] Set up error monitoring (Sentry free tier)
 - [ ] Add keyboard navigation support for search results
 
 ### Completed
+- [x] Church Profile Page (F1.3) with hero, about, services, location, contact, amenities (2026-03-27)
+- [x] Navigation wired: card clicks + map pin clicks → profile page (2026-03-27)
+- [x] Header updated with React Router links (2026-03-27)
+- [x] CI pipeline fixed: added ESLint plugins, vitest/jest configs, smoke tests, removed premature Prisma step (2026-03-27)
+- [x] GitHub repo created and initial code pushed — https://github.com/Mhartsuch/sa-church-finder (2026-03-27)
 - [x] npm install and build verification — app runs end-to-end (2026-03-27)
 - [x] Created server/.env with Docker DATABASE_URL (2026-03-27)
 - [x] Fixed ChurchList onClick type mismatch and sort dropdown type safety (2026-03-27)
@@ -78,4 +83,4 @@
 - 13 moderate vulns in client, 30 vulns in server (transitive deps) — not urgent
 
 ---
-*Last updated: 2026-03-27*
+*Last updated: 2026-03-27 (CI fix session)*

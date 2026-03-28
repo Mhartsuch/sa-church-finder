@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { Header } from '@/components/layout/Header'
 import { SearchPage } from '@/pages/SearchPage'
+import { ChurchProfilePage } from '@/pages/ChurchProfilePage'
 
 const App = () => {
   return (
@@ -8,6 +9,7 @@ const App = () => {
       <Header />
       <Routes>
         <Route path='/' element={<SearchPage />} />
+        <Route path='/churches/:slug' element={<ChurchProfilePage />} />
       </Routes>
     </div>
   )

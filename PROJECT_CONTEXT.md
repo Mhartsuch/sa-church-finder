@@ -53,10 +53,10 @@ software
 - Free tier must exist for churches — no paywall for basic listing
 
 ## Current Status
-Planning — Architecture and specifications phase
+Active Development — Milestone 1 nearly complete. Search page (map + list) and Church Profile Page are built. Remaining M1 work: Mapbox integration, responsive layout, URL-based search state. Next major milestone: User Accounts & Reviews (M2).
 
 ## Important Links
-- GitHub: (not yet created)
+- GitHub: https://github.com/Mhartsuch/sa-church-finder
 - Design mockups: /docs/mockups/
 - API docs: /docs/api/
 
@@ -65,4 +65,4 @@ Planning — Architecture and specifications phase
 - Contact: mhartsuch@gmail.com
 
 ---
-*Last updated: 2026-03-26*
+*Last updated: 2026-03-27*
