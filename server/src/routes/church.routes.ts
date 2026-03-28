@@ -37,7 +37,7 @@ router.get(
 
       logger.info({ params }, 'Searching churches')
 
-      const response = searchChurches(params)
+      const response = await searchChurches(params)
 
       res.json(response)
     } catch (error) {
@@ -58,7 +58,7 @@ router.get(
       const { slug } = req.params
       logger.info({ slug }, 'Fetching church by slug')
 
-      const church = getChurchDetailsBySlug(slug)
+      const church = await getChurchDetailsBySlug(slug)
 
       if (!church) {
         return res.status(404).json({

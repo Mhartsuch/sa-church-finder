@@ -15,6 +15,13 @@ export interface MapState {
   zoom: number
 }
 
+export interface MapBounds {
+  swLat: number
+  swLng: number
+  neLat: number
+  neLng: number
+}
+
 interface SearchStore {
   query: string
   filters: SearchFilters
@@ -24,6 +31,7 @@ interface SearchStore {
   selectedChurchId: string | null
   mapCenter: { lat: number; lng: number }
   mapZoom: number
+  mapBounds: MapBounds | null
 
   // Actions
   setQuery: (query: string) => void
@@ -35,6 +43,7 @@ interface SearchStore {
   setSelectedChurch: (id: string | null) => void
   setMapCenter: (lat: number, lng: number) => void
   setMapZoom: (zoom: number) => void
+  setMapBounds: (bounds: MapBounds | null) => void
 }
 
 export const useSearchStore = create<SearchStore>((set) => ({
@@ -46,6 +55,7 @@ export const useSearchStore = create<SearchStore>((set) => ({
   selectedChurchId: null,
   mapCenter: SA_CENTER,
   mapZoom: DEFAULT_ZOOM,
+  mapBounds: null,
 
   setQuery: (query: string) => set({ query, page: 1 }),
 
@@ -75,5 +85,7 @@ export const useSearchStore = create<SearchStore>((set) => ({
 
   setMapCenter: (lat: number, lng: number) => set({ mapCenter: { lat, lng } }),
 
-  setMapZoom: (zoom: number) => set({ mapZoom: zoom })
+  setMapZoom: (zoom: number) => set({ mapZoom: zoom }),
+
+  setMapBounds: (bounds: MapBounds | null) => set({ mapBounds: bounds, page: 1 })
 }))

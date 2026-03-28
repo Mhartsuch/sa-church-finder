@@ -1,0 +1,42 @@
+# Render Blueprint — deploys frontend + backend from this monorepo
+# https://render.com/docs/blueprint-spec
+
+services:
+  # ── Backend API ──
+  - type: web
+    name: sa-church-finder-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: CLIENT_URL
+        sync: false  # Set after frontend deploys
+      - key: DATABASE_URL
+        sync: false  # Set manually to Supabase session pooler URL
+      - key: SESSION_SECRET
+        generateValue: true
+    healthCheckPath: /api/v1/health
+
+  # ── Frontend SPA ──
+  - type: web
+    name: sa-church-finder
+    runtime: static
+    region: oregon
+    plan: free
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false  # Set to backend service URL (e.g., https://sa-church-finder-api.onrender.com)
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

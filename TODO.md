@@ -18,20 +18,20 @@
 ## Tasks
 
 ### P0 — Critical
-- [ ] Start Docker PostgreSQL, run Prisma migrations, seed database
+- [x] Set up PostgreSQL + PostGIS database, run Prisma migrations, seed database — Supabase cloud (us-west-2), completed 2026-03-28
 
 ### P1 — High
 - [x] Build Church Profile Page (F1.3 — hero, about, services, location, contact) — completed 2026-03-27
-- [ ] Integrate Mapbox GL JS when token is available (replace MapPlaceholder)
-- [ ] Implement map pin clustering for zoomed-out views
-- [ ] Add viewport-based querying (update results as map pans)
-- [ ] Make URL reflect search state (shareable/bookmarkable)
+- [x] Integrate Mapbox GL JS when token is available (replace MapPlaceholder) — completed 2026-03-27
+- [x] Implement map pin clustering for zoomed-out views — completed 2026-03-27
+- [x] Add viewport-based querying (update results as map pans) — completed 2026-03-27
+- [x] Make URL reflect search state (shareable/bookmarkable) — completed 2026-03-27
 
 ### P2 — Medium
-- [ ] Add responsive layout (mobile tabs for map/list)
-- [ ] Add loading skeleton animations to ChurchCard
-- [ ] Implement "no results" suggestions (widen radius, change filters)
-- [ ] Write database seed script with proper PostGIS location column
+- [x] Add responsive layout (mobile tabs for map/list) — completed 2026-03-27
+- [x] Add loading skeleton animations to ChurchCard — shimmer effect component, completed 2026-03-27
+- [x] Implement "no results" suggestions (widen radius, change filters) — completed 2026-03-27
+- [x] Write database seed script with proper PostGIS location column — completed 2026-03-27
 - [ ] Upgrade deprecated deps (eslint 8→9, multer 1→2, supertest 6→7)
 
 ### P3 — Low
@@ -41,6 +41,16 @@
 - [ ] Add keyboard navigation support for search results
 
 ### Completed
+- [x] Supabase cloud database live — PostgreSQL + PostGIS 3.3, 22 churches seeded, spatial queries verified (2026-03-28)
+- [x] PostGIS database migration — initial migration SQL with geography column, GIST spatial index, auto-sync trigger (2026-03-27)
+- [x] Seed script rewrite — uses Prisma.Decimal, verifies PostGIS, tests spatial query, 5 sample reviews, admin user (2026-03-27)
+- [x] ChurchCardSkeleton component — shimmer animation matching exact ChurchCard layout (2026-03-27)
+- [x] Mapbox GL JS interactive map with Airbnb-style name-bubble pins, popups, and lazy loading (2026-03-27)
+- [x] Map pin clustering — dark circles with count, click-to-zoom, three size tiers (2026-03-27)
+- [x] Viewport-based querying — list + map sync via bounds parameter, debounced on pan/zoom (2026-03-27)
+- [x] URL-based search state — shareable/bookmarkable URLs with all filters synced (2026-03-27)
+- [x] Responsive layout — mobile-first list view, full-screen map/list toggle on small screens (2026-03-27)
+- [x] No-results suggestions — contextual empty state with actionable filter-removal buttons (2026-03-27)
 - [x] Church Profile Page (F1.3) with hero, about, services, location, contact, amenities (2026-03-27)
 - [x] Navigation wired: card clicks + map pin clicks → profile page (2026-03-27)
 - [x] Header updated with React Router links (2026-03-27)
@@ -83,4 +93,4 @@
 - 13 moderate vulns in client, 30 vulns in server (transitive deps) — not urgent
 
 ---
-*Last updated: 2026-03-27 (CI fix session)*
+*Last updated: 2026-03-28 (Supabase database live)*

@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import pinoHttp from 'pino-http'
 
 import logger from './lib/logger.js'
+import prisma from './lib/prisma.js'
 import { errorHandler } from './middleware/error-handler.js'
 import churchRoutes from './routes/church.routes.js'
 import authRoutes from './routes/auth.routes.js'
@@ -19,7 +20,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ limit: '10mb', extended: true }))
 app.use(
   cors({
-    origin: clientUrl,
+    origin: clientUrl === '*' ? true : clientUrl,
     credentials: true,
   }),
 )
@@ -63,7 +64,8 @@ const server = app.listen(port, () => {
 // Graceful shutdown
 const gracefulShutdown = () => {
   logger.info('Received shutdown signal, closing gracefully...')
-  server.close(() => {
+  server.close(async () => {
+    await prisma.$disconnect()
     logger.info('Server closed')
     process.exit(0)
   })

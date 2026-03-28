@@ -2,7 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, X } from 'lucide-react'
 import { useSearchStore } from '@/stores/search-store'
 
-export const SearchBar = () => {
+interface SearchBarProps {
+  variant?: 'hero' | 'compact'
+  onSubmit?: () => void
+}
+
+export const SearchBar = ({ variant = 'compact', onSubmit }: SearchBarProps) => {
   const query = useSearchStore((state) => state.query)
   const setQuery = useSearchStore((state) => state.setQuery)
   const [localValue, setLocalValue] = useState(query)
@@ -16,7 +21,6 @@ export const SearchBar = () => {
     const value = e.target.value
     setLocalValue(value)
 
-    // Debounce the store update
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
     }
@@ -31,27 +35,36 @@ export const SearchBar = () => {
     setQuery('')
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSubmit?.()
+  }
+
   return (
-    <div className='relative w-full'>
-      <div className='relative flex items-center bg-white rounded-lg border border-gray-300 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500'>
-        <Search className='w-5 h-5 text-gray-400 ml-3 flex-shrink-0' />
+    <form onSubmit={handleSubmit} className='relative w-full'>
+      <div className='search-pill'>
+        <Search className='w-4 h-4 text-[#222222] ml-4 flex-shrink-0' />
         <input
           type='text'
           value={localValue}
           onChange={handleChange}
-          placeholder='Search churches by name, denomination, or neighborhood...'
-          className='w-full px-3 py-3 text-gray-900 placeholder-gray-500 border-0 outline-none'
+          placeholder='Search churches...'
+          className='flex-1 px-3 py-[10px] text-sm text-[#222222] placeholder-gray-400 bg-transparent border-0 outline-none font-medium'
         />
         {localValue && (
           <button
+            type='button'
             onClick={handleClear}
-            className='p-2 text-gray-400 hover:text-gray-600 transition-colors'
+            className='p-1 mr-1 text-gray-400 hover:text-[#222222] hover:bg-gray-100 rounded-full transition-colors'
             aria-label='Clear search'
           >
-            <X className='w-5 h-5' />
+            <X className='w-4 h-4' />
           </button>
         )}
+        <div className='mr-2 p-[7px] bg-[#FF385C] hover:bg-[#E00B41] text-white rounded-full transition-colors cursor-pointer'>
+          <Search className='w-3 h-3' />
+        </div>
       </div>
-    </div>
+    </form>
   )
 }

@@ -12,6 +12,94 @@
 
 ## Log
 
+### 2026-03-27 — PostGIS Database Migration & Loading Skeletons
+**Focus:** Prepared the full PostGIS database layer (schema, migration, seed) so that spinning up Docker is all that's needed to go live with persistent data. Also added polished loading skeletons.
+
+**Completed:**
+- **Prisma schema update:** Added `postgresqlExtensions` preview feature, `postgis` extension, and `location Unsupported("geography(Point,4326)")?` column to Church model. Prisma now knows the column exists even though it manages it via raw SQL.
+- **Initial migration SQL:** Created `server/prisma/migrations/20260327000000_init/migration.sql` — full DDL for all 10 tables, enums, foreign keys, unique constraints, and indexes. Includes PostGIS-specific additions: `CREATE EXTENSION IF NOT EXISTS "postgis"`, `geography(Point, 4326)` column on `churches`, GIST spatial index on `location`, and a `BEFORE INSERT OR UPDATE` trigger (`churches_location_sync`) that auto-populates the geography column from `latitude`/`longitude` on every write.
+- **Seed script rewrite:** Completely rewrote `server/prisma/seed.ts` with proper `Prisma.Decimal` types for all numeric fields, an admin user in addition to the test user, 5 sample reviews (up from 2), PostGIS verification on startup (checks PostGIS version, validates location column population, runs a test `ST_DWithin` spatial query), and graceful fallback warnings if PostGIS isn't available.
+- **ChurchCardSkeleton component:** Created `client/src/components/church/ChurchCardSkeleton.tsx` with a CSS shimmer gradient animation (not just `animate-pulse`). The skeleton matches the exact layout dimensions of `ChurchCard` (aspect ratio, text line heights, spacing) so there's zero layout shift on load. Includes a `ChurchCardSkeletonGrid` wrapper that matches both `grid` and `sidebar` variants. Updated `ChurchList` to use the new component.
+- **Tailwind config:** Added `shimmer` keyframe animation to `tailwind.config.ts`.
+
+**Files Changed:**
+- `server/prisma/schema.prisma` (updated — PostGIS extension + location column)
+- `server/prisma/migrations/20260327000000_init/migration.sql` (new — full initial migration)
+- `server/prisma/migrations/migration_lock.toml` (new — Prisma migration lock)
+- `server/prisma/seed.ts` (rewritten — PostGIS-aware, better types, more seed data)
+- `client/src/components/church/ChurchCardSkeleton.tsx` (new — shimmer skeleton)
+- `client/src/components/church/ChurchList.tsx` (updated — uses ChurchCardSkeletonGrid)
+- `client/tailwind.config.ts` (updated — shimmer keyframe)
+
+**To activate the database:**
+```bash
+# From the project root
+docker compose up -d
+cd server
+npx prisma migrate deploy
+npx prisma db seed
+```
+
+**Next Steps:**
+- Run `docker compose up` on host machine to start PostgreSQL
+- Apply migration and seed the database
+- Swap the in-memory data layer for Prisma queries (church.service.ts)
+- Begin Milestone 2 (User Accounts & Reviews)
+
+---
+
+### 2026-03-27 — Mapbox GL JS Integration with Clustering & Viewport Querying
+**Focus:** Built the full interactive map — the biggest remaining M1 feature. Covers three P1 tasks at once.
+
+**Completed:**
+- **InteractiveMap component:** Full Mapbox GL JS map using `react-map-gl`. Features Airbnb-style name-bubble pins (white with text halo at rest, dark on hover). Pins sync hover state with the ChurchList. Clicking a pin opens a popup card with church name, denomination, rating, distance, next service, and "View profile →" link. Map includes NavigationControl (zoom buttons) and GeolocateControl.
+- **Clustering:** GeoJSON source with `cluster: true`, `clusterMaxZoom: 14`, `clusterRadius: 60`. Dark circle clusters show abbreviated count, with three size tiers (18/22/28px radius). Clicking a cluster zooms in to its expansion zoom. Individual pins use `text-allow-overlap: false` to declutter automatically.
+- **Viewport-based querying:** Map reports its bounds (sw/ne corners) to the Zustand store via `setMapBounds`. Both the ChurchList and InteractiveMap use the `bounds` query parameter when available, so the list and map always show the same churches. Bounds updates are debounced (300ms) to avoid excessive API calls while panning.
+- **Graceful fallback:** Created `MapContainer` that lazy-loads the InteractiveMap only when `VITE_MAPBOX_TOKEN` is set. Without a token, the existing SVG `MapPlaceholder` renders as before. The mapbox-gl bundle is code-split via `React.lazy`.
+- **Store update:** Added `mapBounds` and `setMapBounds` to the Zustand search store. ChurchList now uses bounds for filtering when the map viewport is available.
+- **Popup styling:** Added Mapbox popup CSS overrides in `index.css` matching the Airbnb card aesthetic (rounded corners, shadow, clean close button).
+
+**Files Changed:**
+- `client/src/components/map/InteractiveMap.tsx` (new — full Mapbox map with clustering, viewport querying, popups)
+- `client/src/components/map/MapContainer.tsx` (new — smart switcher: real map vs placeholder)
+- `client/src/stores/search-store.ts` (updated — added MapBounds type, mapBounds state, setMapBounds action)
+- `client/src/components/church/ChurchList.tsx` (updated — uses mapBounds for viewport-based list filtering)
+- `client/src/pages/SearchPage.tsx` (updated — uses MapContainer instead of MapPlaceholder)
+- `client/src/index.css` (updated — Mapbox popup styling)
+
+**To activate the map:**
+- Set `VITE_MAPBOX_TOKEN=pk.your_token_here` in `client/.env`
+- Run `npm run dev` — the map will load automatically
+
+**Next Steps:**
+- Get a Mapbox token and test the live map
+- Start Docker PostgreSQL + Prisma migrations for persistent data
+- Begin Milestone 2 (User Accounts & Reviews)
+
+---
+
+### 2026-03-27 — URL Search State, Responsive Layout & No-Results UX
+**Focus:** Three P1/P2 improvements to close out remaining Milestone 1 polish items.
+
+**Completed:**
+- **URL-based search state (P1):** Created `useURLSearchState` hook that syncs the Zustand search store with URL search parameters. On page load, URL params (`q`, `denomination`, `day`, `time`, `language`, `amenities`, `sort`, `page`) initialize the store. When the user changes filters, the URL updates in real-time (via `replace` to keep history clean). Search URLs are now shareable and bookmarkable (e.g., `/search?q=baptist&day=0&sort=rating`).
+- **Responsive layout (P2):** SearchPage now detects mobile viewport (<768px). On mobile: map is hidden by default (list-first experience), list uses the full-width grid layout instead of sidebar, and the map toggle switches between full-screen map and full-screen list. On desktop: side-by-side layout preserved as before.
+- **No-results suggestions (P2):** Replaced the generic "No churches found" empty state with a contextual `NoResults` component. Shows a map-pin icon, an explanation tailored to what's active (query, filters, or both), and up to 3 actionable suggestion buttons (e.g., "Clear filters and keep search", "Remove 'Sunday' filter", "Reset everything"). Primary action is styled with the dark Airbnb-style pill button.
+
+**Files Changed:**
+- `client/src/hooks/useURLSearchState.ts` (new — URL ↔ store sync hook)
+- `client/src/components/search/NoResults.tsx` (new — contextual empty state)
+- `client/src/pages/SearchPage.tsx` (updated — responsive layout + URL state hook)
+- `client/src/components/church/ChurchList.tsx` (updated — uses NoResults component)
+
+**Next Steps:**
+- Push to GitHub (host-side) and verify CI passes
+- Integrate Mapbox GL JS when token is available
+- Start Docker PostgreSQL + Prisma migrations for persistent data
+- Begin Milestone 2 (User Accounts & Reviews)
+
+---
+
 ### 2026-03-27 — CI Pipeline Fix
 **Focus:** Fixed GitHub Actions CI pipeline failures — multiple missing configs and dependencies.
 

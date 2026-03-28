@@ -1,35 +1,38 @@
-import { Search } from 'lucide-react'
+import { CategoryFilter } from '@/components/search/CategoryFilter'
+import { ChurchList } from '@/components/church/ChurchList'
 
 const HomePage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            SA Church Finder
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            Discover churches in San Antonio
-          </p>
+    <div className='min-h-screen bg-white'>
+      {/* Category Filter Bar — sticky below header */}
+      <div className='sticky top-[80px] z-40 bg-white border-b border-gray-200'>
+        <div className='max-w-[2520px] mx-auto'>
+          <CategoryFilter showQuickFilters />
         </div>
+      </div>
 
-        <div className="flex justify-center mb-12">
-          <div className="w-full max-w-md">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search for churches..."
-                className="w-full px-4 py-3 pl-12 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+      {/* Church Grid */}
+      <div className='max-w-[2520px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-20 pt-6 pb-10'>
+        <ChurchList variant='grid' />
+      </div>
+
+      {/* Footer */}
+      <footer className='border-t border-gray-200 bg-[#f7f7f7]'>
+        <div className='max-w-[2520px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-20 py-6'>
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4'>
+            <p className='text-sm text-[#717171]'>
+              &copy; 2026 SA Church Finder
+            </p>
+            <div className='flex items-center gap-4'>
+              <a href='#' className='text-sm text-[#222222] hover:underline font-medium'>About</a>
+              <span className='text-gray-300'>&middot;</span>
+              <a href='#' className='text-sm text-[#222222] hover:underline font-medium'>Privacy</a>
+              <span className='text-gray-300'>&middot;</span>
+              <a href='#' className='text-sm text-[#222222] hover:underline font-medium'>Terms</a>
             </div>
           </div>
         </div>
-
-        <div className="text-center text-gray-600 dark:text-gray-400">
-          <p>More features coming soon...</p>
-        </div>
-      </div>
+      </footer>
     </div>
   )
 }

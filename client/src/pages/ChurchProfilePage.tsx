@@ -7,11 +7,13 @@ import {
   Globe,
   Star,
   Clock,
-  ChevronRight,
   CheckCircle,
   Users,
   Calendar,
   ExternalLink,
+  Share,
+  Heart,
+  ChevronLeft,
 } from 'lucide-react'
 import { useChurch } from '@/hooks/useChurches'
 import { IChurchService } from '@/types/church'
@@ -26,25 +28,11 @@ const groupServicesByDay = (services: IChurchService[]) => {
     existing.push(service)
     grouped.set(service.dayOfWeek, existing)
   }
-  // Return in day order, only days that have services
   return DAY_ORDER.filter((day) => grouped.has(day)).map((day) => ({
     day,
     dayName: getDayName(day),
     services: grouped.get(day)!,
   }))
-}
-
-const AMENITY_ICONS: Record<string, string> = {
-  Parking: 'P',
-  'Wheelchair Accessible': 'WC',
-  Childcare: 'CC',
-  Livestream: 'LS',
-  'Youth Group': 'YG',
-  Choir: 'CH',
-  'Gift Shop': 'GS',
-  'Music Ministry': 'MM',
-  'Food Pantry': 'FP',
-  'Community Garden': 'CG',
 }
 
 export const ChurchProfilePage = () => {
@@ -59,14 +47,13 @@ export const ChurchProfilePage = () => {
   if (error || !church) {
     return (
       <div className='flex-1 flex flex-col items-center justify-center p-8'>
-        <h2 className='text-2xl font-bold text-gray-900 mb-2'>Church Not Found</h2>
-        <p className='text-gray-600 mb-6'>
-          We couldn&apos;t find a church at this address. It may have been removed or the link may be
-          incorrect.
+        <h2 className='text-2xl font-bold text-[#222222] mb-2'>Church Not Found</h2>
+        <p className='text-[#717171] mb-6'>
+          We couldn&apos;t find a church at this address.
         </p>
         <button
           onClick={() => navigate('/')}
-          className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+          className='inline-flex items-center gap-2 px-6 py-3 bg-[#222222] text-white rounded-lg hover:bg-black transition-colors font-semibold'
         >
           <ArrowLeft className='w-4 h-4' />
           Back to Search
@@ -82,298 +69,314 @@ export const ChurchProfilePage = () => {
   const groupedServices = groupServicesByDay(church.services)
 
   return (
-    <div className='flex-1 overflow-y-auto'>
-      {/* Back Navigation */}
-      <div className='bg-white border-b border-gray-200'>
-        <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3'>
-          <Link
-            to='/'
-            className='inline-flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition-colors'
-          >
-            <ArrowLeft className='w-4 h-4' />
-            Back to Search
-          </Link>
+    <div className='flex-1 overflow-y-auto bg-white'>
+      {/* Top bar with back + actions */}
+      <div className='max-w-[1120px] mx-auto px-6 lg:px-0 pt-6 pb-4'>
+        <Link
+          to='/'
+          className='inline-flex items-center gap-1 text-sm text-[#222222] hover:underline font-medium'
+        >
+          <ChevronLeft className='w-4 h-4' />
+          Back
+        </Link>
+      </div>
+
+      {/* Image gallery placeholder — Airbnb 4-grid layout */}
+      <div className='max-w-[1120px] mx-auto px-6 lg:px-0 mb-6'>
+        <div className='grid grid-cols-4 gap-2 rounded-xl overflow-hidden h-[330px] lg:h-[400px]'>
+          <div className='col-span-2 row-span-2 bg-gray-200 relative group cursor-pointer'>
+            <div className='absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors' />
+            <div className='absolute inset-0 flex items-center justify-center'>
+              <div className='text-center text-gray-400'>
+                <MapPin className='w-10 h-10 mx-auto mb-2' />
+                <p className='text-sm font-medium'>Church photos coming soon</p>
+              </div>
+            </div>
+          </div>
+          <div className='bg-gray-100 relative group cursor-pointer'>
+            <div className='absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors' />
+          </div>
+          <div className='bg-gray-200 relative group cursor-pointer'>
+            <div className='absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors' />
+          </div>
+          <div className='bg-gray-100 relative group cursor-pointer'>
+            <div className='absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors' />
+          </div>
+          <div className='bg-gray-200 relative group cursor-pointer'>
+            <div className='absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors' />
+            <div className='absolute bottom-3 right-3'>
+              <button className='px-4 py-1.5 bg-white text-[#222222] text-xs font-semibold rounded-lg border border-[#222222] hover:bg-gray-50 transition-colors'>
+                Show all photos
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Hero Section */}
-      <div className='bg-gradient-to-br from-blue-600 to-blue-800 text-white'>
-        <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10'>
-          <div className='flex flex-col gap-4'>
-            {/* Denomination badge */}
-            {church.denomination && (
-              <span className='inline-flex self-start px-3 py-1 bg-white/20 text-white text-sm font-medium rounded-full'>
-                {church.denomination}
-              </span>
+      {/* Content area */}
+      <div className='max-w-[1120px] mx-auto px-6 lg:px-0 pb-16'>
+        <div className='flex flex-col lg:flex-row gap-12 lg:gap-24'>
+          {/* Left column — main info */}
+          <div className='flex-1 min-w-0'>
+            {/* Title section */}
+            <div className='pb-6 border-b border-gray-200'>
+              <h1 className='text-[26px] font-bold text-[#222222] mb-1'>{church.name}</h1>
+
+              <div className='flex items-center flex-wrap gap-1.5 text-[14px]'>
+                {church.avgRating > 0 && (
+                  <>
+                    <div className='flex items-center gap-1'>
+                      <Star className='w-4 h-4 fill-[#222222] text-[#222222]' />
+                      <span className='font-semibold'>{formatRating(church.avgRating)}</span>
+                    </div>
+                    <span className='text-[#717171]'>&middot;</span>
+                    <button className='text-[#222222] underline font-semibold'>{church.reviewCount} reviews</button>
+                    <span className='text-[#717171]'>&middot;</span>
+                  </>
+                )}
+                {church.isClaimed && (
+                  <>
+                    <span className='flex items-center gap-1 text-[#222222] font-medium'>
+                      <CheckCircle className='w-4 h-4' />
+                      Claimed
+                    </span>
+                    <span className='text-[#717171]'>&middot;</span>
+                  </>
+                )}
+                {church.denomination && (
+                  <>
+                    <span className='font-semibold text-[#222222]'>{church.denomination}</span>
+                    <span className='text-[#717171]'>&middot;</span>
+                  </>
+                )}
+                <button className='text-[#222222] underline font-semibold'>
+                  {church.neighborhood || church.city}, {church.state}
+                </button>
+              </div>
+
+              {/* Action buttons — Airbnb style */}
+              <div className='flex items-center gap-4 mt-4'>
+                <button className='flex items-center gap-2 text-sm font-semibold text-[#222222] underline hover:text-[#000000]'>
+                  <Share className='w-4 h-4' />
+                  Share
+                </button>
+                <button className='flex items-center gap-2 text-sm font-semibold text-[#222222] underline hover:text-[#000000]'>
+                  <Heart className='w-4 h-4' />
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* About section */}
+            {(church.description || church.pastorName || church.yearEstablished) && (
+              <div className='py-8 border-b border-gray-200'>
+                <h2 className='text-[22px] font-semibold text-[#222222] mb-5'>About this church</h2>
+
+                {church.description && (
+                  <p className='text-[16px] text-[#222222] leading-relaxed mb-6'>{church.description}</p>
+                )}
+
+                <div className='flex flex-col gap-5'>
+                  {church.pastorName && (
+                    <div className='flex items-center gap-4'>
+                      <Users className='w-6 h-6 text-[#222222]' />
+                      <div>
+                        <p className='text-[14px] font-semibold text-[#222222]'>Pastor</p>
+                        <p className='text-[14px] text-[#717171]'>{church.pastorName}</p>
+                      </div>
+                    </div>
+                  )}
+                  {church.yearEstablished && (
+                    <div className='flex items-center gap-4'>
+                      <Calendar className='w-6 h-6 text-[#222222]' />
+                      <div>
+                        <p className='text-[14px] font-semibold text-[#222222]'>Established</p>
+                        <p className='text-[14px] text-[#717171]'>{church.yearEstablished}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
-            {/* Name */}
-            <h1 className='text-3xl sm:text-4xl font-bold'>{church.name}</h1>
-
-            {/* Rating + claimed */}
-            <div className='flex items-center flex-wrap gap-4'>
-              <div className='flex items-center gap-2'>
-                <div className='flex items-center gap-0.5'>
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-5 h-5 ${
-                        i < Math.round(church.avgRating)
-                          ? 'fill-amber-300 text-amber-300'
-                          : 'text-white/40'
-                      }`}
-                    />
+            {/* Service Schedule */}
+            {groupedServices.length > 0 && (
+              <div className='py-8 border-b border-gray-200'>
+                <h2 className='text-[22px] font-semibold text-[#222222] mb-5'>Service schedule</h2>
+                <div className='space-y-5'>
+                  {groupedServices.map(({ day, dayName, services }) => (
+                    <div key={day}>
+                      <h3 className='text-[16px] font-semibold text-[#222222] mb-2'>{dayName}</h3>
+                      <div className='space-y-2'>
+                        {services.map((service) => (
+                          <div
+                            key={service.id}
+                            className='flex items-center gap-3 text-[14px] text-[#717171]'
+                          >
+                            <Clock className='w-4 h-4 flex-shrink-0 text-[#717171]' />
+                            <span className='font-medium text-[#222222]'>
+                              {formatServiceTime(service.startTime)}
+                              {service.endTime && ` \u2013 ${formatServiceTime(service.endTime)}`}
+                            </span>
+                            <span className='text-[#b0b0b0]'>&middot;</span>
+                            <span>{service.serviceType}</span>
+                            {service.language && (
+                              <>
+                                <span className='text-[#b0b0b0]'>&middot;</span>
+                                <span>{service.language}</span>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
-                <span className='font-semibold'>{formatRating(church.avgRating)}</span>
-                <span className='text-white/80'>({church.reviewCount} reviews)</span>
               </div>
-
-              {church.isClaimed && (
-                <span className='inline-flex items-center gap-1 text-sm text-green-300'>
-                  <CheckCircle className='w-4 h-4' />
-                  Claimed
-                </span>
-              )}
-            </div>
-
-            {/* Location */}
-            <div className='flex items-center gap-2 text-white/90'>
-              <MapPin className='w-5 h-5 shrink-0' />
-              <span>
-                {church.address}, {church.city}, {church.state} {church.zipCode}
-                {church.neighborhood && (
-                  <span className='text-white/70'> &middot; {church.neighborhood}</span>
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8'>
-        {/* About Section */}
-        {(church.description || church.pastorName || church.yearEstablished) && (
-          <section className='bg-white rounded-lg border border-gray-200 p-6'>
-            <h2 className='text-xl font-bold text-gray-900 mb-4'>About</h2>
-
-            {church.description && (
-              <p className='text-gray-700 leading-relaxed mb-4'>{church.description}</p>
             )}
 
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-              {church.pastorName && (
-                <div className='flex items-start gap-3'>
-                  <Users className='w-5 h-5 text-gray-400 mt-0.5' />
-                  <div>
-                    <p className='text-sm text-gray-500'>Pastor</p>
-                    <p className='font-medium text-gray-900'>{church.pastorName}</p>
-                  </div>
+            {/* What this church offers */}
+            {(church.amenities.length > 0 || church.languages.length > 0) && (
+              <div className='py-8 border-b border-gray-200'>
+                <h2 className='text-[22px] font-semibold text-[#222222] mb-5'>What this church offers</h2>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                  {church.amenities.map((amenity) => (
+                    <div key={amenity} className='flex items-center gap-4 py-2'>
+                      <CheckCircle className='w-6 h-6 text-[#222222]' />
+                      <span className='text-[16px] text-[#222222]'>{amenity}</span>
+                    </div>
+                  ))}
+                  {church.languages.map((lang) => (
+                    <div key={lang} className='flex items-center gap-4 py-2'>
+                      <Globe className='w-6 h-6 text-[#222222]' />
+                      <span className='text-[16px] text-[#222222]'>{lang} services</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-              {church.yearEstablished && (
-                <div className='flex items-start gap-3'>
-                  <Calendar className='w-5 h-5 text-gray-400 mt-0.5' />
-                  <div>
-                    <p className='text-sm text-gray-500'>Established</p>
-                    <p className='font-medium text-gray-900'>{church.yearEstablished}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* Service Schedule */}
-        {groupedServices.length > 0 && (
-          <section className='bg-white rounded-lg border border-gray-200 p-6'>
-            <h2 className='text-xl font-bold text-gray-900 mb-4'>Service Schedule</h2>
-            <div className='space-y-4'>
-              {groupedServices.map(({ day, dayName, services }) => (
-                <div key={day} className='border-b border-gray-100 last:border-0 pb-4 last:pb-0'>
-                  <h3 className='font-semibold text-gray-900 mb-2'>{dayName}</h3>
-                  <div className='space-y-2'>
-                    {services.map((service) => (
-                      <div
-                        key={service.id}
-                        className='flex items-center gap-3 text-sm text-gray-700'
-                      >
-                        <Clock className='w-4 h-4 text-gray-400 shrink-0' />
-                        <span className='font-medium'>
-                          {formatServiceTime(service.startTime)}
-                          {service.endTime && ` – ${formatServiceTime(service.endTime)}`}
-                        </span>
-                        <span className='text-gray-400'>|</span>
-                        <span>{service.serviceType}</span>
-                        {service.language && (
-                          <>
-                            <span className='text-gray-400'>|</span>
-                            <span className='text-gray-500'>{service.language}</span>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Languages & Amenities */}
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          {/* Languages */}
-          {church.languages.length > 0 && (
-            <section className='bg-white rounded-lg border border-gray-200 p-6'>
-              <h2 className='text-xl font-bold text-gray-900 mb-4'>Languages</h2>
-              <div className='flex flex-wrap gap-2'>
-                {church.languages.map((lang) => (
-                  <span
-                    key={lang}
-                    className='inline-flex px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full'
-                  >
-                    {lang}
-                  </span>
-                ))}
               </div>
-            </section>
-          )}
+            )}
+          </div>
 
-          {/* Amenities */}
-          {church.amenities.length > 0 && (
-            <section className='bg-white rounded-lg border border-gray-200 p-6'>
-              <h2 className='text-xl font-bold text-gray-900 mb-4'>Amenities & Features</h2>
-              <div className='flex flex-wrap gap-2'>
-                {church.amenities.map((amenity) => (
-                  <span
-                    key={amenity}
-                    className='inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full'
-                  >
-                    <span className='w-5 h-5 bg-blue-100 text-blue-600 rounded-full text-xs flex items-center justify-center font-bold'>
-                      {AMENITY_ICONS[amenity] || amenity.charAt(0)}
-                    </span>
-                    {amenity}
-                  </span>
-                ))}
+          {/* Right column — contact card (sticky) */}
+          <div className='w-full lg:w-[370px] flex-shrink-0'>
+            <div className='sticky top-[96px] border border-gray-200 rounded-xl p-6 shadow-airbnb'>
+              <h3 className='text-[22px] font-semibold text-[#222222] mb-1'>
+                Visit {church.name.split(' ').slice(0, 3).join(' ')}
+              </h3>
+              <p className='text-[14px] text-[#717171] mb-6'>Get directions or contact the church</p>
+
+              {/* Location */}
+              <div className='mb-6'>
+                <div className='w-full h-40 bg-gray-100 rounded-xl mb-3 flex items-center justify-center'>
+                  <div className='text-center text-gray-400'>
+                    <MapPin className='w-8 h-8 mx-auto mb-1' />
+                    <p className='text-xs font-medium'>Map coming soon</p>
+                  </div>
+                </div>
+                <div className='flex items-start gap-2'>
+                  <MapPin className='w-5 h-5 text-[#222222] mt-0.5 flex-shrink-0' />
+                  <div>
+                    <p className='text-[14px] font-medium text-[#222222]'>{church.address}</p>
+                    <p className='text-[14px] text-[#717171]'>
+                      {church.city}, {church.state} {church.zipCode}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </section>
-          )}
+
+              {/* CTA button — Airbnb gradient style */}
+              <a
+                href={googleMapsUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='block w-full text-center px-6 py-3.5 bg-[#FF385C] hover:bg-[#E00B41] text-white rounded-lg font-semibold text-[16px] transition-colors mb-4'
+              >
+                Get Directions
+              </a>
+
+              {/* Contact details */}
+              <div className='space-y-3 pt-4 border-t border-gray-200'>
+                {church.phone && (
+                  <a
+                    href={`tel:${church.phone}`}
+                    className='flex items-center gap-3 text-[14px] text-[#222222] hover:underline transition-colors'
+                  >
+                    <Phone className='w-5 h-5' />
+                    <span>{church.phone}</span>
+                  </a>
+                )}
+                {church.email && (
+                  <a
+                    href={`mailto:${church.email}`}
+                    className='flex items-center gap-3 text-[14px] text-[#222222] hover:underline transition-colors'
+                  >
+                    <Mail className='w-5 h-5' />
+                    <span>{church.email}</span>
+                  </a>
+                )}
+                {church.website && (
+                  <a
+                    href={
+                      church.website.startsWith('http')
+                        ? church.website
+                        : `https://${church.website}`
+                    }
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='flex items-center gap-3 text-[14px] text-[#222222] hover:underline transition-colors'
+                  >
+                    <Globe className='w-5 h-5' />
+                    <span className='truncate'>{church.website}</span>
+                    <ExternalLink className='w-3.5 h-3.5 ml-auto text-[#717171] flex-shrink-0' />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* Location & Directions */}
-        <section className='bg-white rounded-lg border border-gray-200 p-6'>
-          <h2 className='text-xl font-bold text-gray-900 mb-4'>Location</h2>
-
-          {/* Static map placeholder */}
-          <div className='w-full h-48 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-400'>
-            <div className='text-center'>
-              <MapPin className='w-8 h-8 mx-auto mb-2' />
-              <p className='text-sm'>Map coming soon (Mapbox integration)</p>
-            </div>
-          </div>
-
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-            <div className='flex items-start gap-2'>
-              <MapPin className='w-5 h-5 text-gray-400 mt-0.5 shrink-0' />
-              <div>
-                <p className='font-medium text-gray-900'>{church.address}</p>
-                <p className='text-sm text-gray-600'>
-                  {church.city}, {church.state} {church.zipCode}
-                </p>
-              </div>
-            </div>
-            <a
-              href={googleMapsUrl}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors self-start'
-            >
-              Get Directions
-              <ExternalLink className='w-4 h-4' />
-            </a>
-          </div>
-        </section>
-
-        {/* Contact Info */}
-        {(church.phone || church.email || church.website) && (
-          <section className='bg-white rounded-lg border border-gray-200 p-6'>
-            <h2 className='text-xl font-bold text-gray-900 mb-4'>Contact</h2>
-            <div className='space-y-3'>
-              {church.phone && (
-                <a
-                  href={`tel:${church.phone}`}
-                  className='flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors'
-                >
-                  <Phone className='w-5 h-5 text-gray-400' />
-                  <span>{church.phone}</span>
-                </a>
-              )}
-              {church.email && (
-                <a
-                  href={`mailto:${church.email}`}
-                  className='flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors'
-                >
-                  <Mail className='w-5 h-5 text-gray-400' />
-                  <span>{church.email}</span>
-                </a>
-              )}
-              {church.website && (
-                <a
-                  href={
-                    church.website.startsWith('http')
-                      ? church.website
-                      : `https://${church.website}`
-                  }
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors'
-                >
-                  <Globe className='w-5 h-5 text-gray-400' />
-                  <span>{church.website}</span>
-                  <ChevronRight className='w-4 h-4 ml-auto text-gray-400' />
-                </a>
-              )}
-            </div>
-          </section>
-        )}
       </div>
+
+      {/* Footer */}
+      <footer className='border-t border-gray-200 bg-[#f7f7f7]'>
+        <div className='max-w-[1120px] mx-auto px-6 lg:px-0 py-6'>
+          <p className='text-sm text-[#717171]'>&copy; 2026 SA Church Finder</p>
+        </div>
+      </footer>
     </div>
   )
 }
 
 /** Loading skeleton for the profile page */
 const ProfileSkeleton = () => (
-  <div className='flex-1 overflow-y-auto animate-pulse'>
-    {/* Hero skeleton */}
-    <div className='bg-gray-200 h-56' />
+  <div className='flex-1 overflow-y-auto animate-pulse bg-white'>
+    <div className='max-w-[1120px] mx-auto px-6 lg:px-0 pt-6 pb-4'>
+      <div className='h-4 w-16 bg-gray-200 rounded' />
+    </div>
 
-    <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8'>
-      {/* About skeleton */}
-      <div className='bg-white rounded-lg border border-gray-200 p-6'>
-        <div className='h-6 w-24 bg-gray-200 rounded mb-4' />
-        <div className='space-y-2'>
-          <div className='h-4 bg-gray-200 rounded w-full' />
-          <div className='h-4 bg-gray-200 rounded w-5/6' />
-          <div className='h-4 bg-gray-200 rounded w-4/6' />
-        </div>
+    <div className='max-w-[1120px] mx-auto px-6 lg:px-0 mb-6'>
+      <div className='grid grid-cols-4 gap-2 rounded-xl overflow-hidden h-[400px]'>
+        <div className='col-span-2 row-span-2 bg-gray-200' />
+        <div className='bg-gray-100' />
+        <div className='bg-gray-200' />
+        <div className='bg-gray-100' />
+        <div className='bg-gray-200' />
       </div>
+    </div>
 
-      {/* Services skeleton */}
-      <div className='bg-white rounded-lg border border-gray-200 p-6'>
-        <div className='h-6 w-40 bg-gray-200 rounded mb-4' />
-        <div className='space-y-3'>
-          <div className='h-4 bg-gray-200 rounded w-48' />
-          <div className='h-4 bg-gray-200 rounded w-64' />
-          <div className='h-4 bg-gray-200 rounded w-56' />
+    <div className='max-w-[1120px] mx-auto px-6 lg:px-0 pb-16'>
+      <div className='flex flex-col lg:flex-row gap-12 lg:gap-24'>
+        <div className='flex-1'>
+          <div className='h-8 bg-gray-200 rounded w-2/3 mb-3' />
+          <div className='h-4 bg-gray-200 rounded w-1/2 mb-8' />
+          <div className='space-y-3 border-t border-gray-200 pt-8'>
+            <div className='h-4 bg-gray-200 rounded w-full' />
+            <div className='h-4 bg-gray-200 rounded w-5/6' />
+            <div className='h-4 bg-gray-200 rounded w-4/6' />
+          </div>
         </div>
-      </div>
-
-      {/* Location skeleton */}
-      <div className='bg-white rounded-lg border border-gray-200 p-6'>
-        <div className='h-6 w-28 bg-gray-200 rounded mb-4' />
-        <div className='h-48 bg-gray-100 rounded-lg mb-4' />
-        <div className='h-4 bg-gray-200 rounded w-64' />
+        <div className='w-full lg:w-[370px]'>
+          <div className='border border-gray-200 rounded-xl p-6 h-[400px] bg-gray-50' />
+        </div>
       </div>
     </div>
   </div>

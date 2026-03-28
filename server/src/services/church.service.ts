@@ -1,307 +1,359 @@
 /**
- * Church search and filtering service
- * Handles all church discovery operations with support for:
- * - Distance-based search with haversine formula
- * - Text search on church names/descriptions
- * - Filtering by denomination, services, language, amenities
- * - Sorting and pagination
+ * Church search and filtering service — Prisma + PostGIS edition
+ *
+ * Uses Prisma for standard queries and $queryRaw with PostGIS
+ * for spatial operations (radius search, distance calculation,
+ * bounding box filtering).
  */
 
-import { IChurch, IChurchSummary, ISearchParams, ISearchResponse, IBounds } from '../types/church.types.js'
-import { churches } from '../data/churches.js'
+import { Prisma } from '@prisma/client'
+import prisma from '../lib/prisma.js'
+import { IChurchSummary, ISearchParams, ISearchResponse, IBounds } from '../types/church.types.js'
 
-const EARTH_RADIUS_MILES = 3959
 const DEFAULT_CENTER_LAT = 29.4241
 const DEFAULT_CENTER_LNG = -98.4936
 const DEFAULT_RADIUS = 10
 const DEFAULT_PAGE = 1
 const DEFAULT_PAGE_SIZE = 20
+const METERS_PER_MILE = 1609.344
 
-/**
- * Calculate distance in miles between two points using Haversine formula
- */
-function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const toRad = (degrees: number) => (degrees * Math.PI) / 180
+// ── Raw SQL result types ──
 
-  const dLat = toRad(lat2 - lat1)
-  const dLng = toRad(lng2 - lng1)
-
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2)
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return EARTH_RADIUS_MILES * c
+interface ChurchRow {
+  id: string
+  name: string
+  slug: string
+  denomination: string | null
+  denominationFamily: string | null
+  description: string | null
+  address: string
+  city: string
+  state: string
+  zipCode: string
+  neighborhood: string | null
+  latitude: number | string
+  longitude: number | string
+  phone: string | null
+  email: string | null
+  website: string | null
+  pastorName: string | null
+  yearEstablished: number | null
+  avgRating: number | string
+  reviewCount: number
+  isClaimed: boolean
+  languages: string[]
+  amenities: string[]
+  coverImageUrl: string | null
+  distance_miles: number | null
 }
 
-/**
- * Parse time of day into minutes since midnight
- */
-function parseTime(timeStr: string): number {
-  const [hours, minutes] = timeStr.split(':').map(Number)
-  return hours * 60 + (minutes || 0)
+interface ServiceRow {
+  id: string
+  churchId: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string | null
+  serviceType: string
+  language: string
+  description: string | null
+  createdAt: Date
+  updatedAt: Date
 }
 
-/**
- * Categorize time of day
- * 'morning': before 12:00
- * 'afternoon': 12:00-17:00
- * 'evening': after 17:00
- */
-function getTimeCategory(timeStr: string): string {
-  const minutes = parseTime(timeStr)
-  if (minutes < 12 * 60) return 'morning'
-  if (minutes < 17 * 60) return 'afternoon'
-  return 'evening'
+interface CountRow {
+  count: bigint
 }
 
-/**
- * Check if a church has a service matching the given day of week
- */
-function hasServiceOnDay(church: IChurch, dayOfWeek: number): boolean {
-  return church.services.some(service => service.dayOfWeek === dayOfWeek)
-}
+// ── Helpers ──
 
-/**
- * Check if a church has a service in the given time category
- */
-function hasServiceInTimeCategory(church: IChurch, timeCategory: string): boolean {
-  return church.services.some(service => getTimeCategory(service.startTime) === timeCategory)
-}
-
-/**
- * Check if a church offers a specific language
- */
-function hasLanguage(church: IChurch, language: string): boolean {
-  return church.languages.some(lang => lang.toLowerCase() === language.toLowerCase())
-}
-
-/**
- * Check if a church has all specified amenities
- */
-function hasAllAmenities(church: IChurch, amenities: string[]): boolean {
-  return amenities.every(amenity =>
-    church.amenities.some(a => a.toLowerCase() === amenity.toLowerCase())
-  )
-}
-
-/**
- * Check if text search matches church name or description
- */
-function matchesSearchText(church: IChurch, query: string): boolean {
-  const lowercaseQuery = query.toLowerCase()
-  const name = church.name.toLowerCase()
-  const description = (church.description || '').toLowerCase()
-  return name.includes(lowercaseQuery) || description.includes(lowercaseQuery)
-}
-
-/**
- * Check if church is within bounding box
- */
-function isWithinBounds(church: IChurch, bounds: IBounds): boolean {
-  return (
-    church.latitude >= bounds.swLat &&
-    church.latitude <= bounds.neLat &&
-    church.longitude >= bounds.swLng &&
-    church.longitude <= bounds.neLng
-  )
-}
-
-/**
- * Parse bounds string: "sw_lat,sw_lng,ne_lat,ne_lng"
- */
 function parseBounds(boundsStr: string): IBounds | null {
   try {
     const [swLat, swLng, neLat, neLng] = boundsStr.split(',').map(Number)
-    if (isNaN(swLat) || isNaN(swLng) || isNaN(neLat) || isNaN(neLng)) {
-      return null
-    }
+    if (isNaN(swLat) || isNaN(swLng) || isNaN(neLat) || isNaN(neLng)) return null
     return { swLat, swLng, neLat, neLng }
   } catch {
     return null
   }
 }
 
-/**
- * Convert church to summary format with calculated distance
- */
-function churchToSummary(church: IChurch, centerLat: number, centerLng: number): IChurchSummary {
-  const distance = haversineDistance(centerLat, centerLng, church.latitude, church.longitude)
+function toNumber(val: unknown): number {
+  if (typeof val === 'number') return val
+  return Number(val) || 0
+}
+
+function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
   return {
-    id: church.id,
-    name: church.name,
-    slug: church.slug,
-    denomination: church.denomination,
-    denominationFamily: church.denominationFamily,
-    description: church.description,
-    address: church.address,
-    city: church.city,
-    state: church.state,
-    zipCode: church.zipCode,
-    neighborhood: church.neighborhood,
-    latitude: church.latitude,
-    longitude: church.longitude,
-    phone: church.phone,
-    email: church.email,
-    website: church.website,
-    avgRating: church.avgRating,
-    reviewCount: church.reviewCount,
-    isClaimed: church.isClaimed,
-    languages: church.languages,
-    amenities: church.amenities,
-    coverImageUrl: church.coverImageUrl,
-    distance: Math.round(distance * 10) / 10,
-    services: church.services,
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    denomination: row.denomination ?? undefined,
+    denominationFamily: row.denominationFamily ?? undefined,
+    description: row.description ?? undefined,
+    address: row.address,
+    city: row.city,
+    state: row.state,
+    zipCode: row.zipCode,
+    neighborhood: row.neighborhood ?? undefined,
+    latitude: toNumber(row.latitude),
+    longitude: toNumber(row.longitude),
+    phone: row.phone ?? undefined,
+    email: row.email ?? undefined,
+    website: row.website ?? undefined,
+    avgRating: toNumber(row.avgRating),
+    reviewCount: row.reviewCount,
+    isClaimed: row.isClaimed,
+    languages: row.languages || [],
+    amenities: row.amenities || [],
+    coverImageUrl: row.coverImageUrl ?? undefined,
+    distance: row.distance_miles != null ? Math.round(toNumber(row.distance_miles) * 10) / 10 : undefined,
+    services: services.map(s => ({
+      id: s.id,
+      churchId: s.churchId,
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime ?? undefined,
+      serviceType: s.serviceType,
+      language: s.language,
+      description: s.description ?? undefined,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    })),
   }
 }
 
-/**
- * Main search function - filters and sorts churches based on parameters
- */
-export function searchChurches(params: ISearchParams): ISearchResponse {
-  let results = [...churches]
+// ── Time categorisation for service time filtering ──
 
-  // Parse center point
+function getTimeCategoryFilter(time: string): [string, string] {
+  switch (time.toLowerCase()) {
+    case 'morning': return ['00:00', '12:00']
+    case 'afternoon': return ['12:00', '17:00']
+    case 'evening': return ['17:00', '23:59']
+    default: return ['00:00', '23:59']
+  }
+}
+
+// ── Main search ──
+
+export async function searchChurches(params: ISearchParams): Promise<ISearchResponse> {
   const centerLat = params.lat ?? DEFAULT_CENTER_LAT
   const centerLng = params.lng ?? DEFAULT_CENTER_LNG
   const radius = params.radius ?? DEFAULT_RADIUS
+  const page = Math.max(1, params.page ?? DEFAULT_PAGE)
+  const pageSize = Math.min(100, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
+  const offset = (page - 1) * pageSize
+  const sortBy = params.sort ?? 'distance'
 
-  // Filter by bounding box if provided
+  // ── Build WHERE conditions ──
+  const conditions: Prisma.Sql[] = [Prisma.sql`1=1`]
+
+  // Spatial filter: bounds or radius
   if (params.bounds) {
     const bounds = parseBounds(params.bounds)
     if (bounds) {
-      results = results.filter(church => isWithinBounds(church, bounds))
+      conditions.push(Prisma.sql`c."latitude" >= ${bounds.swLat}`)
+      conditions.push(Prisma.sql`c."latitude" <= ${bounds.neLat}`)
+      conditions.push(Prisma.sql`c."longitude" >= ${bounds.swLng}`)
+      conditions.push(Prisma.sql`c."longitude" <= ${bounds.neLng}`)
     }
   } else {
-    // Filter by radius if bounds not provided
-    results = results.filter(church => {
-      const distance = haversineDistance(centerLat, centerLng, church.latitude, church.longitude)
-      return distance <= radius
-    })
+    const radiusMeters = radius * METERS_PER_MILE
+    conditions.push(Prisma.sql`ST_DWithin(
+      c."location",
+      ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326)::geography,
+      ${radiusMeters}
+    )`)
   }
 
-  // Filter by search text
-  if (params.q && params.q.trim()) {
-    results = results.filter(church => matchesSearchText(church, params.q!))
+  // Text search
+  if (params.q?.trim()) {
+    const term = `%${params.q.trim().toLowerCase()}%`
+    conditions.push(Prisma.sql`(LOWER(c."name") LIKE ${term} OR LOWER(COALESCE(c."description", '')) LIKE ${term})`)
   }
 
-  // Filter by denomination family
-  if (params.denomination && params.denomination.trim()) {
-    const denominationFamily = params.denomination.toLowerCase()
-    results = results.filter(church =>
-      (church.denominationFamily || '').toLowerCase() === denominationFamily
-    )
+  // Denomination
+  if (params.denomination?.trim()) {
+    const denom = params.denomination.toLowerCase()
+    conditions.push(Prisma.sql`LOWER(c."denominationFamily") = ${denom}`)
   }
 
-  // Filter by service day
-  if (typeof params.day === 'number' && params.day >= 0 && params.day <= 6) {
-    results = results.filter(church => hasServiceOnDay(church, params.day!))
+  // Language
+  if (params.language?.trim()) {
+    const lang = params.language
+    conditions.push(Prisma.sql`${lang} = ANY(c."languages")`)
   }
 
-  // Filter by service time
-  if (params.time && params.time.trim()) {
-    const timeCategory = params.time.toLowerCase()
-    results = results.filter(church => hasServiceInTimeCategory(church, timeCategory))
-  }
-
-  // Filter by language
-  if (params.language && params.language.trim()) {
-    results = results.filter(church => hasLanguage(church, params.language!))
-  }
-
-  // Filter by amenities (all must match)
-  if (params.amenities && params.amenities.trim()) {
-    const requestedAmenities = params.amenities
-      .split(',')
-      .map(a => a.trim())
-      .filter(a => a.length > 0)
-    if (requestedAmenities.length > 0) {
-      results = results.filter(church => hasAllAmenities(church, requestedAmenities))
+  // Amenities (all must match)
+  if (params.amenities?.trim()) {
+    const amenityList = params.amenities.split(',').map(a => a.trim()).filter(Boolean)
+    for (const amenity of amenityList) {
+      conditions.push(Prisma.sql`${amenity} ILIKE ANY(c."amenities")`)
     }
   }
 
-  // Convert to summaries with distance
-  const summaries = results.map(church => churchToSummary(church, centerLat, centerLng))
-
-  // Sort results
-  const sortBy = params.sort ?? 'distance'
-  if (sortBy === 'distance') {
-    summaries.sort((a, b) => (a.distance || 0) - (b.distance || 0))
-  } else if (sortBy === 'rating') {
-    summaries.sort((a, b) => b.avgRating - a.avgRating)
-  } else if (sortBy === 'name') {
-    summaries.sort((a, b) => a.name.localeCompare(b.name))
+  // Service day filter — requires a subquery
+  if (typeof params.day === 'number' && params.day >= 0 && params.day <= 6) {
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_services" cs WHERE cs."churchId" = c."id" AND cs."dayOfWeek" = ${params.day}
+    )`)
   }
 
-  // Pagination
-  const page = Math.max(1, params.page ?? DEFAULT_PAGE)
-  const pageSize = Math.min(100, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
-  const startIndex = (page - 1) * pageSize
-  const endIndex = startIndex + pageSize
-  const paginatedResults = summaries.slice(startIndex, endIndex)
+  // Service time filter
+  if (params.time?.trim()) {
+    const [startRange, endRange] = getTimeCategoryFilter(params.time)
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_services" cs
+      WHERE cs."churchId" = c."id"
+        AND cs."startTime" >= ${startRange}
+        AND cs."startTime" < ${endRange}
+    )`)
+  }
 
-  const totalPages = Math.ceil(summaries.length / pageSize)
+  // ── Combine WHERE ──
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+
+  // ── ORDER BY ──
+  let orderClause: Prisma.Sql
+  switch (sortBy) {
+    case 'rating':
+      orderClause = Prisma.sql`ORDER BY c."avgRating" DESC, c."reviewCount" DESC`
+      break
+    case 'name':
+      orderClause = Prisma.sql`ORDER BY c."name" ASC`
+      break
+    case 'distance':
+    default:
+      orderClause = Prisma.sql`ORDER BY distance_miles ASC NULLS LAST`
+      break
+  }
+
+  // ── Count query ──
+  const countResult = await prisma.$queryRaw<CountRow[]>(Prisma.sql`
+    SELECT COUNT(DISTINCT c."id") as count
+    FROM "churches" c
+    ${whereClause}
+  `)
+  const total = Number(countResult[0]?.count ?? 0)
+
+  // ── Main query with distance ──
+  const churches = await prisma.$queryRaw<ChurchRow[]>(Prisma.sql`
+    SELECT
+      c."id", c."name", c."slug",
+      c."denomination", c."denominationFamily", c."description",
+      c."address", c."city", c."state", c."zipCode", c."neighborhood",
+      c."latitude"::float8 as "latitude",
+      c."longitude"::float8 as "longitude",
+      c."phone", c."email", c."website",
+      c."pastorName", c."yearEstablished",
+      c."avgRating"::float8 as "avgRating",
+      c."reviewCount", c."isClaimed",
+      c."languages", c."amenities", c."coverImageUrl",
+      CASE
+        WHEN c."location" IS NOT NULL THEN
+          ST_Distance(
+            c."location",
+            ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326)::geography
+          ) / ${METERS_PER_MILE}
+        ELSE NULL
+      END as "distance_miles"
+    FROM "churches" c
+    ${whereClause}
+    ${orderClause}
+    LIMIT ${pageSize} OFFSET ${offset}
+  `)
+
+  // ── Fetch services for the returned churches ──
+  const churchIds = churches.map(c => c.id)
+  let services: ServiceRow[] = []
+
+  if (churchIds.length > 0) {
+    services = await prisma.$queryRaw<ServiceRow[]>(Prisma.sql`
+      SELECT * FROM "church_services"
+      WHERE "churchId" IN (${Prisma.join(churchIds)})
+      ORDER BY "dayOfWeek" ASC, "startTime" ASC
+    `)
+  }
+
+  // Group services by churchId
+  const servicesByChurch = new Map<string, ServiceRow[]>()
+  for (const s of services) {
+    const list = servicesByChurch.get(s.churchId) || []
+    list.push(s)
+    servicesByChurch.set(s.churchId, list)
+  }
+
+  // ── Build response ──
+  const data: IChurchSummary[] = churches.map(row =>
+    rowToSummary(row, servicesByChurch.get(row.id) || [])
+  )
 
   return {
-    data: paginatedResults,
+    data,
     meta: {
       page,
       pageSize,
-      total: summaries.length,
-      totalPages,
-      center: {
-        lat: centerLat,
-        lng: centerLng,
-      },
+      total,
+      totalPages: Math.ceil(total / pageSize),
+      center: { lat: centerLat, lng: centerLng },
     },
   }
 }
 
-/**
- * Get a church by slug
- */
-export function getChurchBySlug(slug: string): IChurch | null {
-  return churches.find(church => church.slug === slug) || null
-}
+// ── Single church lookups ──
 
-/**
- * Get a church by ID
- */
-export function getChurchById(id: string): IChurch | null {
-  return churches.find(church => church.id === id) || null
-}
-
-/**
- * Get all available denomination families
- */
-export function getDenominationFamilies(): string[] {
-  const families = new Set<string>()
-  churches.forEach(church => {
-    if (church.denominationFamily) {
-      families.add(church.denominationFamily)
-    }
+export async function getChurchBySlug(slug: string) {
+  const church = await prisma.church.findFirst({
+    where: { slug },
+    include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
   })
-  return Array.from(families).sort()
+  if (!church) return null
+
+  return {
+    ...church,
+    latitude: toNumber(church.latitude),
+    longitude: toNumber(church.longitude),
+    avgRating: toNumber(church.avgRating),
+    services: church.services,
+  }
 }
 
-/**
- * Get all available languages across all churches
- */
-export function getAvailableLanguages(): string[] {
-  const languages = new Set<string>()
-  churches.forEach(church => {
-    church.languages.forEach(lang => languages.add(lang))
+export async function getChurchById(id: string) {
+  const church = await prisma.church.findFirst({
+    where: { id },
+    include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
   })
-  return Array.from(languages).sort()
+  if (!church) return null
+
+  return {
+    ...church,
+    latitude: toNumber(church.latitude),
+    longitude: toNumber(church.longitude),
+    avgRating: toNumber(church.avgRating),
+    services: church.services,
+  }
 }
 
-/**
- * Get all available amenities across all churches
- */
-export function getAvailableAmenities(): string[] {
-  const amenities = new Set<string>()
-  churches.forEach(church => {
-    church.amenities.forEach(amenity => amenities.add(amenity))
+// ── Filter option queries ──
+
+export async function getDenominationFamilies(): Promise<string[]> {
+  const result = await prisma.church.findMany({
+    where: { denominationFamily: { not: null } },
+    select: { denominationFamily: true },
+    distinct: ['denominationFamily'],
+    orderBy: { denominationFamily: 'asc' },
   })
-  return Array.from(amenities).sort()
+  return result.map(r => r.denominationFamily!).filter(Boolean)
+}
+
+export async function getAvailableLanguages(): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ lang: string }>>`
+    SELECT DISTINCT unnest("languages") as lang FROM "churches" ORDER BY lang
+  `
+  return rows.map(r => r.lang)
+}
+
+export async function getAvailableAmenities(): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ amenity: string }>>`
+    SELECT DISTINCT unnest("amenities") as amenity FROM "churches" ORDER BY amenity
+  `
+  return rows.map(r => r.amenity)
 }

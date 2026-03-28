@@ -27,7 +27,7 @@ export const MapPlaceholder = () => {
     amenities: filters.amenities,
     sort: sort,
     page: 1,
-    pageSize: PAGE_SIZE
+    pageSize: PAGE_SIZE,
   }
 
   const { data } = useChurches(searchParams)
@@ -38,10 +38,9 @@ export const MapPlaceholder = () => {
     minLat: 29.3,
     maxLat: 29.55,
     minLng: -98.65,
-    maxLng: -98.3
+    maxLng: -98.3,
   }
 
-  // Map church lat/lng to SVG coordinates
   const latToY = (lat: number) => {
     const ratio = (bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)
     return ratio * 100
@@ -53,49 +52,47 @@ export const MapPlaceholder = () => {
   }
 
   return (
-    <div className='flex-1 bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden'>
-      {/* Banner */}
-      <div className='bg-blue-50 border-b border-blue-200 px-4 py-3 flex items-center gap-2'>
-        <AlertCircle className='w-5 h-5 text-blue-600 flex-shrink-0' />
-        <span className='text-sm text-blue-700'>
-          Interactive map coming soon — Mapbox integration pending
-        </span>
+    <div className='w-full h-full bg-[#f5f5f3] flex flex-col relative overflow-hidden'>
+      {/* Info banner */}
+      <div className='absolute top-4 left-4 right-4 z-10'>
+        <div className='inline-flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-airbnb text-sm'>
+          <AlertCircle className='w-4 h-4 text-sage-600 flex-shrink-0' />
+          <span className='text-[#222222] font-medium'>
+            Interactive map coming soon
+          </span>
+        </div>
       </div>
 
-      {/* Map Container */}
+      {/* Map container */}
       <div className='flex-1 relative overflow-hidden'>
         <svg className='w-full h-full' viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'>
-          {/* Map outline and grid */}
           <defs>
             <pattern id='grid' width='5' height='5' patternUnits='userSpaceOnUse'>
-              <path d='M 5 0 L 0 0 0 5' fill='none' stroke='#e5e7eb' strokeWidth='0.1' />
+              <path d='M 5 0 L 0 0 0 5' fill='none' stroke='#e0e0dc' strokeWidth='0.08' />
             </pattern>
           </defs>
 
-          {/* Background */}
-          <rect width='100' height='100' fill='#f9fafb' />
-
-          {/* Grid pattern */}
+          <rect width='100' height='100' fill='#f5f5f3' />
           <rect width='100' height='100' fill='url(#grid)' />
-
-          {/* Border */}
-          <rect width='100' height='100' fill='none' stroke='#d1d5db' strokeWidth='0.5' />
 
           {/* Center marker */}
           <circle
             cx={lngToX(mapCenter.lng)}
             cy={latToY(mapCenter.lat)}
-            r='0.8'
-            fill='#3b82f6'
+            r='1.5'
+            fill='none'
+            stroke='hsl(146, 26%, 31%)'
+            strokeWidth='0.15'
             opacity='0.3'
           />
 
-          {/* Church pins */}
+          {/* Church pins — Airbnb-style price/name bubbles */}
           {churches.map((church) => {
             const x = lngToX(church.longitude)
             const y = latToY(church.latitude)
             const isHovered = church.id === hoveredChurchId
             const isSelected = church.id === selectedChurchId
+            const isHighlighted = isHovered || isSelected
 
             return (
               <g
@@ -105,78 +102,42 @@ export const MapPlaceholder = () => {
                 onMouseLeave={() => setHoveredChurch(null)}
                 style={{ cursor: 'pointer' }}
               >
-                {/* Pin circle */}
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={isHovered || isSelected ? 1.2 : 0.8}
-                  fill={isSelected ? '#dc2626' : isHovered ? '#2563eb' : '#1f2937'}
-                  opacity={isHovered || isSelected ? 0.9 : 0.7}
+                {/* Pin bubble */}
+                <rect
+                  x={x - 2.8}
+                  y={y - 0.8}
+                  width='5.6'
+                  height='1.6'
+                  rx='0.8'
+                  fill={isHighlighted ? '#222222' : 'white'}
+                  stroke={isHighlighted ? '#222222' : '#b0b0b0'}
+                  strokeWidth='0.08'
                   className='transition-all'
                 />
-
-                {/* Halo for selected */}
-                {isSelected && (
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={2.2}
-                    fill='#dc2626'
-                    opacity='0.15'
-                    className='transition-all'
-                  />
-                )}
-
-                {/* Label on hover */}
-                {isHovered && (
-                  <g>
-                    <rect
-                      x={x - 2.5}
-                      y={y - 2.5}
-                      width='5'
-                      height='1.2'
-                      rx='0.2'
-                      fill='#1f2937'
-                      opacity='0.9'
-                    />
-                    <text
-                      x={x}
-                      y={y - 1.8}
-                      textAnchor='middle'
-                      fontSize='0.6'
-                      fill='white'
-                      fontWeight='bold'
-                      className='pointer-events-none'
-                    >
-                      {church.name.length > 12 ? church.name.substring(0, 12) + '...' : church.name}
-                    </text>
-                  </g>
-                )}
+                <text
+                  x={x}
+                  y={y + 0.35}
+                  textAnchor='middle'
+                  fontSize='0.75'
+                  fill={isHighlighted ? 'white' : '#222222'}
+                  fontWeight='700'
+                  fontFamily='Nunito Sans, sans-serif'
+                  className='pointer-events-none select-none'
+                >
+                  {church.name.length > 10 ? church.name.substring(0, 10) + '...' : church.name}
+                </text>
               </g>
             )
           })}
-
-          {/* Map label */}
-          <text
-            x='50'
-            y='95'
-            textAnchor='middle'
-            fontSize='0.8'
-            fill='#6b7280'
-            opacity='0.5'
-            className='pointer-events-none'
-          >
-            San Antonio, TX
-          </text>
         </svg>
 
         {/* Empty state */}
         {churches.length === 0 && (
-          <div className='absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-sm'>
+          <div className='absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm'>
             <div className='text-center'>
-              <MapPin className='w-12 h-12 text-gray-400 mx-auto mb-3' />
-              <h3 className='text-lg font-semibold text-gray-700 mb-1'>No churches on map</h3>
-              <p className='text-sm text-gray-600'>Adjust your filters to see results</p>
+              <MapPin className='w-10 h-10 text-gray-300 mx-auto mb-3' />
+              <h3 className='text-base font-semibold text-[#222222] mb-1'>No churches on map</h3>
+              <p className='text-sm text-[#717171]'>Adjust your filters to see results</p>
             </div>
           </div>
         )}
