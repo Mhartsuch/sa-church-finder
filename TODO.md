@@ -40,7 +40,8 @@
 - [x] Implement "no results" suggestions (widen radius, change filters) - completed 2026-03-27
 - [x] Write database seed script with proper PostGIS location column - completed 2026-03-27
 - [x] Upgrade deprecated deps (`eslint` 8 -> 9, `multer` 1 -> 2, `supertest` 6 -> 7) - completed 2026-03-28
-- [ ] Add review helpful voting and moderation follow-ups after the MVP
+- [x] Add review helpful voting follow-up after the MVP - completed 2026-03-28
+- [ ] Add review moderation follow-ups after the MVP
 - [ ] Wire real transactional email delivery for auth emails (password reset + verification)
 - [ ] Review lazy-loaded Mapbox bundle size warning and optimize only if it becomes a real production issue
 
@@ -51,6 +52,7 @@
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Review helpful voting - helpful/unhelpful endpoints, viewer vote state in review payloads, church profile helpful controls, and client/server test coverage (2026-03-28)
 - [x] Forgot/reset password flow - protected token issuance/consumption backend, login recovery UI, opt-in local preview link, auth route tests, and client auth API coverage (2026-03-28)
 - [x] Reviews MVP - church review listing/create/edit/delete APIs, incremental aggregate rating updates, church profile review UI, account review history, and route tests (2026-03-28)
 - [x] Saved churches MVP - protected save/list APIs, session-aware church payloads, save/unsave controls on cards and profile pages, account saved list, and route tests (2026-03-28)
@@ -112,4 +114,4 @@
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-28 (forgot/reset password flow landed)*
+*Last updated: 2026-03-28 (review helpful voting landed)*

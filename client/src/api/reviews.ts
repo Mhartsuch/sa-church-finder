@@ -6,6 +6,7 @@ import {
   IReviewListParams,
   IUserReview,
   IUserReviewsResponse,
+  ReviewHelpfulVoteResult,
   UpdateReviewInput,
 } from '@/types/review'
 
@@ -18,6 +19,10 @@ type DeleteReviewEnvelope = {
     id: string
     churchId: string
   }
+}
+
+type HelpfulVoteEnvelope = {
+  data: ReviewHelpfulVoteResult
 }
 
 const buildReviewQueryString = (params: IReviewListParams): string => {
@@ -68,6 +73,32 @@ export const deleteReview = async (
 ): Promise<DeleteReviewEnvelope['data']> => {
   const envelope = await apiRequest<DeleteReviewEnvelope>(
     `/reviews/${encodeURIComponent(reviewId)}`,
+    {
+      method: 'DELETE',
+    },
+  )
+
+  return envelope.data
+}
+
+export const addHelpfulVote = async (
+  reviewId: string,
+): Promise<ReviewHelpfulVoteResult> => {
+  const envelope = await apiRequest<HelpfulVoteEnvelope>(
+    `/reviews/${encodeURIComponent(reviewId)}/helpful`,
+    {
+      method: 'POST',
+    },
+  )
+
+  return envelope.data
+}
+
+export const removeHelpfulVote = async (
+  reviewId: string,
+): Promise<ReviewHelpfulVoteResult> => {
+  const envelope = await apiRequest<HelpfulVoteEnvelope>(
+    `/reviews/${encodeURIComponent(reviewId)}/helpful`,
     {
       method: 'DELETE',
     },

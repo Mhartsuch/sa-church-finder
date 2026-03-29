@@ -12,6 +12,41 @@
 
 ## Log
 
+### 2026-03-28 - Review Helpful Voting
+**Focus:** Landed the first post-MVP review follow-up by wiring helpful voting from the API through the church profile experience.
+
+**Completed:**
+- **Helpful-vote backend flow:** Added `POST /api/v1/reviews/:id/helpful` and `DELETE /api/v1/reviews/:id/helpful` with ownership guards, duplicate-vote protection, and `helpfulCount` updates backed by the existing `review_votes` table.
+- **Viewer-aware review payloads:** Updated church review responses so each review includes `viewerHasVotedHelpful`, letting the frontend render vote state without bolting on a second per-review request.
+- **Church profile helpful controls:** Added live helpful/unhelpful buttons on review cards in `ChurchProfilePage`, including signed-out redirect behavior, own-review suppression, and post-mutation query refresh.
+- **Client/server test coverage:** Expanded `server/src/routes/review.routes.test.ts` and added `client/src/api/reviews.test.ts` to cover helpful-vote creation/removal plus the new client request paths.
+
+**Remaining Notes:**
+- Review moderation and flagging are still the main review follow-up after this voting pass.
+- Google OAuth and email verification remain the highest-priority auth gaps, with real outbound email delivery still blocking the latter.
+- The Mapbox chunk-size warning remains unchanged and is still a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd test -- --runInBand review.routes.test.ts` successfully in `server/`.
+- Ran `npm.cmd test -- reviews.test.ts` successfully in `client/` (required elevated execution in this environment because Vitest/esbuild spawning is sandbox-restricted here).
+- Ran `npm.cmd run typecheck` successfully in both `server/` and `client/`.
+- Ran `npm.cmd run lint` successfully in both `server/` and `client/`.
+
+**Files Changed:**
+- `server/src/routes/review.routes.test.ts`
+- `server/src/routes/review.routes.ts`
+- `server/src/services/review.service.ts`
+- `server/src/types/review.types.ts`
+- `client/src/api/reviews.test.ts`
+- `client/src/api/reviews.ts`
+- `client/src/hooks/useReviews.ts`
+- `client/src/pages/ChurchProfilePage.tsx`
+- `client/src/types/review.ts`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+- `TODO.md`
+
 ### 2026-03-28 - Forgot/Reset Password Flow
 **Focus:** Finished the next Milestone 2 auth slice by wiring password recovery from backend token issuance through the frontend reset experience.
 

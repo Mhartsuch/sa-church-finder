@@ -9,6 +9,7 @@ jest.mock('../lib/prisma.js', () => ({
   default: {
     $disconnect: jest.fn(),
     $queryRaw: jest.fn().mockResolvedValue([]),
+    $transaction: jest.fn(),
     church: {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
@@ -23,6 +24,12 @@ jest.mock('../lib/prisma.js', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    reviewVote: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+    },
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -31,6 +38,7 @@ jest.mock('../lib/prisma.js', () => ({
 }))
 
 type MockedPrisma = {
+  $transaction: jest.Mock
   church: {
     findUnique: jest.Mock
     update: jest.Mock
@@ -41,6 +49,12 @@ type MockedPrisma = {
     findUnique: jest.Mock
     create: jest.Mock
     update: jest.Mock
+    delete: jest.Mock
+  }
+  reviewVote: {
+    findMany: jest.Mock
+    findUnique: jest.Mock
+    create: jest.Mock
     delete: jest.Mock
   }
   user: {
@@ -83,6 +97,9 @@ const baseReview = {
 describe('review routes', () => {
   beforeEach(() => {
     jest.resetAllMocks()
+    mockedPrisma.$transaction.mockImplementation((operations: unknown[]) =>
+      Promise.all(operations),
+    )
   })
 
   const loginAgent = async (): Promise<ReturnType<typeof request.agent>> => {
@@ -119,11 +136,22 @@ describe('review routes', () => {
 
   it('lists church reviews and returns the current users existing review', async () => {
     const agent = await loginAgent()
+    const otherUsersReview = {
+      ...baseReview,
+      id: 'review-2',
+      userId: 'user-2',
+      user: {
+        id: 'user-2',
+        name: 'Another Visitor',
+        avatarUrl: null,
+      },
+    }
 
     mockedPrisma.church.findUnique.mockResolvedValue({ id: 'church-1' })
     mockedPrisma.review.count.mockResolvedValue(1)
-    mockedPrisma.review.findMany.mockResolvedValue([baseReview])
+    mockedPrisma.review.findMany.mockResolvedValue([otherUsersReview])
     mockedPrisma.review.findUnique.mockResolvedValue(baseReview)
+    mockedPrisma.reviewVote.findMany.mockResolvedValue([{ reviewId: 'review-2' }])
 
     const response = await agent.get('/api/v1/churches/church-1/reviews?sort=highest')
 
@@ -136,6 +164,11 @@ describe('review routes', () => {
     expect(response.body.currentUserReview).toMatchObject({
       id: 'review-1',
       userId: 'user-1',
+      viewerHasVotedHelpful: false,
+    })
+    expect(response.body.data[0]).toMatchObject({
+      id: 'review-2',
+      viewerHasVotedHelpful: true,
     })
   })
 
@@ -211,6 +244,74 @@ describe('review routes', () => {
     const updateArgs = mockedPrisma.church.update.mock.calls[0][0]
     expect(updateArgs.data.reviewCount).toBe(10)
     expect(Number(updateArgs.data.avgRating)).toBeCloseTo(4.6, 5)
+  })
+
+  it('adds and removes helpful votes for another users review', async () => {
+    const agent = await loginAgent()
+
+    mockedPrisma.review.findUnique
+      .mockResolvedValueOnce({
+        id: 'review-2',
+        userId: 'user-2',
+        helpfulCount: 3,
+      })
+      .mockResolvedValueOnce({
+        id: 'review-2',
+        helpfulCount: 4,
+      })
+    mockedPrisma.reviewVote.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        reviewId: 'review-2',
+      })
+    mockedPrisma.reviewVote.create.mockResolvedValueOnce({
+      userId: 'user-1',
+      reviewId: 'review-2',
+    })
+    mockedPrisma.review.update
+      .mockResolvedValueOnce({
+        helpfulCount: 4,
+      })
+      .mockResolvedValueOnce({
+        id: 'review-2',
+      })
+    mockedPrisma.reviewVote.delete.mockResolvedValueOnce({
+      userId: 'user-1',
+      reviewId: 'review-2',
+    })
+
+    const addResponse = await agent.post('/api/v1/reviews/review-2/helpful')
+
+    expect(addResponse.status).toBe(201)
+    expect(addResponse.body.data).toMatchObject({
+      reviewId: 'review-2',
+      helpfulCount: 4,
+      viewerHasVotedHelpful: true,
+    })
+
+    const removeResponse = await agent.delete('/api/v1/reviews/review-2/helpful')
+
+    expect(removeResponse.status).toBe(200)
+    expect(removeResponse.body.data).toMatchObject({
+      reviewId: 'review-2',
+      helpfulCount: 3,
+      viewerHasVotedHelpful: false,
+    })
+  })
+
+  it('rejects helpful votes on your own review', async () => {
+    const agent = await loginAgent()
+
+    mockedPrisma.review.findUnique.mockResolvedValueOnce({
+      id: 'review-1',
+      userId: 'user-1',
+      helpfulCount: 3,
+    })
+
+    const response = await agent.post('/api/v1/reviews/review-1/helpful')
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('OWN_REVIEW_HELPFUL_VOTE')
   })
 
   it('deletes a review, updates aggregates, and exposes account review history only to the owner', async () => {

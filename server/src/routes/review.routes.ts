@@ -12,9 +12,11 @@ import {
   UpdateReviewBody,
 } from '../schemas/review.schema.js'
 import {
+  addHelpfulVote,
   createReview,
   deleteReview,
   getChurchReviews,
+  removeHelpfulVote,
   updateReview,
 } from '../services/review.service.js'
 import { IReviewListParams } from '../types/review.types.js'
@@ -90,6 +92,56 @@ router.patch(
       res.json({
         data: review,
         message: 'Review updated successfully',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.post(
+  '/reviews/:id/helpful',
+  validate(reviewIdSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+
+      logger.info({ reviewId: id, userId }, 'Marking review as helpful')
+
+      const result = await addHelpfulVote(id, userId)
+
+      res.status(201).json({
+        data: result,
+        message: 'Review marked as helpful',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.delete(
+  '/reviews/:id/helpful',
+  validate(reviewIdSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+
+      logger.info({ reviewId: id, userId }, 'Removing helpful vote from review')
+
+      const result = await removeHelpfulVote(id, userId)
+
+      res.json({
+        data: result,
+        message: 'Helpful vote removed',
       })
       return
     } catch (error) {

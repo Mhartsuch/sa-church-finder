@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
+  addHelpfulVote,
   createReview,
   deleteReview,
   fetchChurchReviews,
   fetchUserReviews,
+  removeHelpfulVote,
   updateReview,
 } from '@/api/reviews'
 import {
@@ -18,6 +20,7 @@ import {
   IReview,
   IReviewListParams,
   IUserReview,
+  ReviewHelpfulVoteResult,
   UpdateReviewInput,
 } from '@/types/review'
 
@@ -83,6 +86,28 @@ export const useDeleteReview = () => {
 
   return useMutation<{ id: string; churchId: string }, Error, string>({
     mutationFn: deleteReview,
+    onSuccess: () => {
+      invalidateReviewAwareQueries(queryClient)
+    },
+  })
+}
+
+export const useAddHelpfulVote = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<ReviewHelpfulVoteResult, Error, string>({
+    mutationFn: addHelpfulVote,
+    onSuccess: () => {
+      invalidateReviewAwareQueries(queryClient)
+    },
+  })
+}
+
+export const useRemoveHelpfulVote = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<ReviewHelpfulVoteResult, Error, string>({
+    mutationFn: removeHelpfulVote,
     onSuccess: () => {
       invalidateReviewAwareQueries(queryClient)
     },

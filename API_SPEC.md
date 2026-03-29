@@ -170,8 +170,13 @@ Delete a review.
 
 ---
 
-#### `POST /reviews/:id/vote` *(authenticated)*
-Toggle "helpful" vote on a review.
+#### `POST /reviews/:id/helpful` *(authenticated)*
+Mark a review as helpful.
+
+---
+
+#### `DELETE /reviews/:id/helpful` *(authenticated)*
+Remove the current user's helpful vote from a review.
 
 ---
 

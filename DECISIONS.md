@@ -11,6 +11,14 @@
 
 ## Decisions
 
+### DEC-008: Embed viewer helpful-vote state directly in church review payloads
+- **Date:** 2026-03-28
+- **Status:** ACTIVE
+- **Decision:** Include `viewerHasVotedHelpful` on each review returned by church review listing endpoints instead of making the client perform a separate vote-state lookup per review card.
+- **Alternatives Considered:** Add a dedicated endpoint for the current viewer's helpful votes; make the client infer vote state only from mutation responses until a refresh.
+- **Reasoning:** Helpful voting needed to feel immediate on church profile pages without turning every review list into an N+1 fetch problem on the frontend. Returning viewer-specific vote state alongside the reviews keeps the UI simple, preserves a single source of truth for the button state, and works cleanly with the existing React Query invalidation pattern.
+- **Consequences:** Review payloads are now session-aware, so server tests and client types need to keep this extra boolean in sync. Account review history keeps the field but defaults it to `false` because those screens do not currently expose helpful-vote actions.
+
 ### DEC-007: Ship password recovery now with an opt-in local preview before SMTP is wired
 - **Date:** 2026-03-28
 - **Status:** ACTIVE

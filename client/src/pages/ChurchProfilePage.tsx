@@ -14,13 +14,14 @@ import {
   Phone,
   Share,
   Star,
+  ThumbsUp,
   Users,
 } from 'lucide-react'
 
 import ReviewForm from '@/components/reviews/ReviewForm'
 import { useAuthSession } from '@/hooks/useAuth'
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches'
-import { useChurchReviews } from '@/hooks/useReviews'
+import { useAddHelpfulVote, useChurchReviews, useRemoveHelpfulVote } from '@/hooks/useReviews'
 import { IChurchService } from '@/types/church'
 import { IReview, ReviewSort } from '@/types/review'
 import { formatRating, formatServiceTime, getDayName } from '@/utils/format'
@@ -56,6 +57,18 @@ const formatReviewDate = (date: string): string => {
   }).format(new Date(date))
 }
 
+const formatHelpfulCount = (count: number): string => {
+  if (count === 0) {
+    return 'No one has marked this review as helpful yet.'
+  }
+
+  if (count === 1) {
+    return '1 person found this review helpful.'
+  }
+
+  return `${count} people found this review helpful.`
+}
+
 const getReviewSubratings = (
   review: IReview,
 ): Array<{ label: string; value: number }> => {
@@ -73,10 +86,13 @@ export const ChurchProfilePage = () => {
   const navigate = useNavigate()
   const { user } = useAuthSession()
   const toggleSavedChurchMutation = useToggleSavedChurch()
+  const addHelpfulVoteMutation = useAddHelpfulVote()
+  const removeHelpfulVoteMutation = useRemoveHelpfulVote()
   const { data: church, isLoading, error } = useChurch(slug ?? '')
   const [reviewSort, setReviewSort] = useState<ReviewSort>('recent')
   const [reviewPage, setReviewPage] = useState(1)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [helpfulVoteError, setHelpfulVoteError] = useState<string | null>(null)
   const {
     data: churchReviews,
     isLoading: isReviewsLoading,
@@ -144,6 +160,36 @@ export const ChurchProfilePage = () => {
         toggleError instanceof Error
           ? toggleError.message
           : 'Unable to update saved churches right now.',
+      )
+    }
+  }
+
+  const handleHelpfulVote = async (review: IReview) => {
+    setHelpfulVoteError(null)
+
+    if (!user) {
+      navigate('/login', {
+        state: {
+          from: {
+            pathname: location.pathname,
+            search: location.search,
+          },
+        },
+      })
+      return
+    }
+
+    try {
+      if (review.viewerHasVotedHelpful) {
+        await removeHelpfulVoteMutation.mutateAsync(review.id)
+      } else {
+        await addHelpfulVoteMutation.mutateAsync(review.id)
+      }
+    } catch (voteError) {
+      setHelpfulVoteError(
+        voteError instanceof Error
+          ? voteError.message
+          : 'Unable to update that helpful vote right now.',
       )
     }
   }
@@ -407,6 +453,12 @@ export const ChurchProfilePage = () => {
                 />
               </div>
 
+              {helpfulVoteError ? (
+                <div className='mt-6 rounded-[28px] border border-[#ffb4c1] bg-[#fff1f4] px-5 py-4 text-sm text-[#9f1239]'>
+                  {helpfulVoteError}
+                </div>
+              ) : null}
+
               {reviewsError ? (
                 <div className='mt-6 rounded-[28px] border border-[#ffb4c1] bg-[#fff1f4] px-5 py-4 text-sm text-[#9f1239]'>
                   {reviewsError.message}
@@ -438,6 +490,11 @@ export const ChurchProfilePage = () => {
                     const subratings = getReviewSubratings(review)
                     const isOwnReview = review.userId === user?.id
                     const wasEdited = review.updatedAt !== review.createdAt
+                    const isHelpfulVotePending =
+                      (addHelpfulVoteMutation.isPending &&
+                        addHelpfulVoteMutation.variables === review.id) ||
+                      (removeHelpfulVoteMutation.isPending &&
+                        removeHelpfulVoteMutation.variables === review.id)
 
                     return (
                       <article
@@ -489,6 +546,37 @@ export const ChurchProfilePage = () => {
                             ))}
                           </div>
                         ) : null}
+
+                        <div className='mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between'>
+                          <p className='text-xs font-medium uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                            {formatHelpfulCount(review.helpfulCount)}
+                          </p>
+
+                          {!isOwnReview ? (
+                            <button
+                              type='button'
+                              onClick={() => {
+                                void handleHelpfulVote(review)
+                              }}
+                              disabled={isHelpfulVotePending}
+                              aria-pressed={review.viewerHasVotedHelpful}
+                              className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+                                review.viewerHasVotedHelpful
+                                  ? 'border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] hover:bg-[#dbeafe]'
+                                  : 'border-gray-300 bg-white text-[#222222] hover:bg-gray-50'
+                              }`}
+                            >
+                              <ThumbsUp
+                                className={`h-4 w-4 ${review.viewerHasVotedHelpful ? 'fill-current' : ''}`}
+                              />
+                              {isHelpfulVotePending
+                                ? 'Updating...'
+                                : review.viewerHasVotedHelpful
+                                  ? 'Marked helpful'
+                                  : 'Helpful'}
+                            </button>
+                          ) : null}
+                        </div>
                       </article>
                     )
                   })}

@@ -2,7 +2,17 @@ import { Prisma, Role } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
-import { ICreateReviewInput, IReview, IReviewListParams, IReviewListResponse, IUserReview, IUserReviewHistoryResponse, IUpdateReviewInput, ReviewSort } from '../types/review.types.js'
+import {
+  ICreateReviewInput,
+  IReview,
+  IReviewHelpfulVoteResult,
+  IReviewListParams,
+  IReviewListResponse,
+  IUserReview,
+  IUserReviewHistoryResponse,
+  IUpdateReviewInput,
+  ReviewSort,
+} from '../types/review.types.js'
 
 const DEFAULT_PAGE = 1
 const DEFAULT_PAGE_SIZE = 10
@@ -62,6 +72,7 @@ const mapReview = (review: ReviewRecord): IReview => ({
   sermonRating: review.sermonRating,
   facilitiesRating: review.facilitiesRating,
   helpfulCount: review.helpfulCount,
+  viewerHasVotedHelpful: false,
   createdAt: review.createdAt,
   updatedAt: review.updatedAt,
   user: {
@@ -71,8 +82,16 @@ const mapReview = (review: ReviewRecord): IReview => ({
   },
 })
 
-const mapUserReview = (review: ReviewWithChurchRecord): IUserReview => ({
+const mapReviewWithViewerVote = (
+  review: ReviewRecord,
+  viewerHasVotedHelpful: boolean,
+): IReview => ({
   ...mapReview(review),
+  viewerHasVotedHelpful,
+})
+
+const mapUserReview = (review: ReviewWithChurchRecord): IUserReview => ({
+  ...mapReviewWithViewerVote(review, false),
   church: {
     id: review.church.id,
     name: review.church.name,
@@ -205,6 +224,24 @@ export async function getChurchReviews(
     take: pageSize,
     include: reviewInclude,
   })
+  const votedReviewIds =
+    currentUserId && reviews.length > 0
+      ? new Set(
+          (
+            await prisma.reviewVote.findMany({
+              where: {
+                userId: currentUserId,
+                reviewId: {
+                  in: reviews.map((review) => review.id),
+                },
+              },
+              select: {
+                reviewId: true,
+              },
+            })
+          ).map((vote) => vote.reviewId),
+        )
+      : new Set<string>()
 
   const currentUserReview = currentUserId
     ? await prisma.review.findUnique({
@@ -219,7 +256,9 @@ export async function getChurchReviews(
     : null
 
   return {
-    data: reviews.map(mapReview),
+    data: reviews.map((review) =>
+      mapReviewWithViewerVote(review, votedReviewIds.has(review.id)),
+    ),
     meta: {
       page,
       pageSize,
@@ -227,7 +266,9 @@ export async function getChurchReviews(
       totalPages: Math.ceil(total / pageSize),
       sort,
     },
-    currentUserReview: currentUserReview ? mapReview(currentUserReview) : null,
+    currentUserReview: currentUserReview
+      ? mapReviewWithViewerVote(currentUserReview, false)
+      : null,
   }
 }
 
@@ -437,5 +478,131 @@ export async function getUserReviewHistory(
     meta: {
       total: reviews.length,
     },
+  }
+}
+
+export async function addHelpfulVote(
+  reviewId: string,
+  userId: string,
+): Promise<IReviewHelpfulVoteResult> {
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    select: {
+      id: true,
+      userId: true,
+      helpfulCount: true,
+    },
+  })
+
+  if (!review) {
+    throw new NotFoundError('Review not found')
+  }
+
+  if (review.userId === userId) {
+    throw new AppError(
+      400,
+      'OWN_REVIEW_HELPFUL_VOTE',
+      'You cannot mark your own review as helpful',
+    )
+  }
+
+  const existingVote = await prisma.reviewVote.findUnique({
+    where: {
+      userId_reviewId: {
+        userId,
+        reviewId,
+      },
+    },
+    select: {
+      reviewId: true,
+    },
+  })
+
+  if (existingVote) {
+    throw new ConflictError('You have already marked this review as helpful')
+  }
+
+  const [, updatedReview] = await prisma.$transaction([
+    prisma.reviewVote.create({
+      data: {
+        userId,
+        reviewId,
+      },
+    }),
+    prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        helpfulCount: {
+          increment: 1,
+        },
+      },
+      select: {
+        helpfulCount: true,
+      },
+    }),
+  ])
+
+  return {
+    reviewId,
+    helpfulCount: updatedReview.helpfulCount,
+    viewerHasVotedHelpful: true,
+  }
+}
+
+export async function removeHelpfulVote(
+  reviewId: string,
+  userId: string,
+): Promise<IReviewHelpfulVoteResult> {
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    select: {
+      id: true,
+      helpfulCount: true,
+    },
+  })
+
+  if (!review) {
+    throw new NotFoundError('Review not found')
+  }
+
+  const existingVote = await prisma.reviewVote.findUnique({
+    where: {
+      userId_reviewId: {
+        userId,
+        reviewId,
+      },
+    },
+    select: {
+      reviewId: true,
+    },
+  })
+
+  if (!existingVote) {
+    throw new NotFoundError('Helpful vote not found')
+  }
+
+  const nextHelpfulCount = Math.max(0, review.helpfulCount - 1)
+
+  await prisma.$transaction([
+    prisma.reviewVote.delete({
+      where: {
+        userId_reviewId: {
+          userId,
+          reviewId,
+        },
+      },
+    }),
+    prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        helpfulCount: nextHelpfulCount,
+      },
+    }),
+  ])
+
+  return {
+    reviewId,
+    helpfulCount: nextHelpfulCount,
+    viewerHasVotedHelpful: false,
   }
 }

@@ -17,9 +17,16 @@ export interface IReview {
   sermonRating: number | null
   facilitiesRating: number | null
   helpfulCount: number
+  viewerHasVotedHelpful: boolean
   createdAt: Date
   updatedAt: Date
   user: IReviewAuthor
+}
+
+export interface IReviewHelpfulVoteResult {
+  reviewId: string
+  helpfulCount: number
+  viewerHasVotedHelpful: boolean
 }
 
 export interface IReviewChurchSummary {
