@@ -1,22 +1,23 @@
 import {
-  Church,
-  Sun,
-  Moon,
-  Globe,
-  Car,
   Accessibility,
   Baby,
-  Users,
-  Music,
-  Video,
-  Coffee,
   Calendar,
-  SlidersHorizontal,
+  Car,
+  Church,
+  Coffee,
+  Compass,
+  Globe,
+  Moon,
+  Music,
+  Sun,
+  Users,
+  Video,
+  X,
 } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+import { DENOMINATION_OPTIONS } from '@/constants'
 import { useSearchStore } from '@/stores/search-store'
-import {
-  DENOMINATION_OPTIONS,
-} from '@/constants'
 
 interface CategoryItem {
   label: string
@@ -26,27 +27,26 @@ interface CategoryItem {
 }
 
 const CATEGORIES: CategoryItem[] = [
-  // Denominations
-  ...DENOMINATION_OPTIONS.map((d) => ({
-    label: d,
-    icon: <Church className='w-6 h-6' />,
+  ...DENOMINATION_OPTIONS.map((denomination) => ({
+    label: denomination,
+    icon: <Church className='h-4 w-4' />,
     filterKey: 'denomination',
-    filterValue: d,
+    filterValue: denomination,
   })),
 ]
 
-const QUICK_FILTERS = [
-  { label: 'Sunday', icon: <Calendar className='w-6 h-6' />, filterKey: 'day', filterValue: 0 },
-  { label: 'Morning', icon: <Sun className='w-6 h-6' />, filterKey: 'time', filterValue: 'morning' },
-  { label: 'Evening', icon: <Moon className='w-6 h-6' />, filterKey: 'time', filterValue: 'evening' },
-  { label: 'Spanish', icon: <Globe className='w-6 h-6' />, filterKey: 'language', filterValue: 'Spanish' },
-  { label: 'Parking', icon: <Car className='w-6 h-6' />, filterKey: 'amenities', filterValue: 'Parking' },
-  { label: 'Accessible', icon: <Accessibility className='w-6 h-6' />, filterKey: 'amenities', filterValue: 'Wheelchair Accessible' },
-  { label: 'Nursery', icon: <Baby className='w-6 h-6' />, filterKey: 'amenities', filterValue: 'Nursery' },
-  { label: 'Youth', icon: <Users className='w-6 h-6' />, filterKey: 'amenities', filterValue: 'Youth Programs' },
-  { label: 'Choir', icon: <Music className='w-6 h-6' />, filterKey: 'amenities', filterValue: 'Choir' },
-  { label: 'Livestream', icon: <Video className='w-6 h-6' />, filterKey: 'amenities', filterValue: 'Livestream' },
-  { label: 'Coffee Bar', icon: <Coffee className='w-6 h-6' />, filterKey: 'amenities', filterValue: 'Coffee Bar' },
+const QUICK_FILTERS: CategoryItem[] = [
+  { label: 'Sunday', icon: <Calendar className='h-4 w-4' />, filterKey: 'day', filterValue: 0 },
+  { label: 'Morning', icon: <Sun className='h-4 w-4' />, filterKey: 'time', filterValue: 'morning' },
+  { label: 'Evening', icon: <Moon className='h-4 w-4' />, filterKey: 'time', filterValue: 'evening' },
+  { label: 'Spanish', icon: <Globe className='h-4 w-4' />, filterKey: 'language', filterValue: 'Spanish' },
+  { label: 'Parking', icon: <Car className='h-4 w-4' />, filterKey: 'amenities', filterValue: 'Parking' },
+  { label: 'Accessible', icon: <Accessibility className='h-4 w-4' />, filterKey: 'amenities', filterValue: 'Wheelchair Accessible' },
+  { label: 'Nursery', icon: <Baby className='h-4 w-4' />, filterKey: 'amenities', filterValue: 'Nursery' },
+  { label: 'Youth', icon: <Users className='h-4 w-4' />, filterKey: 'amenities', filterValue: 'Youth Programs' },
+  { label: 'Choir', icon: <Music className='h-4 w-4' />, filterKey: 'amenities', filterValue: 'Choir' },
+  { label: 'Livestream', icon: <Video className='h-4 w-4' />, filterKey: 'amenities', filterValue: 'Livestream' },
+  { label: 'Coffee Bar', icon: <Coffee className='h-4 w-4' />, filterKey: 'amenities', filterValue: 'Coffee Bar' },
 ]
 
 interface CategoryFilterProps {
@@ -54,11 +54,16 @@ interface CategoryFilterProps {
 }
 
 export const CategoryFilter = ({ showQuickFilters = false }: CategoryFilterProps) => {
+  const location = useLocation()
+  const navigate = useNavigate()
   const filters = useSearchStore((state) => state.filters)
   const setFilter = useSearchStore((state) => state.setFilter)
   const clearFilters = useSearchStore((state) => state.clearFilters)
 
   const items = showQuickFilters ? QUICK_FILTERS : CATEGORIES
+  const activeFilterCount = Object.values(filters).filter((value) => value !== undefined && value !== '').length
+  const hasActiveFilters = activeFilterCount > 0
+  const isHomePage = location.pathname === '/'
 
   const isActive = (filterKey: string, filterValue: string | number) => {
     const currentValue = filters[filterKey as keyof typeof filters]
@@ -67,57 +72,69 @@ export const CategoryFilter = ({ showQuickFilters = false }: CategoryFilterProps
 
   const handleClick = (filterKey: string, filterValue: string | number) => {
     const currentValue = filters[filterKey as keyof typeof filters]
-    if (currentValue === filterValue) {
-      setFilter(filterKey as keyof typeof filters, undefined)
-    } else {
-      setFilter(filterKey as keyof typeof filters, filterValue)
-    }
+    setFilter(
+      filterKey as keyof typeof filters,
+      currentValue === filterValue ? undefined : filterValue,
+    )
   }
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== undefined && v !== '')
-
   return (
-    <div className='w-full flex items-center'>
-      <div className='category-scroll px-4 sm:px-6 lg:px-10 xl:px-20 py-3'>
+    <div className='flex w-full flex-col gap-4 px-4 py-4 sm:px-6 lg:px-10 xl:px-20'>
+      <div className='flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between'>
+        <div>
+          <p className='text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a8f80]'>
+            {showQuickFilters ? 'Quick Filters' : 'Browse By Tradition'}
+          </p>
+          <p className='mt-1 text-sm text-[#5f5a55]'>
+            {showQuickFilters
+              ? 'Start with the things people usually care about first.'
+              : 'Jump straight into the traditions you want to explore.'}
+          </p>
+        </div>
+
+        {hasActiveFilters ? (
+          <button
+            type='button'
+            onClick={clearFilters}
+            className='inline-flex items-center gap-2 self-start rounded-full border border-[#d7d1c5] bg-white px-4 py-2 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222] hover:bg-[#f8f5ef]'
+          >
+            <X className='h-4 w-4' />
+            Clear {activeFilterCount === 1 ? '1 filter' : `${activeFilterCount} filters`}
+          </button>
+        ) : isHomePage ? (
+          <button
+            type='button'
+            onClick={() => navigate('/search')}
+            className='inline-flex items-center gap-2 self-start rounded-full border border-[#d7d1c5] bg-white px-4 py-2 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222] hover:bg-[#f8f5ef]'
+          >
+            <Compass className='h-4 w-4' />
+            Open live map
+          </button>
+        ) : null}
+      </div>
+
+      <div className='category-scroll pb-1'>
         {items.map((item) => {
           const active = isActive(item.filterKey, item.filterValue)
+
           return (
             <button
               key={`${item.filterKey}-${item.filterValue}`}
+              type='button'
               onClick={() => handleClick(item.filterKey, item.filterValue)}
-              className={`flex flex-col items-center gap-2 min-w-[56px] pt-2 pb-3 px-1 border-b-[3px] transition-all duration-150 flex-shrink-0 group ${
+              className={`group inline-flex min-w-max flex-shrink-0 items-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold transition-all duration-150 ${
                 active
-                  ? 'border-[#222222] text-[#222222]'
-                  : 'border-transparent text-[#717171] hover:text-[#222222] hover:border-gray-300'
+                  ? 'border-[#222222] bg-[#222222] text-white shadow-airbnb-subtle'
+                  : 'border-[#ddd6ca] bg-white text-[#5f5a55] hover:border-[#222222] hover:bg-[#f8f5ef] hover:text-[#222222]'
               }`}
             >
-              <span className={`transition-opacity ${
-                active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
-              }`}>
+              <span className={active ? 'opacity-100' : 'opacity-70 transition-opacity group-hover:opacity-100'}>
                 {item.icon}
               </span>
-              <span className='text-xs font-semibold whitespace-nowrap leading-none'>{item.label}</span>
+              <span className='whitespace-nowrap leading-none'>{item.label}</span>
             </button>
           )
         })}
-      </div>
-
-      {/* Filters button — Airbnb style */}
-      <div className='flex-shrink-0 pr-4 sm:pr-6 lg:pr-10 xl:pr-20 pl-4 border-l border-gray-200'>
-        {hasActiveFilters ? (
-          <button
-            onClick={clearFilters}
-            className='pill-btn text-[#222222] border-[#222222]'
-          >
-            <SlidersHorizontal className='w-4 h-4' />
-            Clear
-          </button>
-        ) : (
-          <button className='pill-btn text-[#222222]'>
-            <SlidersHorizontal className='w-4 h-4' />
-            Filters
-          </button>
-        )}
       </div>
     </div>
   )

@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { Heart, Star } from 'lucide-react'
+
+import { getChurchMonogram, getChurchVisualTheme } from '@/lib/church-visuals'
 import { IChurchSummary } from '@/types/church'
 import { formatDistance, formatRating, getNextService } from '@/utils/format'
 
@@ -11,20 +14,6 @@ interface ChurchCardProps {
   isSavePending?: boolean
 }
 
-const PLACEHOLDER_IMAGES = [
-  'https://images.unsplash.com/photo-1438032005730-c779502df39b?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1548625149-fc4a29cf7092?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1543702758-388870abc93d?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1510936111840-65e151ad71bb?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1545987796-200d7efc7775?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=600&h=600&fit=crop',
-]
-
-const getPlaceholderImage = (id: string) => {
-  const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  return PLACEHOLDER_IMAGES[hash % PLACEHOLDER_IMAGES.length]
-}
-
 export const ChurchCard = ({
   church,
   isHovered,
@@ -33,8 +22,11 @@ export const ChurchCard = ({
   onToggleSave,
   isSavePending = false,
 }: ChurchCardProps) => {
+  const [hasImageError, setHasImageError] = useState(false)
   const nextService = getNextService(church.services)
-  const imageUrl = church.coverImageUrl || getPlaceholderImage(church.id)
+  const hasCoverImage = Boolean(church.coverImageUrl) && !hasImageError
+  const theme = getChurchVisualTheme(church)
+  const monogram = getChurchMonogram(church.name)
   const profileLabel = `View ${church.name} profile`
   const saveLabel = church.isSaved
     ? `Remove ${church.name} from saved churches`
@@ -51,9 +43,7 @@ export const ChurchCard = ({
           onHover(null)
         }
       }}
-      className={`relative transition-transform duration-200 ${
-        isHovered ? 'scale-[1.01]' : ''
-      }`}
+      className={`relative transition-transform duration-200 ${isHovered ? 'scale-[1.01]' : ''}`}
     >
       <button
         type='button'
@@ -62,28 +52,45 @@ export const ChurchCard = ({
         className='group w-full rounded-[20px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#222222] focus-visible:ring-offset-4'
       >
         <div className='relative mb-3 aspect-[20/19] overflow-hidden rounded-xl'>
-          <img
-            src={imageUrl}
-            alt={church.name}
-            className='h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]'
-            loading='lazy'
-            onError={(event) => {
-              const target = event.target as HTMLImageElement
-              target.style.display = 'none'
-              target.parentElement?.classList.add(
-                'bg-gradient-to-br',
-                'from-gray-100',
-                'to-gray-200'
-              )
-            }}
-          />
+          {hasCoverImage ? (
+            <img
+              src={church.coverImageUrl ?? undefined}
+              alt={church.name}
+              className='h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]'
+              loading='lazy'
+              onError={() => {
+                setHasImageError(true)
+              }}
+            />
+          ) : (
+            <div className={`relative h-full w-full overflow-hidden bg-gradient-to-br ${theme.surfaceClass}`}>
+              <div className={`absolute inset-0 ${theme.glowClass}`} />
+              <div className='absolute inset-0 bg-[linear-gradient(145deg,rgba(0,0,0,0.06),rgba(0,0,0,0.32))]' />
+              <div className='absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-white/12 text-sm font-semibold tracking-[0.18em] text-white backdrop-blur-sm'>
+                {monogram}
+              </div>
+              <div className='absolute inset-x-0 bottom-0 p-5 text-white'>
+                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm ${theme.outlineClass}`}>
+                  {church.denomination || 'San Antonio church'}
+                </span>
+                <div className='mt-4 space-y-1'>
+                  <p className='text-xs font-medium uppercase tracking-[0.18em] text-white/70'>
+                    {church.neighborhood || 'San Antonio'}
+                  </p>
+                  <p className='text-xl font-semibold leading-tight text-white'>
+                    {church.name}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className='absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5'>
             <div className='h-1.5 w-1.5 rounded-full bg-white' />
             <div className='h-1.5 w-1.5 rounded-full bg-white/50' />
+            <div className='h-1.5 w-1.5 rounded-full bg-white/35' />
             <div className='h-1.5 w-1.5 rounded-full bg-white/50' />
-            <div className='h-1.5 w-1.5 rounded-full bg-white/50' />
-            <div className='h-1.5 w-1.5 rounded-full bg-white/50' />
+            <div className='h-1.5 w-1.5 rounded-full bg-white/35' />
           </div>
         </div>
 
@@ -95,7 +102,9 @@ export const ChurchCard = ({
             {church.avgRating > 0 && (
               <div className='flex flex-shrink-0 items-center gap-1 pt-0.5'>
                 <Star className='h-3 w-3 fill-[#222222] text-[#222222]' />
-                <span className='text-[14px] text-[#222222]'>{formatRating(church.avgRating)}</span>
+                <span className='text-[14px] text-[#222222]'>
+                  {formatRating(church.avgRating)}
+                </span>
               </div>
             )}
           </div>
@@ -104,10 +113,11 @@ export const ChurchCard = ({
             <p className='text-[14px] text-[#717171]'>{church.denomination}</p>
           )}
 
-          <p className='text-[14px] text-[#717171]'>
-            {church.neighborhood ? `${church.neighborhood}, ` : ''}
-            {formatDistance(church.distance)} away
-          </p>
+          <div className='flex flex-wrap items-center gap-1.5 text-[14px] text-[#717171]'>
+            {church.neighborhood ? <span>{church.neighborhood}</span> : null}
+            {church.neighborhood ? <span>&middot;</span> : null}
+            <span>{formatDistance(church.distance)} away</span>
+          </div>
 
           {nextService && (
             <p className='pt-0.5 text-[14px] font-semibold text-[#222222]'>

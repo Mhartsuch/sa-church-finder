@@ -22,6 +22,7 @@ import ReviewForm from '@/components/reviews/ReviewForm'
 import { useAuthSession } from '@/hooks/useAuth'
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches'
 import { useAddHelpfulVote, useChurchReviews, useRemoveHelpfulVote } from '@/hooks/useReviews'
+import { getChurchMonogram, getChurchVisualTheme } from '@/lib/church-visuals'
 import { IChurchService } from '@/types/church'
 import { IReview, ReviewSort } from '@/types/review'
 import { formatRating, formatServiceTime, getDayName } from '@/utils/format'
@@ -128,6 +129,11 @@ export const ChurchProfilePage = () => {
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${church.address}, ${church.city}, ${church.state} ${church.zipCode}`,
   )}`
+  const googleMapsEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(
+    `${church.address}, ${church.city}, ${church.state} ${church.zipCode}`,
+  )}&z=15&output=embed`
+  const churchTheme = getChurchVisualTheme(church)
+  const churchMonogram = getChurchMonogram(church.name)
 
   const groupedServices = groupServicesByDay(church.services)
   const isSavePending =
@@ -208,12 +214,28 @@ export const ChurchProfilePage = () => {
 
       <div className='mx-auto mb-6 max-w-[1120px] px-6 lg:px-0'>
         <div className='grid h-[330px] grid-cols-4 gap-2 overflow-hidden rounded-xl lg:h-[400px]'>
-          <div className='relative col-span-2 row-span-2 cursor-pointer bg-gray-200'>
-            <div className='absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5' />
-            <div className='absolute inset-0 flex items-center justify-center'>
-              <div className='text-center text-gray-400'>
-                <MapPin className='mx-auto mb-2 h-10 w-10' />
-                <p className='text-sm font-medium'>Church photos coming soon</p>
+          <div className={`relative col-span-2 row-span-2 overflow-hidden bg-gradient-to-br ${churchTheme.surfaceClass}`}>
+            <div className={`absolute inset-0 ${churchTheme.glowClass}`} />
+            <div className='absolute inset-0 bg-[linear-gradient(145deg,rgba(0,0,0,0.04),rgba(0,0,0,0.3))]' />
+            <div className='absolute right-5 top-5 flex h-16 w-16 items-center justify-center rounded-[24px] border border-white/25 bg-white/12 text-lg font-semibold tracking-[0.24em] text-white backdrop-blur-sm'>
+              {churchMonogram}
+            </div>
+            <div className='absolute inset-x-0 bottom-0 p-6 text-white'>
+              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm ${churchTheme.outlineClass}`}>
+                {church.denomination || 'San Antonio church'}
+              </span>
+              <div className='mt-4 max-w-md'>
+                <p className='text-xs font-medium uppercase tracking-[0.18em] text-white/70'>
+                  {church.neighborhood || `${church.city}, ${church.state}`}
+                </p>
+                <p className='mt-1 text-[30px] font-semibold leading-[1.05]'>
+                  {church.name}
+                </p>
+                {church.description ? (
+                  <p className='mt-3 line-clamp-3 text-sm leading-6 text-white/80'>
+                    {church.description}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -623,11 +645,14 @@ export const ChurchProfilePage = () => {
               </p>
 
               <div className='mb-6'>
-                <div className='mb-3 flex h-40 w-full items-center justify-center rounded-xl bg-gray-100'>
-                  <div className='text-center text-gray-400'>
-                    <MapPin className='mx-auto mb-1 h-8 w-8' />
-                    <p className='text-xs font-medium'>Map coming soon</p>
-                  </div>
+                <div className='mb-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-100'>
+                  <iframe
+                    title={`Map of ${church.name}`}
+                    src={googleMapsEmbedUrl}
+                    className='h-40 w-full border-0'
+                    loading='lazy'
+                    referrerPolicy='no-referrer-when-downgrade'
+                  />
                 </div>
                 <div className='flex items-start gap-2'>
                   <MapPin className='mt-0.5 h-5 w-5 flex-shrink-0 text-[#222222]' />

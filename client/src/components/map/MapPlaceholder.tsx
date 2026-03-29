@@ -56,9 +56,7 @@ export const MapPlaceholder = () => {
       <div className='absolute top-4 left-4 right-4 z-10'>
         <div className='inline-flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-airbnb text-sm'>
           <AlertCircle className='w-4 h-4 text-sage-600 flex-shrink-0' />
-          <span className='text-[#222222] font-medium'>
-            Interactive map coming soon
-          </span>
+          <span className='text-[#222222] font-medium'>Lightweight map preview</span>
         </div>
       </div>
 
