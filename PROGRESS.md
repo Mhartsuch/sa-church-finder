@@ -12,6 +12,48 @@
 
 ## Log
 
+### 2026-03-28 - Reviews MVP
+**Focus:** Finished the next Milestone 2 product slice by making written reviews real across the backend, church profiles, and the account page.
+
+**Completed:**
+- **Review APIs + service layer:** Added `GET/POST /api/v1/churches/:churchId/reviews`, `PATCH/DELETE /api/v1/reviews/:id`, and `GET /api/v1/users/:id/reviews` with validation, auth/ownership checks, and a dedicated review service.
+- **Aggregate rating updates:** Wired create/edit/delete review flows to update church `avgRating` and `reviewCount` incrementally from the existing stored aggregates so imported listing scores are preserved while real written reviews start accumulating.
+- **Church profile review UX:** Added a real review section on `ChurchProfilePage` with list sorting, pagination, signed-in create/edit/delete flow, and a login CTA for signed-out visitors.
+- **Account review history:** Replaced the account-page review placeholder with the user’s real review history, including direct links back to church profile review sections and inline delete actions.
+- **Coverage + verification:** Added `server/src/routes/review.routes.test.ts` covering review auth, listing, create/update/delete aggregate behavior, and protected account-history access.
+
+**Remaining Notes:**
+- Helpful voting / flagging moderation are still follow-up review features rather than part of this MVP slice.
+- Google OAuth, email verification, and forgot/reset password remain the main Milestone 2 auth follow-ups.
+- The Mapbox chunk-size warning remains unchanged and is still a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd run lint` successfully.
+- Ran `npm.cmd run typecheck` successfully.
+- Ran `npm.cmd run test` successfully (required elevated execution in this environment because Vitest/esbuild spawning is sandbox-restricted here).
+- Ran `npm.cmd run build` successfully (also required elevated execution here because Vite/esbuild spawning is sandbox-restricted). The known `mapbox-gl` chunk-size warning still appears.
+
+**Files Changed:**
+- `server/src/app.ts`
+- `server/src/routes/review.routes.ts`
+- `server/src/routes/review.routes.test.ts`
+- `server/src/routes/users.routes.ts`
+- `server/src/schemas/review.schema.ts`
+- `server/src/schemas/user.schema.ts`
+- `server/src/services/review.service.ts`
+- `server/src/types/review.types.ts`
+- `client/src/api/reviews.ts`
+- `client/src/components/reviews/ReviewForm.tsx`
+- `client/src/hooks/useReviews.ts`
+- `client/src/pages/AccountPage.tsx`
+- `client/src/pages/ChurchProfilePage.tsx`
+- `client/src/types/review.ts`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROJECT_CONTEXT.md`
+- `TODO.md`
+- `PROGRESS.md`
+
 ### 2026-03-28 - Saved Churches MVP
 **Focus:** Finished the first true account-driven Milestone 2 feature by wiring saved churches through the backend, church payloads, and the account UI.
 

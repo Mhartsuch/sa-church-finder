@@ -6,11 +6,15 @@ import {
   MapPin,
   MessageSquareText,
   ShieldCheck,
+  Star,
+  Trash2,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuthSession, useLogout } from '@/hooks/useAuth'
 import { useSavedChurches, useToggleSavedChurch } from '@/hooks/useChurches'
+import { useDeleteReview, useUserReviews } from '@/hooks/useReviews'
+import { formatRating } from '@/utils/format'
 
 const formatMemberSince = (createdAt: string): string => {
   return new Intl.DateTimeFormat('en-US', {
@@ -26,13 +30,30 @@ const formatSavedDate = (savedAt: string): string => {
   }).format(new Date(savedAt))
 }
 
+const formatReviewDate = (reviewDate: string): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(reviewDate))
+}
+
 const AccountPage = () => {
   const navigate = useNavigate()
   const logoutMutation = useLogout()
   const { user } = useAuthSession()
-  const { data: savedChurches = [], isLoading: isSavedChurchesLoading, error: savedChurchesError } =
-    useSavedChurches(user?.id ?? null)
+  const {
+    data: savedChurches = [],
+    isLoading: isSavedChurchesLoading,
+    error: savedChurchesError,
+  } = useSavedChurches(user?.id ?? null)
+  const {
+    data: userReviews = [],
+    isLoading: isUserReviewsLoading,
+    error: userReviewsError,
+  } = useUserReviews(user?.id ?? null)
   const toggleSavedChurchMutation = useToggleSavedChurch()
+  const deleteReviewMutation = useDeleteReview()
   const [actionError, setActionError] = useState<string | null>(null)
 
   if (!user) {
@@ -75,6 +96,24 @@ const AccountPage = () => {
     }
   }
 
+  const handleDeleteReview = async (reviewId: string, churchName: string) => {
+    setActionError(null)
+
+    if (!window.confirm(`Delete your review for ${churchName}?`)) {
+      return
+    }
+
+    try {
+      await deleteReviewMutation.mutateAsync(reviewId)
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to delete your review right now.',
+      )
+    }
+  }
+
   return (
     <div className='flex flex-1 bg-[#fcfbf8]'>
       <div className='mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12'>
@@ -86,9 +125,9 @@ const AccountPage = () => {
             Welcome back, {firstName}.
           </h1>
           <p className='max-w-3xl text-base leading-7 text-[#555555]'>
-            Session-backed auth and saved churches are now connected end to end.
-            This account home is the working surface for your shortlist today, with
-            reviews and the remaining auth flows queued next.
+            Session-backed auth, saved churches, and written reviews are now
+            connected end to end. This page is the working home for your shortlist
+            and review history while the remaining auth flows land next.
           </p>
         </div>
 
@@ -128,8 +167,8 @@ const AccountPage = () => {
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
                   Member since {formatMemberSince(user.createdAt)}. Local email and
-                  password auth are live, with saved churches now synced to your
-                  account.
+                  password auth are live, and your shortlist plus written reviews now
+                  stay tied to your account.
                 </p>
               </div>
 
@@ -138,11 +177,12 @@ const AccountPage = () => {
                   <ShieldCheck className='h-5 w-5' />
                 </div>
                 <h3 className='mt-4 text-lg font-semibold text-[#222222]'>
-                  Review readiness
+                  Review activity
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                  Reviews will unlock once email verification ships. This page is
-                  the surface where that status will live.
+                  Reviews are live for signed-in accounts today. Email verification is
+                  still a follow-up milestone, and this page will reflect that status
+                  once the flow ships.
                 </p>
               </div>
             </div>
@@ -158,7 +198,8 @@ const AccountPage = () => {
                       Saved churches
                     </h3>
                     <p className='text-sm text-[#555555]'>
-                      {savedChurches.length} saved {savedChurches.length === 1 ? 'church' : 'churches'}
+                      {savedChurches.length} saved{' '}
+                      {savedChurches.length === 1 ? 'church' : 'churches'}
                     </p>
                   </div>
                 </div>
@@ -234,13 +275,86 @@ const AccountPage = () => {
                   </div>
                   <div>
                     <h3 className='text-lg font-semibold text-[#222222]'>Your reviews</h3>
-                    <p className='text-sm text-[#555555]'>Ready for the review workflow</p>
+                    <p className='text-sm text-[#555555]'>
+                      {userReviews.length} written{' '}
+                      {userReviews.length === 1 ? 'review' : 'reviews'}
+                    </p>
                   </div>
                 </div>
-                <p className='mt-4 text-sm leading-6 text-[#555555]'>
-                  Once review endpoints and UI land, this section will show your
-                  recent feedback and rating history.
-                </p>
+
+                {isUserReviewsLoading ? (
+                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                    Loading your review history...
+                  </p>
+                ) : userReviewsError ? (
+                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                    {userReviewsError.message}
+                  </p>
+                ) : userReviews.length === 0 ? (
+                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                    Visit any church profile to leave your first review. Once you do,
+                    the latest feedback and edit links will appear here.
+                  </p>
+                ) : (
+                  <div className='mt-4 space-y-3'>
+                    {userReviews.map((review) => {
+                      const isDeleting =
+                        deleteReviewMutation.isPending &&
+                        deleteReviewMutation.variables === review.id
+
+                      return (
+                        <div
+                          key={review.id}
+                          className='rounded-2xl border border-gray-200 bg-[#fcfbf8] p-4'
+                        >
+                          <div className='flex items-start justify-between gap-3'>
+                            <div className='min-w-0'>
+                              <Link
+                                to={`/churches/${review.church.slug}#reviews`}
+                                className='text-sm font-semibold text-[#222222] hover:underline'
+                              >
+                                {review.church.name}
+                              </Link>
+                              <p className='mt-1 text-sm text-[#555555]'>
+                                {review.church.denomination || 'Church listing'}
+                              </p>
+                            </div>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                void handleDeleteReview(review.id, review.church.name)
+                              }}
+                              disabled={isDeleting}
+                              className='inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70'
+                            >
+                              <Trash2 className='h-3.5 w-3.5' />
+                              {isDeleting ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
+
+                          <div className='mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]'>
+                            <span className='inline-flex items-center gap-1 font-semibold text-[#222222]'>
+                              <Star className='h-3.5 w-3.5 fill-[#222222] text-[#222222]' />
+                              {formatRating(review.rating)}
+                            </span>
+                            <span>Updated {formatReviewDate(review.updatedAt)}</span>
+                          </div>
+
+                          <p className='mt-3 text-sm leading-6 text-[#555555]'>
+                            {review.body}
+                          </p>
+
+                          <Link
+                            to={`/churches/${review.church.slug}#reviews`}
+                            className='mt-3 inline-flex text-sm font-semibold text-[#2563eb] hover:underline'
+                          >
+                            Edit on church page
+                          </Link>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -254,10 +368,10 @@ const AccountPage = () => {
               Session and security
             </h2>
             <p className='mt-3 text-sm leading-7 text-white/85'>
-              Sign in, registration, logout, and current-session checks are all
-              connected end to end now, and saved churches sync with your account.
-              Reviews, Google OAuth, password reset, and email verification are the
-              main Milestone 2 follow-ups still open.
+              Sign in, registration, logout, current-session checks, saved churches,
+              and written review history are all connected end to end now. Google
+              OAuth, password reset, and email verification are the main Milestone 2
+              auth follow-ups still open.
             </p>
 
             <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
@@ -265,9 +379,9 @@ const AccountPage = () => {
                 Next up
               </p>
               <ul className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
-                <li>Review creation and account history</li>
                 <li>Email verification flow</li>
-                <li>Google OAuth and password reset</li>
+                <li>Google OAuth</li>
+                <li>Forgot and reset password</li>
               </ul>
             </div>
 

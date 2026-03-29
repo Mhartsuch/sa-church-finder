@@ -11,6 +11,14 @@
 
 ## Decisions
 
+### DEC-006: Ship reviews for signed-in users first and preserve imported aggregates incrementally
+- **Date:** 2026-03-28
+- **Status:** ACTIVE
+- **Decision:** Launch the reviews MVP for any authenticated session-backed user now, before the email verification flow is finished, and update church `avgRating` / `reviewCount` incrementally from the stored aggregate values instead of recomputing from only the small written-review table.
+- **Alternatives Considered:** Block review creation until email verification is complete; recompute church aggregates exclusively from rows in the `reviews` table on every write.
+- **Reasoning:** Review creation/history was the clearest next Milestone 2 product slice and was already scaffolded in the schema, account page, and church profile page. Waiting on email verification would keep the feature unusable, while recomputing aggregates from the current `reviews` table would immediately wipe out the imported rating/count baselines that still power discovery surfaces. This approach lets real written reviews go live now without collapsing the existing score signals.
+- **Consequences:** Email verification remains a follow-up tightening step rather than a launch blocker for reviews. Public church pages need to distinguish written SA Church Finder reviews from the broader imported aggregate score/count when those numbers differ.
+
 ### DEC-001: React + Node.js/Express over Next.js
 - **Date:** 2026-03-26
 - **Status:** ACTIVE
