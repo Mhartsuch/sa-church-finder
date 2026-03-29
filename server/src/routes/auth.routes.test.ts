@@ -26,6 +26,12 @@ jest.mock('../lib/prisma.js', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    emailVerificationToken: {
+      deleteMany: jest.fn(),
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
   },
 }))
 
@@ -42,10 +48,17 @@ type MockedPrisma = {
     findUnique: jest.Mock
     update: jest.Mock
   }
+  emailVerificationToken: {
+    deleteMany: jest.Mock
+    create: jest.Mock
+    findUnique: jest.Mock
+    update: jest.Mock
+  }
 }
 
 const mockedPrisma = prisma as unknown as MockedPrisma
 const originalResetPreviewSetting = process.env.AUTH_EXPOSE_RESET_PREVIEW
+const originalVerificationPreviewSetting = process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW
 
 const baseUser = {
   id: 'user-1',
@@ -57,22 +70,50 @@ const baseUser = {
   createdAt: new Date('2026-03-28T00:00:00.000Z'),
 }
 
+const loginAgent = async (): Promise<ReturnType<typeof request.agent>> => {
+  const passwordHash = await bcrypt.hash('password123', 12)
+
+  mockedPrisma.user.findUnique.mockResolvedValueOnce({
+    ...baseUser,
+    passwordHash,
+  })
+
+  const agent = request.agent(createApp())
+  const loginResponse = await agent.post('/api/v1/auth/login').send({
+    email: 'user@example.com',
+    password: 'password123',
+  })
+
+  expect(loginResponse.status).toBe(200)
+
+  return agent
+}
+
 describe('auth routes', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockedPrisma.$transaction.mockImplementation((operations: unknown[]) =>
       Promise.all(operations),
     )
+    mockedPrisma.emailVerificationToken.deleteMany.mockResolvedValue({ count: 0 })
+    mockedPrisma.emailVerificationToken.create.mockResolvedValue({ id: 'verify-token-1' })
     delete process.env.AUTH_EXPOSE_RESET_PREVIEW
+    delete process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW
   })
 
   afterAll(() => {
     if (originalResetPreviewSetting === undefined) {
       delete process.env.AUTH_EXPOSE_RESET_PREVIEW
+    } else {
+      process.env.AUTH_EXPOSE_RESET_PREVIEW = originalResetPreviewSetting
+    }
+
+    if (originalVerificationPreviewSetting === undefined) {
+      delete process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW
       return
     }
 
-    process.env.AUTH_EXPOSE_RESET_PREVIEW = originalResetPreviewSetting
+    process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW = originalVerificationPreviewSetting
   })
 
   it('registers a user, normalizes the email, and establishes a session', async () => {
@@ -106,6 +147,15 @@ describe('auth routes', () => {
         }),
       }),
     )
+    expect(mockedPrisma.emailVerificationToken.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          tokenHash: expect.any(String),
+          expiresAt: expect.any(Date),
+        }),
+      }),
+    )
     expect(registerResponse.headers['set-cookie']).toBeDefined()
   })
 
@@ -121,6 +171,52 @@ describe('auth routes', () => {
     expect(response.status).toBe(409)
     expect(response.body.error.code).toBe('CONFLICT')
     expect(mockedPrisma.user.create).not.toHaveBeenCalled()
+  })
+
+  it('resends an email verification token and exposes a preview link when enabled', async () => {
+    process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW = 'true'
+
+    const agent = await loginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      emailVerified: false,
+    })
+
+    const response = await agent.post('/api/v1/auth/verify-email/resend').send({})
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toMatchObject({
+      status: 'sent',
+    })
+    expect(response.body.data.previewUrl).toMatch(
+      /^http:\/\/localhost:5173\/verify-email\?token=/,
+    )
+    expect(mockedPrisma.emailVerificationToken.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          tokenHash: expect.any(String),
+          expiresAt: expect.any(Date),
+        }),
+      }),
+    )
+  })
+
+  it('returns an already-verified status when resending verification for a verified user', async () => {
+    const agent = await loginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      emailVerified: true,
+    })
+
+    const response = await agent.post('/api/v1/auth/verify-email/resend').send({})
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toMatchObject({
+      status: 'already-verified',
+    })
   })
 
   it('logs in, returns the current user, and clears the session on logout', async () => {
@@ -175,6 +271,82 @@ describe('auth routes', () => {
 
     expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('AUTH_ERROR')
+  })
+
+  it('verifies an email token and marks the user as verified', async () => {
+    const rawToken = 'verify-email-token'
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex')
+
+    mockedPrisma.emailVerificationToken.findUnique.mockResolvedValueOnce({
+      id: 'verification-token-1',
+      userId: 'user-1',
+      expiresAt: new Date(Date.now() + 1000 * 60 * 30),
+      usedAt: null,
+      user: {
+        emailVerified: false,
+      },
+    })
+    mockedPrisma.emailVerificationToken.update.mockResolvedValueOnce({
+      id: 'verification-token-1',
+    })
+    mockedPrisma.user.update.mockResolvedValueOnce({ id: 'user-1' })
+    mockedPrisma.emailVerificationToken.deleteMany.mockResolvedValueOnce({ count: 0 })
+
+    const response = await request(createApp()).post('/api/v1/auth/verify-email').send({
+      token: rawToken,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toMatchObject({
+      status: 'verified',
+    })
+    expect(mockedPrisma.emailVerificationToken.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          tokenHash,
+        },
+      }),
+    )
+    expect(mockedPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'user-1' },
+        data: {
+          emailVerified: true,
+        },
+      }),
+    )
+  })
+
+  it('treats reused verification links for already verified users as a success state', async () => {
+    mockedPrisma.emailVerificationToken.findUnique.mockResolvedValueOnce({
+      id: 'verification-token-1',
+      userId: 'user-1',
+      expiresAt: new Date(Date.now() - 1000),
+      usedAt: new Date(Date.now() - 500),
+      user: {
+        emailVerified: true,
+      },
+    })
+
+    const response = await request(createApp()).post('/api/v1/auth/verify-email').send({
+      token: 'used-verification-token',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toMatchObject({
+      status: 'already-verified',
+    })
+  })
+
+  it('rejects invalid email verification tokens', async () => {
+    mockedPrisma.emailVerificationToken.findUnique.mockResolvedValueOnce(null)
+
+    const response = await request(createApp()).post('/api/v1/auth/verify-email').send({
+      token: 'bad-verification-token',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('INVALID_EMAIL_VERIFICATION_TOKEN')
   })
 
   it('creates a password reset token and exposes a preview link only when preview mode is enabled', async () => {

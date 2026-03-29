@@ -188,6 +188,16 @@
 | used_at | TIMESTAMP | NULLABLE | Set when token is consumed |
 | created_at | TIMESTAMP | default now() | |
 
+### email_verification_tokens
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| id | UUID | PK, default gen | |
+| user_id | UUID | FK -> users.id, NOT NULL | ON DELETE CASCADE |
+| token_hash | VARCHAR(255) | NOT NULL | SHA-256 hash of the verification token |
+| expires_at | TIMESTAMP | NOT NULL | Token expiration (default 24 hours from creation) |
+| used_at | TIMESTAMP | NULLABLE | Set when the verification link is consumed |
+| created_at | TIMESTAMP | default now() | |
+
 ### user_saved_churches
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
@@ -198,4 +208,4 @@
 **PK:** (user_id, church_id)
 
 ---
-*Last updated: 2026-03-26*
+*Last updated: 2026-03-28*

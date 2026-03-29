@@ -238,6 +238,8 @@ Register with email/password.
 | password | string | Yes (8+ chars) |
 | name | string | Yes |
 
+**Notes:** Creates the session immediately and also issues an email-verification token for the new account.
+
 ---
 
 #### `POST /auth/login`
@@ -267,6 +269,22 @@ Get current authenticated user profile.
 
 #### `POST /auth/forgot-password`
 Send password reset email.
+
+---
+
+#### `POST /auth/verify-email/resend`
+Issue a fresh email verification token for the current authenticated user.
+
+**Notes:** In local development, the response may include a preview verification URL when `AUTH_EXPOSE_VERIFICATION_PREVIEW=true`.
+
+---
+
+#### `POST /auth/verify-email`
+Verify an email address with a token.
+
+| Field | Type | Required |
+|---|---|---|
+| token | string | Yes |
 
 ---
 

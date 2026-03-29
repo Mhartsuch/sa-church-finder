@@ -3,23 +3,29 @@ import { NextFunction, Request, Response, Router } from 'express'
 import { SESSION_COOKIE_NAME } from '../lib/session.js'
 import logger from '../lib/logger.js'
 import { AuthError } from '../middleware/error-handler.js'
+import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
   AuthForgotPasswordBody,
   AuthLoginBody,
   AuthRegisterBody,
   AuthResetPasswordBody,
+  AuthVerifyEmailBody,
   authForgotPasswordSchema,
   authLoginSchema,
   authRegisterSchema,
+  authResendVerificationSchema,
   authResetPasswordSchema,
+  authVerifyEmailSchema,
 } from '../schemas/auth.schema.js'
 import {
   authenticateUser,
   getCurrentUser,
+  requestEmailVerification,
   registerUser,
   requestPasswordReset,
   resetPassword,
+  verifyEmail,
 } from '../services/auth.service.js'
 
 const router = Router()
@@ -72,6 +78,57 @@ router.post(
       res.status(201).json({
         data: user,
         message: 'Registration successful',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.post(
+  '/verify-email/resend',
+  validate(authResendVerificationSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.session.userId!
+      logger.info({ userId }, 'Email verification resend request received')
+
+      const result = await requestEmailVerification(userId)
+
+      res.json({
+        data: result,
+        message:
+          result.status === 'already-verified'
+            ? 'Email is already verified'
+            : 'Verification instructions are on the way.',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.post(
+  '/verify-email',
+  validate(authVerifyEmailSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = req.body as AuthVerifyEmailBody
+      logger.info('Email verification submission received')
+
+      const result = await verifyEmail(input)
+
+      res.json({
+        data: result,
+        message:
+          result.status === 'already-verified'
+            ? 'Email already verified'
+            : 'Email verified successfully',
       })
       return
     } catch (error) {

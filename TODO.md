@@ -27,7 +27,8 @@
 - [x] Build saved churches MVP (save/unsave on cards + profile, account list) - completed 2026-03-28
 - [x] Build reviews MVP (create/edit review flow, church profile list, account history) - completed 2026-03-28
 - [x] Build forgot/reset password flow (reset-token APIs, frontend pages, and opt-in local preview link) - completed 2026-03-28
-- [ ] Finish auth follow-ups: Google OAuth and email verification
+- [x] Build email verification flow (token APIs, verification page, account resend action, and opt-in local preview link) - completed 2026-03-28
+- [ ] Finish auth follow-up: Google OAuth
 - [x] Build Church Profile Page (F1.3 - hero, about, services, location, contact) - completed 2026-03-27
 - [x] Integrate Mapbox GL JS when token is available (replace MapPlaceholder) - completed 2026-03-27
 - [x] Implement map pin clustering for zoomed-out views - completed 2026-03-27
@@ -52,6 +53,7 @@
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Email verification flow - verification-token model + migration, register-time token issuance, resend + consume APIs, verification page, account resend CTA, local preview mode, and auth/client test coverage (2026-03-28)
 - [x] Review helpful voting - helpful/unhelpful endpoints, viewer vote state in review payloads, church profile helpful controls, and client/server test coverage (2026-03-28)
 - [x] Forgot/reset password flow - protected token issuance/consumption backend, login recovery UI, opt-in local preview link, auth route tests, and client auth API coverage (2026-03-28)
 - [x] Reviews MVP - church review listing/create/edit/delete APIs, incremental aggregate rating updates, church profile review UI, account review history, and route tests (2026-03-28)
@@ -114,4 +116,4 @@
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-28 (review helpful voting landed)*
+*Last updated: 2026-03-28 (email verification flow landed)*

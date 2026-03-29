@@ -12,6 +12,51 @@
 
 ## Log
 
+### 2026-03-28 - Email Verification Flow
+**Focus:** Closed the remaining local-auth verification gap by wiring email verification from token persistence through the account and verification-page UX.
+
+**Completed:**
+- **Verification-token persistence:** Added the `EmailVerificationToken` Prisma model plus a committed SQL migration so verification tokens now have a real hashed, expiring, one-time-use backend store.
+- **Backend verification flow:** Updated `server/src/services/auth.service.ts` and `server/src/routes/auth.routes.ts` so registration issues a verification token, signed-in users can request a fresh token via `POST /api/v1/auth/verify-email/resend`, and verification links can be consumed through `POST /api/v1/auth/verify-email`.
+- **Opt-in local preview mode:** Added `AUTH_EXPOSE_VERIFICATION_PREVIEW` and `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES`, mirroring the reset flow so local development can exercise verification safely before SMTP delivery is wired.
+- **Frontend verification UX:** Added `client/src/pages/VerifyEmailPage.tsx`, wired `/verify-email` into the router, extended the auth API/hooks/types, and added an account-page resend action with preview-link surfacing when preview mode is enabled.
+- **Coverage + docs:** Expanded server auth route tests and client auth API tests, updated auth/API/setup docs, and refreshed project memory files so email verification is now tracked as completed work rather than an open auth gap.
+
+**Remaining Notes:**
+- Google OAuth is now the only missing auth flow from the original Milestone 2 foundation slice.
+- Real outbound email delivery is still a separate follow-up; both password reset and email verification currently use explicit local preview modes for development testing.
+- Review moderation remains the clearest next product follow-up after the auth foundation is fully rounded out.
+
+**Verification:**
+- Ran `npx.cmd prisma generate` successfully in `server/` (required elevated execution in this environment because Prisma client generation hit the sandbox's process-spawn restriction).
+- Ran `npm.cmd test -- --runInBand auth.routes.test.ts` successfully in `server/`.
+- Ran `npm.cmd run typecheck` successfully in both `server/` and `client/`.
+- Ran `npm.cmd run lint` successfully in both `server/` and `client/`.
+- Ran `npm.cmd test -- auth.test.ts` successfully in `client/` (required elevated execution in this environment because Vitest/esbuild spawning is sandbox-restricted here).
+
+**Files Changed:**
+- `server/prisma/schema.prisma`
+- `server/prisma/migrations/20260328231500_add_email_verification_tokens/migration.sql`
+- `server/.env.example`
+- `server/src/routes/auth.routes.test.ts`
+- `server/src/routes/auth.routes.ts`
+- `server/src/schemas/auth.schema.ts`
+- `server/src/services/auth.service.ts`
+- `client/src/App.tsx`
+- `client/src/api/auth.test.ts`
+- `client/src/api/auth.ts`
+- `client/src/hooks/useAuth.ts`
+- `client/src/pages/AccountPage.tsx`
+- `client/src/pages/VerifyEmailPage.tsx`
+- `client/src/types/auth.ts`
+- `AGENT_BRIEFING.md`
+- `API_SPEC.md`
+- `DATA_MODELS.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+- `QUICKSTART.md`
+- `TODO.md`
+
 ### 2026-03-28 - Review Helpful Voting
 **Focus:** Landed the first post-MVP review follow-up by wiring helpful voting from the API through the church profile experience.
 

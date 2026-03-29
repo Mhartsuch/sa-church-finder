@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { useAuthSession, useLogout } from '@/hooks/useAuth'
+import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth'
 import { useSavedChurches, useToggleSavedChurch } from '@/hooks/useChurches'
 import { useDeleteReview, useUserReviews } from '@/hooks/useReviews'
 import { formatRating } from '@/utils/format'
@@ -41,6 +41,7 @@ const formatReviewDate = (reviewDate: string): string => {
 const AccountPage = () => {
   const navigate = useNavigate()
   const logoutMutation = useLogout()
+  const requestEmailVerificationMutation = useRequestEmailVerification()
   const { user } = useAuthSession()
   const {
     data: savedChurches = [],
@@ -55,6 +56,10 @@ const AccountPage = () => {
   const toggleSavedChurchMutation = useToggleSavedChurch()
   const deleteReviewMutation = useDeleteReview()
   const [actionError, setActionError] = useState<string | null>(null)
+  const [verificationNotice, setVerificationNotice] = useState<{
+    message: string
+    previewUrl?: string
+  } | null>(null)
 
   if (!user) {
     return null
@@ -114,6 +119,29 @@ const AccountPage = () => {
     }
   }
 
+  const handleRequestEmailVerification = async () => {
+    setActionError(null)
+    setVerificationNotice(null)
+
+    try {
+      const result = await requestEmailVerificationMutation.mutateAsync()
+
+      setVerificationNotice({
+        message:
+          result.status === 'already-verified'
+            ? 'Your email address is already verified.'
+            : 'Verification instructions are ready for your inbox.',
+        previewUrl: result.previewUrl,
+      })
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to send a verification link right now.',
+      )
+    }
+  }
+
   return (
     <div className='flex flex-1 bg-[#fcfbf8]'>
       <div className='mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12'>
@@ -125,9 +153,10 @@ const AccountPage = () => {
             Welcome back, {firstName}.
           </h1>
           <p className='max-w-3xl text-base leading-7 text-[#555555]'>
-            Session-backed auth, saved churches, and written reviews are now
-            connected end to end. This page is the working home for your shortlist
-            and review history while Google OAuth and email verification land next.
+            Session-backed auth, saved churches, written reviews, password
+            recovery, and email verification are now connected end to end. This
+            page is the working home for your shortlist, review history, and auth
+            account status while Google OAuth lands next.
           </p>
         </div>
 
@@ -157,6 +186,56 @@ const AccountPage = () => {
               </div>
             </div>
 
+            {!user.emailVerified ? (
+              <div className='mt-6 rounded-[28px] border border-[#ffd6df] bg-[#fff7f9] p-5'>
+                <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+                  <div>
+                    <h3 className='text-lg font-semibold text-[#222222]'>
+                      Verify your email address
+                    </h3>
+                    <p className='mt-2 text-sm leading-6 text-[#555555]'>
+                      The verification flow is now wired. Send yourself a fresh link
+                      here, and if local preview mode is enabled you&apos;ll get a
+                      direct verification URL without waiting on SMTP.
+                    </p>
+                  </div>
+
+                  <button
+                    type='button'
+                    onClick={() => {
+                      void handleRequestEmailVerification()
+                    }}
+                    disabled={requestEmailVerificationMutation.isPending}
+                    className='rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70'
+                  >
+                    {requestEmailVerificationMutation.isPending
+                      ? 'Sending link...'
+                      : 'Send verification link'}
+                  </button>
+                </div>
+
+                {verificationNotice ? (
+                  <div className='mt-4 space-y-3'>
+                    <div className='rounded-2xl border border-[#c9defa] bg-white px-4 py-3 text-sm text-[#1d4ed8]'>
+                      {verificationNotice.message}
+                    </div>
+                    {verificationNotice.previewUrl ? (
+                      <div className='rounded-2xl border border-[#c9defa] bg-[#f5f9ff] px-4 py-3 text-sm text-[#1d4ed8]'>
+                        Development preview enabled:{' '}
+                        <a
+                          href={verificationNotice.previewUrl}
+                          className='font-semibold underline underline-offset-4'
+                        >
+                          open the verification link
+                        </a>
+                        .
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className='mt-6 grid gap-4 md:grid-cols-2'>
               <div className='rounded-[28px] bg-[#fff7f3] p-5'>
                 <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#FF385C] shadow-airbnb-subtle'>
@@ -180,9 +259,10 @@ const AccountPage = () => {
                   Review activity
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                  Reviews are live for signed-in accounts today. Email verification is
-                  still the main follow-up milestone, and password recovery is now in
-                  place if you ever need to get back into your account.
+                  Reviews are live for signed-in accounts today, email
+                  verification can now be managed from this page, and password
+                  recovery is in place if you ever need to get back into your
+                  account.
                 </p>
               </div>
             </div>
@@ -368,10 +448,10 @@ const AccountPage = () => {
               Session and security
             </h2>
             <p className='mt-3 text-sm leading-7 text-white/85'>
-              Sign in, registration, logout, current-session checks, saved churches,
-              password reset, saved churches, and written review history are all
-              connected end to end now. Google OAuth and email verification are the
-              main Milestone 2 auth follow-ups still open.
+              Sign in, registration, logout, current-session checks, password reset,
+              saved churches, helpful voting, and written review history are all
+              connected end to end now. Google OAuth and production-ready auth email
+              delivery are the main Milestone 2 follow-ups still open.
             </p>
 
             <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
@@ -379,9 +459,9 @@ const AccountPage = () => {
                 Next up
               </p>
               <ul className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
-                <li>Email verification flow</li>
                 <li>Google OAuth</li>
-                <li>Review helpful voting and moderation</li>
+                <li>Transactional email delivery for auth</li>
+                <li>Review moderation</li>
               </ul>
             </div>
 

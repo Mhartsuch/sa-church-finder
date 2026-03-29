@@ -11,6 +11,7 @@ import {
   AuthLoginBody,
   AuthRegisterBody,
   AuthResetPasswordBody,
+  AuthVerifyEmailBody,
 } from '../schemas/auth.schema.js'
 import { AppRole, AuthUser } from '../types/auth.types.js'
 
@@ -34,7 +35,16 @@ type AuthUserWithPasswordRecord = Prisma.UserGetPayload<{
   select: typeof authUserWithPasswordSelect
 }>
 
-const PASSWORD_RESET_TOKEN_BYTES = 32
+export type EmailVerificationRequestResult = {
+  status: 'sent' | 'already-verified'
+  previewUrl?: string
+}
+
+export type VerifyEmailResult = {
+  status: 'verified' | 'already-verified'
+}
+
+const ONE_TIME_TOKEN_BYTES = 32
 
 function resolvePasswordResetTokenTtlMs(): number {
   const configuredTtlMinutes = Number.parseInt(
@@ -45,10 +55,26 @@ function resolvePasswordResetTokenTtlMs(): number {
   return Math.max(configuredTtlMinutes, 5) * 60 * 1000
 }
 
+function resolveEmailVerificationTokenTtlMs(): number {
+  const configuredTtlMinutes = Number.parseInt(
+    process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES ?? '1440',
+    10,
+  )
+
+  return Math.max(configuredTtlMinutes, 15) * 60 * 1000
+}
+
 function shouldExposePasswordResetPreview(): boolean {
   return (
     process.env.NODE_ENV !== 'production' &&
     process.env.AUTH_EXPOSE_RESET_PREVIEW === 'true'
+  )
+}
+
+function shouldExposeVerificationPreview(): boolean {
+  return (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW === 'true'
   )
 }
 
@@ -68,23 +94,84 @@ function toAuthUser(user: AuthUserRecord): AuthUser {
   }
 }
 
-function hashPasswordResetToken(token: string): string {
+function hashOneTimeToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
 
-function resolvePasswordResetPreviewUrl(token: string): string | null {
-  if (!shouldExposePasswordResetPreview()) {
+function issueOneTimeToken(ttlMs: number): {
+  rawToken: string
+  tokenHash: string
+  expiresAt: Date
+} {
+  const rawToken = randomBytes(ONE_TIME_TOKEN_BYTES).toString('base64url')
+
+  return {
+    rawToken,
+    tokenHash: hashOneTimeToken(rawToken),
+    expiresAt: new Date(Date.now() + ttlMs),
+  }
+}
+
+function resolvePreviewUrl(
+  path: string,
+  token: string,
+  shouldExposePreview: boolean,
+): string | null {
+  if (!shouldExposePreview) {
     return null
   }
 
   const clientUrls = resolveClientUrls()
   const baseUrl =
     clientUrls === '*' || clientUrls.length === 0 ? 'http://localhost:5173' : clientUrls[0]
-  const resetUrl = new URL('/reset-password', baseUrl)
+  const previewUrl = new URL(path, baseUrl)
 
-  resetUrl.searchParams.set('token', token)
+  previewUrl.searchParams.set('token', token)
 
-  return resetUrl.toString()
+  return previewUrl.toString()
+}
+
+function resolvePasswordResetPreviewUrl(token: string): string | null {
+  return resolvePreviewUrl('/reset-password', token, shouldExposePasswordResetPreview())
+}
+
+function resolveEmailVerificationPreviewUrl(token: string): string | null {
+  return resolvePreviewUrl('/verify-email', token, shouldExposeVerificationPreview())
+}
+
+async function issueEmailVerificationToken(userId: string): Promise<{ previewUrl?: string }> {
+  const { rawToken, tokenHash, expiresAt } = issueOneTimeToken(
+    resolveEmailVerificationTokenTtlMs(),
+  )
+
+  await prisma.$transaction([
+    prisma.emailVerificationToken.deleteMany({
+      where: {
+        userId,
+        usedAt: null,
+      },
+    }),
+    prisma.emailVerificationToken.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+      },
+    }),
+  ])
+
+  logger.info(
+    {
+      userId,
+      emailVerificationExpiresAt: expiresAt.toISOString(),
+      previewEnabled: shouldExposeVerificationPreview(),
+    },
+    'Email verification token issued',
+  )
+
+  const previewUrl = resolveEmailVerificationPreviewUrl(rawToken)
+
+  return previewUrl ? { previewUrl } : {}
 }
 
 export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
@@ -106,6 +193,22 @@ export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
     },
     select: authUserSelect,
   })
+
+  try {
+    const verificationResult = await issueEmailVerificationToken(user.id)
+
+    if (verificationResult.previewUrl) {
+      logger.info(
+        {
+          userId: user.id,
+          previewUrl: verificationResult.previewUrl,
+        },
+        'Email verification preview ready after registration',
+      )
+    }
+  } catch (error) {
+    logger.error({ err: error, userId: user.id }, 'Failed to issue email verification token')
+  }
 
   return toAuthUser(user)
 }
@@ -129,6 +232,107 @@ export async function authenticateUser(input: AuthLoginBody): Promise<AuthUser> 
   return toAuthUser(user as AuthUserWithPasswordRecord)
 }
 
+export async function requestEmailVerification(
+  userId: string,
+): Promise<EmailVerificationRequestResult> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      emailVerified: true,
+    },
+  })
+
+  if (!user) {
+    throw new AuthError('Not authenticated')
+  }
+
+  if (user.emailVerified) {
+    return {
+      status: 'already-verified',
+    }
+  }
+
+  const previewResult = await issueEmailVerificationToken(user.id)
+
+  return {
+    status: 'sent',
+    ...previewResult,
+  }
+}
+
+export async function verifyEmail(input: AuthVerifyEmailBody): Promise<VerifyEmailResult> {
+  const tokenHash = hashOneTimeToken(input.token)
+  const emailVerificationToken = await prisma.emailVerificationToken.findUnique({
+    where: { tokenHash },
+    select: {
+      id: true,
+      userId: true,
+      expiresAt: true,
+      usedAt: true,
+      user: {
+        select: {
+          emailVerified: true,
+        },
+      },
+    },
+  })
+
+  if (!emailVerificationToken) {
+    throw new AppError(
+      400,
+      'INVALID_EMAIL_VERIFICATION_TOKEN',
+      'Email verification link is invalid or has expired',
+    )
+  }
+
+  if (emailVerificationToken.user.emailVerified) {
+    return {
+      status: 'already-verified',
+    }
+  }
+
+  if (
+    emailVerificationToken.usedAt ||
+    emailVerificationToken.expiresAt <= new Date()
+  ) {
+    throw new AppError(
+      400,
+      'INVALID_EMAIL_VERIFICATION_TOKEN',
+      'Email verification link is invalid or has expired',
+    )
+  }
+
+  const usedAt = new Date()
+
+  await prisma.$transaction([
+    prisma.emailVerificationToken.update({
+      where: { id: emailVerificationToken.id },
+      data: {
+        usedAt,
+      },
+    }),
+    prisma.user.update({
+      where: { id: emailVerificationToken.userId },
+      data: {
+        emailVerified: true,
+      },
+    }),
+    prisma.emailVerificationToken.deleteMany({
+      where: {
+        userId: emailVerificationToken.userId,
+        usedAt: null,
+      },
+    }),
+  ])
+
+  logger.info({ userId: emailVerificationToken.userId }, 'Email verification completed')
+
+  return {
+    status: 'verified',
+  }
+}
+
 export async function requestPasswordReset(input: AuthForgotPasswordBody): Promise<{
   previewUrl?: string
 }> {
@@ -144,9 +348,9 @@ export async function requestPasswordReset(input: AuthForgotPasswordBody): Promi
     return {}
   }
 
-  const rawToken = randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString('base64url')
-  const tokenHash = hashPasswordResetToken(rawToken)
-  const expiresAt = new Date(Date.now() + resolvePasswordResetTokenTtlMs())
+  const { rawToken, tokenHash, expiresAt } = issueOneTimeToken(
+    resolvePasswordResetTokenTtlMs(),
+  )
 
   await prisma.$transaction([
     prisma.passwordResetToken.deleteMany({
@@ -179,7 +383,7 @@ export async function requestPasswordReset(input: AuthForgotPasswordBody): Promi
 }
 
 export async function resetPassword(input: AuthResetPasswordBody): Promise<void> {
-  const tokenHash = hashPasswordResetToken(input.token)
+  const tokenHash = hashOneTimeToken(input.token)
   const passwordResetToken = await prisma.passwordResetToken.findUnique({
     where: { tokenHash },
     select: {

@@ -5,8 +5,11 @@ import {
   ForgotPasswordInput,
   ForgotPasswordResult,
   AuthRegisterInput,
+  RequestEmailVerificationResult,
   ResetPasswordInput,
   AuthUser,
+  VerifyEmailInput,
+  VerifyEmailResult,
 } from '@/types/auth'
 
 type AuthEnvelope = ApiEnvelope<AuthUser>
@@ -54,6 +57,27 @@ export const requestPasswordReset = async (
   )
 
   return envelope.data ?? {}
+}
+
+export const requestEmailVerification = async (): Promise<RequestEmailVerificationResult> => {
+  const envelope = await apiRequest<ApiEnvelope<RequestEmailVerificationResult>>(
+    '/auth/verify-email/resend',
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+    },
+  )
+
+  return envelope.data
+}
+
+export const verifyEmail = async (input: VerifyEmailInput): Promise<VerifyEmailResult> => {
+  const envelope = await apiRequest<ApiEnvelope<VerifyEmailResult>>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+
+  return envelope.data
 }
 
 export const resetPassword = async (input: ResetPasswordInput): Promise<void> => {

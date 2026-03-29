@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { fetchCurrentUser, loginUser, requestPasswordReset, resetPassword } from './auth'
+import {
+  fetchCurrentUser,
+  loginUser,
+  requestEmailVerification,
+  requestPasswordReset,
+  resetPassword,
+  verifyEmail,
+} from './auth'
 
 const fetchMock = vi.fn()
 
@@ -107,6 +114,65 @@ describe('auth api', () => {
     expect(options.body).toBe(
       JSON.stringify({
         email: 'user@example.com',
+      }),
+    )
+  })
+
+  it('requests a verification resend and returns any preview metadata from the API', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      text: async () =>
+        JSON.stringify({
+          data: {
+            status: 'sent',
+            previewUrl: 'http://localhost:5173/verify-email?token=preview-token',
+          },
+        }),
+    } as Response)
+
+    const result = await requestEmailVerification()
+
+    expect(result).toEqual({
+      status: 'sent',
+      previewUrl: 'http://localhost:5173/verify-email?token=preview-token',
+    })
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/v1/auth/verify-email/resend')
+    expect(options.method).toBe('POST')
+    expect(options.body).toBe(JSON.stringify({}))
+  })
+
+  it('posts an email verification token to the verify endpoint', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      text: async () =>
+        JSON.stringify({
+          data: {
+            status: 'verified',
+          },
+          message: 'Email verified successfully',
+        }),
+    } as Response)
+
+    await expect(
+      verifyEmail({
+        token: 'verification-token',
+      }),
+    ).resolves.toEqual({
+      status: 'verified',
+    })
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/v1/auth/verify-email')
+    expect(options.method).toBe('POST')
+    expect(options.body).toBe(
+      JSON.stringify({
+        token: 'verification-token',
       }),
     )
   })

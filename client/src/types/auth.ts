@@ -32,6 +32,19 @@ export interface ResetPasswordInput {
   password: string
 }
 
+export interface RequestEmailVerificationResult {
+  status: 'sent' | 'already-verified'
+  previewUrl?: string
+}
+
+export interface VerifyEmailInput {
+  token: string
+}
+
+export interface VerifyEmailResult {
+  status: 'verified' | 'already-verified'
+}
+
 export interface ApiEnvelope<T> {
   data: T
   message?: string

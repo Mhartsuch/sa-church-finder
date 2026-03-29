@@ -45,7 +45,18 @@ export const authResetPasswordSchema = z.object({
   }),
 })
 
+export const authResendVerificationSchema = z.object({
+  body: z.object({}).passthrough(),
+})
+
+export const authVerifyEmailSchema = z.object({
+  body: z.object({
+    token: z.string().trim().min(1, 'Email verification token is required'),
+  }),
+})
+
 export type AuthRegisterBody = z.infer<typeof authRegisterSchema>['body']
 export type AuthLoginBody = z.infer<typeof authLoginSchema>['body']
 export type AuthForgotPasswordBody = z.infer<typeof authForgotPasswordSchema>['body']
 export type AuthResetPasswordBody = z.infer<typeof authResetPasswordSchema>['body']
+export type AuthVerifyEmailBody = z.infer<typeof authVerifyEmailSchema>['body']

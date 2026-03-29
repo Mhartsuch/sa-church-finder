@@ -11,6 +11,14 @@
 
 ## Decisions
 
+### DEC-009: Ship email verification now with a safe local preview resend path before SMTP is wired
+- **Date:** 2026-03-28
+- **Status:** ACTIVE
+- **Decision:** Implement persisted email-verification tokens, register-time issuance, resend and consume endpoints, and a real `/verify-email` frontend flow now, while exposing preview verification links only through an opt-in development flag (`AUTH_EXPOSE_VERIFICATION_PREVIEW=true`).
+- **Alternatives Considered:** Keep email verification blocked until full SMTP delivery existed; expose verification preview URLs by default in non-production responses; postpone token issuance until a separate mail subsystem was finished.
+- **Reasoning:** Email verification was one of the last major Milestone 2 auth gaps, and most of its product and security value comes from the token lifecycle and UI flow rather than the transport itself. Shipping the token model, resend controls, and verification page now lets the app exercise the real behavior locally, keeps preview-link exposure explicit, and avoids stalling progress on unrelated third-party email wiring.
+- **Consequences:** Registration now creates a verification token immediately, but local developers should use the account resend action to surface preview links intentionally. Real SMTP delivery remains a shared follow-up for both password reset and verification.
+
 ### DEC-008: Embed viewer helpful-vote state directly in church review payloads
 - **Date:** 2026-03-28
 - **Status:** ACTIVE
