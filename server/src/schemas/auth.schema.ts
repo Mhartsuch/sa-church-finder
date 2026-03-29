@@ -32,5 +32,20 @@ export const authLoginSchema = z.object({
   }),
 })
 
+export const authForgotPasswordSchema = z.object({
+  body: z.object({
+    email: emailSchema,
+  }),
+})
+
+export const authResetPasswordSchema = z.object({
+  body: z.object({
+    token: z.string().trim().min(1, 'Password reset token is required'),
+    password: passwordSchema,
+  }),
+})
+
 export type AuthRegisterBody = z.infer<typeof authRegisterSchema>['body']
 export type AuthLoginBody = z.infer<typeof authLoginSchema>['body']
+export type AuthForgotPasswordBody = z.infer<typeof authForgotPasswordSchema>['body']
+export type AuthResetPasswordBody = z.infer<typeof authResetPasswordSchema>['body']

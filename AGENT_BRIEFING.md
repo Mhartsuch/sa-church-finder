@@ -8,9 +8,10 @@
 SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus the first real account features: saved churches and written reviews both work end to end across church profiles and the account page.
 
 ### Current Priority
-Keep moving through Milestone 2 now that auth, saved churches, and the reviews MVP are live end to end. The biggest open items are the remaining auth follow-ups (Google OAuth, email verification, forgot/reset password), with review helpful-voting / moderation now sitting behind them as polish follow-ups.
+Keep moving through Milestone 2 now that auth, password recovery, saved churches, and the reviews MVP are live end to end. The biggest open items are now Google OAuth, email verification, and the shared outbound email delivery those flows still need, with review helpful-voting / moderation sitting behind them as polish follow-ups.
 
 ### Recently Completed
+- Added the forgot/reset password flow end to end: reset-token issuance + consumption APIs, frontend forgot/reset screens, and an opt-in local preview link for development
 - Added the reviews MVP end to end: church review list/create/edit/delete APIs, account review history, aggregate rating/count updates, and real review UI on church profiles
 - Added the saved churches MVP end to end: protected save/list APIs, session-aware church payloads, live save/unsave controls on cards and church profiles, and a real saved churches list on the account page
 - Added frontend auth UI with real login/register pages, protected account routing, session-aware header state, and client-side current-session integration
@@ -28,7 +29,8 @@ Keep moving through Milestone 2 now that auth, saved churches, and the reviews M
 ### Known Blockers
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - The lazy-loaded `mapbox-gl` chunk is still large in production builds, so bundle-size optimization remains an open performance follow-up
-- The remaining auth flows in F2.1 are still open (`Google OAuth`, email verification, forgot/reset password`)
+- Real transactional email delivery is still not wired, so password reset currently relies on the new opt-in local preview mode during development and email verification still cannot ship
+- The remaining auth flows in F2.1 are now `Google OAuth` and email verification
 - Review helpful voting and moderation are still follow-up work after the MVP launch
 
 ## Where Things Are

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { fetchCurrentUser, loginUser } from './auth'
+import { fetchCurrentUser, loginUser, requestPasswordReset, resetPassword } from './auth'
 
 const fetchMock = vi.fn()
 
@@ -78,5 +78,66 @@ describe('auth api', () => {
     )
     expect(headers.get('Content-Type')).toBe('application/json')
     expect(headers.get('Accept')).toBe('application/json')
+  })
+
+  it('requests a password reset and returns any preview metadata from the API', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      text: async () =>
+        JSON.stringify({
+          data: {
+            previewUrl: 'http://localhost:5173/reset-password?token=preview-token',
+          },
+        }),
+    } as Response)
+
+    const result = await requestPasswordReset({
+      email: 'user@example.com',
+    })
+
+    expect(result.previewUrl).toBe(
+      'http://localhost:5173/reset-password?token=preview-token',
+    )
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/v1/auth/forgot-password')
+    expect(options.method).toBe('POST')
+    expect(options.body).toBe(
+      JSON.stringify({
+        email: 'user@example.com',
+      }),
+    )
+  })
+
+  it('posts a password reset submission to the reset endpoint', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      text: async () =>
+        JSON.stringify({
+          data: null,
+          message: 'Password reset successful',
+        }),
+    } as Response)
+
+    await expect(
+      resetPassword({
+        token: 'reset-token',
+        password: 'newpassword123',
+      }),
+    ).resolves.toBeUndefined()
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/v1/auth/reset-password')
+    expect(options.method).toBe('POST')
+    expect(options.body).toBe(
+      JSON.stringify({
+        token: 'reset-token',
+        password: 'newpassword123',
+      }),
+    )
   })
 })

@@ -12,6 +12,49 @@
 
 ## Log
 
+### 2026-03-28 - Forgot/Reset Password Flow
+**Focus:** Finished the next Milestone 2 auth slice by wiring password recovery from backend token issuance through the frontend reset experience.
+
+**Completed:**
+- **Reset-token backend flow:** Added `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` with Zod validation, token hashing, expiry handling, token invalidation, and password replacement in `server/src/services/auth.service.ts`.
+- **Opt-in local preview mode:** Added an explicit `AUTH_EXPOSE_RESET_PREVIEW` escape hatch for local development so reset URLs can be exercised without exposing preview links by default or blocking on SMTP integration.
+- **Frontend recovery UX:** Added `ForgotPasswordPage` and `ResetPasswordPage`, wired their routes into `client/src/App.tsx`, extended the auth API/hooks, and linked recovery directly from the login experience.
+- **Account/auth copy refresh:** Updated auth shell messaging and the account page so the UI now accurately reflects that password recovery is live while Google OAuth and email verification remain open.
+- **Coverage + verification:** Expanded `server/src/routes/auth.routes.test.ts` and `client/src/api/auth.test.ts` to cover reset issuance/submission behavior, then re-ran lint and typecheck across both apps.
+
+**Remaining Notes:**
+- Password reset email delivery is still a shared follow-up with email verification; production mail transport is not wired yet.
+- Google OAuth and email verification are now the main remaining Milestone 2 auth gaps.
+- The Mapbox chunk-size warning remains unchanged and is still a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd test -- --runInBand auth.routes.test.ts` successfully in `server/`.
+- Ran `npm.cmd test -- auth.test.ts` successfully in `client/` (required elevated execution in this environment because Vitest/esbuild spawning is sandbox-restricted here).
+- Ran `npm.cmd run typecheck` successfully in both `server/` and `client/`.
+- Ran `npm.cmd run lint` successfully in both `server/` and `client/`.
+
+**Files Changed:**
+- `server/.env.example`
+- `server/src/routes/auth.routes.test.ts`
+- `server/src/routes/auth.routes.ts`
+- `server/src/schemas/auth.schema.ts`
+- `server/src/services/auth.service.ts`
+- `client/src/App.tsx`
+- `client/src/api/auth.test.ts`
+- `client/src/api/auth.ts`
+- `client/src/components/auth/AuthPageShell.tsx`
+- `client/src/hooks/useAuth.ts`
+- `client/src/pages/AccountPage.tsx`
+- `client/src/pages/ForgotPasswordPage.tsx`
+- `client/src/pages/LoginPage.tsx`
+- `client/src/pages/ResetPasswordPage.tsx`
+- `client/src/types/auth.ts`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+- `QUICKSTART.md`
+- `TODO.md`
+
 ### 2026-03-28 - Reviews MVP
 **Focus:** Finished the next Milestone 2 product slice by making written reviews real across the backend, church profiles, and the account page.
 

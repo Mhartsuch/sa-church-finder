@@ -122,8 +122,9 @@ const LoginPage = () => {
           Pick up where you left off.
         </h1>
         <p className='text-sm leading-6 text-[#555555]'>
-          Local email and password accounts are ready now. Google sign-in, email
-          verification, and password reset are the next auth follow-ups.
+          Local email and password accounts are ready now, including password
+          recovery. Google sign-in and email verification are the main auth
+          follow-ups still ahead.
         </p>
       </div>
 
@@ -161,6 +162,15 @@ const LoginPage = () => {
             placeholder='At least 8 characters'
           />
         </label>
+
+        <div className='flex justify-end'>
+          <Link
+            to='/forgot-password'
+            className='text-sm font-semibold text-[#FF385C] underline underline-offset-4'
+          >
+            Forgot your password?
+          </Link>
+        </div>
 
         {formError ? (
           <div className='rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]'>

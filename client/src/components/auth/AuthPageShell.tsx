@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Heart, MapPinned, ShieldCheck } from 'lucide-react'
+import { Heart, KeyRound, MapPinned, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 type AuthPageShellProps = {
@@ -18,13 +18,18 @@ const highlights = [
   },
   {
     icon: Heart,
-    title: 'Get ready for favorites',
-    body: 'Saved churches and reviews are the next account features, and this foundation is what makes them possible.',
+    title: 'Keep your shortlist',
+    body: 'Saved churches and written reviews already live on your account stay attached to the same session-backed identity.',
+  },
+  {
+    icon: KeyRound,
+    title: 'Recover access',
+    body: 'Forgot password and reset flows now fit the same account system, so getting back in does not mean starting over.',
   },
   {
     icon: MapPinned,
     title: 'Explore at your pace',
-    body: 'Browse churches first, then create an account when you want your discoveries to follow you around.',
+    body: 'Browse churches first, then sign in when you want your discoveries and reviews to follow you around.',
   },
 ]
 

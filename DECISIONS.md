@@ -11,6 +11,14 @@
 
 ## Decisions
 
+### DEC-007: Ship password recovery now with an opt-in local preview before SMTP is wired
+- **Date:** 2026-03-28
+- **Status:** ACTIVE
+- **Decision:** Implement the forgot/reset password flow now with persisted reset tokens, real reset pages, and an opt-in development preview link (`AUTH_EXPOSE_RESET_PREVIEW=true`) instead of waiting for a production-grade SMTP integration before shipping the feature foundation.
+- **Alternatives Considered:** Block the entire password recovery feature until SMTP delivery was fully integrated; expose reset tokens by default in non-production responses.
+- **Reasoning:** Password recovery was the highest-value remaining Milestone 2 auth slice that could be completed locally without third-party credentials. Shipping the backend token lifecycle and frontend reset UX now unblocks real app progress, while keeping preview-link exposure explicit and disabled by default avoids normalizing insecure behavior in shared environments.
+- **Consequences:** Real outbound email delivery remains a follow-up shared with email verification, but password reset now has stable API/UI contracts and can already be exercised safely in local development when preview mode is intentionally enabled.
+
 ### DEC-006: Ship reviews for signed-in users first and preserve imported aggregates incrementally
 - **Date:** 2026-03-28
 - **Status:** ACTIVE

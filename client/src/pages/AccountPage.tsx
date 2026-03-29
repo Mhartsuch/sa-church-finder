@@ -127,7 +127,7 @@ const AccountPage = () => {
           <p className='max-w-3xl text-base leading-7 text-[#555555]'>
             Session-backed auth, saved churches, and written reviews are now
             connected end to end. This page is the working home for your shortlist
-            and review history while the remaining auth flows land next.
+            and review history while Google OAuth and email verification land next.
           </p>
         </div>
 
@@ -181,8 +181,8 @@ const AccountPage = () => {
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
                   Reviews are live for signed-in accounts today. Email verification is
-                  still a follow-up milestone, and this page will reflect that status
-                  once the flow ships.
+                  still the main follow-up milestone, and password recovery is now in
+                  place if you ever need to get back into your account.
                 </p>
               </div>
             </div>
@@ -369,9 +369,9 @@ const AccountPage = () => {
             </h2>
             <p className='mt-3 text-sm leading-7 text-white/85'>
               Sign in, registration, logout, current-session checks, saved churches,
-              and written review history are all connected end to end now. Google
-              OAuth, password reset, and email verification are the main Milestone 2
-              auth follow-ups still open.
+              password reset, saved churches, and written review history are all
+              connected end to end now. Google OAuth and email verification are the
+              main Milestone 2 auth follow-ups still open.
             </p>
 
             <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
@@ -381,7 +381,7 @@ const AccountPage = () => {
               <ul className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
                 <li>Email verification flow</li>
                 <li>Google OAuth</li>
-                <li>Forgot and reset password</li>
+                <li>Review helpful voting and moderation</li>
               </ul>
             </div>
 

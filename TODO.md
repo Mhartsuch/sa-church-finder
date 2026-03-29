@@ -26,7 +26,8 @@
 - [x] Add auth UI and client-side current-session integration - completed 2026-03-28
 - [x] Build saved churches MVP (save/unsave on cards + profile, account list) - completed 2026-03-28
 - [x] Build reviews MVP (create/edit review flow, church profile list, account history) - completed 2026-03-28
-- [ ] Finish auth follow-ups: Google OAuth, email verification, and forgot/reset password
+- [x] Build forgot/reset password flow (reset-token APIs, frontend pages, and opt-in local preview link) - completed 2026-03-28
+- [ ] Finish auth follow-ups: Google OAuth and email verification
 - [x] Build Church Profile Page (F1.3 - hero, about, services, location, contact) - completed 2026-03-27
 - [x] Integrate Mapbox GL JS when token is available (replace MapPlaceholder) - completed 2026-03-27
 - [x] Implement map pin clustering for zoomed-out views - completed 2026-03-27
@@ -40,6 +41,7 @@
 - [x] Write database seed script with proper PostGIS location column - completed 2026-03-27
 - [x] Upgrade deprecated deps (`eslint` 8 -> 9, `multer` 1 -> 2, `supertest` 6 -> 7) - completed 2026-03-28
 - [ ] Add review helpful voting and moderation follow-ups after the MVP
+- [ ] Wire real transactional email delivery for auth emails (password reset + verification)
 - [ ] Review lazy-loaded Mapbox bundle size warning and optimize only if it becomes a real production issue
 
 ### P3 - Low
@@ -49,6 +51,7 @@
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Forgot/reset password flow - protected token issuance/consumption backend, login recovery UI, opt-in local preview link, auth route tests, and client auth API coverage (2026-03-28)
 - [x] Reviews MVP - church review listing/create/edit/delete APIs, incremental aggregate rating updates, church profile review UI, account review history, and route tests (2026-03-28)
 - [x] Saved churches MVP - protected save/list APIs, session-aware church payloads, save/unsave controls on cards and profile pages, account saved list, and route tests (2026-03-28)
 - [x] Frontend auth UI + client session integration - login/register pages, protected account page, session-aware header, React Query auth hooks, and client auth tests (2026-03-28)
@@ -109,4 +112,4 @@
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-28 (reviews MVP landed)*
+*Last updated: 2026-03-28 (forgot/reset password flow landed)*

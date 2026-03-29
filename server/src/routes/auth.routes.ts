@@ -5,15 +5,21 @@ import logger from '../lib/logger.js'
 import { AuthError } from '../middleware/error-handler.js'
 import { validate } from '../middleware/validate.js'
 import {
+  AuthForgotPasswordBody,
   AuthLoginBody,
   AuthRegisterBody,
+  AuthResetPasswordBody,
+  authForgotPasswordSchema,
   authLoginSchema,
   authRegisterSchema,
+  authResetPasswordSchema,
 } from '../schemas/auth.schema.js'
 import {
   authenticateUser,
   getCurrentUser,
   registerUser,
+  requestPasswordReset,
+  resetPassword,
 } from '../services/auth.service.js'
 
 const router = Router()
@@ -66,6 +72,50 @@ router.post(
       res.status(201).json({
         data: user,
         message: 'Registration successful',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.post(
+  '/forgot-password',
+  validate(authForgotPasswordSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = req.body as AuthForgotPasswordBody
+      logger.info({ email: input.email }, 'Password reset request received')
+
+      const result = await requestPasswordReset(input)
+
+      res.json({
+        data: result,
+        message: 'If an account exists for that email, password reset instructions are on the way.',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.post(
+  '/reset-password',
+  validate(authResetPasswordSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = req.body as AuthResetPasswordBody
+      logger.info('Password reset submission received')
+
+      await resetPassword(input)
+
+      res.json({
+        data: null,
+        message: 'Password reset successful',
       })
       return
     } catch (error) {

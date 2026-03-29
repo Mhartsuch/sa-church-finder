@@ -4,14 +4,23 @@ import {
   fetchCurrentUser,
   loginUser,
   logoutUser,
+  requestPasswordReset,
   registerUser,
+  resetPassword,
 } from '@/api/auth'
 import {
   CHURCHES_QUERY_KEY,
   CHURCH_QUERY_KEY,
   SAVED_CHURCHES_QUERY_KEY,
 } from '@/hooks/useChurches'
-import { AuthCredentials, AuthRegisterInput, AuthUser } from '@/types/auth'
+import {
+  AuthCredentials,
+  AuthRegisterInput,
+  AuthUser,
+  ForgotPasswordInput,
+  ForgotPasswordResult,
+  ResetPasswordInput,
+} from '@/types/auth'
 
 export const AUTH_SESSION_QUERY_KEY = ['auth', 'session'] as const
 
@@ -77,5 +86,17 @@ export const useLogout = () => {
       refreshSessionAwareQueries(queryClient)
       queryClient.removeQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY })
     },
+  })
+}
+
+export const useRequestPasswordReset = () => {
+  return useMutation<ForgotPasswordResult, Error, ForgotPasswordInput>({
+    mutationFn: requestPasswordReset,
+  })
+}
+
+export const useResetPassword = () => {
+  return useMutation<void, Error, ResetPasswordInput>({
+    mutationFn: resetPassword,
   })
 }

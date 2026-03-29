@@ -2,7 +2,10 @@ import { apiRequest, ApiRequestError } from '@/lib/api-client'
 import {
   ApiEnvelope,
   AuthCredentials,
+  ForgotPasswordInput,
+  ForgotPasswordResult,
   AuthRegisterInput,
+  ResetPasswordInput,
   AuthUser,
 } from '@/types/auth'
 
@@ -37,6 +40,27 @@ export const registerUser = async (input: AuthRegisterInput): Promise<AuthUser> 
   })
 
   return envelope.data
+}
+
+export const requestPasswordReset = async (
+  input: ForgotPasswordInput,
+): Promise<ForgotPasswordResult> => {
+  const envelope = await apiRequest<ApiEnvelope<ForgotPasswordResult>>(
+    '/auth/forgot-password',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  )
+
+  return envelope.data ?? {}
+}
+
+export const resetPassword = async (input: ResetPasswordInput): Promise<void> => {
+  await apiRequest<ApiEnvelope<null>>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }
 
 export const logoutUser = async (): Promise<void> => {

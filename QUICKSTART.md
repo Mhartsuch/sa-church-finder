@@ -21,6 +21,9 @@ cp server/.env.example server/.env
 # Set DATABASE_URL to either:
 # postgresql://postgres:postgres@localhost:5432/sa_church_finder
 # or your hosted Postgres/PostGIS connection string
+# Optional for local auth testing:
+# AUTH_EXPOSE_RESET_PREVIEW=true
+# PASSWORD_RESET_TOKEN_TTL_MINUTES=60
 
 # 4. Apply committed migrations
 cd server && npx prisma migrate deploy && cd ..
@@ -33,6 +36,8 @@ npm run dev
 ```
 
 The frontend runs at `http://localhost:5173` and the backend at `http://localhost:3001`.
+
+If `AUTH_EXPOSE_RESET_PREVIEW=true` is set locally, successful forgot-password requests for real accounts will include a preview reset URL in the API response so you can test the reset flow before SMTP delivery is wired.
 
 ## Important Note
 

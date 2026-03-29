@@ -19,6 +19,19 @@ export interface AuthRegisterInput extends AuthCredentials {
   name: string
 }
 
+export interface ForgotPasswordInput {
+  email: string
+}
+
+export interface ForgotPasswordResult {
+  previewUrl?: string
+}
+
+export interface ResetPasswordInput {
+  token: string
+  password: string
+}
+
 export interface ApiEnvelope<T> {
   data: T
   message?: string
