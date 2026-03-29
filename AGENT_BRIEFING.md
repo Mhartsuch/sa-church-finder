@@ -8,20 +8,22 @@
 SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. The app now queries a live Supabase Postgres/PostGIS database through Prisma instead of the old in-memory data layer.
 
 ### Current Priority
-Shift from deployment into post-launch cleanup and the next development slice. Render is live, the frontend/backend env wiring is verified, and the current open items are dependency maintenance, production polish, and Milestone 2 planning.
+Shift from deployment into post-launch cleanup and the next development slice. Render is live, the frontend/backend env wiring is verified, the dependency-maintenance sweep is complete, and the main open items are production polish plus Milestone 2 planning.
 
 ### Recently Completed
 - Replaced the in-memory data layer with Prisma + PostGIS spatial queries
 - Connected the app to a live Supabase Postgres/PostGIS database and seeded sample data
 - Added the interactive Mapbox map with clustering and viewport-based querying
 - Implemented shareable URL search state, mobile map/list UX, loading skeletons, and no-results suggestions
+- Improved keyboard accessibility across search results, fixed the faux submit controls in shared/header search UI, and cleaned up nullable server typing drift
+- Upgraded the maintenance-risk dependencies: ESLint 9 with flat config, `multer` 2, and `supertest` 7
 - Added Render deployment configuration for both backend and frontend
 - Verified the live Render deployment and hardened the frontend against missing `VITE_API_URL` wiring
 - Re-stabilized the local baseline so lint, typecheck, tests, and production builds all pass
 
 ### Known Blockers
 - A Mapbox token is still required anywhere the live interactive map should be enabled
-- Dependency maintenance remains open (`eslint` 9, `multer` 2, `supertest` 7)
+- The lazy-loaded `mapbox-gl` chunk is still large in production builds, so bundle-size optimization remains an open performance follow-up
 
 ## Where Things Are
 

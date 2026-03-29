@@ -2,10 +2,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useSearchStore } from '@/stores/search-store'
 import { useChurches } from '@/hooks/useChurches'
-import { SA_CENTER, DEFAULT_RADIUS, PAGE_SIZE } from '@/constants'
+import { DEFAULT_RADIUS, PAGE_SIZE, SA_CENTER } from '@/constants'
+import { NoResults } from '@/components/search/NoResults'
 import { ChurchCard } from './ChurchCard'
 import { ChurchCardSkeletonGrid } from './ChurchCardSkeleton'
-import { NoResults } from '@/components/search/NoResults'
 
 interface ChurchListProps {
   variant?: 'grid' | 'sidebar'
@@ -23,8 +23,6 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const mapBounds = useSearchStore((state) => state.mapBounds)
   const mapCenter = useSearchStore((state) => state.mapCenter)
 
-  // Use bounds-based query when map has reported its viewport,
-  // otherwise fall back to radius-based search from SA center
   const boundsString = mapBounds
     ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
     : undefined
@@ -45,13 +43,12 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
     bounds: boundsString,
   }
 
-  const { data, isLoading, error } = useChurches(searchParams)
+  const { data, error, isLoading } = useChurches(searchParams)
 
   const churches = data?.data || []
   const meta = data?.meta
   const totalPages = meta?.totalPages || 1
 
-  // Loading skeleton — Airbnb-style shimmer cards
   if (isLoading) {
     return <ChurchCardSkeletonGrid count={variant === 'grid' ? 8 : 6} variant={variant} />
   }
@@ -60,7 +57,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
     return (
       <div className='flex items-center justify-center py-20'>
         <div className='text-center'>
-          <h3 className='text-lg font-semibold text-[#222222] mb-2'>Something went wrong</h3>
+          <h3 className='mb-2 text-lg font-semibold text-[#222222]'>Something went wrong</h3>
           <p className='text-sm text-[#717171]'>{error.message}</p>
         </div>
       </div>
@@ -73,11 +70,19 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
 
   return (
     <div>
-      {/* Card grid — Airbnb uses 4-6 columns with generous gap */}
-      <div className={variant === 'grid'
-        ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-10'
-        : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10'
-      }>
+      <p className='sr-only' aria-live='polite'>
+        Showing {meta?.total ?? churches.length} churches. Tab through the results and press Enter
+        to open a church profile.
+      </p>
+
+      <div
+        role='list'
+        aria-label='Search results'
+        className={variant === 'grid'
+          ? 'grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+          : 'grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3'
+        }
+      >
         {churches.map((church) => (
           <ChurchCard
             key={church.id}
@@ -89,36 +94,35 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
         ))}
       </div>
 
-      {/* Pagination — Airbnb style centered */}
       {totalPages > 1 && (
-        <nav className='flex items-center justify-center gap-2 pt-12 pb-4'>
+        <nav className='flex items-center justify-center gap-2 pb-4 pt-12'>
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className='w-8 h-8 rounded-full flex items-center justify-center text-[#222222] hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors'
+            className='flex h-8 w-8 items-center justify-center rounded-full text-[#222222] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent'
             aria-label='Previous page'
           >
-            <ChevronLeft className='w-4 h-4' />
+            <ChevronLeft className='h-4 w-4' />
           </button>
 
           <div className='flex items-center gap-1'>
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, index) => {
               let pageNum: number
               if (totalPages <= 7) {
-                pageNum = i + 1
+                pageNum = index + 1
               } else if (page <= 4) {
-                pageNum = i + 1
+                pageNum = index + 1
               } else if (page >= totalPages - 3) {
-                pageNum = totalPages - 6 + i
+                pageNum = totalPages - 6 + index
               } else {
-                pageNum = page - 3 + i
+                pageNum = page - 3 + index
               }
 
               return (
                 <button
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
+                  className={`h-8 w-8 rounded-full text-sm font-semibold transition-colors ${
                     page === pageNum
                       ? 'bg-[#222222] text-white'
                       : 'text-[#222222] hover:bg-gray-100'
@@ -133,10 +137,10 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className='w-8 h-8 rounded-full flex items-center justify-center text-[#222222] hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors'
+            className='flex h-8 w-8 items-center justify-center rounded-full text-[#222222] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent'
             aria-label='Next page'
           >
-            <ChevronRight className='w-4 h-4' />
+            <ChevronRight className='h-4 w-4' />
           </button>
         </nav>
       )}

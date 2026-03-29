@@ -12,6 +12,60 @@
 
 ## Log
 
+### 2026-03-28 - Dependency Upgrade Sweep
+**Focus:** Cleared the open dependency-maintenance bucket and migrated the repo to ESLint 9 without leaving compatibility shims behind.
+
+**Completed:**
+- **ESLint 9 migration:** Replaced the legacy `.eslintrc.cjs` files in both `client/` and `server/` with flat-config `eslint.config.js` files, updated the lint scripts to the flat-config-friendly CLI form, and moved TypeScript linting to the `typescript-eslint` meta package plus `@eslint/js`.
+- **Package upgrades:** Upgraded `eslint` to 9.39.4, `multer` to 2.1.1, and `supertest` to 7.2.2. Also refreshed the related linting packages (`typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`, `@eslint/js`) and updated `@types/multer` / `@types/supertest`.
+- **Type alignment:** Because the stricter lint/type pass surfaced nullability drift in the server domain types, updated `server/src/types/church.types.ts` to match the actual Prisma payload shape for nullable fields.
+- **Install + lockfiles:** Refreshed both `client/package-lock.json` and `server/package-lock.json` from clean installs.
+- **Verification:** Ran `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd run test`, and `npm.cmd run build` successfully. The test/build run needed elevated execution in this environment because Vitest/Vite child-process spawning is sandbox-restricted here.
+
+**Remaining Notes:**
+- Vite still warns that the lazy-loaded `mapbox-gl` chunk is very large (~1.7 MB minified). That remains a performance follow-up rather than a release blocker.
+- `npm install` reduced the vulnerability counts, but the client still reports 4 moderate vulnerabilities and the server still reports 1 moderate vulnerability.
+
+**Files Changed:**
+- `client/package.json`
+- `client/package-lock.json`
+- `client/eslint.config.js`
+- `client/.eslintrc.cjs` (removed)
+- `server/package.json`
+- `server/package-lock.json`
+- `server/eslint.config.js`
+- `server/.eslintrc.cjs` (removed)
+- `server/src/types/church.types.ts`
+- `TODO.md`
+- `PROGRESS.md`
+- `AGENT_BRIEFING.md`
+
+### 2026-03-28 - Search Accessibility Polish
+**Focus:** Tightened keyboard accessibility and search interaction semantics after deployment so the core discovery flow is easier to navigate without a mouse.
+
+**Completed:**
+- **Keyboard-accessible result cards:** Reworked `ChurchCard` from a clickable `div` into a real button-based interaction pattern with focus styling, preserved hover-sync behavior, and a separate save button that no longer interferes with navigation.
+- **Search results semantics:** Added list semantics and a screen-reader status message in `ChurchList` so result navigation is announced more clearly.
+- **Search submit controls:** Converted the shared `SearchBar` submit affordance and the header search pill submit affordance into real buttons, and removed the invalid nested interactive markup in the header search form.
+- **Popup text cleanup:** Updated the interactive map popup to use icon-based rating/profile affordances and consistent distance formatting, which also removed visible mojibake in the UI.
+- **Server typing cleanup:** Added explicit return types for the church detail/lookup helpers and aligned nullable server church/service types with the actual Prisma payload shape so root lint/typecheck are clean again.
+- **Verification:** Added `client/src/components/church/ChurchCard.test.tsx` to cover keyboard focus and save-button behavior. Ran `npm.cmd run lint`, `npm.cmd run typecheck`, and `npm.cmd run test` successfully. The test run required elevated execution in this environment because sandboxed Vitest/esbuild spawning is blocked here.
+
+**Files Changed:**
+- `client/src/components/church/ChurchCard.tsx`
+- `client/src/components/church/ChurchList.tsx`
+- `client/src/components/church/ChurchCard.test.tsx`
+- `client/src/components/layout/Header.tsx`
+- `client/src/components/search/SearchBar.tsx`
+- `client/src/components/map/InteractiveMap.tsx`
+- `server/src/index.ts`
+- `server/src/services/church-detail.service.ts`
+- `server/src/services/church.service.ts`
+- `server/src/types/church.types.ts`
+- `TODO.md`
+- `PROGRESS.md`
+- `AGENT_BRIEFING.md`
+
 ### 2026-03-28 - Render Deployment Verified Live
 **Focus:** Closed the loop on the Render deployment after the live frontend showed `Failed to fetch` on church search.
 

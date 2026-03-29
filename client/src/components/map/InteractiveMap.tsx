@@ -1,55 +1,45 @@
-import { useRef, useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { ArrowRight, Star } from 'lucide-react'
 import MapGL, {
-  Source,
-  Layer,
-  Popup,
-  NavigationControl,
   GeolocateControl,
-  MapRef,
-  ViewStateChangeEvent,
+  Layer,
   MapLayerMouseEvent,
+  MapRef,
+  NavigationControl,
+  Popup,
+  Source,
+  ViewStateChangeEvent,
 } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useNavigate } from 'react-router-dom'
-import { useSearchStore } from '@/stores/search-store'
-import { useChurches } from '@/hooks/useChurches'
 import { DEFAULT_RADIUS } from '@/constants'
+import { useChurches } from '@/hooks/useChurches'
+import { useSearchStore } from '@/stores/search-store'
 import { IChurchSummary } from '@/types/church'
-import { formatRating, getNextService } from '@/utils/format'
+import { formatDistance, formatRating, getNextService } from '@/utils/format'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 
-/**
- * Full Mapbox GL JS interactive map with:
- * - Church pins with Airbnb-style price-bubble markers
- * - Clustering at lower zoom levels
- * - Viewport-based querying (updates results as you pan/zoom)
- * - Hover/select sync with the ChurchList
- * - Popup cards on click
- */
 export const InteractiveMap = () => {
   const mapRef = useRef<MapRef>(null)
+  const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigate = useNavigate()
 
-  // Store state
-  const query = useSearchStore((s) => s.query)
-  const filters = useSearchStore((s) => s.filters)
-  const sort = useSearchStore((s) => s.sort)
-  const mapCenter = useSearchStore((s) => s.mapCenter)
-  const mapZoom = useSearchStore((s) => s.mapZoom)
-  const hoveredChurchId = useSearchStore((s) => s.hoveredChurchId)
-  const mapBounds = useSearchStore((s) => s.mapBounds)
+  const query = useSearchStore((state) => state.query)
+  const filters = useSearchStore((state) => state.filters)
+  const sort = useSearchStore((state) => state.sort)
+  const mapCenter = useSearchStore((state) => state.mapCenter)
+  const mapZoom = useSearchStore((state) => state.mapZoom)
+  const hoveredChurchId = useSearchStore((state) => state.hoveredChurchId)
+  const mapBounds = useSearchStore((state) => state.mapBounds)
 
-  // Store actions
-  const setMapCenter = useSearchStore((s) => s.setMapCenter)
-  const setMapZoom = useSearchStore((s) => s.setMapZoom)
-  const setMapBounds = useSearchStore((s) => s.setMapBounds)
-  const setHoveredChurch = useSearchStore((s) => s.setHoveredChurch)
+  const setMapCenter = useSearchStore((state) => state.setMapCenter)
+  const setMapZoom = useSearchStore((state) => state.setMapZoom)
+  const setMapBounds = useSearchStore((state) => state.setMapBounds)
+  const setHoveredChurch = useSearchStore((state) => state.setHoveredChurch)
 
-  // Popup state
   const [popupChurch, setPopupChurch] = useState<IChurchSummary | null>(null)
 
-  // Fetch churches — use bounds-based query when map bounds are available
   const boundsString = mapBounds
     ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
     : undefined
@@ -66,95 +56,108 @@ export const InteractiveMap = () => {
     amenities: filters.amenities,
     sort: sort,
     page: 1,
-    pageSize: 200, // fetch more for map display
+    pageSize: 200,
     bounds: boundsString,
   }
 
   const { data } = useChurches(searchParams)
   const churches = useMemo(() => data?.data || [], [data])
 
-  // Build GeoJSON from church data
-  const geojson: GeoJSON.FeatureCollection = useMemo(() => ({
-    type: 'FeatureCollection',
-    features: churches.map((church) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [church.longitude, church.latitude],
-      },
-      properties: {
-        id: church.id,
-        slug: church.slug,
-        name: church.name,
-        denomination: church.denomination || '',
-        avgRating: church.avgRating,
-        distance: church.distance,
-        isHovered: church.id === hoveredChurchId,
-      },
-    })),
-  }), [churches, hoveredChurchId])
-
-  // Handle map viewport changes — debounced bounds update
-  const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const geojson: GeoJSON.FeatureCollection = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: churches.map((church) => ({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [church.longitude, church.latitude],
+        },
+        properties: {
+          id: church.id,
+          slug: church.slug,
+          name: church.name,
+          denomination: church.denomination || '',
+          avgRating: church.avgRating,
+          distance: church.distance,
+          isHovered: church.id === hoveredChurchId,
+        },
+      })),
+    }),
+    [churches, hoveredChurchId]
+  )
 
   const handleMoveEnd = useCallback(
-    (evt: ViewStateChangeEvent) => {
-      const { latitude, longitude, zoom } = evt.viewState
+    (event: ViewStateChangeEvent) => {
+      const { latitude, longitude, zoom } = event.viewState
       setMapCenter(latitude, longitude)
       setMapZoom(zoom)
 
-      // Debounce bounds update to avoid excessive API calls
-      if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
+      if (moveTimeoutRef.current) {
+        clearTimeout(moveTimeoutRef.current)
+      }
+
       moveTimeoutRef.current = setTimeout(() => {
         const map = mapRef.current?.getMap()
-        if (map) {
-          const bounds = map.getBounds()
-          if (bounds) {
-            setMapBounds({
-              swLat: bounds.getSouthWest().lat,
-              swLng: bounds.getSouthWest().lng,
-              neLat: bounds.getNorthEast().lat,
-              neLng: bounds.getNorthEast().lng,
-            })
-          }
+        if (!map) {
+          return
         }
-      }, 300)
-    },
-    [setMapCenter, setMapZoom, setMapBounds]
-  )
 
-  // Set initial bounds once map loads
-  const handleLoad = useCallback(() => {
-    const map = mapRef.current?.getMap()
-    if (map) {
-      const bounds = map.getBounds()
-      if (bounds) {
+        const bounds = map.getBounds()
+        if (!bounds) {
+          return
+        }
+
         setMapBounds({
           swLat: bounds.getSouthWest().lat,
           swLng: bounds.getSouthWest().lng,
           neLat: bounds.getNorthEast().lat,
           neLng: bounds.getNorthEast().lng,
         })
-      }
+      }, 300)
+    },
+    [setMapBounds, setMapCenter, setMapZoom]
+  )
+
+  const handleLoad = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) {
+      return
     }
+
+    const bounds = map.getBounds()
+    if (!bounds) {
+      return
+    }
+
+    setMapBounds({
+      swLat: bounds.getSouthWest().lat,
+      swLng: bounds.getSouthWest().lng,
+      neLat: bounds.getNorthEast().lat,
+      neLng: bounds.getNorthEast().lng,
+    })
   }, [setMapBounds])
 
-  // Handle cluster click — zoom into the cluster
   const handleClick = useCallback(
-    (evt: MapLayerMouseEvent) => {
+    (event: MapLayerMouseEvent) => {
       const map = mapRef.current?.getMap()
-      if (!map) return
+      if (!map) {
+        return
+      }
 
-      // Check cluster layer first
-      const clusterFeatures = map.queryRenderedFeatures(evt.point, {
+      const clusterFeatures = map.queryRenderedFeatures(event.point, {
         layers: ['cluster-circles'],
       })
+
       if (clusterFeatures.length > 0) {
         const feature = clusterFeatures[0]
         const clusterId = feature.properties?.cluster_id
         const source = map.getSource('churches') as mapboxgl.GeoJSONSource
-        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err || zoom == null) return
+
+        source.getClusterExpansionZoom(clusterId, (error, zoom) => {
+          if (error || zoom == null) {
+            return
+          }
+
           const geometry = feature.geometry as GeoJSON.Point
           map.easeTo({
             center: geometry.coordinates as [number, number],
@@ -164,29 +167,31 @@ export const InteractiveMap = () => {
         return
       }
 
-      // Check individual pin click
-      const pinFeatures = map.queryRenderedFeatures(evt.point, {
+      const pinFeatures = map.queryRenderedFeatures(event.point, {
         layers: ['unclustered-pins'],
       })
-      if (pinFeatures.length > 0) {
-        const props = pinFeatures[0].properties
-        const churchId = props?.id
-        const church = churches.find((c) => c.id === churchId)
-        if (church) {
-          setPopupChurch(church)
-        }
+
+      if (pinFeatures.length === 0) {
+        return
+      }
+
+      const churchId = pinFeatures[0].properties?.id
+      const church = churches.find((item) => item.id === churchId)
+      if (church) {
+        setPopupChurch(church)
       }
     },
     [churches]
   )
 
-  // Handle hover for cursor style and store sync
   const handleMouseMove = useCallback(
-    (evt: MapLayerMouseEvent) => {
+    (event: MapLayerMouseEvent) => {
       const map = mapRef.current?.getMap()
-      if (!map) return
+      if (!map) {
+        return
+      }
 
-      const features = map.queryRenderedFeatures(evt.point, {
+      const features = map.queryRenderedFeatures(event.point, {
         layers: ['unclustered-pins', 'cluster-circles'],
       })
 
@@ -197,7 +202,10 @@ export const InteractiveMap = () => {
         if (churchId !== hoveredChurchId) {
           setHoveredChurch(churchId)
         }
-      } else if (hoveredChurchId) {
+        return
+      }
+
+      if (hoveredChurchId) {
         setHoveredChurch(null)
       }
     },
@@ -209,7 +217,7 @@ export const InteractiveMap = () => {
   }, [setHoveredChurch])
 
   return (
-    <div className='w-full h-full relative'>
+    <div className='relative h-full w-full'>
       <MapGL
         ref={mapRef}
         initialViewState={{
@@ -227,11 +235,9 @@ export const InteractiveMap = () => {
         attributionControl={false}
         reuseMaps
       >
-        {/* Navigation controls — zoom buttons + compass */}
         <NavigationControl position='bottom-right' showCompass={false} />
         <GeolocateControl position='bottom-right' trackUserLocation={false} />
 
-        {/* Church data source with clustering */}
         <Source
           id='churches'
           type='geojson'
@@ -240,7 +246,6 @@ export const InteractiveMap = () => {
           clusterMaxZoom={14}
           clusterRadius={60}
         >
-          {/* Cluster circles */}
           <Layer
             id='cluster-circles'
             type='circle'
@@ -250,16 +255,15 @@ export const InteractiveMap = () => {
               'circle-radius': [
                 'step',
                 ['get', 'point_count'],
-                18,   // radius for count < 10
-                10, 22, // radius for count 10-24
-                25, 28, // radius for count >= 25
+                18,
+                10, 22,
+                25, 28,
               ],
               'circle-stroke-width': 3,
               'circle-stroke-color': '#ffffff',
             }}
           />
 
-          {/* Cluster count labels */}
           <Layer
             id='cluster-count'
             type='symbol'
@@ -274,7 +278,6 @@ export const InteractiveMap = () => {
             }}
           />
 
-          {/* Individual (unclustered) church pins — Airbnb-style bubbles */}
           <Layer
             id='unclustered-pins'
             type='symbol'
@@ -310,7 +313,6 @@ export const InteractiveMap = () => {
           />
         </Source>
 
-        {/* Popup on pin click */}
         {popupChurch && (
           <Popup
             longitude={popupChurch.longitude}
@@ -321,45 +323,50 @@ export const InteractiveMap = () => {
             className='church-popup'
             maxWidth='280px'
           >
-            <div
-              className='cursor-pointer'
+            <button
+              type='button'
+              className='w-full cursor-pointer rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#222222] focus-visible:ring-offset-2'
               onClick={() => navigate(`/churches/${popupChurch.slug}`)}
+              aria-label={`View ${popupChurch.name} profile`}
             >
-              <h3 className='text-[15px] font-semibold text-[#222222] mb-1 leading-tight'>
+              <h3 className='mb-1 text-[15px] font-semibold leading-tight text-[#222222]'>
                 {popupChurch.name}
               </h3>
               {popupChurch.denomination && (
-                <p className='text-[13px] text-[#717171] mb-0.5'>
+                <p className='mb-0.5 text-[13px] text-[#717171]'>
                   {popupChurch.denomination}
                 </p>
               )}
               <div className='flex items-center gap-2 text-[13px] text-[#717171]'>
                 {popupChurch.avgRating > 0 && (
-                  <span className='text-[#222222] font-semibold'>
-                    ★ {formatRating(popupChurch.avgRating)}
+                  <span className='inline-flex items-center gap-1 font-semibold text-[#222222]'>
+                    <Star className='h-3 w-3 fill-current' />
+                    {formatRating(popupChurch.avgRating)}
                   </span>
                 )}
-                <span>{popupChurch.distance} mi away</span>
+                <span>{formatDistance(popupChurch.distance)} away</span>
               </div>
               {(() => {
-                const next = getNextService(popupChurch.services)
-                return next ? (
-                  <p className='text-[13px] text-[#222222] font-semibold mt-1'>{next}</p>
+                const nextService = getNextService(popupChurch.services)
+                return nextService ? (
+                  <p className='mt-1 text-[13px] font-semibold text-[#222222]'>
+                    {nextService}
+                  </p>
                 ) : null
               })()}
-              <p className='text-[12px] text-[#FF385C] font-semibold mt-1.5'>
-                View profile →
-              </p>
-            </div>
+              <span className='mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF385C]'>
+                View profile
+                <ArrowRight className='h-3.5 w-3.5' />
+              </span>
+            </button>
           </Popup>
         )}
       </MapGL>
 
-      {/* "Search as I move the map" indicator */}
-      <div className='absolute top-4 left-1/2 -translate-x-1/2 z-10'>
-        <div className='inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-lg text-sm'>
-          <div className='w-2 h-2 rounded-full bg-green-500' />
-          <span className='text-[#222222] font-medium text-[13px]'>
+      <div className='absolute left-1/2 top-4 z-10 -translate-x-1/2'>
+        <div className='inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm shadow-lg'>
+          <div className='h-2 w-2 rounded-full bg-green-500' />
+          <span className='text-[13px] font-medium text-[#222222]'>
             Updating results as you move
           </span>
         </div>

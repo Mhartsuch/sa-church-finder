@@ -1,6 +1,6 @@
-import { Church, Search, User, Menu } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Church, Menu, Search, User } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useState, useRef, useEffect } from 'react'
 import { useSearchStore } from '@/stores/search-store'
 
 export const Header = () => {
@@ -23,83 +23,75 @@ export const Header = () => {
     }
   }, [])
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
     setLocalValue(value)
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+
     timeoutRef.current = setTimeout(() => {
       setQuery(value)
     }, 300)
   }
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
     if (location.pathname !== '/search' && location.pathname !== '/') {
       navigate('/search')
     }
   }
 
   return (
-    <header className='sticky top-0 z-50 bg-white border-b border-gray-200'>
-      <div className='max-w-[2520px] mx-auto px-4 sm:px-6 lg:px-10'>
-        <div className='flex items-center justify-between h-20'>
-          {/* Logo */}
-          <Link to='/' className='flex items-center gap-2 flex-shrink-0'>
-            <div className='w-8 h-8 rounded-lg flex items-center justify-center' style={{ backgroundColor: '#FF385C' }}>
-              <Church className='w-5 h-5 text-white' />
+    <header className='sticky top-0 z-50 border-b border-gray-200 bg-white'>
+      <div className='mx-auto max-w-[2520px] px-4 sm:px-6 lg:px-10'>
+        <div className='flex h-20 items-center justify-between'>
+          <Link to='/' className='flex flex-shrink-0 items-center gap-2'>
+            <div
+              className='flex h-8 w-8 items-center justify-center rounded-lg'
+              style={{ backgroundColor: '#FF385C' }}
+            >
+              <Church className='h-5 w-5 text-white' />
             </div>
-            <span className='text-xl font-bold text-[#222222] hidden sm:block tracking-tight'>
+            <span className='hidden text-xl font-bold tracking-tight text-[#222222] sm:block'>
               SA Church Finder
             </span>
           </Link>
 
-          {/* Center search pill — always visible */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className='hidden md:flex flex-1 max-w-[420px] mx-6'
-          >
-            <button
-              type='button'
-              onClick={() => {
-                if (location.pathname !== '/search' && location.pathname !== '/') {
-                  navigate('/search')
-                }
-                // Focus the input
-                const input = document.getElementById('header-search-input')
-                input?.focus()
-              }}
-              className='search-pill w-full hover:shadow-airbnb-subtle'
-            >
-              <div className='flex items-center w-full'>
-                <Search className='w-4 h-4 text-[#222222] ml-4 flex-shrink-0' />
+          <form onSubmit={handleSearchSubmit} className='mx-6 hidden max-w-[420px] flex-1 md:flex'>
+            <div className='search-pill w-full transition-shadow hover:shadow-airbnb-subtle focus-within:shadow-airbnb-subtle'>
+              <div className='flex w-full items-center'>
+                <Search className='ml-4 h-4 w-4 flex-shrink-0 text-[#222222]' />
                 <input
                   id='header-search-input'
                   type='text'
                   value={localValue}
                   onChange={handleSearchChange}
-                  onClick={(e) => e.stopPropagation()}
                   placeholder='Search churches...'
-                  className='flex-1 px-3 py-[10px] text-sm text-[#222222] placeholder-gray-400 bg-transparent border-0 outline-none font-medium'
+                  className='flex-1 border-0 bg-transparent px-3 py-[10px] text-sm font-medium text-[#222222] outline-none placeholder-gray-400'
                 />
-                <div className='mr-2 p-[7px] bg-[#FF385C] hover:bg-[#E00B41] text-white rounded-full transition-colors'>
-                  <Search className='w-3 h-3' />
-                </div>
+                <button
+                  type='submit'
+                  className='mr-2 rounded-full bg-[#FF385C] p-[7px] text-white transition-colors hover:bg-[#E00B41]'
+                  aria-label='Submit search'
+                >
+                  <Search className='h-3 w-3' />
+                </button>
               </div>
-            </button>
+            </div>
           </form>
 
-          {/* Right side nav */}
           <div className='flex items-center gap-2'>
             <Link
               to='/search'
-              className='hidden sm:block text-sm font-semibold text-[#222222] px-4 py-2.5 rounded-full hover:bg-gray-100 transition-colors'
+              className='hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-100 sm:block'
             >
               Explore
             </Link>
-            <div className='flex items-center gap-2.5 px-3 py-2 border border-gray-300 rounded-full hover:shadow-md transition-shadow cursor-pointer'>
-              <Menu className='w-4 h-4 text-[#222222]' />
-              <div className='w-[30px] h-[30px] bg-gray-500 rounded-full flex items-center justify-center'>
-                <User className='w-4 h-4 text-white' />
+            <div className='flex cursor-pointer items-center gap-2.5 rounded-full border border-gray-300 px-3 py-2 transition-shadow hover:shadow-md'>
+              <Menu className='h-4 w-4 text-[#222222]' />
+              <div className='flex h-[30px] w-[30px] items-center justify-center rounded-full bg-gray-500'>
+                <User className='h-4 w-4 text-white' />
               </div>
             </div>
           </div>

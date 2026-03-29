@@ -8,7 +8,7 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '../lib/prisma.js'
-import { IChurchSummary, ISearchParams, ISearchResponse, IBounds } from '../types/church.types.js'
+import { IBounds, IChurch, IChurchSummary, ISearchParams, ISearchResponse } from '../types/church.types.js'
 
 const DEFAULT_CENTER_LAT = 29.4241
 const DEFAULT_CENTER_LNG = -98.4936
@@ -300,7 +300,7 @@ export async function searchChurches(params: ISearchParams): Promise<ISearchResp
 
 // ── Single church lookups ──
 
-export async function getChurchBySlug(slug: string) {
+export async function getChurchBySlug(slug: string): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { slug },
     include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
@@ -316,7 +316,7 @@ export async function getChurchBySlug(slug: string) {
   }
 }
 
-export async function getChurchById(id: string) {
+export async function getChurchById(id: string): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { id },
     include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },

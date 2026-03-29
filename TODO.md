@@ -9,9 +9,9 @@
 - **P3 - Low:** Nice to have, do when convenient
 
 ## Current Milestone
-**Milestone:** 1 - Core Search & Discovery (MVP)  
+**Milestone:** Post-launch Cleanup & Milestone 2 Prep  
 **Target Date:** TBD  
-**Goal:** Working search page with map view, list view, and church profile page.
+**Goal:** Keep the live MVP stable, reduce maintenance risk, and tee up the next feature slice.
 
 ---
 
@@ -33,16 +33,17 @@
 - [x] Add loading skeleton animations to ChurchCard - shimmer effect component, completed 2026-03-27
 - [x] Implement "no results" suggestions (widen radius, change filters) - completed 2026-03-27
 - [x] Write database seed script with proper PostGIS location column - completed 2026-03-27
-- [ ] Upgrade deprecated deps (`eslint` 8 -> 9, `multer` 1 -> 2, `supertest` 6 -> 7)
+- [x] Upgrade deprecated deps (`eslint` 8 -> 9, `multer` 1 -> 2, `supertest` 6 -> 7) - completed 2026-03-28
 - [ ] Review lazy-loaded Mapbox bundle size warning and optimize only if it becomes a real production issue
 
 ### P3 - Low
 - [ ] Add Husky + lint-staged for pre-commit hooks
 - [x] Set up GitHub Actions CI (lint, typecheck, test on PRs) - workflows created, CI fixes applied (2026-03-27)
 - [ ] Set up error monitoring (Sentry free tier)
-- [ ] Add keyboard navigation support for search results
+- [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Dependency upgrade sweep - ESLint 9 flat config migration, `multer` 2.1.1, `supertest` 7.2.2, fresh client/server lockfiles, full lint/typecheck/test/build pass (2026-03-28)
 - [x] Render deployment verified live - frontend and backend working on Render after env wiring + redeploy (2026-03-28)
 - [x] Repository baseline re-stabilized: lint, typecheck, test, and build verified after Prisma/Render work (2026-03-28)
 - [x] Supabase cloud database live - PostgreSQL + PostGIS 3.3, 22 churches seeded, spatial queries verified (2026-03-28)
@@ -55,6 +56,7 @@
 - [x] URL-based search state - shareable/bookmarkable URLs with all filters synced (2026-03-27)
 - [x] Responsive layout - mobile-first list view, full-screen map/list toggle on small screens (2026-03-27)
 - [x] No-results suggestions - contextual empty state with actionable filter-removal buttons (2026-03-27)
+- [x] Keyboard navigation support for search results - focusable result cards, accessible search submit buttons, map popup CTA cleanup (2026-03-28)
 - [x] Church Profile Page (F1.3) with hero, about, services, location, contact, amenities (2026-03-27)
 - [x] Navigation wired: card clicks + map pin clicks -> profile page (2026-03-27)
 - [x] Header updated with React Router links (2026-03-27)
@@ -93,8 +95,8 @@
 - Multi-city expansion architecture
 
 ## Known Bugs
-- npm deprecation warnings (`eslint` 8, `multer` CVE, `inflight`) - non-blocking
-- 13 moderate vulns in client, 30 vulns in server (transitive deps) - not urgent
+- Lazy-loaded `mapbox-gl` chunk still exceeds Vite's size warning threshold - monitor before optimizing
+- 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-28 (Render live; baseline stabilized)*
+*Last updated: 2026-03-28 (dependency upgrade sweep landed)*

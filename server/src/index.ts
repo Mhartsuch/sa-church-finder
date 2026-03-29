@@ -68,7 +68,7 @@ const server = app.listen(port, () => {
 })
 
 // Graceful shutdown
-const gracefulShutdown = () => {
+const gracefulShutdown = (): void => {
   logger.info('Received shutdown signal, closing gracefully...')
   server.close(async () => {
     await prisma.$disconnect()

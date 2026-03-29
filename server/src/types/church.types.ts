@@ -7,10 +7,10 @@ export interface IChurchService {
   churchId: string
   dayOfWeek: number
   startTime: string
-  endTime?: string
+  endTime?: string | null
   serviceType: string
   language: string
-  description?: string
+  description?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -19,28 +19,28 @@ export interface IChurch {
   id: string
   name: string
   slug: string
-  denomination?: string
-  denominationFamily?: string
-  description?: string
+  denomination?: string | null
+  denominationFamily?: string | null
+  description?: string | null
   address: string
   city: string
   state: string
   zipCode: string
-  neighborhood?: string
+  neighborhood?: string | null
   latitude: number
   longitude: number
-  phone?: string
-  email?: string
-  website?: string
-  pastorName?: string
-  yearEstablished?: number
+  phone?: string | null
+  email?: string | null
+  website?: string | null
+  pastorName?: string | null
+  yearEstablished?: number | null
   avgRating: number
   reviewCount: number
   isClaimed: boolean
-  claimedById?: string
+  claimedById?: string | null
   languages: string[]
   amenities: string[]
-  coverImageUrl?: string
+  coverImageUrl?: string | null
   createdAt: Date
   updatedAt: Date
   services: IChurchService[]
@@ -50,25 +50,25 @@ export interface IChurchSummary {
   id: string
   name: string
   slug: string
-  denomination?: string
-  denominationFamily?: string
-  description?: string
+  denomination?: string | null
+  denominationFamily?: string | null
+  description?: string | null
   address: string
   city: string
   state: string
   zipCode: string
-  neighborhood?: string
+  neighborhood?: string | null
   latitude: number
   longitude: number
-  phone?: string
-  email?: string
-  website?: string
+  phone?: string | null
+  email?: string | null
+  website?: string | null
   avgRating: number
   reviewCount: number
   isClaimed: boolean
   languages: string[]
   amenities: string[]
-  coverImageUrl?: string
+  coverImageUrl?: string | null
   distance?: number
   services: IChurchService[]
 }
