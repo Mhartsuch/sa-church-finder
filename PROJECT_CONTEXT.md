@@ -1,7 +1,7 @@
 # Project Context
 
 ## Project Name
-SA Church Finder — Airbnb-style Church Discovery for San Antonio
+SA Church Finder - Airbnb-style Church Discovery for San Antonio
 
 ## One-Line Summary
 A web application that helps San Antonio residents and visitors discover, explore, and connect with local churches through an Airbnb-inspired browsing experience with maps, photos, reviews, and event listings.
@@ -14,11 +14,11 @@ A web application that helps San Antonio residents and visitors discover, explor
 5. Deliver a responsive, mobile-friendly experience that feels as polished as Airbnb
 
 ## Non-Goals
-1. Not building a donations/payment system — churches handle their own giving platforms
-2. Not creating a social media platform — limited community features, not a full social network
+1. Not building a donations/payment system - churches handle their own giving platforms
+2. Not creating a social media platform - limited community features, not a full social network
 3. Not supporting cities outside San Antonio in the MVP (architecture should allow expansion later)
-4. Not building native mobile apps — responsive web only for v1
-5. Not live-streaming or hosting sermons — link out to church platforms instead
+4. Not building native mobile apps - responsive web only for v1
+5. Not live-streaming or hosting sermons - link out to church platforms instead
 6. Not providing theological content or recommendations based on beliefs
 
 ## Target Audience / Users
@@ -34,26 +34,26 @@ A web application that helps San Antonio residents and visitors discover, explor
 - **Backend:** Node.js + Express
 - **Database:** PostgreSQL with PostGIS extension (geospatial queries)
 - **ORM:** Prisma
-- **Authentication:** Passport.js (local + Google OAuth)
+- **Authentication:** Session-based local auth now live; Google OAuth planned next
 - **Maps:** Mapbox GL JS (interactive maps with clustering)
 - **Image Storage:** Cloudinary (church photos with CDN)
 - **Search:** PostgreSQL full-text search (upgrade to Elasticsearch later if needed)
 - **Testing:** Vitest + React Testing Library (frontend), Jest + Supertest (backend)
-- **Hosting:** Vercel (frontend) + Railway or Render (backend + DB)
+- **Hosting:** Render (frontend + backend) with Supabase Postgres/PostGIS
 
 ## Project Type
 software
 
 ## Key Constraints
-- Must be performant on mobile — majority of users will browse on phones
-- Church data must be verifiable — prevent spam/fake listings
-- Respect church autonomy — churches should be able to claim and manage their own listings
+- Must be performant on mobile - majority of users will browse on phones
+- Church data must be verifiable - prevent spam/fake listings
+- Respect church autonomy - churches should be able to claim and manage their own listings
 - Accessible (WCAG 2.1 AA minimum)
 - San Antonio geographic boundary enforced in search (Bexar County area)
-- Free tier must exist for churches — no paywall for basic listing
+- Free tier must exist for churches - no paywall for basic listing
 
 ## Current Status
-Active Development — Milestone 1 nearly complete. Search page (map + list) and Church Profile Page are built. Remaining M1 work: Mapbox integration, responsive layout, URL-based search state. Next major milestone: User Accounts & Reviews (M2).
+Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, and Milestone 2 has started with a real local session-based auth backend (`register`, `login`, `logout`, `me`).
 
 ## Important Links
 - GitHub: https://github.com/Mhartsuch/sa-church-finder
@@ -65,4 +65,4 @@ Active Development — Milestone 1 nearly complete. Search page (map + list) and
 - Contact: mhartsuch@gmail.com
 
 ---
-*Last updated: 2026-03-27*
+*Last updated: 2026-03-28*

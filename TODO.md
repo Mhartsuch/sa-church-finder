@@ -9,9 +9,9 @@
 - **P3 - Low:** Nice to have, do when convenient
 
 ## Current Milestone
-**Milestone:** Post-launch Cleanup & Milestone 2 Prep  
+**Milestone:** Milestone 2 - User Accounts & Reviews (Foundation)  
 **Target Date:** TBD  
-**Goal:** Keep the live MVP stable, reduce maintenance risk, and tee up the next feature slice.
+**Goal:** Land the authentication and account foundation needed for reviews, saved churches, and user profiles.
 
 ---
 
@@ -22,6 +22,9 @@
 - [x] **Deploy to Render** - backend + frontend live on Render, env wiring verified, and live site smoke-tested end-to-end (2026-03-28)
 
 ### P1 - High
+- [x] Replace placeholder auth API with real local session-based auth (`register`, `login`, `logout`, `me`) - completed 2026-03-28
+- [ ] Add auth UI and client-side current-session integration
+- [ ] Finish auth follow-ups: Google OAuth, email verification, and forgot/reset password
 - [x] Build Church Profile Page (F1.3 - hero, about, services, location, contact) - completed 2026-03-27
 - [x] Integrate Mapbox GL JS when token is available (replace MapPlaceholder) - completed 2026-03-27
 - [x] Implement map pin clustering for zoomed-out views - completed 2026-03-27
@@ -43,6 +46,7 @@
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Local auth foundation - Prisma+bcrypt register/login/logout/me endpoints, session middleware, route validation, auth route tests, and testable app bootstrap (2026-03-28)
 - [x] Dependency upgrade sweep - ESLint 9 flat config migration, `multer` 2.1.1, `supertest` 7.2.2, fresh client/server lockfiles, full lint/typecheck/test/build pass (2026-03-28)
 - [x] Render deployment verified live - frontend and backend working on Render after env wiring + redeploy (2026-03-28)
 - [x] Repository baseline re-stabilized: lint, typecheck, test, and build verified after Prisma/Render work (2026-03-28)
@@ -99,4 +103,4 @@
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-28 (dependency upgrade sweep landed)*
+*Last updated: 2026-03-28 (local auth foundation landed)*

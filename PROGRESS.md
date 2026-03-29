@@ -12,6 +12,44 @@
 
 ## Log
 
+### 2026-03-28 - Local Auth Foundation
+**Focus:** Replaced the placeholder auth API with a real session-based local auth foundation so Milestone 2 has a working backend entry point.
+
+**Completed:**
+- **Server bootstrap refactor:** Split the Express app setup into `server/src/app.ts` and kept `server/src/index.ts` focused on process startup/shutdown. This makes the app import-safe for route tests and future server integrations.
+- **Session middleware:** Added `server/src/lib/session.ts` with shared session configuration, cookie naming, client URL parsing, and PostgreSQL-backed session storage via `connect-pg-simple` outside test mode.
+- **Real auth flow:** Replaced the stubbed `auth.routes.ts` handlers with working `register`, `login`, `logout`, and `me` endpoints backed by Prisma and bcrypt. Registration now creates real users, login verifies hashed passwords, successful auth establishes an HTTP-only session, and `/auth/me` returns `401` when no session is present.
+- **Validation + types:** Added `server/src/schemas/auth.schema.ts`, `server/src/services/auth.service.ts`, `server/src/types/auth.types.ts`, and `server/src/types/session.d.ts` so auth input and session state are typed and validated.
+- **Test coverage:** Added `server/src/routes/auth.routes.test.ts` covering registration, duplicate-email conflicts, login, session-backed `/auth/me`, logout, and invalid-credential handling. Also silenced server logger output in test mode and suppressed the known `ts-jest` NodeNext diagnostic in `server/jest.config.cjs`.
+
+**Remaining Notes:**
+- This is the local email/password foundation only. Google OAuth, email verification, forgot/reset password, and frontend auth screens are still open Milestone 2 follow-ups.
+- Session persistence now uses PostgreSQL automatically in non-test environments and falls back to the in-memory store under Jest.
+- The Mapbox chunk-size warning still remains a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd run test`, and `npm.cmd run build` successfully.
+- After the logger/Jest cleanup, reran `npm.cmd run test:server`, `npm.cmd run lint:server`, and `npm.cmd run typecheck:server` successfully.
+
+**Files Changed:**
+- `server/src/app.ts`
+- `server/src/index.ts`
+- `server/src/lib/session.ts`
+- `server/src/lib/logger.ts`
+- `server/src/middleware/error-handler.ts`
+- `server/src/routes/auth.routes.ts`
+- `server/src/routes/auth.routes.test.ts`
+- `server/src/schemas/auth.schema.ts`
+- `server/src/services/auth.service.ts`
+- `server/src/types/auth.types.ts`
+- `server/src/types/session.d.ts`
+- `server/jest.config.cjs`
+- `server/tsconfig.json`
+- `TODO.md`
+- `PROGRESS.md`
+- `AGENT_BRIEFING.md`
+- `PROJECT_CONTEXT.md`
+
 ### 2026-03-28 - Dependency Upgrade Sweep
 **Focus:** Cleared the open dependency-maintenance bucket and migrated the repo to ESLint 9 without leaving compatibility shims behind.
 

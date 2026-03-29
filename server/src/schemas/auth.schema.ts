@@ -1,0 +1,36 @@
+import { z } from 'zod'
+
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email('Please provide a valid email address')
+
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(72, 'Password must be 72 characters or fewer')
+
+const nameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Name is required')
+  .max(100, 'Name must be 100 characters or fewer')
+
+export const authRegisterSchema = z.object({
+  body: z.object({
+    email: emailSchema,
+    password: passwordSchema,
+    name: nameSchema,
+  }),
+})
+
+export const authLoginSchema = z.object({
+  body: z.object({
+    email: emailSchema,
+    password: passwordSchema,
+  }),
+})
+
+export type AuthRegisterBody = z.infer<typeof authRegisterSchema>['body']
+export type AuthLoginBody = z.infer<typeof authLoginSchema>['body']

@@ -35,6 +35,13 @@ export class AuthError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message: string = 'Conflict') {
+    super(409, 'CONFLICT', message)
+    Object.setPrototypeOf(this, ConflictError.prototype)
+  }
+}
+
 export const errorHandler = (
   err: Error | AppError,
   _req: Request,
