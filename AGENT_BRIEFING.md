@@ -5,12 +5,13 @@
 ## What You Need to Know Right Now
 
 ### Project in One Paragraph
-SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus real account features: saved churches, written reviews, helpful voting, password recovery, and email verification all work end to end across church profiles and the account page.
+SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus real account features: email/password auth, Google sign-in, saved churches, written reviews, helpful voting, password recovery, and email verification all work end to end across church profiles and the account page.
 
 ### Current Priority
-Keep moving through Milestone 2 now that auth, password recovery, saved churches, reviews, helpful voting, and email verification are live end to end. The biggest open items are now Google OAuth, real transactional email delivery for auth emails, and review moderation.
+Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, and email verification are live end to end. The biggest open items are now real transactional email delivery for auth emails, review moderation, and any environment-specific Google credential setup still needed for live sign-in.
 
 ### Recently Completed
+- Added Google OAuth end to end: backend `/auth/google` start + callback flow, safe `returnTo` redirect handling, Google account creation/linking, and login/register Google entry points with redirect error messaging
 - Added email verification end to end: verification-token persistence + migration, register-time token issuance, resend/consume APIs, a `/verify-email` page, and an account-page resend flow with opt-in local preview support
 - Added review helpful voting end to end: helpful/unhelpful APIs, viewer vote state in review payloads, and live helpful controls on church profile reviews
 - Added the forgot/reset password flow end to end: reset-token issuance + consumption APIs, frontend forgot/reset screens, and an opt-in local preview link for development
@@ -31,8 +32,8 @@ Keep moving through Milestone 2 now that auth, password recovery, saved churches
 ### Known Blockers
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - The lazy-loaded `mapbox-gl` chunk is still large in production builds, so bundle-size optimization remains an open performance follow-up
+- Google OAuth is implemented in-app now, but each environment still needs valid Google OAuth credentials plus an authorized redirect URI before live sign-in will work there
 - Real transactional email delivery is still not wired, so password reset and email verification currently rely on opt-in local preview modes during development instead of SMTP delivery
-- The remaining auth flow in F2.1 is now `Google OAuth`
 - Review moderation is still a follow-up after helpful voting landed
 
 ## Where Things Are
@@ -107,4 +108,4 @@ When you finish a session, update:
 - `TODO.md` to reflect completed and new tasks
 
 ---
-*Last updated: 2026-03-28 by Codex*
+*Last updated: 2026-03-29 by Codex*

@@ -12,6 +12,50 @@
 
 ## Log
 
+### 2026-03-29 - Google OAuth
+**Focus:** Finished the last planned Milestone 2 auth flow by wiring Google OAuth through the existing session-backed backend and auth screens.
+
+**Completed:**
+- **Backend Google OAuth flow:** Added `GET /api/v1/auth/google` and `GET /api/v1/auth/google/callback` with session-backed OAuth state, safe `returnTo` handling, Google token/userinfo exchange, and user creation/linking by `googleId` or verified email.
+- **Frontend Google entry points:** Added reusable Google CTA UI on the login and register pages, preserved post-auth redirect targets across auth screens, and surfaced callback failure messaging when Google sign-in is canceled or expires.
+- **Account and setup refresh:** Updated account-page copy to reflect that Google sign-in is now live, added Google OAuth setup guidance to the docs, and prewired Render blueprint placeholders for Google credentials plus the callback URL.
+- **Coverage + verification:** Expanded `server/src/routes/auth.routes.test.ts` to cover Google OAuth start/callback success and failure cases, added client redirect-helper tests, and re-verified lint, typecheck, tests, and builds across the touched surfaces.
+
+**Remaining Notes:**
+- Google OAuth now works in-app, but each environment still needs valid `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` values and a matching authorized redirect URI in Google Cloud before live sign-in will work there.
+- Real outbound email delivery is now the clearest remaining auth follow-up, with review moderation next on the product side.
+- The known Mapbox chunk-size warning still appears in the client production build and remains a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd run lint` successfully in both `server/` and `client/`.
+- Ran `npm.cmd run typecheck` successfully in both `server/` and `client/`.
+- Ran `npm.cmd test -- --runInBand auth.routes.test.ts` successfully in `server/`.
+- Ran `npm.cmd test -- auth.test.ts auth-redirect.test.ts` successfully in `client/` (required elevated execution in this environment because Vitest/esbuild spawning is sandbox-restricted here).
+- Ran `npm.cmd run build` successfully in `server/`.
+- Ran `npm.cmd run build` successfully in `client/` (required elevated execution in this environment because Vite/esbuild spawning is sandbox-restricted here). The known `mapbox-gl` chunk-size warning still appears.
+
+**Files Changed:**
+- `server/src/routes/auth.routes.test.ts`
+- `server/src/routes/auth.routes.ts`
+- `server/src/schemas/auth.schema.ts`
+- `server/src/services/auth.service.ts`
+- `server/src/types/session.d.ts`
+- `client/src/components/auth/AuthPageShell.tsx`
+- `client/src/components/auth/GoogleAuthButton.tsx`
+- `client/src/lib/auth-redirect.test.ts`
+- `client/src/lib/auth-redirect.ts`
+- `client/src/pages/AccountPage.tsx`
+- `client/src/pages/LoginPage.tsx`
+- `client/src/pages/RegisterPage.tsx`
+- `AGENT_BRIEFING.md`
+- `API_SPEC.md`
+- `DECISIONS.md`
+- `PROJECT_CONTEXT.md`
+- `PROGRESS.md`
+- `QUICKSTART.md`
+- `TODO.md`
+- `render.yaml`
+
 ### 2026-03-28 - Email Verification Flow
 **Focus:** Closed the remaining local-auth verification gap by wiring email verification from token persistence through the account and verification-page UX.
 

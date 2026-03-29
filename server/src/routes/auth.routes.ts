@@ -1,6 +1,7 @@
+import { randomBytes } from 'crypto'
 import { NextFunction, Request, Response, Router } from 'express'
 
-import { SESSION_COOKIE_NAME } from '../lib/session.js'
+import { resolveClientUrls, SESSION_COOKIE_NAME } from '../lib/session.js'
 import logger from '../lib/logger.js'
 import { AuthError } from '../middleware/error-handler.js'
 import { requireAuth } from '../middleware/require-auth.js'
@@ -20,7 +21,9 @@ import {
 } from '../schemas/auth.schema.js'
 import {
   authenticateUser,
+  authenticateGoogleUser,
   getCurrentUser,
+  isGoogleOAuthConfigured,
   requestEmailVerification,
   registerUser,
   requestPasswordReset,
@@ -29,6 +32,29 @@ import {
 } from '../services/auth.service.js'
 
 const router = Router()
+const DEFAULT_AUTH_RETURN_TO = '/account'
+const GOOGLE_OAUTH_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
+const GOOGLE_OAUTH_SCOPE = 'openid email profile'
+const AUTH_RETURN_TO_BLOCKLIST = new Set([
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+])
+
+async function saveSession(req: Request): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    req.session.save((error) => {
+      if (error) {
+        reject(error)
+        return
+      }
+
+      resolve()
+    })
+  })
+}
 
 async function establishSession(req: Request, userId: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -39,14 +65,7 @@ async function establishSession(req: Request, userId: string): Promise<void> {
       }
 
       req.session.userId = userId
-      req.session.save((saveError) => {
-        if (saveError) {
-          reject(saveError)
-          return
-        }
-
-        resolve()
-      })
+      saveSession(req).then(resolve).catch(reject)
     })
   })
 }
@@ -63,6 +82,202 @@ async function destroySession(req: Request): Promise<void> {
     })
   })
 }
+
+function resolveClientBaseUrl(): string {
+  const clientUrls = resolveClientUrls()
+
+  if (clientUrls === '*' || clientUrls.length === 0) {
+    return 'http://localhost:5173'
+  }
+
+  return clientUrls[0]
+}
+
+function sanitizeReturnTo(value: unknown): string {
+  if (typeof value !== 'string') {
+    return DEFAULT_AUTH_RETURN_TO
+  }
+
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue.startsWith('/') || trimmedValue.startsWith('//')) {
+    return DEFAULT_AUTH_RETURN_TO
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedValue, 'http://localhost')
+    const normalizedPath = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`
+
+    if (AUTH_RETURN_TO_BLOCKLIST.has(parsedUrl.pathname)) {
+      return DEFAULT_AUTH_RETURN_TO
+    }
+
+    return normalizedPath || DEFAULT_AUTH_RETURN_TO
+  } catch {
+    return DEFAULT_AUTH_RETURN_TO
+  }
+}
+
+function buildClientRedirectUrl(
+  pathname: string,
+  query: Record<string, string | undefined> = {},
+): string {
+  const clientRedirectUrl = new URL(pathname, resolveClientBaseUrl())
+
+  Object.entries(query).forEach(([key, value]) => {
+    if (value) {
+      clientRedirectUrl.searchParams.set(key, value)
+    }
+  })
+
+  return clientRedirectUrl.toString()
+}
+
+function resolveGoogleCallbackUrl(req: Request): string {
+  const configuredCallbackUrl = process.env.GOOGLE_CALLBACK_URL?.trim()
+
+  if (configuredCallbackUrl) {
+    return configuredCallbackUrl
+  }
+
+  return new URL(
+    '/api/v1/auth/google/callback',
+    `${req.protocol}://${req.get('host')}`,
+  ).toString()
+}
+
+function buildGoogleAuthorizationUrl(req: Request, state: string): string {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim()
+
+  if (!googleClientId) {
+    throw new AuthError('Google sign-in is not configured')
+  }
+
+  const googleAuthUrl = new URL(GOOGLE_OAUTH_AUTHORIZE_URL)
+
+  googleAuthUrl.searchParams.set('client_id', googleClientId)
+  googleAuthUrl.searchParams.set('redirect_uri', resolveGoogleCallbackUrl(req))
+  googleAuthUrl.searchParams.set('response_type', 'code')
+  googleAuthUrl.searchParams.set('scope', GOOGLE_OAUTH_SCOPE)
+  googleAuthUrl.searchParams.set('state', state)
+  googleAuthUrl.searchParams.set('prompt', 'select_account')
+  googleAuthUrl.searchParams.set('include_granted_scopes', 'true')
+
+  return googleAuthUrl.toString()
+}
+
+async function storeGoogleOAuthRequest(
+  req: Request,
+  state: string,
+  returnTo: string,
+): Promise<void> {
+  req.session.googleOAuthState = state
+  req.session.googleOAuthReturnTo = returnTo
+
+  await saveSession(req)
+}
+
+async function consumeGoogleOAuthRequest(req: Request): Promise<{
+  state?: string
+  returnTo: string
+}> {
+  const state = req.session.googleOAuthState
+  const returnTo = sanitizeReturnTo(req.session.googleOAuthReturnTo)
+
+  delete req.session.googleOAuthState
+  delete req.session.googleOAuthReturnTo
+
+  await saveSession(req)
+
+  return {
+    state,
+    returnTo,
+  }
+}
+
+function redirectToLoginWithGoogleError(
+  res: Response,
+  authError: string,
+  returnTo: string,
+): void {
+  res.redirect(
+    buildClientRedirectUrl('/login', {
+      authError,
+      returnTo,
+    }),
+  )
+}
+
+router.get('/google', async (req: Request, res: Response) => {
+  const returnTo = sanitizeReturnTo(req.query.returnTo)
+
+  if (!isGoogleOAuthConfigured()) {
+    logger.warn('Google OAuth start requested without required configuration')
+    redirectToLoginWithGoogleError(res, 'google_unavailable', returnTo)
+    return
+  }
+
+  try {
+    const state = randomBytes(24).toString('base64url')
+
+    await storeGoogleOAuthRequest(req, state, returnTo)
+    res.redirect(buildGoogleAuthorizationUrl(req, state))
+    return
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to start Google OAuth flow')
+    redirectToLoginWithGoogleError(res, 'google_failed', returnTo)
+    return
+  }
+})
+
+router.get('/google/callback', async (req: Request, res: Response) => {
+  let returnTo = DEFAULT_AUTH_RETURN_TO
+
+  try {
+    const storedOAuthRequest = await consumeGoogleOAuthRequest(req)
+    const googleError =
+      typeof req.query.error === 'string' ? req.query.error : null
+    const state = typeof req.query.state === 'string' ? req.query.state : null
+    const code = typeof req.query.code === 'string' ? req.query.code : null
+
+    returnTo = storedOAuthRequest.returnTo
+
+    if (googleError) {
+      logger.warn({ googleError }, 'Google OAuth callback returned an error')
+      redirectToLoginWithGoogleError(
+        res,
+        googleError === 'access_denied' ? 'google_denied' : 'google_failed',
+        returnTo,
+      )
+      return
+    }
+
+    if (!state || !storedOAuthRequest.state || state !== storedOAuthRequest.state) {
+      logger.warn('Google OAuth callback rejected because the session state was invalid')
+      redirectToLoginWithGoogleError(res, 'google_session_expired', returnTo)
+      return
+    }
+
+    if (!code) {
+      logger.warn('Google OAuth callback rejected because the authorization code was missing')
+      redirectToLoginWithGoogleError(res, 'google_failed', returnTo)
+      return
+    }
+
+    const user = await authenticateGoogleUser({
+      code,
+      redirectUri: resolveGoogleCallbackUrl(req),
+    })
+
+    await establishSession(req, user.id)
+    res.redirect(buildClientRedirectUrl(returnTo))
+    return
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to complete Google OAuth callback')
+    redirectToLoginWithGoogleError(res, 'google_failed', returnTo)
+    return
+  }
+})
 
 router.post(
   '/register',

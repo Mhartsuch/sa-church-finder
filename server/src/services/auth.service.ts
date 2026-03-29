@@ -9,6 +9,7 @@ import logger from '../lib/logger.js'
 import {
   AuthForgotPasswordBody,
   AuthLoginBody,
+  AuthGoogleOAuthCallbackInput,
   AuthRegisterBody,
   AuthResetPasswordBody,
   AuthVerifyEmailBody,
@@ -30,10 +31,32 @@ const authUserWithPasswordSelect = Prisma.validator<Prisma.UserSelect>()({
   passwordHash: true,
 })
 
+const authUserWithGoogleSelect = Prisma.validator<Prisma.UserSelect>()({
+  ...authUserSelect,
+  googleId: true,
+})
+
 type AuthUserRecord = Prisma.UserGetPayload<{ select: typeof authUserSelect }>
-type AuthUserWithPasswordRecord = Prisma.UserGetPayload<{
-  select: typeof authUserWithPasswordSelect
-}>
+
+type GoogleOAuthTokenResponse = {
+  access_token?: string
+}
+
+type GoogleUserInfoResponse = {
+  sub?: string
+  email?: string
+  email_verified?: boolean
+  name?: string
+  picture?: string
+}
+
+type NormalizedGoogleUserProfile = {
+  googleId: string
+  email: string
+  emailVerified: boolean
+  name: string
+  avatarUrl: string | null
+}
 
 export type EmailVerificationRequestResult = {
   status: 'sent' | 'already-verified'
@@ -45,6 +68,8 @@ export type VerifyEmailResult = {
 }
 
 const ONE_TIME_TOKEN_BYTES = 32
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
+const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo'
 
 function resolvePasswordResetTokenTtlMs(): number {
   const configuredTtlMinutes = Number.parseInt(
@@ -174,6 +199,262 @@ async function issueEmailVerificationToken(userId: string): Promise<{ previewUrl
   return previewUrl ? { previewUrl } : {}
 }
 
+function hasGoogleOAuthConfig(): boolean {
+  return Boolean(
+    process.env.GOOGLE_CLIENT_ID?.trim() &&
+      process.env.GOOGLE_CLIENT_SECRET?.trim(),
+  )
+}
+
+export function isGoogleOAuthConfigured(): boolean {
+  return hasGoogleOAuthConfig()
+}
+
+function requireGoogleOAuthConfig(): {
+  clientId: string
+  clientSecret: string
+} {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim()
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim()
+
+  if (!clientId || !clientSecret) {
+    throw new AppError(
+      503,
+      'GOOGLE_OAUTH_UNAVAILABLE',
+      'Google sign-in is not configured right now',
+    )
+  }
+
+  return {
+    clientId,
+    clientSecret,
+  }
+}
+
+async function parseGoogleJsonResponse(response: Response): Promise<unknown> {
+  try {
+    return (await response.json()) as unknown
+  } catch {
+    return null
+  }
+}
+
+function normalizeGoogleUserProfile(payload: unknown): NormalizedGoogleUserProfile {
+  if (!payload || typeof payload !== 'object') {
+    throw new AppError(
+      502,
+      'GOOGLE_OAUTH_FAILED',
+      'Google sign-in could not be completed',
+    )
+  }
+
+  const profile = payload as GoogleUserInfoResponse
+  const googleId = profile.sub?.trim()
+  const email = profile.email?.trim().toLowerCase()
+  const emailVerified = profile.email_verified === true
+  const displayName = profile.name?.trim()
+  const avatarUrl = profile.picture?.trim() || null
+
+  if (!googleId || !email || !emailVerified) {
+    throw new AppError(
+      400,
+      'GOOGLE_EMAIL_NOT_VERIFIED',
+      'Google sign-in requires a verified email address',
+    )
+  }
+
+  return {
+    googleId,
+    email,
+    emailVerified,
+    name: displayName || email.split('@')[0],
+    avatarUrl,
+  }
+}
+
+async function exchangeGoogleCodeForUserProfile(
+  input: AuthGoogleOAuthCallbackInput,
+): Promise<NormalizedGoogleUserProfile> {
+  const { clientId, clientSecret } = requireGoogleOAuthConfig()
+  const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      code: input.code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: input.redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  })
+  const tokenPayload = (await parseGoogleJsonResponse(
+    tokenResponse,
+  )) as GoogleOAuthTokenResponse | null
+
+  if (!tokenResponse.ok || !tokenPayload?.access_token) {
+    logger.error(
+      {
+        googleStatus: tokenResponse.status,
+        googleStatusText: tokenResponse.statusText,
+        tokenPayload,
+      },
+      'Google OAuth token exchange failed',
+    )
+    throw new AppError(
+      502,
+      'GOOGLE_OAUTH_FAILED',
+      'Google sign-in could not be completed',
+    )
+  }
+
+  const userInfoResponse = await fetch(GOOGLE_USERINFO_URL, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${tokenPayload.access_token}`,
+    },
+  })
+  const userInfoPayload = await parseGoogleJsonResponse(userInfoResponse)
+
+  if (!userInfoResponse.ok) {
+    logger.error(
+      {
+        googleStatus: userInfoResponse.status,
+        googleStatusText: userInfoResponse.statusText,
+        userInfoPayload,
+      },
+      'Google OAuth user info request failed',
+    )
+    throw new AppError(
+      502,
+      'GOOGLE_OAUTH_FAILED',
+      'Google sign-in could not be completed',
+    )
+  }
+
+  return normalizeGoogleUserProfile(userInfoPayload)
+}
+
+async function syncGoogleUserProfile(
+  profile: NormalizedGoogleUserProfile,
+): Promise<AuthUser> {
+  const existingGoogleUser = await prisma.user.findUnique({
+    where: { googleId: profile.googleId },
+    select: authUserWithGoogleSelect,
+  })
+
+  if (existingGoogleUser) {
+    const nextAvatarUrl = existingGoogleUser.avatarUrl || profile.avatarUrl
+    const shouldUpdate =
+      existingGoogleUser.email !== profile.email ||
+      existingGoogleUser.emailVerified !== profile.emailVerified ||
+      existingGoogleUser.avatarUrl !== nextAvatarUrl
+
+    if (!shouldUpdate) {
+      return toAuthUser(existingGoogleUser)
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: existingGoogleUser.id },
+      data: {
+        email: profile.email,
+        emailVerified: profile.emailVerified,
+        avatarUrl: nextAvatarUrl,
+      },
+      select: authUserSelect,
+    })
+
+    logger.info(
+      {
+        userId: updatedUser.id,
+        googleId: profile.googleId,
+      },
+      'Google-linked user refreshed from Google profile',
+    )
+
+    return toAuthUser(updatedUser)
+  }
+
+  const existingEmailUser = await prisma.user.findUnique({
+    where: { email: profile.email },
+    select: authUserWithGoogleSelect,
+  })
+
+  if (existingEmailUser) {
+    if (existingEmailUser.googleId && existingEmailUser.googleId !== profile.googleId) {
+      throw new AppError(
+        409,
+        'GOOGLE_ACCOUNT_CONFLICT',
+        'That email is already linked to a different Google account',
+      )
+    }
+
+    const linkedUser = await prisma.user.update({
+      where: { id: existingEmailUser.id },
+      data: {
+        googleId: profile.googleId,
+        emailVerified: existingEmailUser.emailVerified || profile.emailVerified,
+        avatarUrl: existingEmailUser.avatarUrl || profile.avatarUrl,
+      },
+      select: authUserSelect,
+    })
+
+    logger.info(
+      {
+        userId: linkedUser.id,
+        googleId: profile.googleId,
+      },
+      'Google account linked to existing email/password user',
+    )
+
+    return toAuthUser(linkedUser)
+  }
+
+  const createdUser = await prisma.user.create({
+    data: {
+      email: profile.email,
+      name: profile.name,
+      avatarUrl: profile.avatarUrl,
+      googleId: profile.googleId,
+      emailVerified: profile.emailVerified,
+    },
+    select: authUserSelect,
+  })
+
+  logger.info(
+    {
+      userId: createdUser.id,
+      googleId: profile.googleId,
+    },
+    'User created from Google OAuth sign-in',
+  )
+
+  return toAuthUser(createdUser)
+}
+
+export async function authenticateGoogleUser(
+  input: AuthGoogleOAuthCallbackInput,
+): Promise<AuthUser> {
+  try {
+    const profile = await exchangeGoogleCodeForUserProfile(input)
+
+    return await syncGoogleUserProfile(profile)
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error
+    }
+
+    logger.error({ err: error }, 'Unexpected Google OAuth failure')
+    throw new AppError(
+      502,
+      'GOOGLE_OAUTH_FAILED',
+      'Google sign-in could not be completed',
+    )
+  }
+}
+
 export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
   const existingUser = await prisma.user.findUnique({
     where: { email: input.email },
@@ -229,7 +510,7 @@ export async function authenticateUser(input: AuthLoginBody): Promise<AuthUser> 
     throw new AuthError('Invalid email or password')
   }
 
-  return toAuthUser(user as AuthUserWithPasswordRecord)
+  return toAuthUser(user)
 }
 
 export async function requestEmailVerification(

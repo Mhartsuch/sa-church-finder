@@ -255,10 +255,14 @@ Destroy session. Clears cookie.
 #### `GET /auth/google`
 Initiate Google OAuth flow. Redirects to Google.
 
+**Notes:** Accepts an optional `returnTo` query parameter for the frontend path to land on after authentication. Unsafe or auth-page values fall back to `/account`.
+
 ---
 
 #### `GET /auth/google/callback`
 Google OAuth callback. Sets session and redirects to frontend.
+
+**Notes:** On callback failure, redirects to the frontend login page with an `authError` query parameter instead of returning JSON.
 
 ---
 

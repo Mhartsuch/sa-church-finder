@@ -26,6 +26,10 @@ cp server/.env.example server/.env
 # PASSWORD_RESET_TOKEN_TTL_MINUTES=60
 # AUTH_EXPOSE_VERIFICATION_PREVIEW=true
 # EMAIL_VERIFICATION_TOKEN_TTL_MINUTES=1440
+# Optional for local Google OAuth testing:
+# GOOGLE_CLIENT_ID=your-google-client-id
+# GOOGLE_CLIENT_SECRET=your-google-client-secret
+# GOOGLE_CALLBACK_URL=http://localhost:3001/api/v1/auth/google/callback
 
 # 4. Apply committed migrations
 cd server && npx prisma migrate deploy && cd ..
@@ -42,6 +46,8 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 If `AUTH_EXPOSE_RESET_PREVIEW=true` is set locally, successful forgot-password requests for real accounts will include a preview reset URL in the API response so you can test the reset flow before SMTP delivery is wired.
 
 If `AUTH_EXPOSE_VERIFICATION_PREVIEW=true` is also set locally, signed-in users can request a fresh verification link from the account page and receive a preview verification URL in the resend response. Registration also issues a verification token immediately, but the resend action is the intended local-development way to surface that link until real SMTP delivery is wired.
+
+If you want to test Google sign-in locally, create OAuth web credentials in Google Cloud and add `http://localhost:3001/api/v1/auth/google/callback` as an authorized redirect URI. Then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_CALLBACK_URL` in `server/.env`.
 
 ## Important Note
 
@@ -62,8 +68,10 @@ The blueprint now prewires the default Render service URLs for:
 You still need to set:
 
 - `DATABASE_URL` on the backend to the Supabase session pooler URL or another reachable Postgres/PostGIS URL
+- `GOOGLE_CLIENT_ID` on the backend if you want Google sign-in enabled
+- `GOOGLE_CLIENT_SECRET` on the backend if you want Google sign-in enabled
 
-If you rename either Render service or switch to a custom domain, update those two env vars to match the new URLs.
+If you rename either Render service or switch to a custom domain, update `VITE_API_URL`, `CLIENT_URL`, and the backend `GOOGLE_CALLBACK_URL` to match the new URLs.
 
 ## Useful Commands
 

@@ -1,15 +1,15 @@
 import { FormEvent, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
 import { useAuthSession, useLogin } from '@/hooks/useAuth'
-
-type AuthRedirectState = {
-  from?: {
-    pathname?: string
-    search?: string
-  }
-}
+import {
+  buildAuthPageHref,
+  buildGoogleAuthUrl,
+  resolveAuthRedirectPath,
+  resolveOAuthErrorMessage,
+} from '@/lib/auth-redirect'
 
 type LoginFormState = {
   email: string
@@ -20,20 +20,6 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
 
 const inputClasses =
   'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10'
-
-const resolveRedirectPath = (state: unknown): string => {
-  if (!state || typeof state !== 'object') {
-    return '/account'
-  }
-
-  const from = (state as AuthRedirectState).from
-
-  if (!from?.pathname || from.pathname === '/login' || from.pathname === '/register') {
-    return '/account'
-  }
-
-  return `${from.pathname}${from.search ?? ''}`
-}
 
 const validateForm = ({ email, password }: LoginFormState): string | null => {
   if (!email.trim()) {
@@ -58,7 +44,10 @@ const validateForm = ({ email, password }: LoginFormState): string | null => {
 const LoginPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const redirectTo = resolveRedirectPath(location.state)
+  const redirectTo = resolveAuthRedirectPath(location.state, location.search)
+  const googleAuthUrl = buildGoogleAuthUrl(redirectTo)
+  const registerHref = buildAuthPageHref('/register', redirectTo)
+  const oauthErrorMessage = resolveOAuthErrorMessage(location.search)
   const { isLoading, user } = useAuthSession()
   const loginMutation = useLogin()
   const [formState, setFormState] = useState<LoginFormState>({
@@ -99,12 +88,12 @@ const LoginPage = () => {
     <AuthPageShell
       eyebrow='Welcome back'
       title='Sign in and keep your church search in reach.'
-      description='The backend session flow is now live, so this screen hooks directly into the real account API instead of a placeholder.'
+      description='Choose the sign-in method that fits the moment. Email/password and Google now land in the same real session-backed account flow.'
       footer={
         <p>
           Don&apos;t have an account yet?{' '}
           <Link
-            to='/register'
+            to={registerHref}
             state={location.state}
             className='font-semibold text-[#222222] underline underline-offset-4'
           >
@@ -122,13 +111,28 @@ const LoginPage = () => {
           Pick up where you left off.
         </h1>
         <p className='text-sm leading-6 text-[#555555]'>
-          Local email and password accounts are ready now, including password
-          recovery. Google sign-in and email verification are the main auth
-          follow-ups still ahead.
+          Email/password accounts, Google sign-in, password recovery, and email
+          verification now all feed the same session-aware account area.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className='mt-8 space-y-4'>
+      <div className='mt-8 space-y-4'>
+        {oauthErrorMessage ? (
+          <div className='rounded-2xl border border-[#ffd6df] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]'>
+            {oauthErrorMessage}
+          </div>
+        ) : null}
+
+        <GoogleAuthButton href={googleAuthUrl} label='Continue with Google' />
+
+        <div className='flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f8f8f]'>
+          <span className='h-px flex-1 bg-gray-200' />
+          Or continue with email
+          <span className='h-px flex-1 bg-gray-200' />
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className='mt-6 space-y-4'>
         <label className='block text-sm font-semibold text-[#222222]'>
           Email
           <input

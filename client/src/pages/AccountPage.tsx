@@ -153,10 +153,10 @@ const AccountPage = () => {
             Welcome back, {firstName}.
           </h1>
           <p className='max-w-3xl text-base leading-7 text-[#555555]'>
-            Session-backed auth, saved churches, written reviews, password
-            recovery, and email verification are now connected end to end. This
-            page is the working home for your shortlist, review history, and auth
-            account status while Google OAuth lands next.
+            Session-backed auth, Google sign-in, saved churches, written reviews,
+            password recovery, and email verification are now connected end to
+            end. This page is the working home for your shortlist, review
+            history, and account status.
           </p>
         </div>
 
@@ -245,9 +245,9 @@ const AccountPage = () => {
                   Membership details
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                  Member since {formatMemberSince(user.createdAt)}. Local email and
-                  password auth are live, and your shortlist plus written reviews now
-                  stay tied to your account.
+                  Member since {formatMemberSince(user.createdAt)}. Email/password
+                  sign-in, Google sign-in, and your shortlist plus written reviews
+                  now stay tied to the same account.
                 </p>
               </div>
 
@@ -260,9 +260,9 @@ const AccountPage = () => {
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
                   Reviews are live for signed-in accounts today, email
-                  verification can now be managed from this page, and password
-                  recovery is in place if you ever need to get back into your
-                  account.
+                  verification can be managed from this page, and password
+                  recovery plus Google sign-in now give you two ways back into
+                  your account.
                 </p>
               </div>
             </div>
@@ -448,10 +448,11 @@ const AccountPage = () => {
               Session and security
             </h2>
             <p className='mt-3 text-sm leading-7 text-white/85'>
-              Sign in, registration, logout, current-session checks, password reset,
-              saved churches, helpful voting, and written review history are all
-              connected end to end now. Google OAuth and production-ready auth email
-              delivery are the main Milestone 2 follow-ups still open.
+              Sign in, registration, Google OAuth, logout, current-session checks,
+              password reset, saved churches, helpful voting, and written review
+              history are all connected end to end now. Production-ready auth email
+              delivery and review moderation are the main Milestone 2 follow-ups
+              still open.
             </p>
 
             <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
@@ -459,9 +460,9 @@ const AccountPage = () => {
                 Next up
               </p>
               <ul className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
-                <li>Google OAuth</li>
                 <li>Transactional email delivery for auth</li>
                 <li>Review moderation</li>
+                <li>Map bundle follow-up only if the production warning becomes real</li>
               </ul>
             </div>
 

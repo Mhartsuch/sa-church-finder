@@ -60,3 +60,8 @@ export type AuthLoginBody = z.infer<typeof authLoginSchema>['body']
 export type AuthForgotPasswordBody = z.infer<typeof authForgotPasswordSchema>['body']
 export type AuthResetPasswordBody = z.infer<typeof authResetPasswordSchema>['body']
 export type AuthVerifyEmailBody = z.infer<typeof authVerifyEmailSchema>['body']
+
+export type AuthGoogleOAuthCallbackInput = {
+  code: string
+  redirectUri: string
+}

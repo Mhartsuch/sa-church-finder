@@ -11,6 +11,14 @@
 
 ## Decisions
 
+### DEC-010: Layer Google OAuth onto the existing custom session flow instead of adding Passport session state
+- **Date:** 2026-03-29
+- **Status:** ACTIVE
+- **Decision:** Implement Google sign-in as a server-initiated OAuth authorization-code flow on top of the app's existing `express-session` user session, with callback state stored in session, safe `returnTo` redirects, and automatic account linking when a verified Google email matches an existing user.
+- **Alternatives Considered:** Wire in Passport's Google strategy plus serialize/deserialize session handling; move Google auth to a frontend token-first flow with Google Identity Services; require a separate manual account-linking step for existing local users.
+- **Reasoning:** The live auth stack was already custom and session-based, so adding Passport session lifecycle on top would have introduced duplicate auth plumbing for a single feature. A direct backend OAuth flow matches the existing `/auth/google` and `/auth/google/callback` API shape, keeps Google login consistent with the app's current cookie session model, and lets existing local users sign in with Google without creating duplicate accounts.
+- **Consequences:** Each environment now needs valid Google OAuth credentials and a matching authorized redirect URI before live sign-in will work there. Login and register screens use a full-page redirect to the backend, and callback failures return users to the frontend login page with query-based messaging.
+
 ### DEC-009: Ship email verification now with a safe local preview resend path before SMTP is wired
 - **Date:** 2026-03-28
 - **Status:** ACTIVE

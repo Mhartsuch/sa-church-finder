@@ -57,8 +57,13 @@ type MockedPrisma = {
 }
 
 const mockedPrisma = prisma as unknown as MockedPrisma
+const fetchMock = jest.fn()
+const originalFetch = global.fetch
 const originalResetPreviewSetting = process.env.AUTH_EXPOSE_RESET_PREVIEW
 const originalVerificationPreviewSetting = process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW
+const originalGoogleClientId = process.env.GOOGLE_CLIENT_ID
+const originalGoogleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+const originalGoogleCallbackUrl = process.env.GOOGLE_CALLBACK_URL
 
 const baseUser = {
   id: 'user-1',
@@ -92,6 +97,7 @@ const loginAgent = async (): Promise<ReturnType<typeof request.agent>> => {
 describe('auth routes', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    global.fetch = fetchMock as typeof fetch
     mockedPrisma.$transaction.mockImplementation((operations: unknown[]) =>
       Promise.all(operations),
     )
@@ -99,9 +105,17 @@ describe('auth routes', () => {
     mockedPrisma.emailVerificationToken.create.mockResolvedValue({ id: 'verify-token-1' })
     delete process.env.AUTH_EXPOSE_RESET_PREVIEW
     delete process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW
+    process.env.GOOGLE_CLIENT_ID = 'google-client-id'
+    process.env.GOOGLE_CLIENT_SECRET = 'google-client-secret'
+    process.env.GOOGLE_CALLBACK_URL =
+      'http://localhost:3001/api/v1/auth/google/callback'
   })
 
   afterAll(() => {
+    if (originalFetch) {
+      global.fetch = originalFetch
+    }
+
     if (originalResetPreviewSetting === undefined) {
       delete process.env.AUTH_EXPOSE_RESET_PREVIEW
     } else {
@@ -110,10 +124,27 @@ describe('auth routes', () => {
 
     if (originalVerificationPreviewSetting === undefined) {
       delete process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW
-      return
+    } else {
+      process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW = originalVerificationPreviewSetting
     }
 
-    process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW = originalVerificationPreviewSetting
+    if (originalGoogleClientId === undefined) {
+      delete process.env.GOOGLE_CLIENT_ID
+    } else {
+      process.env.GOOGLE_CLIENT_ID = originalGoogleClientId
+    }
+
+    if (originalGoogleClientSecret === undefined) {
+      delete process.env.GOOGLE_CLIENT_SECRET
+    } else {
+      process.env.GOOGLE_CLIENT_SECRET = originalGoogleClientSecret
+    }
+
+    if (originalGoogleCallbackUrl === undefined) {
+      delete process.env.GOOGLE_CALLBACK_URL
+    } else {
+      process.env.GOOGLE_CALLBACK_URL = originalGoogleCallbackUrl
+    }
   })
 
   it('registers a user, normalizes the email, and establishes a session', async () => {
@@ -171,6 +202,210 @@ describe('auth routes', () => {
     expect(response.status).toBe(409)
     expect(response.body.error.code).toBe('CONFLICT')
     expect(mockedPrisma.user.create).not.toHaveBeenCalled()
+  })
+
+  it('starts Google OAuth with the expected redirect and preserves the requested return path', async () => {
+    const response = await request(createApp())
+      .get('/api/v1/auth/google')
+      .query({ returnTo: '/churches/grace-community?tab=reviews' })
+
+    expect(response.status).toBe(302)
+    expect(response.headers['set-cookie']).toBeDefined()
+
+    const redirectUrl = new URL(response.headers.location)
+
+    expect(`${redirectUrl.origin}${redirectUrl.pathname}`).toBe(
+      'https://accounts.google.com/o/oauth2/v2/auth',
+    )
+    expect(redirectUrl.searchParams.get('client_id')).toBe('google-client-id')
+    expect(redirectUrl.searchParams.get('redirect_uri')).toBe(
+      'http://localhost:3001/api/v1/auth/google/callback',
+    )
+    expect(redirectUrl.searchParams.get('scope')).toBe('openid email profile')
+    expect(redirectUrl.searchParams.get('response_type')).toBe('code')
+    expect(redirectUrl.searchParams.get('state')).toBeTruthy()
+  })
+
+  it('creates a session-backed user from Google OAuth and redirects back to the saved return path', async () => {
+    const agent = request.agent(createApp())
+    const googleUser = {
+      ...baseUser,
+      email: 'google-user@example.com',
+      name: 'Google User',
+      avatarUrl: 'https://example.com/avatar.png',
+      emailVerified: true,
+    }
+
+    const startResponse = await agent
+      .get('/api/v1/auth/google')
+      .query({ returnTo: '/churches/grace-community?tab=reviews' })
+    const state = new URL(startResponse.headers.location).searchParams.get('state')
+
+    expect(state).toBeTruthy()
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          access_token: 'google-access-token',
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          sub: 'google-sub-1',
+          email: 'google-user@example.com',
+          email_verified: true,
+          name: 'Google User',
+          picture: 'https://example.com/avatar.png',
+        }),
+      } as Response)
+
+    mockedPrisma.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(googleUser)
+    mockedPrisma.user.create.mockResolvedValueOnce(googleUser)
+
+    const callbackResponse = await agent.get('/api/v1/auth/google/callback').query({
+      code: 'google-auth-code',
+      state: state!,
+    })
+
+    expect(callbackResponse.status).toBe(302)
+    expect(callbackResponse.headers.location).toBe(
+      'http://localhost:5173/churches/grace-community?tab=reviews',
+    )
+    expect(mockedPrisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: 'google-user@example.com',
+          name: 'Google User',
+          googleId: 'google-sub-1',
+          emailVerified: true,
+          avatarUrl: 'https://example.com/avatar.png',
+        }),
+      }),
+    )
+
+    const meResponse = await agent.get('/api/v1/auth/me')
+
+    expect(meResponse.status).toBe(200)
+    expect(meResponse.body.data).toMatchObject({
+      id: 'user-1',
+      email: 'google-user@example.com',
+      emailVerified: true,
+    })
+  })
+
+  it('links Google OAuth to an existing account with the same email', async () => {
+    const agent = request.agent(createApp())
+    const existingEmailUser = {
+      ...baseUser,
+      googleId: null,
+    }
+    const linkedUser = {
+      ...baseUser,
+      avatarUrl: 'https://example.com/avatar.png',
+      emailVerified: true,
+    }
+
+    const startResponse = await agent
+      .get('/api/v1/auth/google')
+      .query({ returnTo: '/search?sort=rating' })
+    const state = new URL(startResponse.headers.location).searchParams.get('state')
+
+    expect(state).toBeTruthy()
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          access_token: 'google-access-token',
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          sub: 'google-sub-2',
+          email: 'user@example.com',
+          email_verified: true,
+          name: 'Updated Google Name',
+          picture: 'https://example.com/avatar.png',
+        }),
+      } as Response)
+
+    mockedPrisma.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existingEmailUser)
+    mockedPrisma.user.update.mockResolvedValueOnce(linkedUser)
+
+    const callbackResponse = await agent.get('/api/v1/auth/google/callback').query({
+      code: 'google-auth-code',
+      state: state!,
+    })
+
+    expect(callbackResponse.status).toBe(302)
+    expect(callbackResponse.headers.location).toBe('http://localhost:5173/search?sort=rating')
+    expect(mockedPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'user-1' },
+        data: expect.objectContaining({
+          googleId: 'google-sub-2',
+          emailVerified: true,
+          avatarUrl: 'https://example.com/avatar.png',
+        }),
+      }),
+    )
+  })
+
+  it('redirects back to login when Google OAuth callback state is invalid', async () => {
+    const agent = request.agent(createApp())
+
+    await agent.get('/api/v1/auth/google').query({ returnTo: '/churches/grace-community' })
+
+    const callbackResponse = await agent.get('/api/v1/auth/google/callback').query({
+      code: 'google-auth-code',
+      state: 'wrong-state',
+    })
+
+    expect(callbackResponse.status).toBe(302)
+
+    const redirectUrl = new URL(callbackResponse.headers.location)
+
+    expect(`${redirectUrl.origin}${redirectUrl.pathname}`).toBe(
+      'http://localhost:5173/login',
+    )
+    expect(redirectUrl.searchParams.get('authError')).toBe('google_session_expired')
+    expect(redirectUrl.searchParams.get('returnTo')).toBe('/churches/grace-community')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('redirects back to login when Google OAuth is not configured', async () => {
+    delete process.env.GOOGLE_CLIENT_ID
+    delete process.env.GOOGLE_CLIENT_SECRET
+
+    const response = await request(createApp())
+      .get('/api/v1/auth/google')
+      .query({ returnTo: '/churches/grace-community' })
+
+    expect(response.status).toBe(302)
+
+    const redirectUrl = new URL(response.headers.location)
+
+    expect(`${redirectUrl.origin}${redirectUrl.pathname}`).toBe(
+      'http://localhost:5173/login',
+    )
+    expect(redirectUrl.searchParams.get('authError')).toBe('google_unavailable')
+    expect(redirectUrl.searchParams.get('returnTo')).toBe('/churches/grace-community')
   })
 
   it('resends an email verification token and exposes a preview link when enabled', async () => {

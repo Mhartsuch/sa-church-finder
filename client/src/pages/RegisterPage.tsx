@@ -1,15 +1,15 @@
 import { FormEvent, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
 import { useAuthSession, useRegister } from '@/hooks/useAuth'
-
-type AuthRedirectState = {
-  from?: {
-    pathname?: string
-    search?: string
-  }
-}
+import {
+  buildAuthPageHref,
+  buildGoogleAuthUrl,
+  resolveAuthRedirectPath,
+  resolveOAuthErrorMessage,
+} from '@/lib/auth-redirect'
 
 type RegisterFormState = {
   name: string
@@ -21,20 +21,6 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
 
 const inputClasses =
   'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10'
-
-const resolveRedirectPath = (state: unknown): string => {
-  if (!state || typeof state !== 'object') {
-    return '/account'
-  }
-
-  const from = (state as AuthRedirectState).from
-
-  if (!from?.pathname || from.pathname === '/login' || from.pathname === '/register') {
-    return '/account'
-  }
-
-  return `${from.pathname}${from.search ?? ''}`
-}
 
 const validateForm = ({ name, email, password }: RegisterFormState): string | null => {
   if (!name.trim()) {
@@ -63,7 +49,10 @@ const validateForm = ({ name, email, password }: RegisterFormState): string | nu
 const RegisterPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const redirectTo = resolveRedirectPath(location.state)
+  const redirectTo = resolveAuthRedirectPath(location.state, location.search)
+  const googleAuthUrl = buildGoogleAuthUrl(redirectTo)
+  const loginHref = buildAuthPageHref('/login', redirectTo)
+  const oauthErrorMessage = resolveOAuthErrorMessage(location.search)
   const { isLoading, user } = useAuthSession()
   const registerMutation = useRegister()
   const [formState, setFormState] = useState<RegisterFormState>({
@@ -106,12 +95,12 @@ const RegisterPage = () => {
     <AuthPageShell
       eyebrow='Create your account'
       title='Start a church shortlist you can come back to.'
-      description='This first pass focuses on the real session-backed foundation: register, log in, stay signed in, and prepare the app for favorites and reviews.'
+      description='Start with email/password or Google, then land in the same real session-backed account flow for saved churches, reviews, and more.'
       footer={
         <p>
           Already have an account?{' '}
           <Link
-            to='/login'
+            to={loginHref}
             state={location.state}
             className='font-semibold text-[#222222] underline underline-offset-4'
           >
@@ -126,16 +115,32 @@ const RegisterPage = () => {
           Sign up
         </p>
         <h1 className='text-3xl font-bold tracking-tight text-[#222222]'>
-          Create a local account.
+          Create your account your way.
         </h1>
         <p className='text-sm leading-6 text-[#555555]'>
-          You&apos;ll land in a new account area right after signup, with session
-          state wired through the frontend shell and ready for the next user
-          features.
+          Email/password signup and Google sign-in both land in the same account
+          area, so your shortlist and reviews stay tied to one session-backed
+          identity.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className='mt-8 space-y-4'>
+      <div className='mt-8 space-y-4'>
+        {oauthErrorMessage ? (
+          <div className='rounded-2xl border border-[#ffd6df] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]'>
+            {oauthErrorMessage}
+          </div>
+        ) : null}
+
+        <GoogleAuthButton href={googleAuthUrl} label='Continue with Google' />
+
+        <div className='flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f8f8f]'>
+          <span className='h-px flex-1 bg-gray-200' />
+          Or create an account with email
+          <span className='h-px flex-1 bg-gray-200' />
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className='mt-6 space-y-4'>
         <label className='block text-sm font-semibold text-[#222222]'>
           Name
           <input

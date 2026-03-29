@@ -14,7 +14,7 @@ const highlights = [
   {
     icon: ShieldCheck,
     title: 'Stay signed in',
-    body: 'Your session now persists through an HTTP-only cookie, so you can pick up where you left off.',
+    body: 'Your session now persists through an HTTP-only cookie whether you use email and password or Google sign-in.',
   },
   {
     icon: Heart,

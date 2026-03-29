@@ -34,7 +34,7 @@ A web application that helps San Antonio residents and visitors discover, explor
 - **Backend:** Node.js + Express
 - **Database:** PostgreSQL with PostGIS extension (geospatial queries)
 - **ORM:** Prisma
-- **Authentication:** Session-based local auth now live; Google OAuth planned next
+- **Authentication:** Session-based auth with email/password and Google OAuth
 - **Maps:** Mapbox GL JS (interactive maps with clustering)
 - **Image Storage:** Cloudinary (church photos with CDN)
 - **Search:** PostgreSQL full-text search (upgrade to Elasticsearch later if needed)
@@ -53,7 +53,7 @@ software
 - Free tier must exist for churches - no paywall for basic listing
 
 ## Current Status
-Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, and Milestone 2 now includes the local session-based auth backend plus live saved-church and written-review flows on church profiles and the account page.
+Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, and Milestone 2 now includes session-based email/password auth, Google sign-in, password recovery, email verification, saved churches, and written-review flows on church profiles and the account page.
 
 ## Important Links
 - GitHub: https://github.com/Mhartsuch/sa-church-finder
@@ -65,4 +65,4 @@ Active Development - Milestone 1 is complete and deployed live on Render. The se
 - Contact: mhartsuch@gmail.com
 
 ---
-*Last updated: 2026-03-28*
+*Last updated: 2026-03-29*
