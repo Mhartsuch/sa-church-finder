@@ -37,3 +37,14 @@ export const churchDetailSchema = z.object({
   query: z.object({}).passthrough(),
   body: z.object({}).passthrough(),
 })
+
+/**
+ * Schema for church ID route parameters
+ */
+export const churchIdSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }).passthrough(),
+  query: z.object({}).passthrough(),
+  body: z.object({}).passthrough(),
+})

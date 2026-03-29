@@ -9,13 +9,19 @@ import { getChurchBySlug, getChurchById } from './church.service.js'
 /**
  * Get church by slug with full details
  */
-export async function getChurchDetailsBySlug(slug: string): Promise<IChurch | null> {
-  return getChurchBySlug(slug)
+export async function getChurchDetailsBySlug(
+  slug: string,
+  userId?: string,
+): Promise<IChurch | null> {
+  return getChurchBySlug(slug, userId)
 }
 
 /**
  * Get church by ID with full details
  */
-export async function getChurchDetailsById(id: string): Promise<IChurch | null> {
-  return getChurchById(id)
+export async function getChurchDetailsById(
+  id: string,
+  userId?: string,
+): Promise<IChurch | null> {
+  return getChurchById(id, userId)
 }

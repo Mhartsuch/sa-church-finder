@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+import { useAuthSession } from '@/hooks/useAuth'
+import { useChurches, useToggleSavedChurch } from '@/hooks/useChurches'
 import { useSearchStore } from '@/stores/search-store'
-import { useChurches } from '@/hooks/useChurches'
 import { DEFAULT_RADIUS, PAGE_SIZE, SA_CENTER } from '@/constants'
 import { NoResults } from '@/components/search/NoResults'
 import { ChurchCard } from './ChurchCard'
@@ -12,7 +15,10 @@ interface ChurchListProps {
 }
 
 export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
+  const location = useLocation()
   const navigate = useNavigate()
+  const { user } = useAuthSession()
+  const toggleSavedChurchMutation = useToggleSavedChurch()
   const query = useSearchStore((state) => state.query)
   const filters = useSearchStore((state) => state.filters)
   const sort = useSearchStore((state) => state.sort)
@@ -22,6 +28,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const setPage = useSearchStore((state) => state.setPage)
   const mapBounds = useSearchStore((state) => state.mapBounds)
   const mapCenter = useSearchStore((state) => state.mapCenter)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const boundsString = mapBounds
     ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
@@ -49,6 +56,32 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const meta = data?.meta
   const totalPages = meta?.totalPages || 1
 
+  const handleToggleSave = async (churchId: string) => {
+    setActionError(null)
+
+    if (!user) {
+      navigate('/login', {
+        state: {
+          from: {
+            pathname: location.pathname,
+            search: location.search,
+          },
+        },
+      })
+      return
+    }
+
+    try {
+      await toggleSavedChurchMutation.mutateAsync(churchId)
+    } catch (saveError) {
+      setActionError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Unable to update saved churches right now.',
+      )
+    }
+  }
+
   if (isLoading) {
     return <ChurchCardSkeletonGrid count={variant === 'grid' ? 8 : 6} variant={variant} />
   }
@@ -70,6 +103,12 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
 
   return (
     <div>
+      {actionError ? (
+        <div className='mb-5 rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]'>
+          {actionError}
+        </div>
+      ) : null}
+
       <p className='sr-only' aria-live='polite'>
         Showing {meta?.total ?? churches.length} churches. Tab through the results and press Enter
         to open a church profile.
@@ -90,6 +129,13 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
             isHovered={hoveredChurchId === church.id}
             onHover={setHoveredChurch}
             onClick={(slug) => navigate(`/churches/${slug}`)}
+            onToggleSave={(churchId) => {
+              void handleToggleSave(churchId)
+            }}
+            isSavePending={
+              toggleSavedChurchMutation.isPending &&
+              toggleSavedChurchMutation.variables === church.id
+            }
           />
         ))}
       </div>

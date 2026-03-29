@@ -7,6 +7,8 @@ interface ChurchCardProps {
   isHovered: boolean
   onHover: (id: string | null) => void
   onClick: (slug: string) => void
+  onToggleSave: (churchId: string) => void
+  isSavePending?: boolean
 }
 
 const PLACEHOLDER_IMAGES = [
@@ -23,11 +25,20 @@ const getPlaceholderImage = (id: string) => {
   return PLACEHOLDER_IMAGES[hash % PLACEHOLDER_IMAGES.length]
 }
 
-export const ChurchCard = ({ church, isHovered, onHover, onClick }: ChurchCardProps) => {
+export const ChurchCard = ({
+  church,
+  isHovered,
+  onHover,
+  onClick,
+  onToggleSave,
+  isSavePending = false,
+}: ChurchCardProps) => {
   const nextService = getNextService(church.services)
   const imageUrl = church.coverImageUrl || getPlaceholderImage(church.id)
   const profileLabel = `View ${church.name} profile`
-  const saveLabel = `Save ${church.name}`
+  const saveLabel = church.isSaved
+    ? `Remove ${church.name} from saved churches`
+    : `Save ${church.name}`
 
   return (
     <article
@@ -110,13 +121,15 @@ export const ChurchCard = ({ church, isHovered, onHover, onClick }: ChurchCardPr
         type='button'
         onClick={(event) => {
           event.stopPropagation()
+          onToggleSave(church.id)
         }}
-        className='absolute right-3 top-3 z-10 p-1 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#222222]'
+        disabled={isSavePending}
+        className='absolute right-3 top-3 z-10 p-1 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#222222] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100'
         aria-label={saveLabel}
       >
         <Heart
           className='h-6 w-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.32)]'
-          fill='rgba(0,0,0,0.5)'
+          fill={church.isSaved ? '#FF385C' : 'rgba(0,0,0,0.5)'}
           stroke='white'
           strokeWidth={2}
         />

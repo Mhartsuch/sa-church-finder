@@ -1,7 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import logger from '../lib/logger.js'
+import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
-import { churchSearchSchema, churchDetailSchema } from '../schemas/church.schema.js'
+import {
+  churchDetailSchema,
+  churchIdSchema,
+  churchSearchSchema,
+} from '../schemas/church.schema.js'
+import { toggleSavedChurch } from '../services/saved-church.service.js'
 import { searchChurches } from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
 import { ISearchParams } from '../types/church.types.js'
@@ -37,7 +43,7 @@ router.get(
 
       logger.info({ params }, 'Searching churches')
 
-      const response = await searchChurches(params)
+      const response = await searchChurches(params, req.session.userId)
 
       res.json(response)
       return
@@ -46,6 +52,33 @@ router.get(
       return
     }
   }
+)
+
+router.post(
+  '/:id/save',
+  validate(churchIdSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+
+      logger.info({ churchId: id, userId }, 'Toggling saved church')
+
+      const result = await toggleSavedChurch(userId, id)
+
+      res.json({
+        data: result,
+        message: result.saved
+          ? 'Church saved successfully'
+          : 'Church removed from saved list',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
 )
 
 /**
@@ -60,7 +93,7 @@ router.get(
       const { slug } = req.params
       logger.info({ slug }, 'Fetching church by slug')
 
-      const church = await getChurchDetailsBySlug(slug)
+      const church = await getChurchDetailsBySlug(slug, req.session.userId)
 
       if (!church) {
         res.status(404).json({

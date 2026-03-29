@@ -3,12 +3,14 @@ import {
   CheckCircle2,
   Heart,
   Mail,
+  MapPin,
   MessageSquareText,
   ShieldCheck,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuthSession, useLogout } from '@/hooks/useAuth'
+import { useSavedChurches, useToggleSavedChurch } from '@/hooks/useChurches'
 
 const formatMemberSince = (createdAt: string): string => {
   return new Intl.DateTimeFormat('en-US', {
@@ -17,10 +19,20 @@ const formatMemberSince = (createdAt: string): string => {
   }).format(new Date(createdAt))
 }
 
+const formatSavedDate = (savedAt: string): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(savedAt))
+}
+
 const AccountPage = () => {
   const navigate = useNavigate()
   const logoutMutation = useLogout()
   const { user } = useAuthSession()
+  const { data: savedChurches = [], isLoading: isSavedChurchesLoading, error: savedChurchesError } =
+    useSavedChurches(user?.id ?? null)
+  const toggleSavedChurchMutation = useToggleSavedChurch()
   const [actionError, setActionError] = useState<string | null>(null)
 
   if (!user) {
@@ -49,6 +61,20 @@ const AccountPage = () => {
     }
   }
 
+  const handleToggleSavedChurch = async (churchId: string) => {
+    setActionError(null)
+
+    try {
+      await toggleSavedChurchMutation.mutateAsync(churchId)
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to update saved churches right now.',
+      )
+    }
+  }
+
   return (
     <div className='flex flex-1 bg-[#fcfbf8]'>
       <div className='mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12'>
@@ -60,9 +86,9 @@ const AccountPage = () => {
             Welcome back, {firstName}.
           </h1>
           <p className='max-w-3xl text-base leading-7 text-[#555555]'>
-            Session-backed auth is now connected through the frontend shell. This
-            account home is ready for saved churches, reviews, and the remaining
-            auth flows as the next Milestone 2 slices land.
+            Session-backed auth and saved churches are now connected end to end.
+            This account home is the working surface for your shortlist today, with
+            reviews and the remaining auth flows queued next.
           </p>
         </div>
 
@@ -102,7 +128,8 @@ const AccountPage = () => {
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
                   Member since {formatMemberSince(user.createdAt)}. Local email and
-                  password auth are live, with more account flows queued next.
+                  password auth are live, with saved churches now synced to your
+                  account.
                 </p>
               </div>
 
@@ -130,13 +157,74 @@ const AccountPage = () => {
                     <h3 className='text-lg font-semibold text-[#222222]'>
                       Saved churches
                     </h3>
-                    <p className='text-sm text-[#555555]'>Coming in the next account slice</p>
+                    <p className='text-sm text-[#555555]'>
+                      {savedChurches.length} saved {savedChurches.length === 1 ? 'church' : 'churches'}
+                    </p>
                   </div>
                 </div>
-                <p className='mt-4 text-sm leading-6 text-[#555555]'>
-                  Your favorites will appear here once the save and unsave flows
-                  are wired into church cards and profile pages.
-                </p>
+                {isSavedChurchesLoading ? (
+                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                    Loading your saved churches...
+                  </p>
+                ) : savedChurchesError ? (
+                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                    {savedChurchesError.message}
+                  </p>
+                ) : savedChurches.length === 0 ? (
+                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                    Save a church from search results or a profile page and it will
+                    appear here for quick comparison later.
+                  </p>
+                ) : (
+                  <div className='mt-4 space-y-3'>
+                    {savedChurches.map((church) => {
+                      const isUpdating =
+                        toggleSavedChurchMutation.isPending &&
+                        toggleSavedChurchMutation.variables === church.id
+
+                      return (
+                        <div
+                          key={church.id}
+                          className='rounded-2xl border border-gray-200 bg-[#fcfbf8] p-4'
+                        >
+                          <div className='flex items-start justify-between gap-3'>
+                            <div className='min-w-0'>
+                              <Link
+                                to={`/churches/${church.slug}`}
+                                className='text-sm font-semibold text-[#222222] hover:underline'
+                              >
+                                {church.name}
+                              </Link>
+                              <p className='mt-1 text-sm text-[#555555]'>
+                                {church.denomination || 'Church listing'}
+                              </p>
+                              <p className='mt-2 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                                <MapPin className='h-3.5 w-3.5' />
+                                {church.neighborhood || church.city}
+                              </p>
+                            </div>
+
+                            <button
+                              type='button'
+                              onClick={() => {
+                                void handleToggleSavedChurch(church.id)
+                              }}
+                              disabled={isUpdating}
+                              className='rounded-full border border-[#ffd6df] bg-white px-3 py-1.5 text-xs font-semibold text-[#FF385C] transition-colors hover:bg-[#fff1f4] disabled:cursor-not-allowed disabled:opacity-70'
+                            >
+                              {isUpdating ? 'Updating...' : 'Saved'}
+                            </button>
+                          </div>
+
+                          <div className='mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]'>
+                            <span>Saved {formatSavedDate(church.savedAt)}</span>
+                            <span>{church.reviewCount} reviews</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className='rounded-[28px] border border-gray-200 p-5'>
@@ -167,8 +255,9 @@ const AccountPage = () => {
             </h2>
             <p className='mt-3 text-sm leading-7 text-white/85'>
               Sign in, registration, logout, and current-session checks are all
-              connected end to end now. Google OAuth, password reset, and email
-              verification are the main auth follow-ups still open.
+              connected end to end now, and saved churches sync with your account.
+              Reviews, Google OAuth, password reset, and email verification are the
+              main Milestone 2 follow-ups still open.
             </p>
 
             <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
@@ -176,9 +265,9 @@ const AccountPage = () => {
                 Next up
               </p>
               <ul className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
+                <li>Review creation and account history</li>
                 <li>Email verification flow</li>
-                <li>Google OAuth sign-in</li>
-                <li>Forgot and reset password screens</li>
+                <li>Google OAuth and password reset</li>
               </ul>
             </div>
 

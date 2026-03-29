@@ -5,12 +5,13 @@
 ## What You Need to Know Right Now
 
 ### Project in One Paragraph
-SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has both halves of the local auth foundation: the backend session API plus frontend login/register/account flows wired to the real session cookie.
+SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus the first real account feature: saved churches work end to end across search cards, church profiles, and the account page.
 
 ### Current Priority
-Keep moving through Milestone 2 now that the local auth loop is live end to end. The biggest open items are the remaining auth flows (Google OAuth, email verification, forgot/reset password) and the first true account-driven features such as saved churches and review creation.
+Keep moving through Milestone 2 now that auth and saved churches are live end to end. The biggest open items are review creation/history and the remaining auth follow-ups (Google OAuth, email verification, forgot/reset password).
 
 ### Recently Completed
+- Added the saved churches MVP end to end: protected save/list APIs, session-aware church payloads, live save/unsave controls on cards and church profiles, and a real saved churches list on the account page
 - Added frontend auth UI with real login/register pages, protected account routing, session-aware header state, and client-side current-session integration
 - Replaced the in-memory data layer with Prisma + PostGIS spatial queries
 - Connected the app to a live Supabase Postgres/PostGIS database and seeded sample data
@@ -26,7 +27,7 @@ Keep moving through Milestone 2 now that the local auth loop is live end to end.
 ### Known Blockers
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - The lazy-loaded `mapbox-gl` chunk is still large in production builds, so bundle-size optimization remains an open performance follow-up
-- The remaining auth flows in F2.1 are still open (`Google OAuth`, email verification, forgot/reset password)
+- Review writing/history and the remaining auth flows in F2.1 are still open (`Google OAuth`, email verification, forgot/reset password)
 
 ## Where Things Are
 

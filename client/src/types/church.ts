@@ -20,6 +20,7 @@ export interface IChurch {
   avgRating: number
   reviewCount: number
   isClaimed: boolean
+  isSaved: boolean
   languages: string[]
   amenities: string[]
   coverImageUrl: string | null
@@ -37,6 +38,11 @@ export interface IChurchService {
 
 export interface IChurchSummary extends IChurch {
   distance: number
+}
+
+export interface ISavedChurch extends Omit<IChurchSummary, 'distance'> {
+  distance?: number
+  savedAt: string
 }
 
 export interface ISearchParams {

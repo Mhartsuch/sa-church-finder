@@ -37,6 +37,7 @@ export interface IChurch {
   avgRating: number
   reviewCount: number
   isClaimed: boolean
+  isSaved?: boolean
   claimedById?: string | null
   languages: string[]
   amenities: string[]
@@ -66,11 +67,16 @@ export interface IChurchSummary {
   avgRating: number
   reviewCount: number
   isClaimed: boolean
+  isSaved?: boolean
   languages: string[]
   amenities: string[]
   coverImageUrl?: string | null
   distance?: number
   services: IChurchService[]
+}
+
+export interface ISavedChurch extends IChurchSummary {
+  savedAt: Date
 }
 
 export interface IBounds {

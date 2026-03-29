@@ -1,4 +1,5 @@
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
   MapPin,
@@ -16,6 +17,8 @@ import {
   ChevronLeft,
 } from 'lucide-react'
 import { useChurch } from '@/hooks/useChurches'
+import { useAuthSession } from '@/hooks/useAuth'
+import { useToggleSavedChurch } from '@/hooks/useChurches'
 import { IChurchService } from '@/types/church'
 import { formatRating, formatServiceTime, getDayName } from '@/utils/format'
 
@@ -36,9 +39,13 @@ const groupServicesByDay = (services: IChurchService[]) => {
 }
 
 export const ChurchProfilePage = () => {
+  const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
+  const { user } = useAuthSession()
+  const toggleSavedChurchMutation = useToggleSavedChurch()
   const { data: church, isLoading, error } = useChurch(slug ?? '')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   if (isLoading) {
     return <ProfileSkeleton />
@@ -67,6 +74,35 @@ export const ChurchProfilePage = () => {
   )}`
 
   const groupedServices = groupServicesByDay(church.services)
+  const isSavePending =
+    toggleSavedChurchMutation.isPending &&
+    toggleSavedChurchMutation.variables === church.id
+
+  const handleToggleSave = async () => {
+    setSaveError(null)
+
+    if (!user) {
+      navigate('/login', {
+        state: {
+          from: {
+            pathname: location.pathname,
+            search: location.search,
+          },
+        },
+      })
+      return
+    }
+
+    try {
+      await toggleSavedChurchMutation.mutateAsync(church.id)
+    } catch (toggleError) {
+      setSaveError(
+        toggleError instanceof Error
+          ? toggleError.message
+          : 'Unable to update saved churches right now.',
+      )
+    }
+  }
 
   return (
     <div className='flex-1 overflow-y-auto bg-white'>
@@ -160,11 +196,32 @@ export const ChurchProfilePage = () => {
                   <Share className='w-4 h-4' />
                   Share
                 </button>
-                <button className='flex items-center gap-2 text-sm font-semibold text-[#222222] underline hover:text-[#000000]'>
-                  <Heart className='w-4 h-4' />
-                  Save
+                <button
+                  type='button'
+                  onClick={() => {
+                    void handleToggleSave()
+                  }}
+                  disabled={isSavePending}
+                  className='flex items-center gap-2 text-sm font-semibold text-[#222222] underline hover:text-[#000000] disabled:cursor-not-allowed disabled:opacity-70'
+                >
+                  <Heart
+                    className={`w-4 h-4 ${church.isSaved ? 'fill-[#FF385C] text-[#FF385C]' : ''}`}
+                  />
+                  {isSavePending
+                    ? church.isSaved
+                      ? 'Updating...'
+                      : 'Saving...'
+                    : church.isSaved
+                      ? 'Saved'
+                      : 'Save'}
                 </button>
               </div>
+
+              {saveError ? (
+                <div className='mt-4 rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]'>
+                  {saveError}
+                </div>
+              ) : null}
             </div>
 
             {/* About section */}

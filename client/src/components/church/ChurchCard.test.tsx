@@ -26,6 +26,7 @@ const church: IChurchSummary = {
   avgRating: 4.8,
   reviewCount: 12,
   isClaimed: false,
+  isSaved: false,
   languages: ['English'],
   amenities: [],
   coverImageUrl: null,
@@ -46,6 +47,7 @@ describe('ChurchCard', () => {
   it('renders a keyboard-focusable control for opening the church profile', () => {
     const onHover = vi.fn()
     const onClick = vi.fn()
+    const onToggleSave = vi.fn()
 
     render(
       <ChurchCard
@@ -53,6 +55,7 @@ describe('ChurchCard', () => {
         isHovered={false}
         onHover={onHover}
         onClick={onClick}
+        onToggleSave={onToggleSave}
       />
     )
 
@@ -73,6 +76,7 @@ describe('ChurchCard', () => {
   it('keeps the save button from triggering navigation', () => {
     const onHover = vi.fn()
     const onClick = vi.fn()
+    const onToggleSave = vi.fn()
 
     render(
       <ChurchCard
@@ -80,11 +84,13 @@ describe('ChurchCard', () => {
         isHovered={false}
         onHover={onHover}
         onClick={onClick}
+        onToggleSave={onToggleSave}
       />
     )
 
     fireEvent.click(screen.getByRole('button', { name: /save grace fellowship/i }))
 
     expect(onClick).not.toHaveBeenCalled()
+    expect(onToggleSave).toHaveBeenCalledWith('church-1')
   })
 })

@@ -9,6 +9,7 @@ import { createSessionMiddleware, resolveClientUrls } from './lib/session.js'
 import { errorHandler } from './middleware/error-handler.js'
 import authRoutes from './routes/auth.routes.js'
 import churchRoutes from './routes/church.routes.js'
+import userRoutes from './routes/users.routes.js'
 
 export const createApp = (): Express => {
   const app = express()
@@ -43,6 +44,7 @@ export const createApp = (): Express => {
 
   app.use('/api/v1/churches', churchRoutes)
   app.use('/api/v1/auth', authRoutes)
+  app.use('/api/v1/users', userRoutes)
 
   app.use((req: Request, res: Response) => {
     res.status(404).json({

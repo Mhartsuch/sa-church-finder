@@ -12,6 +12,52 @@
 
 ## Log
 
+### 2026-03-28 - Saved Churches MVP
+**Focus:** Finished the first true account-driven Milestone 2 feature by wiring saved churches through the backend, church payloads, and the account UI.
+
+**Completed:**
+- **Protected saved-church APIs:** Added `POST /api/v1/churches/:id/save` and `GET /api/v1/users/:id/saved` with auth middleware, ownership checks, and a dedicated saved-church service so saves persist in Prisma instead of living in placeholder UI.
+- **Session-aware church payloads:** Updated church search/detail responses to include `isSaved` for the current session user, which lets the frontend render the correct heart state without bolting on a second fetch per card/profile.
+- **Frontend save controls:** Rewired the heart affordances in `ChurchCard` and `ChurchProfilePage` to hit the real API, redirect signed-out users into the existing login flow, and refresh cached church data after save/unsave.
+- **Real account shortlist:** Replaced the account-page placeholder with the user’s saved churches list, including direct profile links and inline unsave actions.
+- **Test coverage + verification:** Added `server/src/routes/saved-church.routes.test.ts`, updated the existing church card test, and re-verified the repo with lint, typecheck, tests, and production builds.
+
+**Remaining Notes:**
+- Review creation/history is now the clearest next Milestone 2 product slice.
+- Google OAuth, email verification, and forgot/reset password are still open auth follow-ups.
+- The Mapbox chunk-size warning remains unchanged and is still a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd run lint` successfully.
+- Ran `npm.cmd run typecheck` successfully.
+- Ran `npm.cmd run test` successfully (required elevated execution in this environment because Vitest/esbuild spawning is sandbox-restricted here).
+- Ran `npm.cmd run build` successfully (also required elevated execution here because Vite/esbuild spawning is sandbox-restricted). The known `mapbox-gl` chunk-size warning still appears.
+
+**Files Changed:**
+- `server/src/app.ts`
+- `server/src/middleware/require-auth.ts`
+- `server/src/routes/church.routes.ts`
+- `server/src/routes/saved-church.routes.test.ts`
+- `server/src/routes/users.routes.ts`
+- `server/src/schemas/church.schema.ts`
+- `server/src/schemas/user.schema.ts`
+- `server/src/services/church-detail.service.ts`
+- `server/src/services/church.service.ts`
+- `server/src/services/saved-church.service.ts`
+- `server/src/types/church.types.ts`
+- `client/src/api/churches.ts`
+- `client/src/components/church/ChurchCard.test.tsx`
+- `client/src/components/church/ChurchCard.tsx`
+- `client/src/components/church/ChurchList.tsx`
+- `client/src/hooks/useAuth.ts`
+- `client/src/hooks/useChurches.ts`
+- `client/src/pages/AccountPage.tsx`
+- `client/src/pages/ChurchProfilePage.tsx`
+- `client/src/types/church.ts`
+- `AGENT_BRIEFING.md`
+- `TODO.md`
+- `PROGRESS.md`
+
 ### 2026-03-28 - Frontend Auth UI + Session Integration
 **Focus:** Landed the first client-side Milestone 2 slice so the real session-backed auth API is usable from the frontend and visible in the app shell.
 

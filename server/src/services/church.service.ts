@@ -41,6 +41,7 @@ interface ChurchRow {
   avgRating: number | string
   reviewCount: number
   isClaimed: boolean
+  isSaved: boolean
   languages: string[]
   amenities: string[]
   coverImageUrl: string | null
@@ -102,6 +103,7 @@ function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
     avgRating: toNumber(row.avgRating),
     reviewCount: row.reviewCount,
     isClaimed: row.isClaimed,
+    isSaved: row.isSaved,
     languages: row.languages || [],
     amenities: row.amenities || [],
     coverImageUrl: row.coverImageUrl ?? undefined,
@@ -134,7 +136,10 @@ function getTimeCategoryFilter(time: string): [string, string] {
 
 // ── Main search ──
 
-export async function searchChurches(params: ISearchParams): Promise<ISearchResponse> {
+export async function searchChurches(
+  params: ISearchParams,
+  userId?: string,
+): Promise<ISearchResponse> {
   const centerLat = params.lat ?? DEFAULT_CENTER_LAT
   const centerLng = params.lng ?? DEFAULT_CENTER_LNG
   const radius = params.radius ?? DEFAULT_RADIUS
@@ -226,6 +231,15 @@ export async function searchChurches(params: ISearchParams): Promise<ISearchResp
       break
   }
 
+  const isSavedSelect = userId
+    ? Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "user_saved_churches" usc
+        WHERE usc."churchId" = c."id"
+          AND usc."userId" = ${userId}
+      )`
+    : Prisma.sql`FALSE`
+
   // ── Count query ──
   const countResult = await prisma.$queryRaw<CountRow[]>(Prisma.sql`
     SELECT COUNT(DISTINCT c."id") as count
@@ -246,6 +260,7 @@ export async function searchChurches(params: ISearchParams): Promise<ISearchResp
       c."pastorName", c."yearEstablished",
       c."avgRating"::float8 as "avgRating",
       c."reviewCount", c."isClaimed",
+      ${isSavedSelect} as "isSaved",
       c."languages", c."amenities", c."coverImageUrl",
       CASE
         WHEN c."location" IS NOT NULL THEN
@@ -300,34 +315,70 @@ export async function searchChurches(params: ISearchParams): Promise<ISearchResp
 
 // ── Single church lookups ──
 
-export async function getChurchBySlug(slug: string): Promise<IChurch | null> {
+export async function getChurchBySlug(
+  slug: string,
+  userId?: string,
+): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { slug },
     include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
   })
   if (!church) return null
 
+  const savedChurch = userId
+    ? await prisma.userSavedChurch.findUnique({
+        where: {
+          userId_churchId: {
+            userId,
+            churchId: church.id,
+          },
+        },
+        select: {
+          churchId: true,
+        },
+      })
+    : null
+
   return {
     ...church,
     latitude: toNumber(church.latitude),
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
+    isSaved: Boolean(savedChurch),
     services: church.services,
   }
 }
 
-export async function getChurchById(id: string): Promise<IChurch | null> {
+export async function getChurchById(
+  id: string,
+  userId?: string,
+): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { id },
     include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
   })
   if (!church) return null
 
+  const savedChurch = userId
+    ? await prisma.userSavedChurch.findUnique({
+        where: {
+          userId_churchId: {
+            userId,
+            churchId: church.id,
+          },
+        },
+        select: {
+          churchId: true,
+        },
+      })
+    : null
+
   return {
     ...church,
     latitude: toNumber(church.latitude),
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
+    isSaved: Boolean(savedChurch),
     services: church.services,
   }
 }

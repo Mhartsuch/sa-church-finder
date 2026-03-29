@@ -6,11 +6,22 @@ import {
   logoutUser,
   registerUser,
 } from '@/api/auth'
+import {
+  CHURCHES_QUERY_KEY,
+  CHURCH_QUERY_KEY,
+  SAVED_CHURCHES_QUERY_KEY,
+} from '@/hooks/useChurches'
 import { AuthCredentials, AuthRegisterInput, AuthUser } from '@/types/auth'
 
 export const AUTH_SESSION_QUERY_KEY = ['auth', 'session'] as const
 
 const AUTH_STALE_TIME = 1000 * 60 * 5
+
+const refreshSessionAwareQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  void queryClient.invalidateQueries({ queryKey: CHURCHES_QUERY_KEY })
+  void queryClient.invalidateQueries({ queryKey: CHURCH_QUERY_KEY })
+  void queryClient.invalidateQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY })
+}
 
 export const useCurrentUser = () => {
   return useQuery<AuthUser | null, Error>({
@@ -39,6 +50,7 @@ export const useLogin = () => {
     mutationFn: loginUser,
     onSuccess: (user) => {
       queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user)
+      refreshSessionAwareQueries(queryClient)
     },
   })
 }
@@ -50,6 +62,7 @@ export const useRegister = () => {
     mutationFn: registerUser,
     onSuccess: (user) => {
       queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user)
+      refreshSessionAwareQueries(queryClient)
     },
   })
 }
@@ -61,6 +74,8 @@ export const useLogout = () => {
     mutationFn: logoutUser,
     onSuccess: () => {
       queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, null)
+      refreshSessionAwareQueries(queryClient)
+      queryClient.removeQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY })
     },
   })
 }
