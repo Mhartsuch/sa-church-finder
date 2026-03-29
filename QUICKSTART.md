@@ -45,11 +45,16 @@ The repo includes a `render.yaml` blueprint for both services:
 - Backend web service: `sa-church-finder-api`
 - Frontend static site: `sa-church-finder`
 
-After the first deploy, set:
+The blueprint now prewires the default Render service URLs for:
 
-- `VITE_API_URL` on the frontend to the backend Render URL
-- `CLIENT_URL` on the backend to the frontend Render URL
+- `VITE_API_URL=https://sa-church-finder-api.onrender.com`
+- `CLIENT_URL=https://sa-church-finder.onrender.com`
+
+You still need to set:
+
 - `DATABASE_URL` on the backend to the Supabase session pooler URL or another reachable Postgres/PostGIS URL
+
+If you rename either Render service or switch to a custom domain, update those two env vars to match the new URLs.
 
 ## Useful Commands
 

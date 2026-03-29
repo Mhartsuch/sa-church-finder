@@ -1,6 +1,7 @@
 import { IChurch, ISearchParams, ISearchResponse } from '@/types/church'
+import { normalizeApiError, resolveApiBaseUrl } from '@/lib/api-url'
 
-const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api/v1`
+const API_BASE = `${resolveApiBaseUrl()}/api/v1`
 
 const buildQueryString = (params: ISearchParams): string => {
   const qs = new URLSearchParams()
@@ -25,19 +26,27 @@ const buildQueryString = (params: ISearchParams): string => {
 
 export const fetchChurches = async (params: ISearchParams): Promise<ISearchResponse> => {
   const url = `${API_BASE}/churches${buildQueryString(params)}`
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch churches: ${response.statusText}`)
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch churches: ${response.statusText}`)
+    }
+    return response.json()
+  } catch (error) {
+    throw normalizeApiError(error)
   }
-  return response.json()
 }
 
 export const fetchChurchBySlug = async (slug: string): Promise<IChurch> => {
   const url = `${API_BASE}/churches/${slug}`
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch church: ${response.statusText}`)
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch church: ${response.statusText}`)
+    }
+    const envelope = await response.json()
+    return envelope.data
+  } catch (error) {
+    throw normalizeApiError(error)
   }
-  const envelope = await response.json()
-  return envelope.data
 }

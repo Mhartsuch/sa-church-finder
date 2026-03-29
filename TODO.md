@@ -19,7 +19,7 @@
 
 ### P0 - Critical
 - [x] Set up PostgreSQL + PostGIS database, run Prisma migrations, seed database - Supabase cloud (us-west-2), completed 2026-03-28
-- [ ] **Deploy to Render** - `render.yaml` now defines both backend and frontend services, but the dashboard deploy flow is still manual. Remaining work: trigger the deploys, set `VITE_API_URL` on the frontend, update `CLIENT_URL` on the backend, and verify the live site end-to-end.
+- [x] **Deploy to Render** - backend + frontend live on Render, env wiring verified, and live site smoke-tested end-to-end (2026-03-28)
 
 ### P1 - High
 - [x] Build Church Profile Page (F1.3 - hero, about, services, location, contact) - completed 2026-03-27
@@ -43,6 +43,7 @@
 - [ ] Add keyboard navigation support for search results
 
 ### Completed
+- [x] Render deployment verified live - frontend and backend working on Render after env wiring + redeploy (2026-03-28)
 - [x] Repository baseline re-stabilized: lint, typecheck, test, and build verified after Prisma/Render work (2026-03-28)
 - [x] Supabase cloud database live - PostgreSQL + PostGIS 3.3, 22 churches seeded, spatial queries verified (2026-03-28)
 - [x] PostGIS database migration - initial migration SQL with geography column, GIST spatial index, auto-sync trigger (2026-03-27)
@@ -96,4 +97,4 @@
 - 13 moderate vulns in client, 30 vulns in server (transitive deps) - not urgent
 
 ---
-*Last updated: 2026-03-28 (baseline stabilized; deployment still pending)*
+*Last updated: 2026-03-28 (Render live; baseline stabilized)*

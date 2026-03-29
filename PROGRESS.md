@@ -11,6 +11,48 @@
 ---
 
 ## Log
+
+### 2026-03-28 - Render Deployment Verified Live
+**Focus:** Closed the loop on the Render deployment after the live frontend showed `Failed to fetch` on church search.
+
+**Completed:**
+- **Root-cause isolation:** Confirmed the backend root 404 was expected for this API and narrowed the real production issue to frontend/backend wiring rather than an Express crash.
+- **Frontend hardening:** Added `client/src/lib/api-url.ts` so production prefers `VITE_API_URL`, keeps local Vite proxy behavior in dev, and infers the sibling `-api` Render host as a safety net on `*.onrender.com`.
+- **Clearer runtime errors:** Updated `client/src/api/churches.ts` to normalize fetch and parse failures into deployment-focused messages instead of generic browser errors.
+- **Blueprint defaults:** Updated `render.yaml` so the default Render service names prefill `CLIENT_URL=https://sa-church-finder.onrender.com` and `VITE_API_URL=https://sa-church-finder-api.onrender.com`.
+- **Verification:** Ran `npm.cmd run typecheck:client`, `npm.cmd run test:client`, and `npm.cmd run build:client` successfully. After redeploying with the corrected env wiring, the live site worked.
+
+**Files Changed:**
+- `client/src/lib/api-url.ts`
+- `client/src/lib/api-url.test.ts`
+- `client/src/api/churches.ts`
+- `render.yaml`
+- `QUICKSTART.md`
+- `AGENT_BRIEFING.md`
+- `TODO.md`
+- `PROGRESS.md`
+
+### 2026-03-28 - Render Deployment Troubleshooting Hardening
+**Focus:** Investigated the live Render failure mode and reduced the two most likely configuration gaps: missing frontend API URL wiring and backend/frontend origin mismatch.
+
+**Completed:**
+- **Frontend API resolution:** Added `client/src/lib/api-url.ts` so production builds still prefer `VITE_API_URL`, keep local dev on the Vite `/api` proxy, and infer the sibling `-api` Render host as a safety net when the env var is missing on `*.onrender.com`.
+- **Clearer fetch errors:** Wrapped church API requests so browser-level network failures now point directly at the likely Render misconfig (`VITE_API_URL` and `CLIENT_URL`), and HTML/non-JSON responses point at a bad API base URL instead of surfacing a generic parse failure.
+- **Blueprint defaults:** Updated `render.yaml` to preconfigure `CLIENT_URL=https://sa-church-finder.onrender.com` and `VITE_API_URL=https://sa-church-finder-api.onrender.com`, removing a manual deployment step for the default service names.
+- **Docs:** Updated `QUICKSTART.md` so the Render section reflects the new blueprint defaults and calls out when those URLs still need manual changes.
+
+**Remaining Notes:**
+- `DATABASE_URL` still must be supplied manually in Render.
+- The live services need a redeploy or blueprint sync before these config changes take effect.
+- I could not fully probe the live Render headers from this environment because outbound requests to the public service were unreliable here, so the CORS/header diagnosis is still based on code paths and the browser symptom.
+
+**Files Changed:**
+- `client/src/lib/api-url.ts`
+- `client/src/lib/api-url.test.ts`
+- `client/src/api/churches.ts`
+- `render.yaml`
+- `QUICKSTART.md`
+- `PROGRESS.md`
  
 ### 2026-03-28 - Repo Baseline Stabilization + Docs Refresh
 **Focus:** Re-established a trustworthy local baseline after the Prisma/Render work, then refreshed stale onboarding docs to match the actual codebase state.

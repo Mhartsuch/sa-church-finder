@@ -17,7 +17,7 @@ services:
       - key: PORT
         value: "10000"
       - key: CLIENT_URL
-        sync: false  # Set after frontend deploys
+        value: https://sa-church-finder.onrender.com
       - key: DATABASE_URL
         sync: false  # Set manually to Supabase session pooler URL
       - key: SESSION_SECRET
@@ -35,7 +35,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        sync: false  # Set to backend service URL (e.g., https://sa-church-finder-api.onrender.com)
+        value: https://sa-church-finder-api.onrender.com
     routes:
       - type: rewrite
         source: /*

@@ -8,7 +8,7 @@
 SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. The app now queries a live Supabase Postgres/PostGIS database through Prisma instead of the old in-memory data layer.
 
 ### Current Priority
-Finish the Render deployment flow end-to-end. The repo already contains a backend + frontend `render.yaml` blueprint, but the remaining work is manual: trigger the deploys in Render, wire `VITE_API_URL` and `CLIENT_URL`, and smoke-test the live site.
+Shift from deployment into post-launch cleanup and the next development slice. Render is live, the frontend/backend env wiring is verified, and the current open items are dependency maintenance, production polish, and Milestone 2 planning.
 
 ### Recently Completed
 - Replaced the in-memory data layer with Prisma + PostGIS spatial queries
@@ -16,10 +16,10 @@ Finish the Render deployment flow end-to-end. The repo already contains a backen
 - Added the interactive Mapbox map with clustering and viewport-based querying
 - Implemented shareable URL search state, mobile map/list UX, loading skeletons, and no-results suggestions
 - Added Render deployment configuration for both backend and frontend
+- Verified the live Render deployment and hardened the frontend against missing `VITE_API_URL` wiring
 - Re-stabilized the local baseline so lint, typecheck, tests, and production builds all pass
 
 ### Known Blockers
-- Render deployment still needs dashboard access to kick off the services and wire final environment URLs
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - Dependency maintenance remains open (`eslint` 9, `multer` 2, `supertest` 7)
 
