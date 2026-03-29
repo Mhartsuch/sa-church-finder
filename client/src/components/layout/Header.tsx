@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Church, Menu, Search, User } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+
+import { useAuthSession } from '@/hooks/useAuth'
 import { useSearchStore } from '@/stores/search-store'
 
 export const Header = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { isLoading, user } = useAuthSession()
   const query = useSearchStore((state) => state.query)
   const setQuery = useSearchStore((state) => state.setQuery)
   const [localValue, setLocalValue] = useState(query)
@@ -41,6 +44,15 @@ export const Header = () => {
       navigate('/search')
     }
   }
+
+  const firstName = user?.name.split(' ')[0] || 'Account'
+  const avatarLabel =
+    user?.name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || null
 
   return (
     <header className='sticky top-0 z-50 border-b border-gray-200 bg-white'>
@@ -88,12 +100,46 @@ export const Header = () => {
             >
               Explore
             </Link>
-            <div className='flex cursor-pointer items-center gap-2.5 rounded-full border border-gray-300 px-3 py-2 transition-shadow hover:shadow-md'>
-              <Menu className='h-4 w-4 text-[#222222]' />
-              <div className='flex h-[30px] w-[30px] items-center justify-center rounded-full bg-gray-500'>
-                <User className='h-4 w-4 text-white' />
-              </div>
-            </div>
+
+            {user ? (
+              <>
+                <Link
+                  to='/account'
+                  className='hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-100 sm:block'
+                >
+                  {firstName}
+                </Link>
+                <Link
+                  to='/account'
+                  className='flex items-center gap-2.5 rounded-full border border-gray-300 px-3 py-2 transition-shadow hover:shadow-md'
+                  aria-label='Open account'
+                >
+                  <Menu className='h-4 w-4 text-[#222222]' />
+                  <div className='flex h-[30px] min-w-[30px] items-center justify-center rounded-full bg-[#222222] px-2 text-xs font-semibold text-white'>
+                    {avatarLabel}
+                  </div>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to='/login'
+                  className='hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-100 sm:block'
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to='/register'
+                  className='flex items-center gap-2.5 rounded-full border border-gray-300 px-3 py-2 transition-shadow hover:shadow-md'
+                  aria-label={isLoading ? 'Checking account session' : 'Create account'}
+                >
+                  <Menu className='h-4 w-4 text-[#222222]' />
+                  <div className='flex h-[30px] w-[30px] items-center justify-center rounded-full bg-gray-500'>
+                    <User className='h-4 w-4 text-white' />
+                  </div>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

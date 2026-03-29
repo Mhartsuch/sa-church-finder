@@ -12,6 +12,45 @@
 
 ## Log
 
+### 2026-03-28 - Frontend Auth UI + Session Integration
+**Focus:** Landed the first client-side Milestone 2 slice so the real session-backed auth API is usable from the frontend and visible in the app shell.
+
+**Completed:**
+- **Client auth data layer:** Added `client/src/lib/api-client.ts`, `client/src/api/auth.ts`, `client/src/hooks/useAuth.ts`, and `client/src/types/auth.ts` so the frontend can call `/auth/register`, `/auth/login`, `/auth/logout`, and `/auth/me` with `credentials: 'include'`, cache the current user in React Query, and treat unauthenticated `/auth/me` responses as a normal signed-out state.
+- **Auth pages + route protection:** Added `LoginPage`, `RegisterPage`, `AccountPage`, `AuthPageShell`, and `RequireAuth`, then wired new `/login`, `/register`, and protected `/account` routes in `client/src/App.tsx`. Login/signup now redirect into the protected account area (or back to the originally requested route) after success.
+- **Session-aware app shell:** Updated `client/src/components/layout/Header.tsx` so the header reflects session state and routes signed-out users to auth pages while signed-in users get a direct account entry point.
+- **Account surface for next features:** Added a first-pass account page that shows live user/session info and clearly scopes the next Milestone 2 steps (saved churches, reviews, Google OAuth, verification, reset flows) without pretending those features already exist.
+- **Client test coverage:** Added `client/src/api/auth.test.ts` and `client/src/components/auth/RequireAuth.test.tsx` to cover cookie-enabled auth requests and protected-route behavior.
+
+**Remaining Notes:**
+- This ships the local email/password frontend only. Google OAuth, email verification, and forgot/reset password are still open follow-ups.
+- The account page is intentionally a foundation surface; saved churches and review history still need their own backend/frontend feature work.
+- The Mapbox chunk-size warning remains unchanged and is still a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd run lint:client` and `npm.cmd run typecheck:client` successfully.
+- Ran `npm.cmd run test:client` successfully (required elevated execution in this environment because Vitest/esbuild spawning is sandbox-restricted here).
+- Ran `npm.cmd run build:client` successfully (also required elevated execution here because Vite/esbuild spawning is sandbox-restricted). The known `mapbox-gl` chunk-size warning still appears.
+
+**Files Changed:**
+- `client/src/App.tsx`
+- `client/src/api/auth.ts`
+- `client/src/api/auth.test.ts`
+- `client/src/components/auth/AuthPageShell.tsx`
+- `client/src/components/auth/RequireAuth.tsx`
+- `client/src/components/auth/RequireAuth.test.tsx`
+- `client/src/components/layout/Header.tsx`
+- `client/src/hooks/useAuth.ts`
+- `client/src/lib/api-client.ts`
+- `client/src/pages/AccountPage.tsx`
+- `client/src/pages/LoginPage.tsx`
+- `client/src/pages/RegisterPage.tsx`
+- `client/src/types/auth.ts`
+- `AGENT_BRIEFING.md`
+- `PROJECT_CONTEXT.md`
+- `TODO.md`
+- `PROGRESS.md`
+
 ### 2026-03-28 - Local Auth Foundation
 **Focus:** Replaced the placeholder auth API with a real session-based local auth foundation so Milestone 2 has a working backend entry point.
 

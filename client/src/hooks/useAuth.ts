@@ -1,0 +1,66 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+import {
+  fetchCurrentUser,
+  loginUser,
+  logoutUser,
+  registerUser,
+} from '@/api/auth'
+import { AuthCredentials, AuthRegisterInput, AuthUser } from '@/types/auth'
+
+export const AUTH_SESSION_QUERY_KEY = ['auth', 'session'] as const
+
+const AUTH_STALE_TIME = 1000 * 60 * 5
+
+export const useCurrentUser = () => {
+  return useQuery<AuthUser | null, Error>({
+    queryKey: AUTH_SESSION_QUERY_KEY,
+    queryFn: fetchCurrentUser,
+    staleTime: AUTH_STALE_TIME,
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export const useAuthSession = () => {
+  const sessionQuery = useCurrentUser()
+
+  return {
+    ...sessionQuery,
+    user: sessionQuery.data ?? null,
+    isAuthenticated: Boolean(sessionQuery.data),
+  }
+}
+
+export const useLogin = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<AuthUser, Error, AuthCredentials>({
+    mutationFn: loginUser,
+    onSuccess: (user) => {
+      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user)
+    },
+  })
+}
+
+export const useRegister = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<AuthUser, Error, AuthRegisterInput>({
+    mutationFn: registerUser,
+    onSuccess: (user) => {
+      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user)
+    },
+  })
+}
+
+export const useLogout = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<void, Error, void>({
+    mutationFn: logoutUser,
+    onSuccess: () => {
+      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, null)
+    },
+  })
+}

@@ -53,7 +53,7 @@ software
 - Free tier must exist for churches - no paywall for basic listing
 
 ## Current Status
-Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, and Milestone 2 has started with a real local session-based auth backend (`register`, `login`, `logout`, `me`).
+Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, and Milestone 2 now includes both the local session-based auth backend and the first frontend auth/account screens wired to it.
 
 ## Important Links
 - GitHub: https://github.com/Mhartsuch/sa-church-finder
