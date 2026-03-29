@@ -12,7 +12,13 @@ import authRoutes from './routes/auth.routes.js'
 
 const app = express()
 const port = process.env.PORT || 3001
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
+const rawClientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
+const clientUrls = rawClientUrl === '*'
+  ? '*'
+  : rawClientUrl
+      .split(',')
+      .map((url) => url.trim().replace(/^['"]|['"]$/g, ''))
+      .filter(Boolean)
 
 // Middleware
 app.use(helmet())
@@ -20,7 +26,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ limit: '10mb', extended: true }))
 app.use(
   cors({
-    origin: clientUrl === '*' ? true : clientUrl,
+    origin: clientUrls === '*' ? true : clientUrls,
     credentials: true,
   }),
 )
@@ -58,7 +64,7 @@ app.use(errorHandler)
 // Start server
 const server = app.listen(port, () => {
   logger.info(`Server running on http://localhost:${port}`)
-  logger.info(`Client URL: ${clientUrl}`)
+  logger.info(`Client URL: ${clientUrls === '*' ? '*' : clientUrls.join(', ')}`)
 })
 
 // Graceful shutdown
