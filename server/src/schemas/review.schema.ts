@@ -73,5 +73,16 @@ export const reviewIdSchema = z.object({
   body: z.object({}).passthrough(),
 })
 
+export const resolveFlaggedReviewSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }).passthrough(),
+  query: z.object({}).passthrough(),
+  body: z.object({
+    status: z.enum(['approved', 'removed']),
+  }).passthrough(),
+})
+
 export type CreateReviewBody = z.infer<typeof createReviewSchema>['body']
 export type UpdateReviewBody = z.infer<typeof updateReviewSchema>['body']
+export type ResolveFlaggedReviewBody = z.infer<typeof resolveFlaggedReviewSchema>['body']

@@ -29,6 +29,11 @@ export interface ReviewHelpfulVoteResult {
   viewerHasVotedHelpful: boolean
 }
 
+export interface ReviewFlagResult {
+  reviewId: string
+  status: 'flagged' | 'already-flagged'
+}
+
 export interface IReviewChurchSummary {
   id: string
   name: string
@@ -41,6 +46,10 @@ export interface IReviewChurchSummary {
 
 export interface IUserReview extends IReview {
   church: IReviewChurchSummary
+}
+
+export interface IFlaggedReview extends IUserReview {
+  flaggedAt: string
 }
 
 export interface IChurchReviewsResponse {
@@ -57,6 +66,13 @@ export interface IChurchReviewsResponse {
 
 export interface IUserReviewsResponse {
   data: IUserReview[]
+  meta: {
+    total: number
+  }
+}
+
+export interface IFlaggedReviewsResponse {
+  data: IFlaggedReview[]
   meta: {
     total: number
   }
@@ -86,4 +102,14 @@ export interface UpdateReviewInput {
   worshipRating?: number | null
   sermonRating?: number | null
   facilitiesRating?: number | null
+}
+
+export interface ResolveFlaggedReviewInput {
+  reviewId: string
+  status: 'approved' | 'removed'
+}
+
+export interface ResolveFlaggedReviewResult {
+  reviewId: string
+  status: 'approved' | 'removed'
 }

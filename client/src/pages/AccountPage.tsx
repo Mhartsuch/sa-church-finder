@@ -13,7 +13,12 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth'
 import { useSavedChurches, useToggleSavedChurch } from '@/hooks/useChurches'
-import { useDeleteReview, useUserReviews } from '@/hooks/useReviews'
+import {
+  useDeleteReview,
+  useFlaggedReviews,
+  useResolveFlaggedReview,
+  useUserReviews,
+} from '@/hooks/useReviews'
 import { formatRating } from '@/utils/format'
 
 const formatMemberSince = (createdAt: string): string => {
@@ -38,6 +43,16 @@ const formatReviewDate = (reviewDate: string): string => {
   }).format(new Date(reviewDate))
 }
 
+const formatFlaggedDate = (reviewDate: string): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(reviewDate))
+}
+
 const AccountPage = () => {
   const navigate = useNavigate()
   const logoutMutation = useLogout()
@@ -53,8 +68,14 @@ const AccountPage = () => {
     isLoading: isUserReviewsLoading,
     error: userReviewsError,
   } = useUserReviews(user?.id ?? null)
+  const {
+    data: flaggedReviews,
+    isLoading: isFlaggedReviewsLoading,
+    error: flaggedReviewsError,
+  } = useFlaggedReviews(user?.role === 'site_admin')
   const toggleSavedChurchMutation = useToggleSavedChurch()
   const deleteReviewMutation = useDeleteReview()
+  const resolveFlaggedReviewMutation = useResolveFlaggedReview()
   const [actionError, setActionError] = useState<string | null>(null)
   const [verificationNotice, setVerificationNotice] = useState<{
     message: string
@@ -138,6 +159,34 @@ const AccountPage = () => {
         error instanceof Error
           ? error.message
           : 'Unable to send a verification link right now.',
+      )
+    }
+  }
+
+  const handleResolveFlaggedReview = async (
+    reviewId: string,
+    status: 'approved' | 'removed',
+    churchName: string,
+  ) => {
+    setActionError(null)
+
+    if (
+      status === 'removed' &&
+      !window.confirm(`Remove the flagged review for ${churchName}?`)
+    ) {
+      return
+    }
+
+    try {
+      await resolveFlaggedReviewMutation.mutateAsync({
+        reviewId,
+        status,
+      })
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to resolve that flagged review right now.',
       )
     }
   }
@@ -437,6 +486,120 @@ const AccountPage = () => {
                 )}
               </div>
             </div>
+
+            {user.role === 'site_admin' ? (
+              <div className='mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f6faf8] p-5'>
+                <div className='flex items-center gap-3'>
+                  <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle'>
+                    <ShieldCheck className='h-5 w-5' />
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-[#222222]'>
+                      Review moderation queue
+                    </h3>
+                    <p className='text-sm text-[#555555]'>
+                      {flaggedReviews?.meta.total ?? 0} flagged{' '}
+                      {(flaggedReviews?.meta.total ?? 0) === 1 ? 'review' : 'reviews'}
+                    </p>
+                  </div>
+                </div>
+
+                {isFlaggedReviewsLoading ? (
+                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                    Loading flagged reviews...
+                  </p>
+                ) : flaggedReviewsError ? (
+                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                    {flaggedReviewsError.message}
+                  </p>
+                ) : !flaggedReviews || flaggedReviews.data.length === 0 ? (
+                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                    No flagged reviews are waiting for moderation right now.
+                  </p>
+                ) : (
+                  <div className='mt-4 space-y-3'>
+                    {flaggedReviews.data.map((review) => {
+                      const isResolving =
+                        resolveFlaggedReviewMutation.isPending &&
+                        resolveFlaggedReviewMutation.variables?.reviewId === review.id
+
+                      return (
+                        <div
+                          key={review.id}
+                          className='rounded-2xl border border-[#d7e6dc] bg-white p-4'
+                        >
+                          <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
+                            <div className='min-w-0'>
+                              <Link
+                                to={`/churches/${review.church.slug}#reviews`}
+                                className='text-sm font-semibold text-[#222222] hover:underline'
+                              >
+                                {review.church.name}
+                              </Link>
+                              <p className='mt-1 text-sm text-[#555555]'>
+                                Flagged {formatFlaggedDate(review.flaggedAt)} by community reporting
+                              </p>
+                              <p className='mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                                Reviewer: {review.user.name}
+                              </p>
+                            </div>
+
+                            <div className='flex flex-wrap gap-2'>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  void handleResolveFlaggedReview(
+                                    review.id,
+                                    'approved',
+                                    review.church.name,
+                                  )
+                                }}
+                                disabled={isResolving}
+                                className='rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-4 py-2 text-sm font-semibold text-[#1d4ed8] transition-colors hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-70'
+                              >
+                                {isResolving &&
+                                resolveFlaggedReviewMutation.variables?.status === 'approved'
+                                  ? 'Restoring...'
+                                  : 'Keep live'}
+                              </button>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  void handleResolveFlaggedReview(
+                                    review.id,
+                                    'removed',
+                                    review.church.name,
+                                  )
+                                }}
+                                disabled={isResolving}
+                                className='rounded-full border border-[#ffd6df] bg-white px-4 py-2 text-sm font-semibold text-[#FF385C] transition-colors hover:bg-[#fff1f4] disabled:cursor-not-allowed disabled:opacity-70'
+                              >
+                                {isResolving &&
+                                resolveFlaggedReviewMutation.variables?.status === 'removed'
+                                  ? 'Removing...'
+                                  : 'Remove review'}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className='mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]'>
+                            <span className='inline-flex items-center gap-1 font-semibold text-[#222222]'>
+                              <Star className='h-3.5 w-3.5 fill-[#222222] text-[#222222]' />
+                              {formatRating(review.rating)}
+                            </span>
+                            <span>Updated {formatReviewDate(review.updatedAt)}</span>
+                          </div>
+
+                          <p className='mt-3 text-sm leading-6 text-[#555555]'>
+                            {review.body}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
           </section>
 
           <aside className='rounded-[32px] bg-[#1f4d45] p-6 text-white shadow-airbnb sm:p-8'>
@@ -450,9 +613,9 @@ const AccountPage = () => {
             <p className='mt-3 text-sm leading-7 text-white/85'>
               Sign in, registration, Google OAuth, logout, current-session checks,
               password reset, saved churches, helpful voting, and written review
-              history are all connected end to end now. Production-ready auth email
-              delivery and review moderation are the main Milestone 2 follow-ups
-              still open.
+              history are all connected end to end now. Review moderation is live,
+              and production-ready auth email delivery is now the clearest
+              remaining Milestone 2 follow-up.
             </p>
 
             <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
@@ -461,7 +624,7 @@ const AccountPage = () => {
               </p>
               <ul className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
                 <li>Transactional email delivery for auth</li>
-                <li>Review moderation</li>
+                <li>Environment-specific Google OAuth credential setup</li>
                 <li>Map bundle follow-up only if the production warning becomes real</li>
               </ul>
             </div>

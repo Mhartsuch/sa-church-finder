@@ -1,11 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
+  DEFAULT_RADIUS,
+  PAGE_SIZE,
+  SA_CENTER,
+} from '@/constants'
+import {
   fetchChurchBySlug,
   fetchChurches,
   fetchSavedChurches,
   toggleSavedChurch,
 } from '@/api/churches'
+import { useSearchStore } from '@/stores/search-store'
 import { IChurch, ISavedChurch, ISearchParams, ISearchResponse } from '@/types/church'
 
 const STALE_TIME = 60000 // 60 seconds
@@ -21,6 +27,35 @@ export const useChurches = (params: ISearchParams) => {
     staleTime: STALE_TIME,
     enabled: true,
   })
+}
+
+export const useChurchSearchParams = () => {
+  const query = useSearchStore((state) => state.query)
+  const filters = useSearchStore((state) => state.filters)
+  const sort = useSearchStore((state) => state.sort)
+  const page = useSearchStore((state) => state.page)
+  const mapBounds = useSearchStore((state) => state.mapBounds)
+  const mapCenter = useSearchStore((state) => state.mapCenter)
+
+  const boundsString = mapBounds
+    ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
+    : undefined
+
+  return {
+    lat: mapBounds ? mapCenter.lat : SA_CENTER.lat,
+    lng: mapBounds ? mapCenter.lng : SA_CENTER.lng,
+    radius: DEFAULT_RADIUS,
+    q: query || undefined,
+    denomination: filters.denomination,
+    day: filters.day,
+    time: filters.time,
+    language: filters.language,
+    amenities: filters.amenities,
+    sort,
+    page,
+    pageSize: PAGE_SIZE,
+    bounds: boundsString,
+  } satisfies ISearchParams
 }
 
 export const useChurch = (slug: string) => {

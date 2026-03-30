@@ -4,10 +4,15 @@ import prisma from '../lib/prisma.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
 import {
   ICreateReviewInput,
+  IFlaggedReview,
+  IFlaggedReviewListResponse,
+  IFlaggedReviewResolutionResult,
   IReview,
+  IReviewFlagResult,
   IReviewHelpfulVoteResult,
   IReviewListParams,
   IReviewListResponse,
+  IResolveFlaggedReviewInput,
   IUserReview,
   IUserReviewHistoryResponse,
   IUpdateReviewInput,
@@ -101,6 +106,11 @@ const mapUserReview = (review: ReviewWithChurchRecord): IUserReview => ({
     state: review.church.state,
     neighborhood: review.church.neighborhood,
   },
+})
+
+const mapFlaggedReview = (review: ReviewWithChurchRecord): IFlaggedReview => ({
+  ...mapUserReview(review),
+  flaggedAt: review.updatedAt,
 })
 
 const getReviewOrderBy = (
@@ -549,6 +559,51 @@ export async function addHelpfulVote(
   }
 }
 
+export async function flagReview(
+  reviewId: string,
+  userId: string,
+): Promise<IReviewFlagResult> {
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    select: {
+      id: true,
+      userId: true,
+      isFlagged: true,
+    },
+  })
+
+  if (!review) {
+    throw new NotFoundError('Review not found')
+  }
+
+  if (review.userId === userId) {
+    throw new AppError(
+      400,
+      'OWN_REVIEW_FLAG',
+      'You cannot flag your own review',
+    )
+  }
+
+  if (review.isFlagged) {
+    return {
+      reviewId,
+      status: 'already-flagged',
+    }
+  }
+
+  await prisma.review.update({
+    where: { id: reviewId },
+    data: {
+      isFlagged: true,
+    },
+  })
+
+  return {
+    reviewId,
+    status: 'flagged',
+  }
+}
+
 export async function removeHelpfulVote(
   reviewId: string,
   userId: string,
@@ -604,5 +659,61 @@ export async function removeHelpfulVote(
     reviewId,
     helpfulCount: nextHelpfulCount,
     viewerHasVotedHelpful: false,
+  }
+}
+
+export async function getFlaggedReviews(): Promise<IFlaggedReviewListResponse> {
+  const reviews = await prisma.review.findMany({
+    where: {
+      isFlagged: true,
+    },
+    orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    include: reviewWithChurchInclude,
+  })
+
+  return {
+    data: reviews.map(mapFlaggedReview),
+    meta: {
+      total: reviews.length,
+    },
+  }
+}
+
+export async function resolveFlaggedReview(
+  reviewId: string,
+  moderatorUserId: string,
+  input: IResolveFlaggedReviewInput,
+): Promise<IFlaggedReviewResolutionResult> {
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    select: {
+      id: true,
+      isFlagged: true,
+    },
+  })
+
+  if (!review?.isFlagged) {
+    throw new NotFoundError('Flagged review not found')
+  }
+
+  if (input.status === 'removed') {
+    await deleteReview(reviewId, moderatorUserId)
+
+    return {
+      reviewId,
+      status: 'removed',
+    }
+  }
+
+  await prisma.review.update({
+    where: { id: reviewId },
+    data: {
+      isFlagged: false,
+    },
+  })
+
+  return {
+    reviewId,
+    status: 'approved',
   }
 }

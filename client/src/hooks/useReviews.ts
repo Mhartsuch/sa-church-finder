@@ -4,9 +4,12 @@ import {
   addHelpfulVote,
   createReview,
   deleteReview,
+  fetchFlaggedReviews,
   fetchChurchReviews,
   fetchUserReviews,
+  flagReview,
   removeHelpfulVote,
+  resolveFlaggedReview,
   updateReview,
 } from '@/api/reviews'
 import {
@@ -16,10 +19,14 @@ import {
 } from '@/hooks/useChurches'
 import {
   CreateReviewInput,
+  IFlaggedReviewsResponse,
   IChurchReviewsResponse,
   IReview,
   IReviewListParams,
   IUserReview,
+  ResolveFlaggedReviewInput,
+  ResolveFlaggedReviewResult,
+  ReviewFlagResult,
   ReviewHelpfulVoteResult,
   UpdateReviewInput,
 } from '@/types/review'
@@ -28,6 +35,7 @@ const STALE_TIME = 60000
 
 export const CHURCH_REVIEWS_QUERY_KEY = ['church-reviews'] as const
 export const USER_REVIEWS_QUERY_KEY = ['user-reviews'] as const
+export const FLAGGED_REVIEWS_QUERY_KEY = ['flagged-reviews'] as const
 
 const invalidateReviewAwareQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
   void queryClient.invalidateQueries({ queryKey: CHURCHES_QUERY_KEY })
@@ -35,6 +43,7 @@ const invalidateReviewAwareQueries = (queryClient: ReturnType<typeof useQueryCli
   void queryClient.invalidateQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY })
   void queryClient.invalidateQueries({ queryKey: CHURCH_REVIEWS_QUERY_KEY })
   void queryClient.invalidateQueries({ queryKey: USER_REVIEWS_QUERY_KEY })
+  void queryClient.invalidateQueries({ queryKey: FLAGGED_REVIEWS_QUERY_KEY })
 }
 
 export const useChurchReviews = (
@@ -56,6 +65,15 @@ export const useUserReviews = (userId: string | null) => {
     queryFn: () => fetchUserReviews(userId!),
     staleTime: STALE_TIME,
     enabled: Boolean(userId),
+  })
+}
+
+export const useFlaggedReviews = (enabled: boolean) => {
+  return useQuery<IFlaggedReviewsResponse, Error>({
+    queryKey: FLAGGED_REVIEWS_QUERY_KEY,
+    queryFn: fetchFlaggedReviews,
+    staleTime: STALE_TIME,
+    enabled,
   })
 }
 
@@ -108,6 +126,28 @@ export const useRemoveHelpfulVote = () => {
 
   return useMutation<ReviewHelpfulVoteResult, Error, string>({
     mutationFn: removeHelpfulVote,
+    onSuccess: () => {
+      invalidateReviewAwareQueries(queryClient)
+    },
+  })
+}
+
+export const useFlagReview = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<ReviewFlagResult, Error, string>({
+    mutationFn: flagReview,
+    onSuccess: () => {
+      invalidateReviewAwareQueries(queryClient)
+    },
+  })
+}
+
+export const useResolveFlaggedReview = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<ResolveFlaggedReviewResult, Error, ResolveFlaggedReviewInput>({
+    mutationFn: resolveFlaggedReview,
     onSuccess: () => {
       invalidateReviewAwareQueries(queryClient)
     },

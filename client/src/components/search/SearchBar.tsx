@@ -1,86 +1,123 @@
-import { useEffect, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
-import { useSearchStore } from '@/stores/search-store'
+import { useEffect, useRef, useState } from 'react';
+import { MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
+
+import { getWhenSummary } from '@/lib/search-state';
+import { useSearchStore } from '@/stores/search-store';
 
 interface SearchBarProps {
-  variant?: 'hero' | 'compact'
-  onSubmit?: () => void
+  variant?: 'hero' | 'compact';
+  onSubmit?: () => void;
+  onOpenFilters?: () => void;
 }
 
-export const SearchBar = ({ variant = 'compact', onSubmit }: SearchBarProps) => {
-  const query = useSearchStore((state) => state.query)
-  const setQuery = useSearchStore((state) => state.setQuery)
-  const [localValue, setLocalValue] = useState(query)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: SearchBarProps) => {
+  const query = useSearchStore((state) => state.query);
+  const filters = useSearchStore((state) => state.filters);
+  const setQuery = useSearchStore((state) => state.setQuery);
+  const [localValue, setLocalValue] = useState(query);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setLocalValue(query)
-  }, [query])
+    setLocalValue(query);
+  }, [query]);
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
+        clearTimeout(timeoutRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value
-    setLocalValue(value)
+    const value = event.target.value;
+    setLocalValue(value);
 
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
+      clearTimeout(timeoutRef.current);
     }
 
     timeoutRef.current = setTimeout(() => {
-      setQuery(value)
-    }, 300)
-  }
+      setQuery(value);
+    }, 300);
+  };
 
   const handleClear = () => {
-    setLocalValue('')
-    setQuery('')
-  }
+    setLocalValue('');
+    setQuery('');
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    onSubmit?.()
-  }
+    event.preventDefault();
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setQuery(localValue);
+    onSubmit?.();
+  };
 
-  const inputSizeClass = variant === 'hero' ? 'py-3 text-base' : 'py-[10px] text-sm'
-  const placeholder =
-    variant === 'hero' ? 'Search churches, denomination, neighborhood...' : 'Search churches...'
+  const whenSummary = getWhenSummary(filters);
+  const isHero = variant === 'hero';
 
   return (
-    <form onSubmit={handleSubmit} className='relative w-full'>
-      <div className='search-pill'>
-        <Search className='ml-4 h-4 w-4 flex-shrink-0 text-[#222222]' />
-        <input
-          type='text'
-          value={localValue}
-          onChange={handleChange}
-          placeholder={placeholder}
-          className={`flex-1 border-0 bg-transparent px-3 font-medium text-[#222222] outline-none placeholder-gray-400 ${inputSizeClass}`}
-        />
-        {localValue && (
-          <button
-            type='button'
-            onClick={handleClear}
-            className='mr-1 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-[#222222]'
-            aria-label='Clear search'
-          >
-            <X className='h-4 w-4' />
-          </button>
-        )}
+    <form onSubmit={handleSubmit} className="relative w-full">
+      <div className={`reference-search-shell ${isHero ? 'min-h-[76px]' : 'min-h-[72px]'}`}>
+        <div className="reference-search-field hidden min-w-[170px] sm:block">
+          <span className="reference-search-label">Location</span>
+          <div className="reference-search-summary flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-[#717171]" />
+            <span>San Antonio, TX</span>
+          </div>
+        </div>
+
+        <div className="reference-search-field flex-[1.3]">
+          <label htmlFor={`search-input-${variant}`} className="reference-search-label">
+            Search
+          </label>
+          <div className="mt-1 flex items-center gap-2">
+            <Search className="h-4 w-4 flex-shrink-0 text-[#717171]" />
+            <input
+              id={`search-input-${variant}`}
+              type="text"
+              value={localValue}
+              onChange={handleChange}
+              placeholder={
+                isHero
+                  ? 'Church, denomination, neighborhood...'
+                  : 'Search churches, neighborhoods, or traditions'
+              }
+              className="reference-search-input mt-0 flex-1"
+            />
+            {localValue ? (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#8d8d8d] transition-colors hover:bg-[#f3f3f3] hover:text-[#222222]"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
         <button
-          type='submit'
-          className='mr-2 rounded-full bg-[#FF385C] p-[7px] text-white transition-colors hover:bg-[#E00B41]'
-          aria-label='Submit search'
+          type="button"
+          onClick={onOpenFilters}
+          className="reference-search-field hidden min-w-[190px] text-left md:block"
+          aria-label="Open filters"
         >
-          <Search className='h-3 w-3' />
+          <span className="reference-search-label">When</span>
+          <span className="reference-search-summary flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-[#717171]" />
+            <span>{whenSummary}</span>
+          </span>
+        </button>
+
+        <button type="submit" className="reference-search-submit" aria-label="Submit search">
+          <Search className="h-4 w-4" />
         </button>
       </div>
     </form>
-  )
-}
+  );
+};

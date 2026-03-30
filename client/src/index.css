@@ -10,6 +10,7 @@
     /* Brand accent — Airbnb-inspired rose/coral */
     --brand: 348 100% 54%;
     --brand-dark: 348 100% 46%;
+    --brand-gradient: linear-gradient(90deg, #e61e4d 0%, #e31c5f 48%, #d70466 100%);
 
     /* Neutral palette */
     --background: 0 0% 100%;
@@ -69,13 +70,40 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    font-family:
+      'Plus Jakarta Sans',
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      Oxygen,
+      Ubuntu,
+      sans-serif;
     color: #222222;
     line-height: 1.5;
+    background:
+      radial-gradient(circle at top left, rgba(255, 56, 92, 0.08), transparent 24%),
+      radial-gradient(circle at top right, rgba(245, 158, 11, 0.07), transparent 26%), #fffdfb;
   }
 
   a {
     text-decoration: none;
+  }
+
+  ::selection {
+    background: rgba(255, 56, 92, 0.18);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(34, 34, 34, 0.16);
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
   }
 }
 
@@ -116,6 +144,102 @@
     @apply border-gray-400;
   }
 
+  .reference-search-shell {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    border: 1px solid #dddddd;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.06);
+    transition:
+      box-shadow 0.2s ease,
+      transform 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .reference-search-shell:hover,
+  .reference-search-shell:focus-within {
+    border-color: #cfcfcf;
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.08),
+      0 12px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .reference-search-field {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 14px 20px;
+  }
+
+  .reference-search-field + .reference-search-field::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 1px;
+    height: 32px;
+    transform: translateY(-50%);
+    background: #ebebeb;
+  }
+
+  .reference-search-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #222222;
+  }
+
+  .reference-search-input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #222222;
+    outline: none;
+  }
+
+  .reference-search-input::placeholder {
+    color: #8d8d8d;
+  }
+
+  .reference-search-summary {
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #717171;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .reference-search-submit {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin: 0 8px 0 4px;
+    border-radius: 9999px;
+    background: var(--brand-gradient);
+    color: white;
+    transition:
+      transform 0.15s ease,
+      filter 0.15s ease;
+  }
+
+  .reference-search-submit:hover {
+    transform: scale(1.04);
+    filter: saturate(1.05);
+  }
+
   /* Category scroll container */
   .category-scroll {
     @apply flex gap-8 overflow-x-auto;
@@ -130,6 +254,15 @@
   /* Airbnb-style section divider */
   .section-divider {
     @apply border-t border-gray-200 my-8;
+  }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -174,6 +307,8 @@
   }
 
   .shadow-airbnb-subtle {
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.05);
   }
 }

@@ -36,13 +36,14 @@
 - [x] Make URL reflect search state (shareable/bookmarkable) - completed 2026-03-27
 
 ### P2 - Medium
+- [ ] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist
 - [x] Add responsive layout (mobile tabs for map/list) - completed 2026-03-27
 - [x] Add loading skeleton animations to ChurchCard - shimmer effect component, completed 2026-03-27
 - [x] Implement "no results" suggestions (widen radius, change filters) - completed 2026-03-27
 - [x] Write database seed script with proper PostGIS location column - completed 2026-03-27
 - [x] Upgrade deprecated deps (`eslint` 8 -> 9, `multer` 1 -> 2, `supertest` 6 -> 7) - completed 2026-03-28
 - [x] Add review helpful voting follow-up after the MVP - completed 2026-03-28
-- [ ] Add review moderation follow-ups after the MVP
+- [x] Add review moderation follow-ups after the MVP - completed 2026-03-29
 - [ ] Wire real transactional email delivery for auth emails (password reset + verification)
 - [ ] Review lazy-loaded Mapbox bundle size warning and optimize only if it becomes a real production issue
 
@@ -53,6 +54,8 @@
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Search workspace UX pass - search-page toolbar with mobile search input, sort control, removable active-filter chips, slide-over advanced filters, and cleaner desktop map/list steering (2026-03-29)
+- [x] Review moderation follow-up - authenticated review reporting, site-admin flagged-review queue, moderation resolution actions, and client/server coverage (2026-03-29)
 - [x] Google OAuth - backend redirect/callback flow, session-safe return paths, Google account linking/creation, login/register Google CTAs, callback error messaging, and auth/client test coverage (2026-03-29)
 - [x] Email verification flow - verification-token model + migration, register-time token issuance, resend + consume APIs, verification page, account resend CTA, local preview mode, and auth/client test coverage (2026-03-28)
 - [x] Review helpful voting - helpful/unhelpful endpoints, viewer vote state in review payloads, church profile helpful controls, and client/server test coverage (2026-03-28)
@@ -113,8 +116,9 @@
 - Multi-city expansion architecture
 
 ## Known Bugs
+- ~~Mapbox map not loading on Render (showing SVG placeholder instead)~~ — **Fixed 2026-03-29**: `VITE_MAPBOX_TOKEN` was missing from Render env vars; added to `render.yaml`. Token must be set in Render dashboard and a redeploy triggered.
 - Lazy-loaded `mapbox-gl` chunk still exceeds Vite's size warning threshold - monitor before optimizing
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-29 (Google OAuth landed)*
+*Last updated: 2026-03-29 (Search workspace UX pass landed)*
