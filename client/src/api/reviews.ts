@@ -1,11 +1,15 @@
 import { apiRequest } from '@/lib/api-client'
 import {
   CreateReviewInput,
+  IFlaggedReviewsResponse,
   IChurchReviewsResponse,
   IReview,
   IReviewListParams,
   IUserReview,
   IUserReviewsResponse,
+  ResolveFlaggedReviewInput,
+  ResolveFlaggedReviewResult,
+  ReviewFlagResult,
   ReviewHelpfulVoteResult,
   UpdateReviewInput,
 } from '@/types/review'
@@ -23,6 +27,14 @@ type DeleteReviewEnvelope = {
 
 type HelpfulVoteEnvelope = {
   data: ReviewHelpfulVoteResult
+}
+
+type FlagReviewEnvelope = {
+  data: ReviewFlagResult
+}
+
+type ResolveFlaggedReviewEnvelope = {
+  data: ResolveFlaggedReviewResult
 }
 
 const buildReviewQueryString = (params: IReviewListParams): string => {
@@ -107,10 +119,40 @@ export const removeHelpfulVote = async (
   return envelope.data
 }
 
+export const flagReview = async (reviewId: string): Promise<ReviewFlagResult> => {
+  const envelope = await apiRequest<FlagReviewEnvelope>(
+    `/reviews/${encodeURIComponent(reviewId)}/flag`,
+    {
+      method: 'POST',
+    },
+  )
+
+  return envelope.data
+}
+
 export const fetchUserReviews = async (userId: string): Promise<IUserReview[]> => {
   const response = await apiRequest<IUserReviewsResponse>(
     `/users/${encodeURIComponent(userId)}/reviews`,
   )
 
   return response.data
+}
+
+export const fetchFlaggedReviews = async (): Promise<IFlaggedReviewsResponse> => {
+  return apiRequest<IFlaggedReviewsResponse>('/admin/flagged-reviews')
+}
+
+export const resolveFlaggedReview = async (
+  input: ResolveFlaggedReviewInput,
+): Promise<ResolveFlaggedReviewResult> => {
+  const { reviewId, ...payload } = input
+  const envelope = await apiRequest<ResolveFlaggedReviewEnvelope>(
+    `/admin/flagged-reviews/${encodeURIComponent(reviewId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  )
+
+  return envelope.data
 }

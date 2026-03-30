@@ -33,6 +33,7 @@ jest.mock('../lib/prisma.js', () => ({
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     },
   },
 }))
@@ -59,6 +60,7 @@ type MockedPrisma = {
   }
   user: {
     findUnique: jest.Mock
+    update: jest.Mock
   }
 }
 
@@ -312,6 +314,168 @@ describe('review routes', () => {
 
     expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('OWN_REVIEW_HELPFUL_VOTE')
+  })
+
+  it('flags another users review for moderation', async () => {
+    const agent = await loginAgent()
+
+    mockedPrisma.review.findUnique.mockResolvedValueOnce({
+      id: 'review-2',
+      userId: 'user-2',
+      isFlagged: false,
+    })
+    mockedPrisma.review.update.mockResolvedValueOnce({
+      id: 'review-2',
+      isFlagged: true,
+    })
+
+    const response = await agent.post('/api/v1/reviews/review-2/flag')
+
+    expect(response.status).toBe(201)
+    expect(response.body.data).toMatchObject({
+      reviewId: 'review-2',
+      status: 'flagged',
+    })
+    expect(mockedPrisma.review.update).toHaveBeenCalledWith({
+      where: { id: 'review-2' },
+      data: {
+        isFlagged: true,
+      },
+    })
+  })
+
+  it('rejects flagging your own review', async () => {
+    const agent = await loginAgent()
+
+    mockedPrisma.review.findUnique.mockResolvedValueOnce({
+      id: 'review-1',
+      userId: 'user-1',
+      isFlagged: false,
+    })
+
+    const response = await agent.post('/api/v1/reviews/review-1/flag')
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('OWN_REVIEW_FLAG')
+  })
+
+  it('lets a site admin review, restore, or remove flagged reviews', async () => {
+    const siteAdmin = {
+      ...baseUser,
+      id: 'admin-1',
+      email: 'admin@example.com',
+      role: 'SITE_ADMIN',
+    }
+    const passwordHash = await bcrypt.hash('password123', 12)
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      ...siteAdmin,
+      passwordHash,
+    })
+
+    const agent = request.agent(createApp())
+    const loginResponse = await agent.post('/api/v1/auth/login').send({
+      email: 'admin@example.com',
+      password: 'password123',
+    })
+
+    expect(loginResponse.status).toBe(200)
+
+    mockedPrisma.user.findUnique
+      .mockResolvedValueOnce({
+        role: 'SITE_ADMIN',
+      })
+      .mockResolvedValueOnce({
+        role: 'SITE_ADMIN',
+      })
+      .mockResolvedValueOnce({
+        role: 'SITE_ADMIN',
+      })
+      .mockResolvedValue({
+        role: 'SITE_ADMIN',
+      })
+
+    mockedPrisma.review.findMany.mockResolvedValueOnce([
+      {
+        ...baseReview,
+        id: 'review-2',
+        userId: 'user-2',
+        updatedAt: new Date('2026-03-29T12:00:00.000Z'),
+        church: {
+          id: 'church-1',
+          name: 'Grace Fellowship',
+          slug: 'grace-fellowship',
+          denomination: 'Non-denominational',
+          city: 'San Antonio',
+          state: 'TX',
+          neighborhood: 'Downtown',
+        },
+      },
+    ])
+
+    const listResponse = await agent.get('/api/v1/admin/flagged-reviews')
+
+    expect(listResponse.status).toBe(200)
+    expect(listResponse.body.meta.total).toBe(1)
+    expect(listResponse.body.data[0]).toMatchObject({
+      id: 'review-2',
+      church: {
+        slug: 'grace-fellowship',
+      },
+    })
+
+    mockedPrisma.review.findUnique.mockResolvedValueOnce({
+      id: 'review-2',
+      isFlagged: true,
+    })
+    mockedPrisma.review.update.mockResolvedValueOnce({
+      id: 'review-2',
+      isFlagged: false,
+    })
+
+    const approveResponse = await agent.patch('/api/v1/admin/flagged-reviews/review-2').send({
+      status: 'approved',
+    })
+
+    expect(approveResponse.status).toBe(200)
+    expect(approveResponse.body.data).toMatchObject({
+      reviewId: 'review-2',
+      status: 'approved',
+    })
+
+    mockedPrisma.review.findUnique
+      .mockResolvedValueOnce({
+        id: 'review-3',
+        isFlagged: true,
+      })
+      .mockResolvedValueOnce({
+        ...baseReview,
+        id: 'review-3',
+        churchId: 'church-1',
+        userId: 'user-2',
+        rating: '4.00',
+      })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      avgRating: '4.50',
+      reviewCount: 10,
+    })
+    mockedPrisma.review.delete.mockResolvedValueOnce({
+      id: 'review-3',
+    })
+    mockedPrisma.church.update.mockResolvedValueOnce({
+      id: 'church-1',
+    })
+
+    const removeResponse = await agent.patch('/api/v1/admin/flagged-reviews/review-3').send({
+      status: 'removed',
+    })
+
+    expect(removeResponse.status).toBe(200)
+    expect(removeResponse.body.data).toMatchObject({
+      reviewId: 'review-3',
+      status: 'removed',
+    })
   })
 
   it('deletes a review, updates aggregates, and exposes account review history only to the owner', async () => {

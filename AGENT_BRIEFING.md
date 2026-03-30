@@ -8,9 +8,10 @@
 SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus real account features: email/password auth, Google sign-in, saved churches, written reviews, helpful voting, password recovery, and email verification all work end to end across church profiles and the account page.
 
 ### Current Priority
-Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, and email verification are live end to end. The biggest open items are now real transactional email delivery for auth emails, review moderation, and any environment-specific Google credential setup still needed for live sign-in.
+Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, and review moderation are live end to end. The biggest open items are now real transactional email delivery for auth emails and any environment-specific Google credential setup still needed for live sign-in.
 
 ### Recently Completed
+- Added review moderation end to end: authenticated review reporting, a site-admin flagged-review queue, and moderation resolution actions on the account page
 - Added Google OAuth end to end: backend `/auth/google` start + callback flow, safe `returnTo` redirect handling, Google account creation/linking, and login/register Google entry points with redirect error messaging
 - Added email verification end to end: verification-token persistence + migration, register-time token issuance, resend/consume APIs, a `/verify-email` page, and an account-page resend flow with opt-in local preview support
 - Added review helpful voting end to end: helpful/unhelpful APIs, viewer vote state in review payloads, and live helpful controls on church profile reviews
@@ -34,7 +35,6 @@ Keep moving through Milestone 2 now that auth, Google sign-in, password recovery
 - The lazy-loaded `mapbox-gl` chunk is still large in production builds, so bundle-size optimization remains an open performance follow-up
 - Google OAuth is implemented in-app now, but each environment still needs valid Google OAuth credentials plus an authorized redirect URI before live sign-in will work there
 - Real transactional email delivery is still not wired, so password reset and email verification currently rely on opt-in local preview modes during development instead of SMTP delivery
-- Review moderation is still a follow-up after helpful voting landed
 
 ## Where Things Are
 

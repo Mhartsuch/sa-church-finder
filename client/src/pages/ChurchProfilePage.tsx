@@ -12,6 +12,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  ShieldAlert,
   Share,
   Star,
   ThumbsUp,
@@ -21,7 +22,12 @@ import {
 import ReviewForm from '@/components/reviews/ReviewForm'
 import { useAuthSession } from '@/hooks/useAuth'
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches'
-import { useAddHelpfulVote, useChurchReviews, useRemoveHelpfulVote } from '@/hooks/useReviews'
+import {
+  useAddHelpfulVote,
+  useChurchReviews,
+  useFlagReview,
+  useRemoveHelpfulVote,
+} from '@/hooks/useReviews'
 import { getChurchMonogram, getChurchVisualTheme } from '@/lib/church-visuals'
 import { IChurchService } from '@/types/church'
 import { IReview, ReviewSort } from '@/types/review'
@@ -88,12 +94,14 @@ export const ChurchProfilePage = () => {
   const { user } = useAuthSession()
   const toggleSavedChurchMutation = useToggleSavedChurch()
   const addHelpfulVoteMutation = useAddHelpfulVote()
+  const flagReviewMutation = useFlagReview()
   const removeHelpfulVoteMutation = useRemoveHelpfulVote()
   const { data: church, isLoading, error } = useChurch(slug ?? '')
   const [reviewSort, setReviewSort] = useState<ReviewSort>('recent')
   const [reviewPage, setReviewPage] = useState(1)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [helpfulVoteError, setHelpfulVoteError] = useState<string | null>(null)
+  const [reviewNotice, setReviewNotice] = useState<string | null>(null)
   const {
     data: churchReviews,
     isLoading: isReviewsLoading,
@@ -172,6 +180,7 @@ export const ChurchProfilePage = () => {
 
   const handleHelpfulVote = async (review: IReview) => {
     setHelpfulVoteError(null)
+    setReviewNotice(null)
 
     if (!user) {
       navigate('/login', {
@@ -196,6 +205,42 @@ export const ChurchProfilePage = () => {
         voteError instanceof Error
           ? voteError.message
           : 'Unable to update that helpful vote right now.',
+      )
+    }
+  }
+
+  const handleFlagReview = async (review: IReview) => {
+    setHelpfulVoteError(null)
+    setReviewNotice(null)
+
+    if (!user) {
+      navigate('/login', {
+        state: {
+          from: {
+            pathname: location.pathname,
+            search: location.search,
+          },
+        },
+      })
+      return
+    }
+
+    if (!window.confirm('Report this review for moderator follow-up?')) {
+      return
+    }
+
+    try {
+      const result = await flagReviewMutation.mutateAsync(review.id)
+      setReviewNotice(
+        result.status === 'already-flagged'
+          ? 'That review is already waiting in the moderation queue.'
+          : 'Thanks. That review is now queued for moderation and hidden from public listings while it is reviewed.',
+      )
+    } catch (flagError) {
+      setHelpfulVoteError(
+        flagError instanceof Error
+          ? flagError.message
+          : 'Unable to report that review right now.',
       )
     }
   }
@@ -481,6 +526,12 @@ export const ChurchProfilePage = () => {
                 </div>
               ) : null}
 
+              {reviewNotice ? (
+                <div className='mt-6 rounded-[28px] border border-[#bfdbfe] bg-[#eff6ff] px-5 py-4 text-sm text-[#1d4ed8]'>
+                  {reviewNotice}
+                </div>
+              ) : null}
+
               {reviewsError ? (
                 <div className='mt-6 rounded-[28px] border border-[#ffb4c1] bg-[#fff1f4] px-5 py-4 text-sm text-[#9f1239]'>
                   {reviewsError.message}
@@ -517,6 +568,9 @@ export const ChurchProfilePage = () => {
                         addHelpfulVoteMutation.variables === review.id) ||
                       (removeHelpfulVoteMutation.isPending &&
                         removeHelpfulVoteMutation.variables === review.id)
+                    const isFlaggingReview =
+                      flagReviewMutation.isPending &&
+                      flagReviewMutation.variables === review.id
 
                     return (
                       <article
@@ -575,28 +629,41 @@ export const ChurchProfilePage = () => {
                           </p>
 
                           {!isOwnReview ? (
-                            <button
-                              type='button'
-                              onClick={() => {
-                                void handleHelpfulVote(review)
-                              }}
-                              disabled={isHelpfulVotePending}
-                              aria-pressed={review.viewerHasVotedHelpful}
-                              className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
-                                review.viewerHasVotedHelpful
-                                  ? 'border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] hover:bg-[#dbeafe]'
-                                  : 'border-gray-300 bg-white text-[#222222] hover:bg-gray-50'
-                              }`}
-                            >
-                              <ThumbsUp
-                                className={`h-4 w-4 ${review.viewerHasVotedHelpful ? 'fill-current' : ''}`}
-                              />
-                              {isHelpfulVotePending
-                                ? 'Updating...'
-                                : review.viewerHasVotedHelpful
-                                  ? 'Marked helpful'
-                                  : 'Helpful'}
-                            </button>
+                            <div className='flex flex-wrap items-center justify-end gap-2'>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  void handleFlagReview(review)
+                                }}
+                                disabled={isFlaggingReview}
+                                className='inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70'
+                              >
+                                <ShieldAlert className='h-4 w-4' />
+                                {isFlaggingReview ? 'Reporting...' : 'Report'}
+                              </button>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  void handleHelpfulVote(review)
+                                }}
+                                disabled={isHelpfulVotePending}
+                                aria-pressed={review.viewerHasVotedHelpful}
+                                className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+                                  review.viewerHasVotedHelpful
+                                    ? 'border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] hover:bg-[#dbeafe]'
+                                    : 'border-gray-300 bg-white text-[#222222] hover:bg-gray-50'
+                                }`}
+                              >
+                                <ThumbsUp
+                                  className={`h-4 w-4 ${review.viewerHasVotedHelpful ? 'fill-current' : ''}`}
+                                />
+                                {isHelpfulVotePending
+                                  ? 'Updating...'
+                                  : review.viewerHasVotedHelpful
+                                    ? 'Marked helpful'
+                                    : 'Helpful'}
+                              </button>
+                            </div>
                           ) : null}
                         </div>
                       </article>

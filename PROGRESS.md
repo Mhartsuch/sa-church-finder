@@ -12,6 +12,58 @@
 
 ## Log
 
+### 2026-03-29 - Review Moderation Follow-up
+
+**Focus:** Closed the main remaining review-side Milestone 2 gap by shipping authenticated review reporting plus a real site-admin moderation queue.
+
+**Completed:**
+- **Backend moderation flow:** Added `POST /api/v1/reviews/:id/flag` so signed-in users can report inappropriate reviews, plus `GET /api/v1/admin/flagged-reviews` and `PATCH /api/v1/admin/flagged-reviews/:id` for site-admin moderation decisions.
+- **Role-gated moderation controls:** Added `server/src/middleware/require-site-admin.ts` so site-admin-only review queue access and moderation actions follow the same session-backed auth model as the rest of the app.
+- **Moderation outcomes:** Flagged reviews now leave the public listing feed while they are under review, and site admins can either restore them to public visibility or remove them entirely using the existing aggregate-safe delete path.
+- **Frontend moderation UX:** Added a `Report` action on church profile reviews for non-authors, surfaced success/error notices around moderation reporting, and added a site-admin review moderation queue to the account page with "Keep live" and "Remove review" actions.
+- **Coverage + verification:** Expanded server review-route coverage for reporting and moderation resolution, re-ran lint/typecheck on both apps, and re-ran the targeted server review route test suite successfully.
+
+**Remaining Notes:**
+- Real transactional email delivery is now the clearest remaining Milestone 2 follow-up, with environment-specific Google OAuth credential setup still needed anywhere live Google sign-in should work.
+- The client review API test file could not be executed in this workspace because Vite/Vitest's local dependency chain is missing `rollup` under `client/node_modules`; client typecheck and lint both passed.
+
+**Verification:**
+- Ran `npm.cmd run typecheck` successfully in both `server/` and `client/`.
+- Ran `npm.cmd run lint` successfully in both `server/` and `client/`.
+- Ran `npm.cmd test -- review.routes.test.ts --runInBand` successfully in `server/`.
+- Attempted `npm.cmd test -- --run src/api/reviews.test.ts` in `client/`, but it failed before running tests because the local Vite install could not resolve `rollup`.
+
+**Files Changed:**
+- `server/src/middleware/require-site-admin.ts`
+- `server/src/routes/review.routes.test.ts`
+- `server/src/routes/review.routes.ts`
+- `server/src/schemas/review.schema.ts`
+- `server/src/services/review.service.ts`
+- `server/src/types/review.types.ts`
+- `client/src/api/reviews.test.ts`
+- `client/src/api/reviews.ts`
+- `client/src/hooks/useReviews.ts`
+- `client/src/pages/AccountPage.tsx`
+- `client/src/pages/ChurchProfilePage.tsx`
+- `client/src/types/review.ts`
+- `PROGRESS.md`
+- `TODO.md`
+
+### 2026-03-29 - Fix Mapbox map not loading on Render
+
+**Focus:** Diagnosed and fixed the interactive map showing the SVG placeholder ("Lightweight map preview") instead of the real Mapbox GL JS map on the deployed Render site.
+
+**Root Cause:** The `VITE_MAPBOX_TOKEN` environment variable was present in `client/.env` locally but `.env` is gitignored (correctly). Since Vite bakes environment variables at build time, the token was absent during the Render static-site build, causing `MapContainer` to fall back to `MapPlaceholder`.
+
+**Fix:**
+- Added `VITE_MAPBOX_TOKEN` with `sync: false` to the frontend service in `render.yaml`, so Render knows the variable exists and it can be set manually in the dashboard.
+- The token value (`pk.eyJ1Ijoi…`) must be pasted into the Render dashboard under the `sa-church-finder` static site → Environment → `VITE_MAPBOX_TOKEN`, then a manual deploy triggered.
+
+**Files Changed:**
+- `render.yaml`
+
+---
+
 ### 2026-03-29 - Google OAuth
 **Focus:** Finished the last planned Milestone 2 auth flow by wiring Google OAuth through the existing session-backed backend and auth screens.
 

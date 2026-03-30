@@ -2,11 +2,14 @@ import { NextFunction, Request, Response, Router } from 'express'
 
 import logger from '../lib/logger.js'
 import { requireAuth } from '../middleware/require-auth.js'
+import { requireSiteAdmin } from '../middleware/require-site-admin.js'
 import { validate } from '../middleware/validate.js'
 import {
   churchReviewsSchema,
   createReviewSchema,
   CreateReviewBody,
+  ResolveFlaggedReviewBody,
+  resolveFlaggedReviewSchema,
   reviewIdSchema,
   updateReviewSchema,
   UpdateReviewBody,
@@ -15,8 +18,11 @@ import {
   addHelpfulVote,
   createReview,
   deleteReview,
+  flagReview,
+  getFlaggedReviews,
   getChurchReviews,
   removeHelpfulVote,
+  resolveFlaggedReview,
   updateReview,
 } from '../services/review.service.js'
 import { IReviewListParams } from '../types/review.types.js'
@@ -151,6 +157,34 @@ router.delete(
   },
 )
 
+router.post(
+  '/reviews/:id/flag',
+  validate(reviewIdSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+
+      logger.info({ reviewId: id, userId }, 'Flagging review for moderation')
+
+      const result = await flagReview(id, userId)
+
+      res.status(result.status === 'flagged' ? 201 : 200).json({
+        data: result,
+        message:
+          result.status === 'already-flagged'
+            ? 'Review is already in the moderation queue'
+            : 'Review flagged for moderation',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
 router.delete(
   '/reviews/:id',
   validate(reviewIdSchema),
@@ -167,6 +201,56 @@ router.delete(
       res.json({
         data: result,
         message: 'Review deleted successfully',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.get(
+  '/admin/flagged-reviews',
+  requireSiteAdmin,
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      logger.info('Fetching flagged reviews for moderation')
+
+      const reviews = await getFlaggedReviews()
+
+      res.json(reviews)
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.patch(
+  '/admin/flagged-reviews/:id',
+  validate(resolveFlaggedReviewSchema),
+  requireSiteAdmin,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+      const input = req.body as ResolveFlaggedReviewBody
+
+      logger.info(
+        { reviewId: id, userId, status: input.status },
+        'Resolving flagged review',
+      )
+
+      const result = await resolveFlaggedReview(id, userId, input)
+
+      res.json({
+        data: result,
+        message:
+          result.status === 'removed'
+            ? 'Flagged review removed'
+            : 'Flagged review approved and restored',
       })
       return
     } catch (error) {
