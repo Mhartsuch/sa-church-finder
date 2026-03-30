@@ -11,6 +11,7 @@ SA Church Finder is an Airbnb-style web app for discovering churches in San Anto
 Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, and review moderation are live end to end. The biggest open items are now real transactional email delivery for auth emails and any environment-specific Google credential setup still needed for live sign-in.
 
 ### Recently Completed
+- Refreshed the signed-in account page UX so it reads like a member dashboard instead of an internal milestone checklist, with clearer empty states and more useful guidance
 - Added review moderation end to end: authenticated review reporting, a site-admin flagged-review queue, and moderation resolution actions on the account page
 - Added Google OAuth end to end: backend `/auth/google` start + callback flow, safe `returnTo` redirect handling, Google account creation/linking, and login/register Google entry points with redirect error messaging
 - Added email verification end to end: verification-token persistence + migration, register-time token issuance, resend/consume APIs, a `/verify-email` page, and an account-page resend flow with opt-in local preview support

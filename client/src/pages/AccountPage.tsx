@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import {
+  ArrowRight,
   CheckCircle2,
+  Compass,
   Heart,
   Mail,
   MapPin,
   MessageSquareText,
   ShieldCheck,
+  Sparkles,
   Star,
   Trash2,
 } from 'lucide-react'
@@ -53,6 +56,13 @@ const formatFlaggedDate = (reviewDate: string): string => {
   }).format(new Date(reviewDate))
 }
 
+const formatRoleLabel = (role: string): string => {
+  return role
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
 const AccountPage = () => {
   const navigate = useNavigate()
   const logoutMutation = useLogout()
@@ -84,6 +94,45 @@ const AccountPage = () => {
 
   if (!user) {
     return null
+  }
+
+  const savedChurchCount = savedChurches.length
+  const writtenReviewCount = userReviews.length
+  const roleLabel = formatRoleLabel(user.role)
+  const isAccountActivityLoading = isSavedChurchesLoading || isUserReviewsLoading
+  const dashboardSummary = isAccountActivityLoading
+    ? 'Pulling together your shortlist and visit notes now.'
+    : savedChurchCount === 0 && writtenReviewCount === 0
+      ? 'Start by saving a few churches that feel promising, then come back here to compare them after a visit.'
+      : savedChurchCount > 0 && writtenReviewCount === 0
+        ? `You already have ${savedChurchCount} saved ${
+            savedChurchCount === 1 ? 'church' : 'churches'
+          }. After you visit one, leave a quick review so this page becomes a useful record.`
+        : `You have ${savedChurchCount} saved ${
+            savedChurchCount === 1 ? 'church' : 'churches'
+          } and ${writtenReviewCount} written ${
+            writtenReviewCount === 1 ? 'review' : 'reviews'
+          } helping you keep track of what stands out.`
+  const nextSteps: string[] = []
+
+  if (isAccountActivityLoading) {
+    nextSteps.push('Your saved churches and review history will show up here as soon as they finish loading.')
+  }
+
+  if (!isAccountActivityLoading && savedChurchCount === 0) {
+    nextSteps.push('Save a few churches so you can compare them later.')
+  }
+
+  if (!isAccountActivityLoading && writtenReviewCount === 0) {
+    nextSteps.push('Leave your first review after a visit so future-you remembers the feel.')
+  }
+
+  if (!user.emailVerified) {
+    nextSteps.push('Verify your email so password recovery and future account notices stay simple.')
+  }
+
+  if (nextSteps.length === 0) {
+    nextSteps.push('Keep exploring and add another church to your shortlist when one feels promising.')
   }
 
   const firstName = user.name.split(' ')[0] || user.name
@@ -196,16 +245,14 @@ const AccountPage = () => {
       <div className='mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12'>
         <div className='mb-8 space-y-3'>
           <p className='text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]'>
-            Account
+            Member dashboard
           </p>
           <h1 className='text-4xl font-bold tracking-tight text-[#222222] sm:text-5xl'>
-            Welcome back, {firstName}.
+            Good to see you, {firstName}.
           </h1>
           <p className='max-w-3xl text-base leading-7 text-[#555555]'>
-            Session-backed auth, Google sign-in, saved churches, written reviews,
-            password recovery, and email verification are now connected end to
-            end. This page is the working home for your shortlist, review
-            history, and account status.
+            This is your running home for saved churches, visit notes, and the
+            account details that help you pick your search back up later.
           </p>
         </div>
 
@@ -222,7 +269,7 @@ const AccountPage = () => {
                   </h2>
                   <p className='mt-1 text-sm text-[#555555]'>{user.email}</p>
                   <p className='mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f8f8f]'>
-                    {user.role.replace('_', ' ')}
+                    {roleLabel}
                   </p>
                 </div>
               </div>
@@ -231,21 +278,25 @@ const AccountPage = () => {
                 <CheckCircle2
                   className={`h-4 w-4 ${user.emailVerified ? 'text-[#1f9d55]' : 'text-[#FF385C]'}`}
                 />
-                {user.emailVerified ? 'Email verified' : 'Email verification pending'}
+                {user.emailVerified ? 'Email ready' : 'Email still needs verification'}
               </div>
             </div>
+
+            <p className='mt-6 max-w-3xl text-sm leading-7 text-[#555555]'>
+              {dashboardSummary}
+            </p>
 
             {!user.emailVerified ? (
               <div className='mt-6 rounded-[28px] border border-[#ffd6df] bg-[#fff7f9] p-5'>
                 <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
                   <div>
                     <h3 className='text-lg font-semibold text-[#222222]'>
-                      Verify your email address
+                      Confirm your email before you need it
                     </h3>
                     <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                      The verification flow is now wired. Send yourself a fresh link
-                      here, and if local preview mode is enabled you&apos;ll get a
-                      direct verification URL without waiting on SMTP.
+                      Verifying {user.email} makes password recovery and future
+                      account notices much smoother. We can send you a fresh link
+                      any time.
                     </p>
                   </div>
 
@@ -259,7 +310,7 @@ const AccountPage = () => {
                   >
                     {requestEmailVerificationMutation.isPending
                       ? 'Sending link...'
-                      : 'Send verification link'}
+                      : 'Email me a fresh link'}
                   </button>
                 </div>
 
@@ -270,7 +321,7 @@ const AccountPage = () => {
                     </div>
                     {verificationNotice.previewUrl ? (
                       <div className='rounded-2xl border border-[#c9defa] bg-[#f5f9ff] px-4 py-3 text-sm text-[#1d4ed8]'>
-                        Development preview enabled:{' '}
+                        Development preview is enabled in this environment:{' '}
                         <a
                           href={verificationNotice.previewUrl}
                           className='font-semibold underline underline-offset-4'
@@ -291,12 +342,12 @@ const AccountPage = () => {
                   <Mail className='h-5 w-5' />
                 </div>
                 <h3 className='mt-4 text-lg font-semibold text-[#222222]'>
-                  Membership details
+                  Your account
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                  Member since {formatMemberSince(user.createdAt)}. Email/password
-                  sign-in, Google sign-in, and your shortlist plus written reviews
-                  now stay tied to the same account.
+                  Member since {formatMemberSince(user.createdAt)}. Whether you
+                  sign in with email/password or Google, your saved churches and
+                  reviews stay tied to the same place.
                 </p>
               </div>
 
@@ -305,13 +356,12 @@ const AccountPage = () => {
                   <ShieldCheck className='h-5 w-5' />
                 </div>
                 <h3 className='mt-4 text-lg font-semibold text-[#222222]'>
-                  Review activity
+                  What this page is for
                 </h3>
                 <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                  Reviews are live for signed-in accounts today, email
-                  verification can be managed from this page, and password
-                  recovery plus Google sign-in now give you two ways back into
-                  your account.
+                  Use this dashboard to keep a shortlist, revisit your notes,
+                  manage email verification, and head back into the search when
+                  you want a few more options.
                 </p>
               </div>
             </div>
@@ -327,8 +377,8 @@ const AccountPage = () => {
                       Saved churches
                     </h3>
                     <p className='text-sm text-[#555555]'>
-                      {savedChurches.length} saved{' '}
-                      {savedChurches.length === 1 ? 'church' : 'churches'}
+                      {savedChurchCount} saved{' '}
+                      {savedChurchCount === 1 ? 'church' : 'churches'}
                     </p>
                   </div>
                 </div>
@@ -340,11 +390,24 @@ const AccountPage = () => {
                   <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
                     {savedChurchesError.message}
                   </p>
-                ) : savedChurches.length === 0 ? (
-                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
-                    Save a church from search results or a profile page and it will
-                    appear here for quick comparison later.
-                  </p>
+                ) : savedChurchCount === 0 ? (
+                  <div className='mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fcfbf8] p-4'>
+                    <div className='flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#FF385C] shadow-airbnb-subtle'>
+                      <Compass className='h-5 w-5' />
+                    </div>
+                    <p className='mt-3 text-sm leading-6 text-[#555555]'>
+                      Your shortlist starts on the search page. Save churches
+                      from results or profile pages so promising options stay in
+                      one place.
+                    </p>
+                    <Link
+                      to='/search'
+                      className='mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#FF385C] hover:underline'
+                    >
+                      Browse churches
+                      <ArrowRight className='h-4 w-4' />
+                    </Link>
+                  </div>
                 ) : (
                   <div className='mt-4 space-y-3'>
                     {savedChurches.map((church) => {
@@ -382,7 +445,7 @@ const AccountPage = () => {
                               disabled={isUpdating}
                               className='rounded-full border border-[#ffd6df] bg-white px-3 py-1.5 text-xs font-semibold text-[#FF385C] transition-colors hover:bg-[#fff1f4] disabled:cursor-not-allowed disabled:opacity-70'
                             >
-                              {isUpdating ? 'Updating...' : 'Saved'}
+                              {isUpdating ? 'Updating...' : 'Remove save'}
                             </button>
                           </div>
 
@@ -405,8 +468,8 @@ const AccountPage = () => {
                   <div>
                     <h3 className='text-lg font-semibold text-[#222222]'>Your reviews</h3>
                     <p className='text-sm text-[#555555]'>
-                      {userReviews.length} written{' '}
-                      {userReviews.length === 1 ? 'review' : 'reviews'}
+                      {writtenReviewCount} written{' '}
+                      {writtenReviewCount === 1 ? 'review' : 'reviews'}
                     </p>
                   </div>
                 </div>
@@ -419,11 +482,23 @@ const AccountPage = () => {
                   <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
                     {userReviewsError.message}
                   </p>
-                ) : userReviews.length === 0 ? (
-                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
-                    Visit any church profile to leave your first review. Once you do,
-                    the latest feedback and edit links will appear here.
-                  </p>
+                ) : writtenReviewCount === 0 ? (
+                  <div className='mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fcfbf8] p-4'>
+                    <div className='flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#2563eb] shadow-airbnb-subtle'>
+                      <Sparkles className='h-5 w-5' />
+                    </div>
+                    <p className='mt-3 text-sm leading-6 text-[#555555]'>
+                      After you visit a church, leave a short review so you can
+                      remember the welcome, tone, and overall fit later on.
+                    </p>
+                    <Link
+                      to='/search'
+                      className='mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#2563eb] hover:underline'
+                    >
+                      Find a church to review
+                      <ArrowRight className='h-4 w-4' />
+                    </Link>
+                  </div>
                 ) : (
                   <div className='mt-4 space-y-3'>
                     {userReviews.map((review) => {
@@ -457,7 +532,7 @@ const AccountPage = () => {
                               className='inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70'
                             >
                               <Trash2 className='h-3.5 w-3.5' />
-                              {isDeleting ? 'Deleting...' : 'Delete'}
+                              {isDeleting ? 'Deleting...' : 'Delete review'}
                             </button>
                           </div>
 
@@ -498,8 +573,7 @@ const AccountPage = () => {
                       Review moderation queue
                     </h3>
                     <p className='text-sm text-[#555555]'>
-                      {flaggedReviews?.meta.total ?? 0} flagged{' '}
-                      {(flaggedReviews?.meta.total ?? 0) === 1 ? 'review' : 'reviews'}
+                      Community-reported reviews waiting for a decision
                     </p>
                   </div>
                 </div>
@@ -513,9 +587,12 @@ const AccountPage = () => {
                     {flaggedReviewsError.message}
                   </p>
                 ) : !flaggedReviews || flaggedReviews.data.length === 0 ? (
-                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
-                    No flagged reviews are waiting for moderation right now.
-                  </p>
+                  <div className='mt-4 rounded-[24px] border border-dashed border-[#b7d1c3] bg-white/80 p-4'>
+                    <p className='text-sm leading-6 text-[#555555]'>
+                      No flagged reviews are waiting for moderation right now.
+                      This queue is clear.
+                    </p>
+                  </div>
                 ) : (
                   <div className='mt-4 space-y-3'>
                     {flaggedReviews.data.map((review) => {
@@ -608,25 +685,23 @@ const AccountPage = () => {
             </div>
 
             <h2 className='mt-6 text-2xl font-bold tracking-tight'>
-              Session and security
+              Keep this dashboard useful
             </h2>
             <p className='mt-3 text-sm leading-7 text-white/85'>
-              Sign in, registration, Google OAuth, logout, current-session checks,
-              password reset, saved churches, helpful voting, and written review
-              history are all connected end to end now. Review moderation is live,
-              and production-ready auth email delivery is now the clearest
-              remaining Milestone 2 follow-up.
+              Search for churches that feel promising, save the ones worth a
+              second look, and leave quick notes after a visit so your decision
+              gets easier over time.
             </p>
 
             <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
               <p className='text-sm font-semibold uppercase tracking-[0.18em] text-white/70'>
-                Next up
+                Next steps
               </p>
-              <ul className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
-                <li>Transactional email delivery for auth</li>
-                <li>Environment-specific Google OAuth credential setup</li>
-                <li>Map bundle follow-up only if the production warning becomes real</li>
-              </ul>
+              <div className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
+                {nextSteps.map((step) => (
+                  <p key={step}>{step}</p>
+                ))}
+              </div>
             </div>
 
             {actionError ? (
@@ -650,7 +725,7 @@ const AccountPage = () => {
                 to='/search'
                 className='rounded-full border border-white/20 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-white/10'
               >
-                Keep exploring churches
+                Explore more churches
               </Link>
             </div>
           </aside>

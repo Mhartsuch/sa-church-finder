@@ -12,6 +12,31 @@
 
 ## Log
 
+### 2026-03-29 - Account Page UX Refresh
+
+**Focus:** Reframed the signed-in account experience so it feels member-facing and useful after login instead of reading like an internal feature-status screen.
+
+**Completed:**
+- **Member-facing copy pass:** Rewrote the account hero, verification messaging, summary cards, and sidebar guidance so the page now talks about shortlists, visits, and account recovery instead of Milestone 2 implementation status.
+- **Better empty states:** Upgraded the saved-churches and reviews empty states with clearer explanations, supportive wording, and direct links back into church search so a new account has an obvious next move.
+- **Small action-label cleanup:** Improved a few account-page labels so actions read more naturally in context, including friendlier verification wording, a clearer saved-state removal action, and a more explicit review-delete label.
+- **Verification:** Re-ran client typecheck and lint successfully, then re-ran the client production build outside the sandbox after the initial sandboxed attempt failed with `spawn EPERM`; the build completed successfully and still shows the existing `mapbox-gl` chunk-size warning.
+
+**Remaining Notes:**
+- Real transactional email delivery is now the clearest remaining Milestone 2 follow-up, with environment-specific Google OAuth credential setup still needed anywhere live Google sign-in should work.
+- The known lazy-loaded `mapbox-gl` chunk-size warning remains unchanged and is still a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd run typecheck` successfully in `client/`.
+- Ran `npm.cmd run lint` successfully in `client/`.
+- Ran `npm.cmd run build` successfully in `client/` after rerunning with elevated execution because the sandbox blocked esbuild process spawning with `spawn EPERM`.
+
+**Files Changed:**
+- `client/src/pages/AccountPage.tsx`
+- `AGENT_BRIEFING.md`
+- `PROGRESS.md`
+- `TODO.md`
+
 ### 2026-03-29 - Search Workspace UX Pass
 
 **Focus:** Tightened the core search experience so the directory is easier to steer, especially on mobile where the old search page hid too much state and too many controls.
