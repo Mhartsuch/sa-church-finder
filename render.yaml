@@ -42,6 +42,8 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://sa-church-finder-api.onrender.com
+      - key: VITE_MAPBOX_TOKEN
+        sync: false  # Set manually in Render dashboard (public token, safe for client)
     routes:
       - type: rewrite
         source: /*

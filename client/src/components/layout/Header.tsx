@@ -1,121 +1,96 @@
-import { useEffect, useRef, useState } from 'react'
-import { Church, Menu, Search, User } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Church, Compass, Menu, Search, User } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { useAuthSession } from '@/hooks/useAuth'
-import { useSearchStore } from '@/stores/search-store'
+import { SearchBar } from '@/components/search/SearchBar';
+import { useAuthSession } from '@/hooks/useAuth';
 
 export const Header = () => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { isLoading, user } = useAuthSession()
-  const query = useSearchStore((state) => state.query)
-  const setQuery = useSearchStore((state) => state.setQuery)
-  const [localValue, setLocalValue] = useState(query)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { isLoading, user } = useAuthSession();
 
-  useEffect(() => {
-    setLocalValue(query)
-  }, [query])
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+  const handleSearchSubmit = () => {
+    if (location.pathname !== '/search') {
+      navigate('/search');
     }
-  }, [])
+  };
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value
-    setLocalValue(value)
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      setQuery(value)
-    }, 300)
-  }
-
-  const handleSearchSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    if (location.pathname !== '/search' && location.pathname !== '/') {
-      navigate('/search')
-    }
-  }
-
-  const firstName = user?.name.split(' ')[0] || 'Account'
+  const firstName = user?.name.split(' ')[0] || 'Account';
   const avatarLabel =
     user?.name
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
-      .join('') || null
+      .join('') || null;
 
   return (
-    <header className='sticky top-0 z-50 border-b border-gray-200 bg-white'>
-      <div className='mx-auto max-w-[2520px] px-4 sm:px-6 lg:px-10'>
-        <div className='flex h-20 items-center justify-between'>
-          <Link to='/' className='flex flex-shrink-0 items-center gap-2'>
-            <div
-              className='flex h-8 w-8 items-center justify-center rounded-lg'
-              style={{ backgroundColor: '#FF385C' }}
-            >
-              <Church className='h-5 w-5 text-white' />
+    <header className="sticky top-0 z-50 border-b border-[#ece8df] bg-white/95 backdrop-blur-md">
+      <div className="mx-auto max-w-[1760px] px-4 sm:px-6 lg:px-10 xl:px-12">
+        <div className="flex min-h-[88px] items-center gap-4">
+          <Link to="/" className="flex flex-shrink-0 items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#ff385c] text-white shadow-airbnb-subtle">
+              <Church className="h-5 w-5" />
             </div>
-            <span className='hidden text-xl font-bold tracking-tight text-[#222222] sm:block'>
-              SA Church Finder
-            </span>
+            <div className="hidden sm:block">
+              <p className="text-lg font-extrabold tracking-[-0.02em] text-[#ff385c]">
+                SA Church Finder
+              </p>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#9a8f80]">
+                San Antonio, TX
+              </p>
+            </div>
           </Link>
 
-          <form onSubmit={handleSearchSubmit} className='mx-6 hidden max-w-[420px] flex-1 md:flex'>
-            <div className='search-pill w-full transition-shadow hover:shadow-airbnb-subtle focus-within:shadow-airbnb-subtle'>
-              <div className='flex w-full items-center'>
-                <Search className='ml-4 h-4 w-4 flex-shrink-0 text-[#222222]' />
-                <input
-                  id='header-search-input'
-                  type='text'
-                  value={localValue}
-                  onChange={handleSearchChange}
-                  placeholder='Search churches...'
-                  className='flex-1 border-0 bg-transparent px-3 py-[10px] text-sm font-medium text-[#222222] outline-none placeholder-gray-400'
-                />
-                <button
-                  type='submit'
-                  className='mr-2 rounded-full bg-[#FF385C] p-[7px] text-white transition-colors hover:bg-[#E00B41]'
-                  aria-label='Submit search'
-                >
-                  <Search className='h-3 w-3' />
-                </button>
-              </div>
+          <div className="hidden flex-1 justify-center lg:flex">
+            <div className="w-full max-w-[760px]">
+              <SearchBar
+                variant="compact"
+                onSubmit={handleSearchSubmit}
+                onOpenFilters={handleSearchSubmit}
+              />
             </div>
-          </form>
+          </div>
 
-          <div className='flex items-center gap-2'>
+          <div className="ml-auto flex items-center gap-2">
             <Link
-              to='/search'
-              className='hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-100 sm:block'
+              to="/search"
+              className="hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-[#f6f3ee] sm:inline-flex"
             >
               Explore
+            </Link>
+
+            <Link
+              to="/search"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#ddd6ca] text-[#222222] transition-colors hover:border-[#222222] hover:bg-[#f8f5ef] lg:hidden"
+              aria-label="Open search"
+            >
+              <Search className="h-4 w-4" />
+            </Link>
+
+            <Link
+              to="/search"
+              className="hidden items-center gap-2 rounded-full border border-[#ddd6ca] bg-white px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222] hover:bg-[#f8f5ef] xl:inline-flex"
+            >
+              <Compass className="h-4 w-4" />
+              Live map
             </Link>
 
             {user ? (
               <>
                 <Link
-                  to='/account'
-                  className='hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-100 sm:block'
+                  to="/account"
+                  className="hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-[#f6f3ee] sm:inline-flex"
                 >
                   {firstName}
                 </Link>
                 <Link
-                  to='/account'
-                  className='flex items-center gap-2.5 rounded-full border border-gray-300 px-3 py-2 transition-shadow hover:shadow-md'
-                  aria-label='Open account'
+                  to="/account"
+                  className="flex items-center gap-2.5 rounded-full border border-[#ddd6ca] bg-white px-3 py-2 transition-shadow hover:shadow-airbnb-subtle"
+                  aria-label="Open account"
                 >
-                  <Menu className='h-4 w-4 text-[#222222]' />
-                  <div className='flex h-[30px] min-w-[30px] items-center justify-center rounded-full bg-[#222222] px-2 text-xs font-semibold text-white'>
+                  <Menu className="h-4 w-4 text-[#222222]" />
+                  <div className="flex h-[32px] min-w-[32px] items-center justify-center rounded-full bg-[#222222] px-2 text-xs font-semibold text-white">
                     {avatarLabel}
                   </div>
                 </Link>
@@ -123,19 +98,19 @@ export const Header = () => {
             ) : (
               <>
                 <Link
-                  to='/login'
-                  className='hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-100 sm:block'
+                  to="/login"
+                  className="hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:bg-[#f6f3ee] sm:inline-flex"
                 >
                   Sign in
                 </Link>
                 <Link
-                  to='/register'
-                  className='flex items-center gap-2.5 rounded-full border border-gray-300 px-3 py-2 transition-shadow hover:shadow-md'
+                  to="/register"
+                  className="flex items-center gap-2.5 rounded-full border border-[#ddd6ca] bg-white px-3 py-2 transition-shadow hover:shadow-airbnb-subtle"
                   aria-label={isLoading ? 'Checking account session' : 'Create account'}
                 >
-                  <Menu className='h-4 w-4 text-[#222222]' />
-                  <div className='flex h-[30px] w-[30px] items-center justify-center rounded-full bg-gray-500'>
-                    <User className='h-4 w-4 text-white' />
+                  <Menu className="h-4 w-4 text-[#222222]" />
+                  <div className="flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#717171]">
+                    <User className="h-4 w-4 text-white" />
                   </div>
                 </Link>
               </>
@@ -144,5 +119,5 @@ export const Header = () => {
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
