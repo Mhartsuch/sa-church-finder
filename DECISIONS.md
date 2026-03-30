@@ -3,6 +3,7 @@
 > Records significant decisions made during this project. Prevents future sessions from re-litigating settled questions or unknowingly contradicting past choices.
 
 ## How to Use This File
+
 - Add a new entry when a meaningful decision is made (architecture, tool choice, scope change, etc.)
 - Include the reasoning — future agents need to understand WHY, not just WHAT
 - Mark decisions as `ACTIVE`, `SUPERSEDED`, or `REVISIT`
@@ -11,7 +12,17 @@
 
 ## Decisions
 
+### DEC-013: Keep Git hooks at the repo root and delegate staged-file checks to the existing client/server toolchains
+
+- **Date:** 2026-03-30
+- **Status:** ACTIVE
+- **Decision:** Add Husky and lint-staged only at the monorepo root, run staged `client/src` files through the client ESLint config, run staged `server/src` files through the server ESLint config, and use root Prettier for staged docs/config/style files instead of trying to introduce separate hook packages inside each workspace.
+- **Alternatives Considered:** Add independent Husky/lint-staged setups inside `client/` and `server/`; run full-project lint/test suites on every commit; wire only Prettier on commit and leave ESLint to CI.
+- **Reasoning:** The repo already exposes reliable root scripts for lint, typecheck, and test, so the cleanest hook model is one shared entrypoint at the root. Running full-project checks on every commit would slow down the inner loop, while dual workspace hook setups would add duplicate config and make local onboarding harder. A root staged-file pass keeps commits fast, still auto-fixes the touched code with the existing ESLint rules, and leaves the heavier full-project gate on pre-push where it already belongs.
+- **Consequences:** Developers should install dependencies from the repo root so Husky's `prepare` step can generate the local hook shim directory. Pre-commit checks are now scoped to staged files, while full lint/typecheck/test still run before push.
+
 ### DEC-012: Runtime-load Mapbox GL from Mapbox's CDN instead of bundling the library into the client build
+
 - **Date:** 2026-03-30
 - **Status:** ACTIVE
 - **Decision:** Keep `react-map-gl` for the map UI, but stop shipping the full `mapbox-gl` package inside the Vite build. Instead, load Mapbox GL JS and its stylesheet from Mapbox's CDN at runtime only when the interactive map is opened, and alias the bundled `mapbox-gl` import to a tiny stub so `react-map-gl` does not pull the package into a large lazy chunk.
@@ -20,6 +31,7 @@
 - **Consequences:** The interactive map now depends on the Mapbox CDN in addition to the existing Mapbox tile/style requests. The `mapbox-gl` npm package still stays in `client/package.json` for types and local development compatibility, but it is no longer bundled into production assets.
 
 ### DEC-011: Keep auth preview links as an explicit fallback even after SMTP delivery is added
+
 - **Date:** 2026-03-29
 - **Status:** ACTIVE
 - **Decision:** Add real SMTP-backed delivery for password reset and email verification emails, but keep the existing opt-in preview-link flags as a local-development fallback instead of replacing them outright.
@@ -28,6 +40,7 @@
 - **Consequences:** Auth flows now support real SMTP delivery and safer local fallbacks at the same time. Live environments still need SMTP credentials configured, and authenticated resend requests will surface a configuration problem when neither SMTP nor preview fallback is available.
 
 ### DEC-010: Layer Google OAuth onto the existing custom session flow instead of adding Passport session state
+
 - **Date:** 2026-03-29
 - **Status:** ACTIVE
 - **Decision:** Implement Google sign-in as a server-initiated OAuth authorization-code flow on top of the app's existing `express-session` user session, with callback state stored in session, safe `returnTo` redirects, and automatic account linking when a verified Google email matches an existing user.
@@ -36,6 +49,7 @@
 - **Consequences:** Each environment now needs valid Google OAuth credentials and a matching authorized redirect URI before live sign-in will work there. Login and register screens use a full-page redirect to the backend, and callback failures return users to the frontend login page with query-based messaging.
 
 ### DEC-009: Ship email verification now with a safe local preview resend path before SMTP is wired
+
 - **Date:** 2026-03-28
 - **Status:** ACTIVE
 - **Decision:** Implement persisted email-verification tokens, register-time issuance, resend and consume endpoints, and a real `/verify-email` frontend flow now, while exposing preview verification links only through an opt-in development flag (`AUTH_EXPOSE_VERIFICATION_PREVIEW=true`).
@@ -44,6 +58,7 @@
 - **Consequences:** Registration now creates a verification token immediately, but local developers should use the account resend action to surface preview links intentionally. Real SMTP delivery remains a shared follow-up for both password reset and verification.
 
 ### DEC-008: Embed viewer helpful-vote state directly in church review payloads
+
 - **Date:** 2026-03-28
 - **Status:** ACTIVE
 - **Decision:** Include `viewerHasVotedHelpful` on each review returned by church review listing endpoints instead of making the client perform a separate vote-state lookup per review card.
@@ -52,6 +67,7 @@
 - **Consequences:** Review payloads are now session-aware, so server tests and client types need to keep this extra boolean in sync. Account review history keeps the field but defaults it to `false` because those screens do not currently expose helpful-vote actions.
 
 ### DEC-007: Ship password recovery now with an opt-in local preview before SMTP is wired
+
 - **Date:** 2026-03-28
 - **Status:** ACTIVE
 - **Decision:** Implement the forgot/reset password flow now with persisted reset tokens, real reset pages, and an opt-in development preview link (`AUTH_EXPOSE_RESET_PREVIEW=true`) instead of waiting for a production-grade SMTP integration before shipping the feature foundation.
@@ -60,6 +76,7 @@
 - **Consequences:** Real outbound email delivery remains a follow-up shared with email verification, but password reset now has stable API/UI contracts and can already be exercised safely in local development when preview mode is intentionally enabled.
 
 ### DEC-006: Ship reviews for signed-in users first and preserve imported aggregates incrementally
+
 - **Date:** 2026-03-28
 - **Status:** ACTIVE
 - **Decision:** Launch the reviews MVP for any authenticated session-backed user now, before the email verification flow is finished, and update church `avgRating` / `reviewCount` incrementally from the stored aggregate values instead of recomputing from only the small written-review table.
@@ -68,6 +85,7 @@
 - **Consequences:** Email verification remains a follow-up tightening step rather than a launch blocker for reviews. Public church pages need to distinguish written SA Church Finder reviews from the broader imported aggregate score/count when those numbers differ.
 
 ### DEC-001: React + Node.js/Express over Next.js
+
 - **Date:** 2026-03-26
 - **Status:** ACTIVE
 - **Decision:** Use separate React SPA (Vite) and Express API server instead of a full-stack Next.js app.
@@ -76,6 +94,7 @@
 - **Consequences:** No built-in SSR for SEO. Will need to add pre-rendering or a meta-tag service for church profile pages. Frontend and backend deploy as separate services.
 
 ### DEC-002: PostgreSQL + PostGIS for geospatial queries
+
 - **Date:** 2026-03-26
 - **Status:** ACTIVE
 - **Decision:** Use PostgreSQL with PostGIS extension for all spatial search operations.
@@ -84,6 +103,7 @@
 - **Consequences:** Requires PostGIS extension on managed database (supported on Railway/Render). Some Prisma operations may need raw SQL for advanced PostGIS functions.
 
 ### DEC-003: Mapbox over Google Maps
+
 - **Date:** 2026-03-26
 - **Status:** ACTIVE
 - **Decision:** Use Mapbox GL JS for all mapping functionality.
@@ -92,6 +112,7 @@
 - **Consequences:** Requires Mapbox account and API token. Need `react-map-gl` wrapper for React integration. Geocoding accuracy should be tested against San Antonio addresses specifically.
 
 ### DEC-004: Session-based auth over JWT
+
 - **Date:** 2026-03-26
 - **Status:** ACTIVE
 - **Decision:** Use server-side sessions with HTTP-only cookies instead of JWT tokens.
@@ -100,6 +121,7 @@
 - **Consequences:** Session store needs PostgreSQL adapter (`connect-pg-simple`). CORS configuration requires `credentials: include` on frontend. Not suitable for a multi-server setup without a shared session store (Redis) — but not needed for MVP scale.
 
 ### DEC-005: Cloudinary for image hosting
+
 - **Date:** 2026-03-26
 - **Status:** ACTIVE
 - **Decision:** Use Cloudinary for all church photo storage, optimization, and delivery.

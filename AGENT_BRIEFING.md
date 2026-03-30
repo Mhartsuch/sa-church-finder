@@ -5,12 +5,16 @@
 ## What You Need to Know Right Now
 
 ### Project in One Paragraph
+
 SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus real account features: email/password auth, Google sign-in, saved churches, written reviews, helpful voting, password recovery, email verification, and SMTP-backed auth email delivery all work end to end across church profiles and the account page.
 
 ### Current Priority
-Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, review moderation, SMTP-backed auth email delivery, and the Mapbox bundle optimization are live end to end. The biggest open items are now environment-specific credential setup for live Google sign-in and SMTP delivery, plus lower-priority workflow polish like Husky/lint-staged or error monitoring.
+
+Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, review moderation, SMTP-backed auth email delivery, the Mapbox bundle optimization, and the local Husky/lint-staged workflow polish are live end to end. The biggest open items are now environment-specific credential setup for live Google sign-in and SMTP delivery, plus optional follow-up tooling like error monitoring.
 
 ### Recently Completed
+
+- Added Husky + lint-staged at the repo root so staged client/server files auto-run through the existing ESLint configs plus Prettier on commit, and the existing pre-push quality gate is now wired through Husky as well
 - Optimized the production map bundle by runtime-loading Mapbox GL JS from Mapbox's CDN and removing the 1.7 MB lazy `mapbox-gl` chunk from the Vite build
 - Added SMTP-backed auth email delivery for password reset and email verification, while preserving opt-in preview-link fallback for local development
 - Refreshed the signed-in account page UX so it reads like a member dashboard instead of an internal milestone checklist, with clearer empty states and more useful guidance
@@ -34,6 +38,7 @@ Keep moving through Milestone 2 now that auth, Google sign-in, password recovery
 - Re-stabilized the local baseline so lint, typecheck, tests, and production builds all pass
 
 ### Known Blockers
+
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - Google OAuth is implemented in-app now, but each environment still needs valid Google OAuth credentials plus an authorized redirect URI before live sign-in will work there
 - Auth email delivery is implemented in-app now, but each environment still needs valid SMTP settings before password reset and email verification will send real emails there
@@ -41,6 +46,7 @@ Keep moving through Milestone 2 now that auth, Google sign-in, password recovery
 ## Where Things Are
 
 ### File Structure Overview
+
 ```text
 sa-church-finder/
 |-- client/                     # React + Vite frontend
@@ -65,6 +71,7 @@ sa-church-finder/
 ```
 
 ### Important Files to Read
+
 1. This file (`AGENT_BRIEFING.md`)
 2. `PROJECT_CONTEXT.md` for the broader product context
 3. `ARCHITECTURE.md` for system design and data flow
@@ -75,6 +82,7 @@ sa-church-finder/
 ## Conventions to Follow
 
 ### Naming
+
 - Files: kebab-case (`church-service.ts`, `review-card.tsx`)
 - Components: PascalCase (`ChurchCard.tsx`, `InteractiveMap.tsx`)
 - Functions and variables: camelCase (`getChurchById`, `currentFilters`)
@@ -83,18 +91,21 @@ sa-church-finder/
 - Branches: `type/description` (`feature/church-search`, `fix/map-clustering`)
 
 ### Style
+
 - TypeScript strict mode; avoid `any`
 - Functional components with hooks only
 - Named exports preferred over default exports except page components
 - API responses should follow the `{ data, meta, error }` envelope pattern
 
 ### Workflow
+
 - Feature branches off `main`
 - Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.)
 - New features should include tests where practical
 - Run `npm run lint` and `npm run typecheck` before committing
 
 ## Do Not Do These Things
+
 1. Do not add dependencies without checking whether existing dependencies already cover the use case.
 2. Do not use `any` in TypeScript; use `unknown` and narrow, or define proper types.
 3. Do not store secrets in code; use environment variables.
@@ -103,11 +114,14 @@ sa-church-finder/
 6. Do not assume old docs describing the in-memory data layer are still accurate; the app now depends on Prisma/PostGIS.
 
 ## Session End Checklist
+
 When you finish a session, update:
+
 - This file's current state summary if priorities changed
 - `PROGRESS.md` with what was accomplished
 - `DECISIONS.md` if any significant choices were made
 - `TODO.md` to reflect completed and new tasks
 
 ---
-*Last updated: 2026-03-30 by Codex*
+
+_Last updated: 2026-03-30 by Codex_

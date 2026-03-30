@@ -3,12 +3,14 @@
 > Persistent task tracking that survives across sessions. Agents should check this before starting work and update it when finishing.
 
 ## Priorities
+
 - **P0 - Critical:** Blocking progress, fix immediately
 - **P1 - High:** Important for current milestone
 - **P2 - Medium:** Should be done soon
 - **P3 - Low:** Nice to have, do when convenient
 
 ## Current Milestone
+
 **Milestone:** Milestone 2 - User Accounts & Reviews (Foundation)  
 **Target Date:** TBD  
 **Goal:** Land the authentication and account foundation needed for reviews, saved churches, and user profiles.
@@ -18,10 +20,12 @@
 ## Tasks
 
 ### P0 - Critical
+
 - [x] Set up PostgreSQL + PostGIS database, run Prisma migrations, seed database - Supabase cloud (us-west-2), completed 2026-03-28
 - [x] **Deploy to Render** - backend + frontend live on Render, env wiring verified, and live site smoke-tested end-to-end (2026-03-28)
 
 ### P1 - High
+
 - [x] Replace placeholder auth API with real local session-based auth (`register`, `login`, `logout`, `me`) - completed 2026-03-28
 - [x] Add auth UI and client-side current-session integration - completed 2026-03-28
 - [x] Build saved churches MVP (save/unsave on cards + profile, account list) - completed 2026-03-28
@@ -36,6 +40,7 @@
 - [x] Make URL reflect search state (shareable/bookmarkable) - completed 2026-03-27
 
 ### P2 - Medium
+
 - [ ] Configure real SMTP provider credentials in each live environment so auth emails send outside local development
 - [x] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist - completed 2026-03-29
 - [x] Add responsive layout (mobile tabs for map/list) - completed 2026-03-27
@@ -49,12 +54,15 @@
 - [x] Review lazy-loaded Mapbox bundle size warning and optimize the production bundle by runtime-loading Mapbox GL from CDN instead of bundling the library - completed 2026-03-30
 
 ### P3 - Low
-- [ ] Add Husky + lint-staged for pre-commit hooks
+
+- [x] Add Husky + lint-staged for pre-commit hooks - completed 2026-03-30
 - [x] Set up GitHub Actions CI (lint, typecheck, test on PRs) - workflows created, CI fixes applied (2026-03-27)
 - [ ] Set up error monitoring (Sentry free tier)
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+
+- [x] Husky + lint-staged workflow polish - added root Husky hooks, staged-file ESLint/Prettier rules that reuse the existing client/server configs, a manual `npm run lint-staged` entry point, and documented the new local hook behavior in Quick Start (2026-03-30)
 - [x] Mapbox bundle optimization - moved Mapbox GL JS to a runtime CDN loader, aliased the bundled package to a tiny stub, removed the 1.7 MB lazy `mapbox-gl` chunk from the client build, and kept the interactive map flow unchanged (2026-03-30)
 - [x] Account page UX refresh - rewrote the signed-in copy to feel member-facing, improved saved/review empty states with clearer next actions, and replaced the internal-looking sidebar checklist with user-centered guidance (2026-03-29)
 - [x] Auth email delivery - added SMTP-backed password reset + email verification delivery, preserved opt-in preview links for local development, added auth email templates, Render/env wiring docs, and server auth test coverage (2026-03-29)
@@ -112,6 +120,7 @@
 ---
 
 ## Backlog
+
 - Church data import pipeline (Google Places API -> database)
 - Email notification system (welcome, review responses, claim updates)
 - Analytics dashboard for church admins
@@ -120,8 +129,10 @@
 - Multi-city expansion architecture
 
 ## Known Bugs
+
 - ~~Mapbox map not loading on Render (showing SVG placeholder instead)~~ — **Fixed 2026-03-29**: `VITE_MAPBOX_TOKEN` was missing from Render env vars; added to `render.yaml`. Token must be set in Render dashboard and a redeploy triggered.
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-30 (Mapbox bundle optimization landed)*
+
+_Last updated: 2026-03-30 (Mapbox bundle optimization landed)_

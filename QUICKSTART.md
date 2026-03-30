@@ -1,6 +1,7 @@
 # Quick Start
 
 ## Prerequisites
+
 - Node.js 20+ and npm 10+
 - Docker Desktop (optional, for local PostgreSQL + PostGIS)
 
@@ -11,6 +12,9 @@
 npm install --prefix .
 npm install --prefix client
 npm install --prefix server
+
+# Root install also runs the Husky prepare step so local git hooks are wired
+# for pre-commit staged-file checks and the pre-push quality gate.
 
 # 2. Start the database
 # Skip this if you are using Supabase or another hosted Postgres/PostGIS DB
@@ -85,24 +89,26 @@ If you rename either Render service or switch to a custom domain, update `VITE_A
 
 ## Useful Commands
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start both client and server in dev mode |
-| `npm run dev:client` | Start only the frontend |
-| `npm run dev:server` | Start only the backend |
-| `npm run build` | Build both for production |
-| `npm run lint` | Lint both client and server |
-| `npm run typecheck` | TypeScript check both |
-| `npm run test` | Run all tests |
-| `npm run db:migrate` | Run Prisma migrations |
-| `npm run db:seed` | Seed the database |
-| `npm run db:studio` | Open Prisma Studio |
-| `npm run docker:up` | Start the local PostgreSQL container |
-| `npm run docker:down` | Stop the local PostgreSQL container |
+| Command               | Description                                    |
+| --------------------- | ---------------------------------------------- |
+| `npm run dev`         | Start both client and server in dev mode       |
+| `npm run dev:client`  | Start only the frontend                        |
+| `npm run dev:server`  | Start only the backend                         |
+| `npm run build`       | Build both for production                      |
+| `npm run lint`        | Lint both client and server                    |
+| `npm run typecheck`   | TypeScript check both                          |
+| `npm run test`        | Run all tests                                  |
+| `npm run lint-staged` | Run staged-file formatting/lint rules manually |
+| `npm run db:migrate`  | Run Prisma migrations                          |
+| `npm run db:seed`     | Seed the database                              |
+| `npm run db:studio`   | Open Prisma Studio                             |
+| `npm run docker:up`   | Start the local PostgreSQL container           |
+| `npm run docker:down` | Stop the local PostgreSQL container            |
 
 ## API Endpoints (Milestone 1)
 
 ### Search Churches
+
 ```text
 GET /api/v1/churches?lat=29.4241&lng=-98.4936&radius=10&q=baptist&denomination=Baptist&sort=distance&page=1&pageSize=20
 ```
@@ -110,6 +116,7 @@ GET /api/v1/churches?lat=29.4241&lng=-98.4936&radius=10&q=baptist&denomination=B
 Query parameters: `lat`, `lng`, `radius`, `q`, `denomination`, `day`, `time`, `language`, `amenities`, `sort`, `page`, `pageSize`, `bounds`
 
 ### Church Detail
+
 ```text
 GET /api/v1/churches/:slug
 ```
