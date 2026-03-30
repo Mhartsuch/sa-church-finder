@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-015: Start Milestone 3 with public church-events reading before church-claim and admin tooling
+
+- **Date:** 2026-03-30
+- **Status:** ACTIVE
+- **Decision:** Use a public per-church events API and church-profile events section as the first Milestone 3 slice, with type/date filtering and seeded upcoming event data, instead of waiting for the heavier church-claim and admin-dashboard tooling before shipping anything from the new milestone.
+- **Alternatives Considered:** Start Milestone 3 with claim-request workflows first; postpone all events work until church admins could create/edit events themselves; build a cross-church events feed before proving the per-church experience.
+- **Reasoning:** The database already had `Event` support, and church profile pages were already a strong discovery surface, so a read-first events slice could create immediate user value with relatively little product risk. Shipping public event visibility first also lets the team validate how events should look and filter on the profile page before committing to the much larger permissions, moderation, and dashboard work required for church-admin tooling.
+- **Consequences:** Milestone 3 now has a user-visible events foundation on church profiles. The next follow-up is claim/admin ownership so churches can manage those events directly, and recurring-event metadata is stored but not yet expanded into generated occurrence series.
+
 ### DEC-014: Keep Sentry optional and env-gated, and only report truly unexpected server failures
 
 - **Date:** 2026-03-30

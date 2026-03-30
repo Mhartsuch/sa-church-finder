@@ -11,9 +11,9 @@
 
 ## Current Milestone
 
-**Milestone:** Milestone 2 - User Accounts & Reviews (Foundation)  
+**Milestone:** Milestone 3 - Events & Community (Foundation)  
 **Target Date:** TBD  
-**Goal:** Land the authentication and account foundation needed for reviews, saved churches, and user profiles.
+**Goal:** Start surfacing church-specific events and the first community-management workflows so profiles feel alive beyond static listing data.
 
 ---
 
@@ -26,6 +26,9 @@
 
 ### P1 - High
 
+- [x] Launch church events foundation on church profile pages (public events API, type/date filters, upcoming-this-week summary, and seeded sample events) - completed 2026-03-30
+- [ ] Build church claim request flow (claim CTA on unclaimed listings + authenticated request submission)
+- [ ] Add church-admin event creation/edit tools after the claim flow lands
 - [x] Replace placeholder auth API with real local session-based auth (`register`, `login`, `logout`, `me`) - completed 2026-03-28
 - [x] Add auth UI and client-side current-session integration - completed 2026-03-28
 - [x] Build saved churches MVP (save/unsave on cards + profile, account list) - completed 2026-03-28
@@ -41,7 +44,9 @@
 
 ### P2 - Medium
 
-- [ ] Configure real SMTP provider credentials in each live environment so auth emails send outside local development
+- [x] Configure real SMTP provider credentials in each live environment so auth emails send outside local development - user confirmed live setup completed 2026-03-30
+- [ ] Add aggregated events discovery/feed page after per-church events are stable
+- [ ] Expand recurring-event handling beyond stored RRULE metadata
 - [x] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist - completed 2026-03-29
 - [x] Add responsive layout (mobile tabs for map/list) - completed 2026-03-27
 - [x] Add loading skeleton animations to ChurchCard - shimmer effect component, completed 2026-03-27
@@ -62,6 +67,7 @@
 
 ### Completed
 
+- [x] Milestone 3 events foundation - added a public `/api/v1/churches/:slug/events` endpoint with type/date filtering, seeded upcoming events, and a church-profile events section with upcoming-this-week and next-gathering summaries (2026-03-30)
 - [x] Backend integration readiness visibility - added safe `/api/v1/health` integration status for SMTP/Google/Sentry, production startup warnings for missing live credentials, and stricter SMTP partial-config validation so misconfigured auth email delivery is easier to spot before testing (2026-03-30)
 - [x] Husky + lint-staged workflow polish - added root Husky hooks, staged-file ESLint/Prettier rules that reuse the existing client/server configs, a manual `npm run lint-staged` entry point, and documented the new local hook behavior in Quick Start (2026-03-30)
 - [x] Error monitoring foundation - added env-gated Sentry setup for the React SPA and Express API, a browser crash fallback, server-side exception capture that skips normal 4xx app errors, Render/env example wiring, and config tests (2026-03-30)
@@ -137,4 +143,4 @@
 
 ---
 
-_Last updated: 2026-03-30 (integration readiness health/status pass landed)_
+_Last updated: 2026-03-30 (Milestone 3 church-events foundation landed; user confirmed live SMTP setup)_

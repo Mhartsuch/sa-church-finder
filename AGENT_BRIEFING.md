@@ -6,14 +6,15 @@
 
 ### Project in One Paragraph
 
-SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus real account features: email/password auth, Google sign-in, saved churches, written reviews, helpful voting, password recovery, email verification, and SMTP-backed auth email delivery all work end to end across church profiles and the account page.
+SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 auth and account work is now complete in-app, and Milestone 3 has started with a public church-events foundation: church profile pages can now load upcoming events via a dedicated API with type/date filters, seeded data, and upcoming-this-week summary cards.
 
 ### Current Priority
 
-Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, review moderation, SMTP-backed auth email delivery, the Mapbox bundle optimization, the local Husky/lint-staged workflow polish, the optional Sentry monitoring foundation, and the new deployment-readiness health signals are live end to end. The biggest open items are still environment-specific credential setup for live SMTP delivery, Google sign-in, and any future product/backlog work beyond the current milestone.
+Keep moving through Milestone 3 now that the public church-events foundation is live on profile pages. The next highest-value slices are the church-claim request flow, admin ownership tooling for event management, and any follow-up events discovery surfaces beyond the current per-church experience. SMTP is now considered configured in the live environments per user confirmation, while Google sign-in and optional Sentry still depend on environment-specific credentials where those integrations should be active.
 
 ### Recently Completed
 
+- Added the Milestone 3 church-events foundation end to end: new `GET /api/v1/churches/:slug/events` filtering API, seeded upcoming sample events, and a church-profile events section with type/date filters plus upcoming-this-week and next-gathering summaries
 - Added deployment-readiness visibility for backend integrations: `/api/v1/health` now reports safe readiness status for SMTP email delivery, Google OAuth, and server-side Sentry, and production startup logs warn when those integrations are missing or only partially configured
 - Tightened SMTP configuration validation so half-configured credentials no longer look "ready"; for example, setting `SMTP_USER` without `SMTP_PASS` now correctly reports a partial setup instead of silently attempting unauthenticated delivery
 - Added env-gated Sentry monitoring to both runtimes: browser-side initialization plus a root error boundary fallback in the React app, and server-side exception capture plus fatal-process flushing in the Express API
@@ -44,7 +45,6 @@ Keep moving through Milestone 2 now that auth, Google sign-in, password recovery
 
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - Google OAuth is implemented in-app now, but each environment still needs valid Google OAuth credentials plus an authorized redirect URI before live sign-in will work there
-- Auth email delivery is implemented in-app now, but each environment still needs valid SMTP settings before password reset and email verification will send real emails there
 - `/api/v1/health` now exposes safe readiness flags for SMTP, Google OAuth, and server Sentry so deployment setup gaps can be checked without digging through logs
 - Sentry monitoring is implemented in-app now, but each environment still needs `SENTRY_DSN` and/or `VITE_SENTRY_DSN` configured before events will actually flow to Sentry there
 

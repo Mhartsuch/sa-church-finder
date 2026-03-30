@@ -22,6 +22,7 @@ import {
 import ReviewForm from '@/components/reviews/ReviewForm';
 import { useAuthSession } from '@/hooks/useAuth';
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches';
+import { useChurchEvents } from '@/hooks/useEvents';
 import {
   useAddHelpfulVote,
   useChurchReviews,
@@ -30,15 +31,33 @@ import {
 } from '@/hooks/useReviews';
 import { getChurchMonogram, getChurchVisualTheme } from '@/lib/church-visuals';
 import { IChurchService } from '@/types/church';
+import { ChurchEventType, IChurchEvent } from '@/types/event';
 import { IReview, ReviewSort } from '@/types/review';
 import { formatRating, formatServiceTime, getDayName } from '@/utils/format';
 
 const DAY_ORDER = [0, 1, 2, 3, 4, 5, 6];
+type EventTypeFilter = ChurchEventType | 'all';
+type EventDateRange = 'this-week' | 'next-30-days' | 'all-upcoming';
+
 const REVIEW_SORT_OPTIONS: Array<{ value: ReviewSort; label: string }> = [
   { value: 'recent', label: 'Most recent' },
   { value: 'highest', label: 'Highest rated' },
   { value: 'lowest', label: 'Lowest rated' },
   { value: 'helpful', label: 'Most helpful' },
+];
+const EVENT_TYPE_OPTIONS: Array<{ value: EventTypeFilter; label: string }> = [
+  { value: 'all', label: 'All event types' },
+  { value: 'service', label: 'Services' },
+  { value: 'community', label: 'Community' },
+  { value: 'volunteer', label: 'Volunteer' },
+  { value: 'study', label: 'Study groups' },
+  { value: 'youth', label: 'Youth' },
+  { value: 'other', label: 'Other' },
+];
+const EVENT_DATE_RANGE_OPTIONS: Array<{ value: EventDateRange; label: string }> = [
+  { value: 'this-week', label: 'This week' },
+  { value: 'next-30-days', label: 'Next 30 days' },
+  { value: 'all-upcoming', label: 'All upcoming' },
 ];
 
 const groupServicesByDay = (services: IChurchService[]) => {
@@ -85,6 +104,74 @@ const getReviewSubratings = (review: IReview): Array<{ label: string; value: num
   ].filter((item) => item.value > 0);
 };
 
+const formatEventDate = (date: string): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(date));
+};
+
+const formatEventTimeRange = (startTime: string, endTime?: string | null): string => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  const startLabel = formatter.format(new Date(startTime));
+  if (!endTime) {
+    return startLabel;
+  }
+
+  return `${startLabel} - ${formatter.format(new Date(endTime))}`;
+};
+
+const formatEventTypeLabel = (eventType: ChurchEventType): string => {
+  switch (eventType) {
+    case 'service':
+      return 'Service';
+    case 'community':
+      return 'Community';
+    case 'volunteer':
+      return 'Volunteer';
+    case 'study':
+      return 'Study';
+    case 'youth':
+      return 'Youth';
+    default:
+      return 'Community life';
+  }
+};
+
+const buildEventDateWindow = (
+  baseIso: string,
+  range: EventDateRange,
+): { from: string; to?: string } => {
+  const fromDate = new Date(baseIso);
+
+  if (range === 'all-upcoming') {
+    return {
+      from: fromDate.toISOString(),
+    };
+  }
+
+  const toDate = new Date(fromDate);
+  toDate.setDate(toDate.getDate() + (range === 'this-week' ? 7 : 30));
+
+  return {
+    from: fromDate.toISOString(),
+    to: toDate.toISOString(),
+  };
+};
+
+const isEventWithinNextWeek = (event: IChurchEvent): boolean => {
+  const now = Date.now();
+  const nextWeek = now + 7 * 24 * 60 * 60 * 1000;
+  const eventStart = new Date(event.startTime).getTime();
+
+  return eventStart >= now && eventStart <= nextWeek;
+};
+
 export const ChurchProfilePage = () => {
   const location = useLocation();
   const { slug } = useParams<{ slug: string }>();
@@ -95,11 +182,24 @@ export const ChurchProfilePage = () => {
   const flagReviewMutation = useFlagReview();
   const removeHelpfulVoteMutation = useRemoveHelpfulVote();
   const { data: church, isLoading, error } = useChurch(slug ?? '');
+  const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>('all');
+  const [eventDateRange, setEventDateRange] = useState<EventDateRange>('next-30-days');
+  const [eventWindowBaseIso, setEventWindowBaseIso] = useState(() => new Date().toISOString());
   const [reviewSort, setReviewSort] = useState<ReviewSort>('recent');
   const [reviewPage, setReviewPage] = useState(1);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [helpfulVoteError, setHelpfulVoteError] = useState<string | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const eventWindow = buildEventDateWindow(eventWindowBaseIso, eventDateRange);
+  const {
+    data: churchEventsResponse,
+    isLoading: isEventsLoading,
+    error: eventsError,
+  } = useChurchEvents(slug ?? '', {
+    type: eventTypeFilter === 'all' ? undefined : eventTypeFilter,
+    from: eventWindow.from,
+    to: eventWindow.to,
+  });
   const {
     data: churchReviews,
     isLoading: isReviewsLoading,
@@ -146,6 +246,9 @@ export const ChurchProfilePage = () => {
   const currentUserReview = churchReviews?.currentUserReview ?? null;
   const writtenReviewCount = churchReviews?.meta.total ?? 0;
   const reviewTotalPages = churchReviews?.meta.totalPages ?? 1;
+  const churchEvents = churchEventsResponse?.data ?? [];
+  const upcomingThisWeekCount = churchEvents.filter(isEventWithinNextWeek).length;
+  const nextUpcomingEvent = churchEvents[0] ?? null;
 
   const handleToggleSave = async () => {
     setSaveError(null);
@@ -236,6 +339,11 @@ export const ChurchProfilePage = () => {
         flagError instanceof Error ? flagError.message : 'Unable to report that review right now.',
       );
     }
+  };
+
+  const handleEventDateRangeChange = (value: EventDateRange) => {
+    setEventDateRange(value);
+    setEventWindowBaseIso(new Date().toISOString());
   };
 
   return (
@@ -439,6 +547,180 @@ export const ChurchProfilePage = () => {
                 </div>
               </div>
             ) : null}
+
+            <div className="border-b border-gray-200 py-8">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <h2 className="text-[22px] font-semibold text-[#222222]">Events and community</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#555555]">
+                    See what is happening beyond Sunday morning, from studies and service days to
+                    community nights that help you get a feel for the church.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
+                  <label>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8f8f8f]">
+                      Event type
+                    </span>
+                    <select
+                      value={eventTypeFilter}
+                      onChange={(event) => {
+                        setEventTypeFilter(event.target.value as EventTypeFilter);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                    >
+                      {EVENT_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8f8f8f]">
+                      Date range
+                    </span>
+                    <select
+                      value={eventDateRange}
+                      onChange={(event) => {
+                        handleEventDateRangeChange(event.target.value as EventDateRange);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                    >
+                      {EVENT_DATE_RANGE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                <div className="rounded-[28px] border border-[#f0e7da] bg-[#f8f2e9] p-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8c5b2e]">
+                    Upcoming this week
+                  </p>
+                  <p className="mt-3 text-4xl font-semibold text-[#222222]">
+                    {isEventsLoading ? '...' : upcomingThisWeekCount}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[#6b5a46]">
+                    {isEventsLoading
+                      ? 'Checking what is coming up over the next seven days.'
+                      : upcomingThisWeekCount > 0
+                        ? `${upcomingThisWeekCount} ${upcomingThisWeekCount === 1 ? 'event is' : 'events are'} on the calendar this week.`
+                        : 'Nothing is scheduled in the next seven days yet, but more upcoming gatherings may still be listed below.'}
+                  </p>
+                </div>
+
+                <div className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8f8f8f]">
+                    Next gathering
+                  </p>
+                  {isEventsLoading ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="h-5 w-40 animate-pulse rounded bg-gray-200" />
+                      <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+                    </div>
+                  ) : nextUpcomingEvent ? (
+                    <div className="mt-4">
+                      <p className="text-xl font-semibold text-[#222222]">
+                        {nextUpcomingEvent.title}
+                      </p>
+                      <p className="mt-2 text-sm text-[#555555]">
+                        {formatEventDate(nextUpcomingEvent.startTime)} at{' '}
+                        {formatEventTimeRange(
+                          nextUpcomingEvent.startTime,
+                          nextUpcomingEvent.endTime,
+                        )}
+                      </p>
+                      <p className="mt-1 text-sm text-[#717171]">
+                        {nextUpcomingEvent.locationOverride || church.address}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm leading-6 text-[#555555]">
+                      No upcoming events match the current filters yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {eventsError ? (
+                <div className="mt-6 rounded-[28px] border border-[#ffb4c1] bg-[#fff1f4] px-5 py-4 text-sm text-[#9f1239]">
+                  {eventsError.message}
+                </div>
+              ) : isEventsLoading ? (
+                <div className="mt-6 space-y-4">
+                  {[0, 1].map((item) => (
+                    <div
+                      key={item}
+                      className="animate-pulse rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle"
+                    >
+                      <div className="h-4 w-24 rounded bg-gray-200" />
+                      <div className="mt-4 h-6 w-56 rounded bg-gray-200" />
+                      <div className="mt-3 h-4 w-full rounded bg-gray-200" />
+                      <div className="mt-2 h-4 w-4/5 rounded bg-gray-200" />
+                    </div>
+                  ))}
+                </div>
+              ) : churchEvents.length > 0 ? (
+                <div className="mt-6 space-y-4">
+                  {churchEvents.map((event) => (
+                    <article
+                      key={event.id}
+                      className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle"
+                    >
+                      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-[#f3ede3] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8c5b2e]">
+                              {formatEventTypeLabel(event.eventType)}
+                            </span>
+                            {event.isRecurring ? (
+                              <span className="rounded-full bg-[#eef5ff] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d4ed8]">
+                                Recurring
+                              </span>
+                            ) : null}
+                          </div>
+                          <h3 className="mt-4 text-xl font-semibold text-[#222222]">
+                            {event.title}
+                          </h3>
+                          {event.description ? (
+                            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#555555]">
+                              {event.description}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <div className="rounded-[24px] bg-[#fcfbf8] px-5 py-4 text-sm text-[#555555] lg:min-w-[250px]">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="h-4 w-4 text-[#222222]" />
+                            <span>{formatEventDate(event.startTime)}</span>
+                          </div>
+                          <div className="mt-3 flex items-center gap-3">
+                            <Clock className="h-4 w-4 text-[#222222]" />
+                            <span>{formatEventTimeRange(event.startTime, event.endTime)}</span>
+                          </div>
+                          <div className="mt-3 flex items-center gap-3">
+                            <MapPin className="h-4 w-4 text-[#222222]" />
+                            <span>{event.locationOverride || church.address}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-[#fcfbf8] px-6 py-8 text-sm leading-7 text-[#555555]">
+                  No events match this filter combination yet. Try widening the date range or
+                  switching back to all event types.
+                </div>
+              )}
+            </div>
 
             {church.amenities.length > 0 || church.languages.length > 0 ? (
               <div className="border-b border-gray-200 py-8">

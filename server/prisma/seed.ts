@@ -16,6 +16,18 @@ function generateSlug(name: string): string {
     .trim()
 }
 
+function createFutureDate(daysFromNow: number, hour: number, minute: number): Date {
+  const date = new Date()
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + daysFromNow)
+  date.setHours(hour, minute, 0, 0)
+  return date
+}
+
+function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60 * 1000)
+}
+
 // ──────────────────────────────────────────────
 // Church seed data — 22 real San Antonio churches
 // Coordinates verified against Google Maps
@@ -580,6 +592,7 @@ async function main() {
   await prisma.churchPhoto.deleteMany()
   await prisma.churchService.deleteMany()
   await prisma.churchClaim.deleteMany()
+  await prisma.emailVerificationToken.deleteMany()
   await prisma.passwordResetToken.deleteMany()
   await prisma.user.deleteMany()
   await prisma.church.deleteMany()
@@ -744,6 +757,136 @@ async function main() {
   console.log(`Created ${reviewData.length} sample reviews`)
 
   // ── Create saved churches ──
+  // Create sample events
+  const eventBlueprints = [
+    {
+      title: 'Neighborhood Dinner',
+      description:
+        'A casual shared meal designed for newcomers, longtime members, and anyone looking to reconnect midweek.',
+      eventType: 'community',
+      startHour: 18,
+      startMinute: 30,
+      durationMinutes: 90,
+      locationOverride: 'Fellowship Hall',
+      isRecurring: false,
+      recurrenceRule: null,
+    },
+    {
+      title: 'Volunteer Service Day',
+      description:
+        'Serve alongside the church team on a practical neighborhood project with a short prayer huddle before kickoff.',
+      eventType: 'volunteer',
+      startHour: 9,
+      startMinute: 0,
+      durationMinutes: 180,
+      locationOverride: 'Ministry Center',
+      isRecurring: false,
+      recurrenceRule: null,
+    },
+    {
+      title: 'Midweek Bible Study',
+      description:
+        'An open Bible study with discussion-friendly teaching and time to meet other households in the church.',
+      eventType: 'study',
+      startHour: 19,
+      startMinute: 0,
+      durationMinutes: 75,
+      locationOverride: 'Room 201',
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;COUNT=8',
+    },
+    {
+      title: 'Family Worship Night',
+      description:
+        'A relaxed evening of worship, testimony, and prayer for families, friends, and first-time guests.',
+      eventType: 'service',
+      startHour: 18,
+      startMinute: 0,
+      durationMinutes: 90,
+      locationOverride: null,
+      isRecurring: false,
+      recurrenceRule: null,
+    },
+    {
+      title: 'Youth Hangout',
+      description:
+        'Students gather for games, a short message, and small-group conversation led by the youth team.',
+      eventType: 'youth',
+      startHour: 18,
+      startMinute: 30,
+      durationMinutes: 120,
+      locationOverride: 'Student Center',
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;COUNT=6',
+    },
+    {
+      title: 'Prayer and Care Gathering',
+      description:
+        'A smaller community gathering focused on prayer, encouragement, and meeting practical needs together.',
+      eventType: 'other',
+      startHour: 18,
+      startMinute: 45,
+      durationMinutes: 75,
+      locationOverride: 'Prayer Room',
+      isRecurring: false,
+      recurrenceRule: null,
+    },
+  ] as const
+
+  let createdEventCount = 0
+
+  for (const [index, church] of createdChurches.entries()) {
+    const primaryBlueprint = eventBlueprints[index % eventBlueprints.length]
+    const primaryStart = createFutureDate(
+      (index % 6) + 1,
+      primaryBlueprint.startHour,
+      primaryBlueprint.startMinute,
+    )
+
+    await prisma.event.create({
+      data: {
+        churchId: church.id,
+        title: primaryBlueprint.title,
+        description: primaryBlueprint.description,
+        eventType: primaryBlueprint.eventType,
+        startTime: primaryStart,
+        endTime: addMinutes(primaryStart, primaryBlueprint.durationMinutes),
+        locationOverride: primaryBlueprint.locationOverride,
+        isRecurring: primaryBlueprint.isRecurring,
+        recurrenceRule: primaryBlueprint.recurrenceRule,
+        createdById: adminUser.id,
+      },
+    })
+    createdEventCount += 1
+
+    if (church.isClaimed) {
+      const secondaryBlueprint = eventBlueprints[(index + 2) % eventBlueprints.length]
+      const secondaryStart = createFutureDate(
+        (index % 8) + 8,
+        secondaryBlueprint.startHour,
+        secondaryBlueprint.startMinute,
+      )
+
+      await prisma.event.create({
+        data: {
+          churchId: church.id,
+          title: `${secondaryBlueprint.title} at ${church.name}`,
+          description: secondaryBlueprint.description,
+          eventType: secondaryBlueprint.eventType,
+          startTime: secondaryStart,
+          endTime: addMinutes(secondaryStart, secondaryBlueprint.durationMinutes),
+          locationOverride: secondaryBlueprint.locationOverride,
+          isRecurring: secondaryBlueprint.isRecurring,
+          recurrenceRule: secondaryBlueprint.recurrenceRule,
+          createdById: adminUser.id,
+        },
+      })
+      createdEventCount += 1
+    }
+  }
+  console.log(`Created ${createdEventCount} sample events`)
+
+  // Create saved churches
   const savedChurchIds = createdChurches.slice(0, 3).map(c => c.id)
   for (const churchId of savedChurchIds) {
     await prisma.userSavedChurch.create({

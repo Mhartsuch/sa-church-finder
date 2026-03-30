@@ -13,6 +13,53 @@
 
 ## Log
 
+### 2026-03-30 - Milestone 3 Church Events Foundation
+
+**Focus:** Moved the roadmap into Milestone 3 by making church profiles feel alive with real upcoming event data instead of static listing information alone.
+
+**Completed:**
+
+- **Backend events API:** Added a public `GET /api/v1/churches/:slug/events` endpoint with validation plus server-side filtering for event type and date windows so church-profile pages can request only the upcoming slices they need.
+- **Frontend events experience:** Added a dedicated client events API/hook layer and a new church-profile events section with event-type and date-range filters, an "upcoming this week" snapshot, a "next gathering" summary, and detailed event cards showing date, time, location, and recurring badges.
+- **Seed/data follow-through:** Extended the Prisma seed to generate upcoming sample events across the seeded churches and also cleared `emailVerificationToken` rows during reseeds so the fixture reset stays aligned with the live auth schema.
+- **Roadmap handoff:** Promoted the roadmap state into Milestone 3 in the task board, project context, decision log, and agent briefing, and recorded the user confirmation that live SMTP credentials are already configured.
+
+**Remaining Notes:**
+
+- Church events are currently read-only in the product; church claim requests and admin event management are still the next major Milestone 3 follow-ups.
+- Recurring-event metadata is stored and surfaced, but the app does not yet expand RRULEs into generated future occurrences.
+- Google OAuth and optional Sentry still depend on environment-specific live credentials where they should be active.
+
+**Verification:**
+
+- Ran `npm.cmd run lint:server` successfully at the repo root.
+- Ran `npm.cmd run lint:client` successfully at the repo root.
+- Ran `npm.cmd run typecheck:server` successfully at the repo root.
+- Ran `npm.cmd run typecheck:client` successfully at the repo root.
+- Ran `npm.cmd test -- --runInBand src/routes/church.routes.test.ts` successfully in `server/`.
+- Ran `npm.cmd test -- src/api/events.test.ts` successfully in `client/` after rerunning outside the Windows sandbox because sandboxed Vitest config loading hit `spawn EPERM`.
+- Ran `npm.cmd run build:server` successfully at the repo root.
+- Ran `npm.cmd run build:client` successfully at the repo root after rerunning outside the Windows sandbox because Vite/esbuild process spawning was blocked in the sandbox.
+
+**Files Changed:**
+
+- `server/src/routes/church.routes.ts`
+- `server/src/routes/church.routes.test.ts`
+- `server/src/schemas/church.schema.ts`
+- `server/src/services/event.service.ts`
+- `server/src/types/event.types.ts`
+- `server/prisma/seed.ts`
+- `client/src/api/events.test.ts`
+- `client/src/api/events.ts`
+- `client/src/hooks/useEvents.ts`
+- `client/src/pages/ChurchProfilePage.tsx`
+- `client/src/types/event.ts`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROJECT_CONTEXT.md`
+- `PROGRESS.md`
+- `TODO.md`
+
 ### 2026-03-30 - Integration Readiness Health Signals
 
 **Focus:** Made the remaining live-environment setup work easier to verify by surfacing backend integration readiness directly in the app instead of relying on guesswork or send-time failures.

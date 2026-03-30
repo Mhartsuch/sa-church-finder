@@ -4,13 +4,16 @@ import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
   churchDetailSchema,
+  churchEventsSchema,
   churchIdSchema,
   churchSearchSchema,
 } from '../schemas/church.schema.js'
 import { toggleSavedChurch } from '../services/saved-church.service.js'
 import { searchChurches } from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
+import { listChurchEventsBySlug } from '../services/event.service.js'
 import { ISearchParams } from '../types/church.types.js'
+import { ChurchEventType, IChurchEventFilters } from '../types/event.types.js'
 
 const router = Router()
 
@@ -51,7 +54,7 @@ router.get(
       next(error)
       return
     }
-  }
+  },
 )
 
 router.post(
@@ -69,10 +72,44 @@ router.post(
 
       res.json({
         data: result,
-        message: result.saved
-          ? 'Church saved successfully'
-          : 'Church removed from saved list',
+        message: result.saved ? 'Church saved successfully' : 'Church removed from saved list',
       })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.get(
+  '/:slug/events',
+  validate(churchEventsSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params
+      const q = req.query as Record<string, unknown>
+      const filters: IChurchEventFilters = {
+        type: q.type as ChurchEventType | undefined,
+        from: typeof q.from === 'string' ? new Date(q.from) : undefined,
+        to: typeof q.to === 'string' ? new Date(q.to) : undefined,
+      }
+
+      logger.info({ slug, filters }, 'Fetching church events')
+
+      const eventResponse = await listChurchEventsBySlug(slug, filters)
+
+      if (!eventResponse) {
+        res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: `Church with slug "${slug}" not found`,
+          },
+        })
+        return
+      }
+
+      res.json(eventResponse)
       return
     } catch (error) {
       next(error)
@@ -113,7 +150,7 @@ router.get(
       next(error)
       return
     }
-  }
+  },
 )
 
 export default router
