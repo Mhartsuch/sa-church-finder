@@ -4,6 +4,11 @@ import request from 'supertest'
 
 import { createApp } from '../app.js'
 import prisma from '../lib/prisma.js'
+import {
+  sendEmailVerificationEmail,
+  sendPasswordResetEmail,
+} from '../services/auth-email.service.js'
+import { isEmailDeliveryConfigured } from '../lib/email.js'
 
 jest.mock('../lib/prisma.js', () => ({
   __esModule: true,
@@ -34,6 +39,15 @@ jest.mock('../lib/prisma.js', () => ({
     },
   },
 }))
+jest.mock('../lib/email.js', () => ({
+  __esModule: true,
+  isEmailDeliveryConfigured: jest.fn(),
+}))
+jest.mock('../services/auth-email.service.js', () => ({
+  __esModule: true,
+  sendEmailVerificationEmail: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+}))
 
 type MockedPrisma = {
   $transaction: jest.Mock
@@ -57,6 +71,12 @@ type MockedPrisma = {
 }
 
 const mockedPrisma = prisma as unknown as MockedPrisma
+const mockedIsEmailDeliveryConfigured =
+  isEmailDeliveryConfigured as jest.MockedFunction<typeof isEmailDeliveryConfigured>
+const mockedSendEmailVerificationEmail =
+  sendEmailVerificationEmail as jest.MockedFunction<typeof sendEmailVerificationEmail>
+const mockedSendPasswordResetEmail =
+  sendPasswordResetEmail as jest.MockedFunction<typeof sendPasswordResetEmail>
 const fetchMock = jest.fn()
 const originalFetch = global.fetch
 const originalResetPreviewSetting = process.env.AUTH_EXPOSE_RESET_PREVIEW
@@ -98,6 +118,9 @@ describe('auth routes', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     global.fetch = fetchMock as typeof fetch
+    mockedIsEmailDeliveryConfigured.mockReturnValue(false)
+    mockedSendEmailVerificationEmail.mockResolvedValue(undefined)
+    mockedSendPasswordResetEmail.mockResolvedValue(undefined)
     mockedPrisma.$transaction.mockImplementation((operations: unknown[]) =>
       Promise.all(operations),
     )
@@ -188,6 +211,7 @@ describe('auth routes', () => {
       }),
     )
     expect(registerResponse.headers['set-cookie']).toBeDefined()
+    expect(mockedSendEmailVerificationEmail).not.toHaveBeenCalled()
   })
 
   it('rejects duplicate registration attempts', async () => {
@@ -436,6 +460,7 @@ describe('auth routes', () => {
         }),
       }),
     )
+    expect(mockedSendEmailVerificationEmail).not.toHaveBeenCalled()
   })
 
   it('returns an already-verified status when resending verification for a verified user', async () => {
@@ -452,6 +477,53 @@ describe('auth routes', () => {
     expect(response.body.data).toMatchObject({
       status: 'already-verified',
     })
+  })
+
+  it('sends an email verification message when SMTP delivery is configured', async () => {
+    mockedIsEmailDeliveryConfigured.mockReturnValue(true)
+
+    const agent = await loginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      email: 'user@example.com',
+      emailVerified: false,
+      name: 'Test User',
+    })
+
+    const response = await agent.post('/api/v1/auth/verify-email/resend').send({})
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toMatchObject({
+      status: 'sent',
+    })
+    expect(response.body.data.previewUrl).toBeUndefined()
+    expect(mockedSendEmailVerificationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'user@example.com',
+        name: 'Test User',
+        verificationUrl: expect.stringMatching(
+          /^http:\/\/localhost:5173\/verify-email\?token=/,
+        ),
+      }),
+    )
+  })
+
+  it('rejects email verification resend when SMTP and preview delivery are both unavailable', async () => {
+    const agent = await loginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      email: 'user@example.com',
+      emailVerified: false,
+      name: 'Test User',
+    })
+
+    const response = await agent.post('/api/v1/auth/verify-email/resend').send({})
+
+    expect(response.status).toBe(503)
+    expect(response.body.error.code).toBe('EMAIL_DELIVERY_UNAVAILABLE')
+    expect(mockedPrisma.emailVerificationToken.create).not.toHaveBeenCalled()
   })
 
   it('logs in, returns the current user, and clears the session on logout', async () => {
@@ -619,9 +691,12 @@ describe('auth routes', () => {
         }),
       }),
     )
+    expect(mockedSendPasswordResetEmail).not.toHaveBeenCalled()
   })
 
   it('returns a generic forgot-password response when the account does not exist', async () => {
+    mockedIsEmailDeliveryConfigured.mockReturnValue(true)
+
     mockedPrisma.user.findUnique.mockResolvedValueOnce(null)
 
     const response = await request(createApp()).post('/api/v1/auth/forgot-password').send({
@@ -632,6 +707,43 @@ describe('auth routes', () => {
     expect(response.body.data).toEqual({})
     expect(response.body.message).toMatch(/If an account exists/)
     expect(mockedPrisma.passwordResetToken.create).not.toHaveBeenCalled()
+    expect(mockedSendPasswordResetEmail).not.toHaveBeenCalled()
+  })
+
+  it('sends a password reset email when SMTP delivery is configured', async () => {
+    mockedIsEmailDeliveryConfigured.mockReturnValue(true)
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      email: 'user@example.com',
+    })
+    mockedPrisma.passwordResetToken.deleteMany.mockResolvedValueOnce({ count: 0 })
+    mockedPrisma.passwordResetToken.create.mockResolvedValueOnce({ id: 'reset-token-1' })
+
+    const response = await request(createApp()).post('/api/v1/auth/forgot-password').send({
+      email: 'user@example.com',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.previewUrl).toBeUndefined()
+    expect(mockedSendPasswordResetEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'user@example.com',
+        resetUrl: expect.stringMatching(
+          /^http:\/\/localhost:5173\/reset-password\?token=/,
+        ),
+      }),
+    )
+  })
+
+  it('rejects forgot-password requests when SMTP and preview delivery are both unavailable', async () => {
+    const response = await request(createApp()).post('/api/v1/auth/forgot-password').send({
+      email: 'user@example.com',
+    })
+
+    expect(response.status).toBe(503)
+    expect(response.body.error.code).toBe('EMAIL_DELIVERY_UNAVAILABLE')
+    expect(mockedPrisma.user.findUnique).not.toHaveBeenCalled()
   })
 
   it('resets a password and invalidates any remaining reset tokens for the user', async () => {

@@ -6,6 +6,7 @@ import prisma from '../lib/prisma.js'
 import { resolveClientUrls } from '../lib/session.js'
 import { AppError, AuthError } from '../middleware/error-handler.js'
 import logger from '../lib/logger.js'
+import { isEmailDeliveryConfigured } from '../lib/email.js'
 import {
   AuthForgotPasswordBody,
   AuthLoginBody,
@@ -14,6 +15,10 @@ import {
   AuthResetPasswordBody,
   AuthVerifyEmailBody,
 } from '../schemas/auth.schema.js'
+import {
+  sendEmailVerificationEmail,
+  sendPasswordResetEmail,
+} from './auth-email.service.js'
 import { AppRole, AuthUser } from '../types/auth.types.js'
 
 const authUserSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -142,18 +147,13 @@ function resolvePreviewUrl(
   token: string,
   shouldExposePreview: boolean,
 ): string | null {
+  const authActionUrl = buildAuthActionUrl(path, token)
+
   if (!shouldExposePreview) {
     return null
   }
 
-  const clientUrls = resolveClientUrls()
-  const baseUrl =
-    clientUrls === '*' || clientUrls.length === 0 ? 'http://localhost:5173' : clientUrls[0]
-  const previewUrl = new URL(path, baseUrl)
-
-  previewUrl.searchParams.set('token', token)
-
-  return previewUrl.toString()
+  return authActionUrl
 }
 
 function resolvePasswordResetPreviewUrl(token: string): string | null {
@@ -164,7 +164,39 @@ function resolveEmailVerificationPreviewUrl(token: string): string | null {
   return resolvePreviewUrl('/verify-email', token, shouldExposeVerificationPreview())
 }
 
-async function issueEmailVerificationToken(userId: string): Promise<{ previewUrl?: string }> {
+function buildAuthActionUrl(path: string, token: string): string {
+  const clientUrls = resolveClientUrls()
+  const baseUrl =
+    clientUrls === '*' || clientUrls.length === 0 ? 'http://localhost:5173' : clientUrls[0]
+  const actionUrl = new URL(path, baseUrl)
+
+  actionUrl.searchParams.set('token', token)
+
+  return actionUrl.toString()
+}
+
+function canDeliverPasswordResetInstructions(): boolean {
+  return shouldExposePasswordResetPreview() || isEmailDeliveryConfigured()
+}
+
+function canDeliverEmailVerificationInstructions(): boolean {
+  return shouldExposeVerificationPreview() || isEmailDeliveryConfigured()
+}
+
+async function issueEmailVerificationToken(input: {
+  email: string
+  name: string | null
+  requireDeliverability?: boolean
+  userId: string
+}): Promise<{ previewUrl?: string }> {
+  if (input.requireDeliverability && !canDeliverEmailVerificationInstructions()) {
+    throw new AppError(
+      503,
+      'EMAIL_DELIVERY_UNAVAILABLE',
+      'Email delivery is not configured right now',
+    )
+  }
+
   const { rawToken, tokenHash, expiresAt } = issueOneTimeToken(
     resolveEmailVerificationTokenTtlMs(),
   )
@@ -172,13 +204,13 @@ async function issueEmailVerificationToken(userId: string): Promise<{ previewUrl
   await prisma.$transaction([
     prisma.emailVerificationToken.deleteMany({
       where: {
-        userId,
+        userId: input.userId,
         usedAt: null,
       },
     }),
     prisma.emailVerificationToken.create({
       data: {
-        userId,
+        userId: input.userId,
         tokenHash,
         expiresAt,
       },
@@ -187,7 +219,7 @@ async function issueEmailVerificationToken(userId: string): Promise<{ previewUrl
 
   logger.info(
     {
-      userId,
+      userId: input.userId,
       emailVerificationExpiresAt: expiresAt.toISOString(),
       previewEnabled: shouldExposeVerificationPreview(),
     },
@@ -195,6 +227,38 @@ async function issueEmailVerificationToken(userId: string): Promise<{ previewUrl
   )
 
   const previewUrl = resolveEmailVerificationPreviewUrl(rawToken)
+  const verificationUrl = buildAuthActionUrl('/verify-email', rawToken)
+
+  if (isEmailDeliveryConfigured()) {
+    try {
+      await sendEmailVerificationEmail({
+        email: input.email,
+        name: input.name,
+        verificationUrl,
+      })
+    } catch (error) {
+      logger.error(
+        {
+          err: error,
+          userId: input.userId,
+        },
+        'Failed to send email verification email',
+      )
+
+      if (!previewUrl) {
+        throw new AppError(
+          503,
+          'EMAIL_DELIVERY_FAILED',
+          'Verification email could not be sent right now',
+        )
+      }
+    }
+  } else {
+    logger.warn(
+      { userId: input.userId },
+      'Email verification email not sent because SMTP is not configured',
+    )
+  }
 
   return previewUrl ? { previewUrl } : {}
 }
@@ -476,7 +540,11 @@ export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
   })
 
   try {
-    const verificationResult = await issueEmailVerificationToken(user.id)
+    const verificationResult = await issueEmailVerificationToken({
+      email: user.email,
+      name: user.name,
+      userId: user.id,
+    })
 
     if (verificationResult.previewUrl) {
       logger.info(
@@ -484,11 +552,14 @@ export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
           userId: user.id,
           previewUrl: verificationResult.previewUrl,
         },
-        'Email verification preview ready after registration',
+      'Email verification preview ready after registration',
       )
     }
   } catch (error) {
-    logger.error({ err: error, userId: user.id }, 'Failed to issue email verification token')
+    logger.error(
+      { err: error, userId: user.id },
+      'Failed to prepare email verification instructions after registration',
+    )
   }
 
   return toAuthUser(user)
@@ -520,7 +591,9 @@ export async function requestEmailVerification(
     where: { id: userId },
     select: {
       id: true,
+      email: true,
       emailVerified: true,
+      name: true,
     },
   })
 
@@ -534,7 +607,12 @@ export async function requestEmailVerification(
     }
   }
 
-  const previewResult = await issueEmailVerificationToken(user.id)
+  const previewResult = await issueEmailVerificationToken({
+    email: user.email,
+    name: user.name,
+    requireDeliverability: true,
+    userId: user.id,
+  })
 
   return {
     status: 'sent',
@@ -617,6 +695,14 @@ export async function verifyEmail(input: AuthVerifyEmailBody): Promise<VerifyEma
 export async function requestPasswordReset(input: AuthForgotPasswordBody): Promise<{
   previewUrl?: string
 }> {
+  if (!canDeliverPasswordResetInstructions()) {
+    throw new AppError(
+      503,
+      'EMAIL_DELIVERY_UNAVAILABLE',
+      'Password reset email delivery is not configured right now',
+    )
+  }
+
   const user = await prisma.user.findUnique({
     where: { email: input.email },
     select: {
@@ -659,6 +745,30 @@ export async function requestPasswordReset(input: AuthForgotPasswordBody): Promi
   )
 
   const previewUrl = resolvePasswordResetPreviewUrl(rawToken)
+  const resetUrl = buildAuthActionUrl('/reset-password', rawToken)
+
+  if (isEmailDeliveryConfigured()) {
+    try {
+      await sendPasswordResetEmail({
+        email: user.email,
+        name: null,
+        resetUrl,
+      })
+    } catch (error) {
+      logger.error(
+        {
+          err: error,
+          userId: user.id,
+        },
+        'Failed to send password reset email',
+      )
+    }
+  } else {
+    logger.warn(
+      { userId: user.id },
+      'Password reset email not sent because SMTP is not configured',
+    )
+  }
 
   return previewUrl ? { previewUrl } : {}
 }

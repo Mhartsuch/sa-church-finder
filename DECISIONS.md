@@ -11,6 +11,14 @@
 
 ## Decisions
 
+### DEC-011: Keep auth preview links as an explicit fallback even after SMTP delivery is added
+- **Date:** 2026-03-29
+- **Status:** ACTIVE
+- **Decision:** Add real SMTP-backed delivery for password reset and email verification emails, but keep the existing opt-in preview-link flags as a local-development fallback instead of replacing them outright.
+- **Alternatives Considered:** Remove preview links entirely once SMTP existed; keep preview-only auth email flows and postpone SMTP again; fail every auth-email request whenever SMTP delivery throws, including forgot-password.
+- **Reasoning:** The preview-link flow was already useful for local development and QA, especially when a developer is not pointing at a real mail provider. Keeping it explicit and disabled by default preserves that speed without normalizing insecure behavior in shared environments. The forgot-password endpoint also needs to preserve its generic anti-enumeration response shape, so SMTP failures there should not change the public API contract per-account.
+- **Consequences:** Auth flows now support real SMTP delivery and safer local fallbacks at the same time. Live environments still need SMTP credentials configured, and authenticated resend requests will surface a configuration problem when neither SMTP nor preview fallback is available.
+
 ### DEC-010: Layer Google OAuth onto the existing custom session flow instead of adding Passport session state
 - **Date:** 2026-03-29
 - **Status:** ACTIVE

@@ -12,6 +12,41 @@
 
 ## Log
 
+### 2026-03-29 - Auth Email Delivery
+
+**Focus:** Finished the remaining Milestone 2 auth transport gap by wiring real SMTP-backed delivery for password reset and email verification emails.
+
+**Completed:**
+- **Reusable mailer layer:** Added a Nodemailer-based SMTP transport helper plus dedicated auth email templates for password reset and email verification messages.
+- **Auth delivery integration:** Updated the auth service so reset and verification flows now build real client URLs, send emails when SMTP is configured, preserve explicit preview-link fallback for local development, and surface configuration issues more clearly for authenticated resend requests.
+- **Environment and deployment wiring:** Added `SMTP_SECURE` to the server example env file and predeclared the SMTP environment variables in the Render blueprint so live deployments have a clear configuration path.
+- **Coverage + verification:** Expanded auth route tests to cover preview-only behavior, SMTP-enabled delivery, and unavailable-delivery error handling, then re-ran server typecheck, lint, and the targeted auth route suite successfully.
+
+**Remaining Notes:**
+- The code path for auth email delivery is now implemented, but each environment still needs real SMTP provider settings before those emails will send there.
+- Google OAuth still depends on valid environment-specific credentials and authorized redirect URIs anywhere live sign-in should work.
+- The known Mapbox chunk-size warning remains unchanged and is still a separate performance follow-up.
+
+**Verification:**
+- Ran `npm.cmd run typecheck` successfully in `server/`.
+- Ran `npm.cmd run lint` successfully in `server/` (existing unrelated warnings remain in `server/src/lib/session.test.ts`).
+- Ran `npm.cmd test -- --runInBand auth.routes.test.ts` successfully in `server/`.
+
+**Files Changed:**
+- `server/.env.example`
+- `server/package-lock.json`
+- `server/package.json`
+- `server/src/lib/email.ts`
+- `server/src/routes/auth.routes.test.ts`
+- `server/src/services/auth-email.service.ts`
+- `server/src/services/auth.service.ts`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+- `QUICKSTART.md`
+- `TODO.md`
+- `render.yaml`
+
 ### 2026-03-29 - Account Page UX Refresh
 
 **Focus:** Reframed the signed-in account experience so it feels member-facing and useful after login instead of reading like an internal feature-status screen.

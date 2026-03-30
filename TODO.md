@@ -36,6 +36,7 @@
 - [x] Make URL reflect search state (shareable/bookmarkable) - completed 2026-03-27
 
 ### P2 - Medium
+- [ ] Configure real SMTP provider credentials in each live environment so auth emails send outside local development
 - [x] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist - completed 2026-03-29
 - [x] Add responsive layout (mobile tabs for map/list) - completed 2026-03-27
 - [x] Add loading skeleton animations to ChurchCard - shimmer effect component, completed 2026-03-27
@@ -44,7 +45,7 @@
 - [x] Upgrade deprecated deps (`eslint` 8 -> 9, `multer` 1 -> 2, `supertest` 6 -> 7) - completed 2026-03-28
 - [x] Add review helpful voting follow-up after the MVP - completed 2026-03-28
 - [x] Add review moderation follow-ups after the MVP - completed 2026-03-29
-- [ ] Wire real transactional email delivery for auth emails (password reset + verification)
+- [x] Wire real transactional email delivery for auth emails (password reset + verification) - completed 2026-03-29
 - [ ] Review lazy-loaded Mapbox bundle size warning and optimize only if it becomes a real production issue
 
 ### P3 - Low
@@ -55,6 +56,7 @@
 
 ### Completed
 - [x] Account page UX refresh - rewrote the signed-in copy to feel member-facing, improved saved/review empty states with clearer next actions, and replaced the internal-looking sidebar checklist with user-centered guidance (2026-03-29)
+- [x] Auth email delivery - added SMTP-backed password reset + email verification delivery, preserved opt-in preview links for local development, added auth email templates, Render/env wiring docs, and server auth test coverage (2026-03-29)
 - [x] Search workspace UX pass - search-page toolbar with mobile search input, sort control, removable active-filter chips, slide-over advanced filters, and cleaner desktop map/list steering (2026-03-29)
 - [x] Review moderation follow-up - authenticated review reporting, site-admin flagged-review queue, moderation resolution actions, and client/server coverage (2026-03-29)
 - [x] Google OAuth - backend redirect/callback flow, session-safe return paths, Google account linking/creation, login/register Google CTAs, callback error messaging, and auth/client test coverage (2026-03-29)
@@ -122,4 +124,4 @@
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-29 (Account page UX refresh landed)*
+*Last updated: 2026-03-29 (Auth email delivery landed)*
