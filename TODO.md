@@ -36,6 +36,7 @@
 - [x] Make URL reflect search state (shareable/bookmarkable) - completed 2026-03-27
 
 ### P2 - Medium
+- [ ] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist
 - [x] Add responsive layout (mobile tabs for map/list) - completed 2026-03-27
 - [x] Add loading skeleton animations to ChurchCard - shimmer effect component, completed 2026-03-27
 - [x] Implement "no results" suggestions (widen radius, change filters) - completed 2026-03-27
@@ -53,6 +54,7 @@
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Search workspace UX pass - search-page toolbar with mobile search input, sort control, removable active-filter chips, slide-over advanced filters, and cleaner desktop map/list steering (2026-03-29)
 - [x] Review moderation follow-up - authenticated review reporting, site-admin flagged-review queue, moderation resolution actions, and client/server coverage (2026-03-29)
 - [x] Google OAuth - backend redirect/callback flow, session-safe return paths, Google account linking/creation, login/register Google CTAs, callback error messaging, and auth/client test coverage (2026-03-29)
 - [x] Email verification flow - verification-token model + migration, register-time token issuance, resend + consume APIs, verification page, account resend CTA, local preview mode, and auth/client test coverage (2026-03-28)
@@ -119,4 +121,4 @@
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-29 (Google OAuth landed)*
+*Last updated: 2026-03-29 (Search workspace UX pass landed)*

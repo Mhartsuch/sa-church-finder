@@ -1,198 +1,200 @@
-import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { useSearchStore } from '@/stores/search-store'
-import {
-  DENOMINATION_OPTIONS,
-  DAY_OPTIONS,
-  TIME_OPTIONS,
-  LANGUAGE_OPTIONS,
-  AMENITY_OPTIONS
-} from '@/constants'
+import { SlidersHorizontal, X } from 'lucide-react'
 
-export const FilterPanel = () => {
+import {
+  AMENITY_OPTIONS,
+  DAY_OPTIONS,
+  DENOMINATION_OPTIONS,
+  LANGUAGE_OPTIONS,
+  TIME_OPTIONS,
+} from '@/constants'
+import { SearchFilters, useSearchStore } from '@/stores/search-store'
+
+interface FilterPanelProps {
+  onClose?: () => void
+}
+
+interface FilterOption {
+  label: string
+  value: string | number
+}
+
+interface FilterSectionProps {
+  label: string
+  description: string
+  filterKey: keyof SearchFilters
+  options: FilterOption[]
+}
+
+const FilterOptionButton = ({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  onClick: () => void
+}) => (
+  <button
+    type='button'
+    onClick={onClick}
+    aria-pressed={active}
+    className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
+      active
+        ? 'border-[#222222] bg-[#222222] text-white'
+        : 'border-[#ddd6ca] bg-white text-[#5f5a55] hover:border-[#222222] hover:bg-[#f8f5ef] hover:text-[#222222]'
+    }`}
+  >
+    {label}
+  </button>
+)
+
+const FilterSection = ({
+  label,
+  description,
+  filterKey,
+  options,
+}: FilterSectionProps) => {
   const filters = useSearchStore((state) => state.filters)
   const setFilter = useSearchStore((state) => state.setFilter)
-  const clearFilters = useSearchStore((state) => state.clearFilters)
-  const [expandedSection, setExpandedSection] = useState<string | null>('denomination')
-
-  const toggleSection = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section)
-  }
-
-  const hasActiveFilters = Object.values(filters).some((v) => v !== undefined && v !== '')
 
   return (
-    <aside className='w-64 bg-white border-r border-gray-200 overflow-y-auto flex flex-col'>
-      <div className='p-4 border-b border-gray-200'>
-        <h2 className='text-lg font-semibold text-gray-900 mb-3'>Filters</h2>
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className='text-sm text-blue-600 hover:text-blue-700 font-medium'
-          >
-            Clear all filters
-          </button>
-        )}
+    <section className='rounded-[28px] border border-[#ece4d7] bg-[#fcfaf6] p-5'>
+      <div className='flex flex-col gap-1'>
+        <h3 className='text-base font-semibold text-[#222222]'>{label}</h3>
+        <p className='text-sm leading-6 text-[#5f5a55]'>{description}</p>
       </div>
 
-      <div className='flex-1 overflow-y-auto'>
-        {/* Denomination */}
-        <div className='border-b border-gray-200'>
-          <button
-            onClick={() => toggleSection('denomination')}
-            className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50'
-          >
-            <span className='font-medium text-gray-900'>Denomination</span>
-            <ChevronDown
-              className={`w-4 h-4 text-gray-400 transition-transform ${
-                expandedSection === 'denomination' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          {expandedSection === 'denomination' && (
-            <div className='px-4 py-3 bg-gray-50'>
-              <select
-                value={filters.denomination || ''}
-                onChange={(e) => setFilter('denomination', e.target.value || undefined)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>All denominations</option>
-                {DENOMINATION_OPTIONS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+      <div className='mt-4 flex flex-wrap gap-2'>
+        {options.map((option) => {
+          const active = filters[filterKey] === option.value
 
-        {/* Service Day */}
-        <div className='border-b border-gray-200'>
-          <button
-            onClick={() => toggleSection('day')}
-            className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50'
-          >
-            <span className='font-medium text-gray-900'>Service Day</span>
-            <ChevronDown
-              className={`w-4 h-4 text-gray-400 transition-transform ${
-                expandedSection === 'day' ? 'rotate-180' : ''
-              }`}
+          return (
+            <FilterOptionButton
+              key={`${filterKey}-${option.value}`}
+              active={active}
+              label={option.label}
+              onClick={() => {
+                setFilter(filterKey, active ? undefined : option.value)
+              }}
             />
-          </button>
-          {expandedSection === 'day' && (
-            <div className='px-4 py-3 bg-gray-50'>
-              <select
-                value={filters.day !== undefined ? filters.day : ''}
-                onChange={(e) =>
-                  setFilter('day', e.target.value !== '' ? parseInt(e.target.value) : undefined)
-                }
-                className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>Any day</option>
-                {DAY_OPTIONS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
 
-        {/* Time of Day */}
-        <div className='border-b border-gray-200'>
-          <button
-            onClick={() => toggleSection('time')}
-            className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50'
-          >
-            <span className='font-medium text-gray-900'>Time of Day</span>
-            <ChevronDown
-              className={`w-4 h-4 text-gray-400 transition-transform ${
-                expandedSection === 'time' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          {expandedSection === 'time' && (
-            <div className='px-4 py-3 bg-gray-50'>
-              <select
-                value={filters.time || ''}
-                onChange={(e) => setFilter('time', e.target.value || undefined)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>Any time</option>
-                {TIME_OPTIONS.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+export const FilterPanel = ({ onClose }: FilterPanelProps) => {
+  const filters = useSearchStore((state) => state.filters)
+  const clearFilters = useSearchStore((state) => state.clearFilters)
 
-        {/* Language */}
-        <div className='border-b border-gray-200'>
-          <button
-            onClick={() => toggleSection('language')}
-            className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50'
-          >
-            <span className='font-medium text-gray-900'>Language</span>
-            <ChevronDown
-              className={`w-4 h-4 text-gray-400 transition-transform ${
-                expandedSection === 'language' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          {expandedSection === 'language' && (
-            <div className='px-4 py-3 bg-gray-50'>
-              <select
-                value={filters.language || ''}
-                onChange={(e) => setFilter('language', e.target.value || undefined)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>Any language</option>
-                {LANGUAGE_OPTIONS.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+  const activeFilterCount = Object.values(filters).filter(
+    (value) => value !== undefined && value !== '',
+  ).length
 
-        {/* Amenities */}
-        <div className='border-b border-gray-200'>
-          <button
-            onClick={() => toggleSection('amenities')}
-            className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50'
-          >
-            <span className='font-medium text-gray-900'>Amenities</span>
-            <ChevronDown
-              className={`w-4 h-4 text-gray-400 transition-transform ${
-                expandedSection === 'amenities' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          {expandedSection === 'amenities' && (
-            <div className='px-4 py-3 bg-gray-50 space-y-2'>
-              <select
-                value={filters.amenities || ''}
-                onChange={(e) => setFilter('amenities', e.target.value || undefined)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>Any amenities</option>
-                {AMENITY_OPTIONS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+  return (
+    <div className='flex h-full flex-col bg-white'>
+      <div className='border-b border-[#ece4d7] px-6 py-5'>
+        <div className='flex items-start justify-between gap-4'>
+          <div>
+            <p className='text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a8f80]'>
+              Advanced filters
+            </p>
+            <h2 className='mt-2 text-2xl font-semibold tracking-tight text-[#1d1d1b]'>
+              Refine the kind of church you want to browse
+            </h2>
+            <p className='mt-2 text-sm leading-6 text-[#5f5a55]'>
+              Pick the signal that matters most right now. Every choice updates the
+              map and list together.
+            </p>
+          </div>
+
+          {onClose ? (
+            <button
+              type='button'
+              onClick={onClose}
+              className='inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#ddd6ca] text-[#222222] transition-colors hover:bg-[#f8f5ef]'
+              aria-label='Close filters'
+            >
+              <X className='h-4 w-4' />
+            </button>
+          ) : null}
         </div>
       </div>
-    </aside>
+
+      <div className='flex-1 space-y-4 overflow-y-auto px-6 py-5'>
+        <FilterSection
+          label='Tradition'
+          description='Choose a denomination when you want a clearer theological lane.'
+          filterKey='denomination'
+          options={DENOMINATION_OPTIONS.map((option) => ({
+            label: option,
+            value: option,
+          }))}
+        />
+
+        <FilterSection
+          label='Service day'
+          description='Useful when you are planning around a specific day this week.'
+          filterKey='day'
+          options={DAY_OPTIONS}
+        />
+
+        <FilterSection
+          label='Time of day'
+          description='Narrow down morning, afternoon, or evening worship windows.'
+          filterKey='time'
+          options={TIME_OPTIONS}
+        />
+
+        <FilterSection
+          label='Language'
+          description='Surface churches that regularly hold services in a preferred language.'
+          filterKey='language'
+          options={LANGUAGE_OPTIONS.map((option) => ({
+            label: option,
+            value: option,
+          }))}
+        />
+
+        <FilterSection
+          label='Amenity'
+          description='Look for one practical detail that helps this search feel realistic.'
+          filterKey='amenities'
+          options={AMENITY_OPTIONS.map((option) => ({
+            label: option,
+            value: option,
+          }))}
+        />
+      </div>
+
+      <div className='border-t border-[#ece4d7] px-6 py-5'>
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='inline-flex items-center gap-2 rounded-full bg-[#f8f5ef] px-4 py-2 text-sm font-semibold text-[#5f5a55]'>
+            <SlidersHorizontal className='h-4 w-4' />
+            {activeFilterCount === 0
+              ? 'No advanced filters selected'
+              : `${activeFilterCount} advanced ${activeFilterCount === 1 ? 'filter' : 'filters'} selected`}
+          </div>
+
+          <div className='flex flex-col gap-3 sm:flex-row'>
+            <button
+              type='button'
+              onClick={clearFilters}
+              className='rounded-full border border-[#ddd6ca] bg-white px-5 py-3 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222] hover:bg-[#f8f5ef]'
+            >
+              Reset search
+            </button>
+            <button
+              type='button'
+              onClick={onClose}
+              className='rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black'
+            >
+              Show results
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

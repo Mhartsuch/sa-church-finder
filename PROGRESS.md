@@ -12,6 +12,35 @@
 
 ## Log
 
+### 2026-03-29 - Search Workspace UX Pass
+
+**Focus:** Tightened the core search experience so the directory is easier to steer, especially on mobile where the old search page hid too much state and too many controls.
+
+**Completed:**
+- **Search workspace header:** Added a new search-page toolbar with live results context, an inline search field, visible sort controls, and removable active search/filter chips so users can understand and adjust the current result set quickly.
+- **Mobile search fix:** Search is now directly available inside the search workspace on small screens instead of being hidden behind the desktop-only header search UI.
+- **Advanced filters sheet:** Replaced the unused legacy filter sidebar with a polished slide-over filter panel that surfaces denomination, day, time, language, and amenity refinements in a more intentional UX.
+- **Map/list control cleanup:** Added an inline desktop map toggle, kept the floating mobile map/list switch, and adjusted the sidebar result grid so desktop cards stay more readable beside the map.
+- **Shared search-state helpers:** Centralized active-filter token generation and shared search-parameter building to keep the search page and result list aligned.
+
+**Remaining Notes:**
+- The account page is now the clearest remaining UX polish target because it still reads more like an internal milestone status screen than a member-facing destination.
+- Client build verification is still blocked in this workspace by the existing missing-`rollup` local dependency issue under `client/node_modules`, even though lint and typecheck passed cleanly.
+
+**Verification:**
+- Ran `npm.cmd run typecheck` successfully in `client/`.
+- Ran `npm.cmd run lint` successfully in `client/`.
+- Attempted `npm.cmd run build` in `client/`, but Vite failed before bundling because it could not resolve the local `rollup` package from `client/node_modules`.
+
+**Files Changed:**
+- `client/src/components/church/ChurchList.tsx`
+- `client/src/components/search/FilterPanel.tsx`
+- `client/src/hooks/useChurches.ts`
+- `client/src/lib/search-state.ts`
+- `client/src/pages/SearchPage.tsx`
+- `PROGRESS.md`
+- `TODO.md`
+
 ### 2026-03-29 - Review Moderation Follow-up
 
 **Focus:** Closed the main remaining review-side Milestone 2 gap by shipping authenticated review reporting plus a real site-admin moderation queue.
