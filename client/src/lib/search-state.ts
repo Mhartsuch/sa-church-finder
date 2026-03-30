@@ -90,5 +90,5 @@ export const getWhenSummary = (filters: SearchFilters): string => {
     parts.push(shortTimeLabel ?? filters.time);
   }
 
-  return parts.join(' · ') || 'Any time';
+  return parts.join(', ') || 'Any Sunday';
 };

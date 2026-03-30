@@ -1,49 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Plus Jakarta Sans — geometric sans-serif similar to Airbnb's Cereal */
 @layer base {
   :root {
-    /* Brand accent — Airbnb-inspired rose/coral */
     --brand: 348 100% 54%;
-    --brand-dark: 348 100% 46%;
     --brand-gradient: linear-gradient(90deg, #e61e4d 0%, #e31c5f 48%, #d70466 100%);
-
-    /* Neutral palette */
     --background: 0 0% 100%;
     --foreground: 0 0% 13%;
-
     --card: 0 0% 100%;
     --card-foreground: 0 0% 13%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 13%;
-
     --muted: 0 0% 97%;
     --muted-foreground: 0 0% 44%;
-
     --accent: var(--brand);
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 0 0% 89%;
     --input: 0 0% 89%;
     --ring: var(--brand);
-
     --radius: 12px;
-
     --primary: var(--brand);
     --primary-foreground: 0 0% 100%;
-
     --secondary: 0 0% 97%;
     --secondary-foreground: 0 0% 13%;
-
-    /* Sage green palette — kept for accent use */
     --sage-50: 138 25% 96%;
     --sage-100: 138 20% 90%;
     --sage-200: 140 18% 80%;
@@ -54,6 +38,19 @@
     --sage-700: 147 28% 25%;
     --sage-800: 148 28% 20%;
     --sage-900: 149 26% 15%;
+  }
+
+  [data-theme='dark'] {
+    --background: 231 18% 11%;
+    --foreground: 0 0% 96%;
+    --card: 230 18% 15%;
+    --card-foreground: 0 0% 96%;
+    --popover: 230 18% 15%;
+    --popover-foreground: 0 0% 96%;
+    --muted: 230 14% 19%;
+    --muted-foreground: 0 0% 76%;
+    --border: 231 16% 24%;
+    --input: 231 16% 24%;
   }
 }
 
@@ -71,7 +68,7 @@
   body {
     @apply bg-background text-foreground;
     font-family:
-      'Plus Jakarta Sans',
+      'Inter',
       -apple-system,
       BlinkMacSystemFont,
       'Segoe UI',
@@ -81,9 +78,15 @@
       sans-serif;
     color: #222222;
     line-height: 1.5;
-    background:
-      radial-gradient(circle at top left, rgba(255, 56, 92, 0.08), transparent 24%),
-      radial-gradient(circle at top right, rgba(245, 158, 11, 0.07), transparent 26%), #fffdfb;
+    background: #ffffff;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  [data-theme='dark'] body {
+    color: #f5f5f5;
+    background: #12131a;
   }
 
   a {
@@ -108,7 +111,6 @@
 }
 
 @layer components {
-  /* Airbnb-style card — NO shadow at rest, subtle on hover */
   .airbnb-card {
     @apply bg-white rounded-xl overflow-hidden transition-all duration-200;
   }
@@ -117,7 +119,6 @@
     transform: translateY(-1px);
   }
 
-  /* Airbnb-style pill button */
   .pill-btn {
     @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-300 text-sm font-semibold transition-all duration-150;
   }
@@ -130,7 +131,6 @@
     @apply bg-gray-900 text-white border-gray-900;
   }
 
-  /* Airbnb-style search bar */
   .search-pill {
     @apply flex items-center bg-white rounded-full border border-gray-300 shadow-sm transition-shadow duration-200;
   }
@@ -240,20 +240,150 @@
     filter: saturate(1.05);
   }
 
-  /* Category scroll container */
-  .category-scroll {
-    @apply flex gap-8 overflow-x-auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  .reference-hero-shell {
+    max-width: 1760px;
+    margin: 0 auto;
+    padding: 16px 16px 0;
   }
 
-  .category-scroll::-webkit-scrollbar {
-    display: none;
+  .reference-hero-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 56px 48px;
+    color: #ffffff;
   }
 
-  /* Airbnb-style section divider */
-  .section-divider {
-    @apply border-t border-gray-200 my-8;
+  .reference-hero-backdrop {
+    position: absolute;
+    inset: 0;
+    background-image: url('https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1200&q=80');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: 0.16;
+  }
+
+  .reference-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+  }
+
+  .reference-hero-title {
+    font-size: clamp(2rem, 3vw, 3.125rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+  }
+
+  .reference-hero-highlight {
+    background: linear-gradient(90deg, #ff385c 0%, #ff7e5f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .reference-hero-copy {
+    margin-top: 16px;
+    font-size: 18px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .reference-hero-dismiss {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    z-index: 2;
+    display: inline-flex;
+    height: 32px;
+    width: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: rgba(255, 255, 255, 0.72);
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .reference-hero-dismiss:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+  }
+
+  .reference-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    border-radius: 10px;
+    background: var(--brand-gradient);
+    padding: 14px 28px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    transition:
+      opacity 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .reference-hero-cta:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+
+  .reference-hero-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 24px;
+  }
+
+  .reference-hero-stat-number {
+    font-size: 24px;
+    font-weight: 800;
+  }
+
+  .reference-hero-stat-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .reference-results-shell {
+    max-width: 1760px;
+    margin: 0 auto;
+    padding: 20px 16px 96px;
+  }
+
+  .reference-fab {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 60;
+    transform: translateX(-50%);
+  }
+
+  .reference-fab-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 24px;
+    background: #222222;
+    padding: 14px 22px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transition:
+      background-color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .reference-fab-button:hover {
+    background: #000000;
+    transform: scale(1.03);
   }
 
   .hide-scrollbar {
@@ -267,7 +397,6 @@
 }
 
 @layer components {
-  /* Mapbox popup — Airbnb-style clean card */
   .church-popup .mapboxgl-popup-content {
     @apply rounded-xl p-3 shadow-airbnb;
     border: none;
@@ -310,5 +439,51 @@
     box-shadow:
       0 1px 2px rgba(0, 0, 0, 0.08),
       0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+}
+
+@media (min-width: 640px) {
+  .reference-hero-shell,
+  .reference-results-shell {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .reference-hero-shell,
+  .reference-results-shell {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .reference-search-shell {
+    flex-direction: column;
+    border-radius: 16px;
+  }
+
+  .reference-search-field {
+    padding: 14px 18px;
+  }
+
+  .reference-search-field + .reference-search-field::before {
+    display: none;
+  }
+
+  .reference-search-submit {
+    margin: 8px;
+    width: calc(100% - 16px);
+    border-radius: 14px;
+  }
+
+  .reference-hero-card {
+    padding: 40px 24px;
+  }
+
+  .reference-hero-stats {
+    flex-direction: column;
+    gap: 16px;
   }
 }

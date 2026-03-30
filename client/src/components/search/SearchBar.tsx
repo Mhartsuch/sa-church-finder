@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 
 import { getWhenSummary } from '@/lib/search-state';
 import { useSearchStore } from '@/stores/search-store';
@@ -62,15 +62,12 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
   return (
     <form onSubmit={handleSubmit} className="relative w-full">
       <div className={`reference-search-shell ${isHero ? 'min-h-[76px]' : 'min-h-[72px]'}`}>
-        <div className="reference-search-field hidden min-w-[170px] sm:block">
+        <div className="reference-search-field hidden min-w-[180px] lg:block">
           <span className="reference-search-label">Location</span>
-          <div className="reference-search-summary flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-[#717171]" />
-            <span>San Antonio, TX</span>
-          </div>
+          <div className="reference-search-summary">San Antonio, TX</div>
         </div>
 
-        <div className="reference-search-field flex-[1.3]">
+        <div className="reference-search-field min-w-0 flex-[1.2]">
           <label htmlFor={`search-input-${variant}`} className="reference-search-label">
             Search
           </label>
@@ -81,11 +78,7 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
               type="text"
               value={localValue}
               onChange={handleChange}
-              placeholder={
-                isHero
-                  ? 'Church, denomination, neighborhood...'
-                  : 'Search churches, neighborhoods, or traditions'
-              }
+              placeholder="Name, denomination, area..."
               className="reference-search-input mt-0 flex-1"
             />
             {localValue ? (

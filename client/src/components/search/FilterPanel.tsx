@@ -11,6 +11,7 @@ import { SearchFilters, useSearchStore } from '@/stores/search-store';
 
 interface FilterPanelProps {
   onClose?: () => void;
+  resultCount?: number;
 }
 
 interface FilterOption {
@@ -41,7 +42,7 @@ const FilterOptionButton = ({
     className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
       active
         ? 'border-[#222222] bg-[#222222] text-white'
-        : 'border-[#ddd6ca] bg-white text-[#5f5a55] hover:border-[#222222] hover:bg-[#f8f5ef] hover:text-[#222222]'
+        : 'border-[#dddddd] bg-white text-[#5f5a55] hover:border-[#222222] hover:bg-[#f7f7f7] hover:text-[#222222]'
     }`}
   >
     {label}
@@ -53,7 +54,7 @@ const FilterSection = ({ label, description, filterKey, options }: FilterSection
   const setFilter = useSearchStore((state) => state.setFilter);
 
   return (
-    <section className="rounded-[28px] border border-[#ece4d7] bg-[#fcfaf6] p-5">
+    <section className="rounded-[24px] border border-[#ebebeb] bg-white p-5">
       <div className="flex flex-col gap-1">
         <h3 className="text-base font-semibold text-[#222222]">{label}</h3>
         <p className="text-sm leading-6 text-[#5f5a55]">{description}</p>
@@ -79,7 +80,7 @@ const FilterSection = ({ label, description, filterKey, options }: FilterSection
   );
 };
 
-export const FilterPanel = ({ onClose }: FilterPanelProps) => {
+export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
   const filters = useSearchStore((state) => state.filters);
   const clearFilters = useSearchStore((state) => state.clearFilters);
 
@@ -88,39 +89,32 @@ export const FilterPanel = ({ onClose }: FilterPanelProps) => {
   ).length;
 
   return (
-    <div className="flex max-h-[88vh] flex-col bg-white">
-      <div className="border-b border-[#ece4d7] px-6 py-5 sm:px-8 sm:py-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a8f80]">
-              Advanced filters
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#1d1d1b]">
-              Refine the kind of church you want to browse
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[#5f5a55]">
-              Pick the signal that matters most right now. Every choice updates the map and list
-              together.
-            </p>
-          </div>
-
+    <div className="flex max-h-[88vh] flex-col bg-[#fbfbfb]">
+      <div className="border-b border-[#ebebeb] bg-white px-6 py-5 sm:px-8">
+        <div className="flex items-center justify-between gap-4">
           {onClose ? (
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#ddd6ca] text-[#222222] transition-colors hover:bg-[#f8f5ef]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#222222] transition-colors hover:bg-[#f7f7f7]"
               aria-label="Close filters"
             >
               <X className="h-4 w-4" />
             </button>
-          ) : null}
+          ) : (
+            <div className="h-10 w-10" />
+          )}
+
+          <h2 className="text-lg font-semibold text-[#1d1d1b]">Filters</h2>
+
+          <div className="h-10 w-10" />
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
+      <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
         <FilterSection
           label="Tradition"
-          description="Choose a denomination when you want a clearer theological lane."
+          description="Choose a denomination to narrow the directory quickly."
           filterKey="denomination"
           options={DENOMINATION_OPTIONS.map((option) => ({
             label: option,
@@ -130,14 +124,14 @@ export const FilterPanel = ({ onClose }: FilterPanelProps) => {
 
         <FilterSection
           label="Service day"
-          description="Useful when you are planning around a specific day this week."
+          description="Useful when you are planning around one day in the week."
           filterKey="day"
           options={DAY_OPTIONS}
         />
 
         <FilterSection
           label="Time of day"
-          description="Narrow down morning, afternoon, or evening worship windows."
+          description="Narrow down morning, afternoon, or evening worship."
           filterKey="time"
           options={TIME_OPTIONS}
         />
@@ -154,7 +148,7 @@ export const FilterPanel = ({ onClose }: FilterPanelProps) => {
 
         <FilterSection
           label="Amenity"
-          description="Look for one practical detail that helps this search feel realistic."
+          description="Look for one practical detail that helps the list feel more realistic."
           filterKey="amenities"
           options={AMENITY_OPTIONS.map((option) => ({
             label: option,
@@ -163,29 +157,29 @@ export const FilterPanel = ({ onClose }: FilterPanelProps) => {
         />
       </div>
 
-      <div className="border-t border-[#ece4d7] px-6 py-5 sm:px-8 sm:py-6">
+      <div className="border-t border-[#ebebeb] bg-white px-6 py-5 sm:px-8 sm:py-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#f8f5ef] px-4 py-2 text-sm font-semibold text-[#5f5a55]">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#f7f7f7] px-4 py-2 text-sm font-semibold text-[#5f5a55]">
             <SlidersHorizontal className="h-4 w-4" />
             {activeFilterCount === 0
-              ? 'No advanced filters selected'
-              : `${activeFilterCount} advanced ${activeFilterCount === 1 ? 'filter' : 'filters'} selected`}
+              ? 'No filters selected'
+              : `${activeFilterCount} ${activeFilterCount === 1 ? 'filter' : 'filters'} selected`}
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={clearFilters}
-              className="rounded-full border border-[#ddd6ca] bg-white px-5 py-3 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222] hover:bg-[#f8f5ef]"
+              className="rounded-full border border-[#dddddd] bg-white px-5 py-3 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222] hover:bg-[#f7f7f7]"
             >
-              Reset search
+              Clear all
             </button>
             <button
               type="button"
               onClick={onClose}
               className="rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
-              Show results
+              {resultCount === 1 ? 'Show 1 church' : `Show ${resultCount} churches`}
             </button>
           </div>
         </div>
