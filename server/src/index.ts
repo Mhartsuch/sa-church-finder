@@ -2,9 +2,12 @@ import app from './app.js'
 import logger from './lib/logger.js'
 import prisma from './lib/prisma.js'
 import { resolveClientUrls } from './lib/session.js'
+import { captureServerException, flushServerSentry, initializeServerSentry } from './lib/sentry.js'
 
 const port = process.env.PORT || 3001
 const clientUrls = resolveClientUrls()
+
+initializeServerSentry()
 
 const server = app.listen(port, () => {
   logger.info(`Server running on http://localhost:${port}`)
@@ -28,12 +31,39 @@ const gracefulShutdown = (): void => {
 process.on('SIGTERM', gracefulShutdown)
 process.on('SIGINT', gracefulShutdown)
 
-process.on('uncaughtException', (error: Error) => {
-  logger.error(error, 'Uncaught Exception')
+const exitAfterFatalError = async (
+  error: Error,
+  logMessage: string,
+  extras?: Record<string, unknown>,
+): Promise<never> => {
+  captureServerException(error, undefined, {
+    mechanism: logMessage.toLowerCase().replace(/\s+/g, '_'),
+    extras,
+  })
+  await flushServerSentry()
+
+  if (extras) {
+    logger.error({ err: error, ...extras }, logMessage)
+  } else {
+    logger.error(error, logMessage)
+  }
+
   process.exit(1)
+}
+
+process.on('uncaughtException', (error: Error) => {
+  void exitAfterFatalError(error, 'Uncaught Exception')
 })
 
 process.on('unhandledRejection', (reason: unknown) => {
-  logger.error(reason, 'Unhandled Rejection')
-  process.exit(1)
+  const error =
+    reason instanceof Error
+      ? reason
+      : new Error('Unhandled Rejection', {
+          cause: reason,
+        })
+
+  void exitAfterFatalError(error, 'Unhandled Rejection', {
+    rejectionReason: reason,
+  })
 })

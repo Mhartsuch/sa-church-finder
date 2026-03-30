@@ -13,6 +13,55 @@
 
 ## Log
 
+### 2026-03-30 - Sentry Error Monitoring Foundation
+
+**Focus:** Landed the remaining low-priority operational follow-up by wiring optional Sentry monitoring into both the frontend and backend without disturbing the current auth/search/review flows.
+
+**Completed:**
+
+- **Browser monitoring foundation:** Added `@sentry/react`, a first-import client instrumentation module, typed Vite env support for Sentry DSN/release values, and a root React error boundary with a member-friendly crash fallback screen.
+- **Server monitoring foundation:** Added `@sentry/node`, env-gated backend initialization, request-aware exception capture inside the centralized error middleware, and fatal-process flush logic for uncaught exceptions and unhandled rejections.
+- **Noise control:** Kept Sentry disabled unless DSNs are explicitly configured and intentionally skipped normal 4xx `AppError` responses so validation/auth failures do not flood monitoring with expected operational events.
+- **Docs + repo memory:** Added Sentry env placeholders to the backend example env, wired optional DSNs into `render.yaml`, updated Quick Start / agent briefing / decision log / task board, and cleaned the lingering server test lint warnings while touching the monitoring pass.
+
+**Remaining Notes:**
+
+- Sentry is now wired in code, but each environment still needs `SENTRY_DSN` and/or `VITE_SENTRY_DSN` configured before events will actually appear in Sentry there.
+- Source-map upload, tracing, session replay, and richer release automation are still optional follow-ups if the project wants deeper observability later.
+- Live Google OAuth and SMTP delivery still depend on environment-specific credentials.
+
+**Verification:**
+
+- Ran `npm.cmd run lint` successfully at the repo root.
+- Ran `npm.cmd run typecheck` successfully at the repo root.
+- Ran `npm.cmd run test` successfully at the repo root after rerunning outside the Windows sandbox because the sandboxed client Vitest startup hit `spawn EPERM`.
+
+**Files Changed:**
+
+- `client/package-lock.json`
+- `client/package.json`
+- `client/src/components/layout/AppErrorFallback.tsx`
+- `client/src/instrument.ts`
+- `client/src/lib/sentry.test.ts`
+- `client/src/lib/sentry.ts`
+- `client/src/main.tsx`
+- `client/src/vite-env.d.ts`
+- `server/package-lock.json`
+- `server/package.json`
+- `server/.env.example`
+- `server/src/app.ts`
+- `server/src/index.ts`
+- `server/src/lib/sentry.test.ts`
+- `server/src/lib/sentry.ts`
+- `server/src/lib/session.test.ts`
+- `server/src/middleware/error-handler.ts`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+- `QUICKSTART.md`
+- `TODO.md`
+- `render.yaml`
+
 ### 2026-03-30 - Husky + lint-staged Workflow Polish
 
 **Focus:** Finished the remaining local workflow-polish task by wiring real Git hooks around the repo's existing quality commands.

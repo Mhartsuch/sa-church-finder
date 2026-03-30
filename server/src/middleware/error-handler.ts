@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import logger from '../lib/logger.js'
+import { captureServerException } from '../lib/sentry.js'
 
 export class AppError extends Error {
   constructor(
@@ -44,10 +45,12 @@ export class ConflictError extends AppError {
 
 export const errorHandler = (
   err: Error | AppError,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void => {
+  void _next
+
   if (err instanceof AppError) {
     const statusCode = err.statusCode
     const code = err.code
@@ -68,6 +71,12 @@ export const errorHandler = (
 
     logger.error({ statusCode, code, message }, 'AppError occurred')
 
+    if (statusCode >= 500 || !err.isOperational) {
+      captureServerException(err, req, {
+        mechanism: 'app_error',
+      })
+    }
+
     res.status(statusCode).json({
       error: errorPayload,
     })
@@ -75,14 +84,14 @@ export const errorHandler = (
   }
 
   logger.error(err, 'Unhandled error')
+  captureServerException(err, req, {
+    mechanism: 'unhandled_error',
+  })
 
   res.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
-      message:
-        process.env.NODE_ENV === 'production'
-          ? 'An unexpected error occurred'
-          : err.message,
+      message: process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : err.message,
     },
   })
 }

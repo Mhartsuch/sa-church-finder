@@ -57,12 +57,13 @@
 
 - [x] Add Husky + lint-staged for pre-commit hooks - completed 2026-03-30
 - [x] Set up GitHub Actions CI (lint, typecheck, test on PRs) - workflows created, CI fixes applied (2026-03-27)
-- [ ] Set up error monitoring (Sentry free tier)
+- [x] Set up error monitoring (Sentry free tier) - env-gated browser + server capture landed, docs/Render wiring added (2026-03-30)
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
 
 - [x] Husky + lint-staged workflow polish - added root Husky hooks, staged-file ESLint/Prettier rules that reuse the existing client/server configs, a manual `npm run lint-staged` entry point, and documented the new local hook behavior in Quick Start (2026-03-30)
+- [x] Error monitoring foundation - added env-gated Sentry setup for the React SPA and Express API, a browser crash fallback, server-side exception capture that skips normal 4xx app errors, Render/env example wiring, and config tests (2026-03-30)
 - [x] Mapbox bundle optimization - moved Mapbox GL JS to a runtime CDN loader, aliased the bundled package to a tiny stub, removed the 1.7 MB lazy `mapbox-gl` chunk from the client build, and kept the interactive map flow unchanged (2026-03-30)
 - [x] Account page UX refresh - rewrote the signed-in copy to feel member-facing, improved saved/review empty states with clearer next actions, and replaced the internal-looking sidebar checklist with user-centered guidance (2026-03-29)
 - [x] Auth email delivery - added SMTP-backed password reset + email verification delivery, preserved opt-in preview links for local development, added auth email templates, Render/env wiring docs, and server auth test coverage (2026-03-29)
@@ -135,4 +136,4 @@
 
 ---
 
-_Last updated: 2026-03-30 (Mapbox bundle optimization landed)_
+_Last updated: 2026-03-30 (Sentry error monitoring foundation landed)_

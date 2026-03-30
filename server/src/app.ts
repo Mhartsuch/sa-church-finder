@@ -6,11 +6,14 @@ import { pinoHttp } from 'pino-http'
 
 import logger from './lib/logger.js'
 import { createSessionMiddleware, resolveClientUrls } from './lib/session.js'
+import { initializeServerSentry } from './lib/sentry.js'
 import { errorHandler } from './middleware/error-handler.js'
 import authRoutes from './routes/auth.routes.js'
 import churchRoutes from './routes/church.routes.js'
 import reviewRoutes from './routes/review.routes.js'
 import userRoutes from './routes/users.routes.js'
+
+initializeServerSentry()
 
 export const createApp = (): Express => {
   const app = express()

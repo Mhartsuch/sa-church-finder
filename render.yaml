@@ -19,7 +19,7 @@ services:
       - key: CLIENT_URL
         value: https://sa-church-finder.onrender.com
       - key: DATABASE_URL
-        sync: false  # Set manually to Supabase session pooler URL
+        sync: false # Set manually to Supabase session pooler URL
       - key: SESSION_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID
@@ -40,6 +40,10 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
     healthCheckPath: /api/v1/health
 
   # ── Frontend SPA ──
@@ -55,7 +59,11 @@ services:
       - key: VITE_API_URL
         value: https://sa-church-finder-api.onrender.com
       - key: VITE_MAPBOX_TOKEN
-        sync: false  # Set manually in Render dashboard (public token, safe for client)
+        sync: false # Set manually in Render dashboard (public token, safe for client)
+      - key: VITE_SENTRY_DSN
+        sync: false
+      - key: VITE_SENTRY_ENVIRONMENT
+        value: production
     routes:
       - type: rewrite
         source: /*

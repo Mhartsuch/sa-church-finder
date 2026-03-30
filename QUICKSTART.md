@@ -41,6 +41,10 @@ cp server/.env.example server/.env
 # GOOGLE_CLIENT_ID=your-google-client-id
 # GOOGLE_CLIENT_SECRET=your-google-client-secret
 # GOOGLE_CALLBACK_URL=http://localhost:3001/api/v1/auth/google/callback
+# Optional for local backend error monitoring:
+# SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+# SENTRY_ENVIRONMENT=development
+# SENTRY_RELEASE=local-dev
 
 # 4. Apply committed migrations
 cd server && npx prisma migrate deploy && cd ..
@@ -61,6 +65,8 @@ If `AUTH_EXPOSE_RESET_PREVIEW=true` is also set locally, successful forgot-passw
 If `AUTH_EXPOSE_VERIFICATION_PREVIEW=true` is also set locally, signed-in users can request a fresh verification link from the account page and receive a preview verification URL in the resend response. Registration also issues a verification token immediately, and the preview flag gives local development a safe fallback if you are not pointing at a real SMTP provider yet.
 
 If you want to test Google sign-in locally, create OAuth web credentials in Google Cloud and add `http://localhost:3001/api/v1/auth/google/callback` as an authorized redirect URI. Then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_CALLBACK_URL` in `server/.env`.
+
+If you want optional Sentry monitoring locally, set `SENTRY_DSN` in `server/.env` and `VITE_SENTRY_DSN` in `client/.env`. Without those DSNs, the Sentry integration stays disabled on each side. `SENTRY_RELEASE` and `VITE_SENTRY_RELEASE` are optional if you want release tagging in Sentry.
 
 ## Important Note
 
@@ -84,6 +90,8 @@ You still need to set:
 - `GOOGLE_CLIENT_ID` on the backend if you want Google sign-in enabled
 - `GOOGLE_CLIENT_SECRET` on the backend if you want Google sign-in enabled
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, and any required SMTP credentials on the backend if you want password reset and email verification to send real emails
+- `SENTRY_DSN` on the backend if you want server-side Sentry error monitoring
+- `VITE_SENTRY_DSN` on the frontend if you want browser-side Sentry error monitoring
 
 If you rename either Render service or switch to a custom domain, update `VITE_API_URL`, `CLIENT_URL`, and the backend `GOOGLE_CALLBACK_URL` to match the new URLs.
 

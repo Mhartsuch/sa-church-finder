@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-014: Keep Sentry optional and env-gated, and only report truly unexpected server failures
+
+- **Date:** 2026-03-30
+- **Status:** ACTIVE
+- **Decision:** Add Sentry hooks to both the React SPA and the Express API, but keep the integration disabled unless runtime DSNs are configured. On the server, capture unhandled exceptions and fatal process errors, while skipping normal operational 4xx `AppError` responses so Sentry reflects real breakages instead of expected user mistakes.
+- **Alternatives Considered:** Postpone monitoring until a live Sentry project was configured; capture every backend `AppError` including validation/auth failures; wire tracing/replay/source-map upload in the first pass.
+- **Reasoning:** Error monitoring was the clearest remaining code task, but the repo also needs to stay safe for local development, tests, and environments that do not have Sentry credentials yet. Env-gating lets the code land now without breaking those flows. Filtering out expected 4xx app errors keeps alert noise low and preserves Sentry as a signal for regressions and unexpected failures rather than normal form validation or auth denials.
+- **Consequences:** The app now has a monitoring foundation that can be activated per environment with `SENTRY_DSN` and `VITE_SENTRY_DSN`. Release tagging is supported through optional release env vars, while richer tracing, replay, and source-map automation remain future follow-ups if needed.
+
 ### DEC-013: Keep Git hooks at the repo root and delegate staged-file checks to the existing client/server toolchains
 
 - **Date:** 2026-03-30

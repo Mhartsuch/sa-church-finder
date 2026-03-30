@@ -1,4 +1,5 @@
 import express from 'express'
+import type { Express } from 'express'
 import request from 'supertest'
 
 import { createSessionMiddleware, SESSION_COOKIE_NAME } from './session.js'
@@ -6,7 +7,7 @@ import { createSessionMiddleware, SESSION_COOKIE_NAME } from './session.js'
 const originalNodeEnv = process.env.NODE_ENV
 const originalSessionCookieSameSite = process.env.SESSION_COOKIE_SAME_SITE
 
-const createTestApp = () => {
+const createTestApp = (): Express => {
   const app = express()
 
   if (process.env.NODE_ENV === 'production') {
@@ -22,7 +23,7 @@ const createTestApp = () => {
   return app
 }
 
-const findSessionCookie = (setCookieHeader: string | string[] | undefined) => {
+const findSessionCookie = (setCookieHeader: string | string[] | undefined): string | undefined => {
   const cookies = Array.isArray(setCookieHeader)
     ? setCookieHeader
     : setCookieHeader
