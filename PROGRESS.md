@@ -13,6 +13,46 @@
 
 ## Log
 
+### 2026-03-30 - Integration Readiness Health Signals
+
+**Focus:** Made the remaining live-environment setup work easier to verify by surfacing backend integration readiness directly in the app instead of relying on guesswork or send-time failures.
+
+**Completed:**
+
+- **SMTP validation hardening:** Tightened the backend email config parser so partial SMTP auth values no longer count as "configured"; a missing `SMTP_PASS` or `SMTP_USER` now correctly reports a partial setup instead of silently falling back to unauthenticated delivery.
+- **Health endpoint readiness summary:** Extended `GET /api/v1/health` with safe integration readiness details for SMTP email delivery, Google OAuth, and server-side Sentry using `configured` / `partial` / `disabled` states without exposing any secret values.
+- **Production startup guidance:** Added backend startup warnings for production environments when SMTP, Google OAuth, or Sentry are missing or only partially configured so Render logs point directly at setup gaps.
+- **Coverage + docs:** Added focused server tests for SMTP readiness edge cases, integration-status helpers, and the health endpoint response, then updated Quick Start, the agent briefing, and the task board to document the new deployment-check workflow.
+
+**Remaining Notes:**
+
+- Real SMTP credentials still need to be entered in each live environment before password reset and email verification will send outside local development.
+- Google OAuth and Sentry still depend on environment-specific live credentials as well, but the backend now reports their readiness state clearly.
+
+**Verification:**
+
+- Ran `npm.cmd run lint:server` successfully at the repo root.
+- Ran `npm.cmd run typecheck:server` successfully at the repo root.
+- Ran `npm.cmd run test:server` successfully at the repo root after rerunning outside the Windows sandbox because sandboxed Jest worker startup hit `spawn EPERM`.
+- Ran `npm.cmd run lint` successfully at the repo root.
+- Ran `npm.cmd run typecheck` successfully at the repo root.
+- Ran `npm.cmd run test` successfully at the repo root after rerunning outside the Windows sandbox because the client/server test runners need process spawning that the sandbox blocked.
+
+**Files Changed:**
+
+- `server/src/app.ts`
+- `server/src/app.test.ts`
+- `server/src/index.ts`
+- `server/src/lib/email.test.ts`
+- `server/src/lib/email.ts`
+- `server/src/lib/integration-status.test.ts`
+- `server/src/lib/integration-status.ts`
+- `server/src/services/auth.service.ts`
+- `AGENT_BRIEFING.md`
+- `PROGRESS.md`
+- `QUICKSTART.md`
+- `TODO.md`
+
 ### 2026-03-30 - Sentry Error Monitoring Foundation
 
 **Focus:** Landed the remaining low-priority operational follow-up by wiring optional Sentry monitoring into both the frontend and backend without disturbing the current auth/search/review flows.

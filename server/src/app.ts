@@ -4,6 +4,7 @@ import express, { Express, Request, Response } from 'express'
 import helmet from 'helmet'
 import { pinoHttp } from 'pino-http'
 
+import { getPublicServerIntegrationStatus } from './lib/integration-status.js'
 import logger from './lib/logger.js'
 import { createSessionMiddleware, resolveClientUrls } from './lib/session.js'
 import { initializeServerSentry } from './lib/sentry.js'
@@ -43,6 +44,7 @@ export const createApp = (): Express => {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
+      integrations: getPublicServerIntegrationStatus(),
     })
   })
 

@@ -93,6 +93,8 @@ You still need to set:
 - `SENTRY_DSN` on the backend if you want server-side Sentry error monitoring
 - `VITE_SENTRY_DSN` on the frontend if you want browser-side Sentry error monitoring
 
+After deploy, you can hit `GET /api/v1/health` on the backend to confirm whether SMTP email delivery, Google OAuth, and server-side Sentry are `configured`, `partial`, or `disabled` without exposing any secret values.
+
 If you rename either Render service or switch to a custom domain, update `VITE_API_URL`, `CLIENT_URL`, and the backend `GOOGLE_CALLBACK_URL` to match the new URLs.
 
 ## Useful Commands

@@ -1,4 +1,5 @@
 import app from './app.js'
+import { getServerIntegrationStatus } from './lib/integration-status.js'
 import logger from './lib/logger.js'
 import prisma from './lib/prisma.js'
 import { resolveClientUrls } from './lib/session.js'
@@ -6,12 +7,49 @@ import { captureServerException, flushServerSentry, initializeServerSentry } fro
 
 const port = process.env.PORT || 3001
 const clientUrls = resolveClientUrls()
+const integrationStatus = getServerIntegrationStatus()
 
 initializeServerSentry()
 
 const server = app.listen(port, () => {
   logger.info(`Server running on http://localhost:${port}`)
   logger.info(`Client URL: ${clientUrls === '*' ? '*' : clientUrls.join(', ')}`)
+
+  if (process.env.NODE_ENV === 'production') {
+    if (!integrationStatus.emailDelivery.configured) {
+      logger.warn(
+        {
+          missingFields: integrationStatus.emailDelivery.missingFields,
+          status: integrationStatus.emailDelivery.status,
+        },
+        integrationStatus.emailDelivery.status === 'partial'
+          ? 'SMTP email delivery is only partially configured'
+          : 'SMTP email delivery is not configured; auth emails will not send',
+      )
+    }
+
+    if (integrationStatus.googleOAuth.status === 'partial') {
+      logger.warn(
+        {
+          missingFields: integrationStatus.googleOAuth.missingFields,
+        },
+        'Google OAuth is only partially configured',
+      )
+    } else if (!integrationStatus.googleOAuth.configured) {
+      logger.info('Google OAuth is not configured in this environment')
+    }
+
+    if (integrationStatus.errorMonitoring.status === 'partial') {
+      logger.warn(
+        {
+          missingFields: integrationStatus.errorMonitoring.missingFields,
+        },
+        'Sentry error monitoring is only partially configured',
+      )
+    } else if (!integrationStatus.errorMonitoring.configured) {
+      logger.info('Sentry error monitoring is not configured in this environment')
+    }
+  }
 })
 
 const gracefulShutdown = (): void => {

@@ -10,10 +10,12 @@ SA Church Finder is an Airbnb-style web app for discovering churches in San Anto
 
 ### Current Priority
 
-Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, review moderation, SMTP-backed auth email delivery, the Mapbox bundle optimization, the local Husky/lint-staged workflow polish, and the optional Sentry monitoring foundation are live end to end. The biggest open items are now environment-specific credential setup for live Google sign-in, SMTP delivery, and any future product/backlog work beyond the current milestone.
+Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, review moderation, SMTP-backed auth email delivery, the Mapbox bundle optimization, the local Husky/lint-staged workflow polish, the optional Sentry monitoring foundation, and the new deployment-readiness health signals are live end to end. The biggest open items are still environment-specific credential setup for live SMTP delivery, Google sign-in, and any future product/backlog work beyond the current milestone.
 
 ### Recently Completed
 
+- Added deployment-readiness visibility for backend integrations: `/api/v1/health` now reports safe readiness status for SMTP email delivery, Google OAuth, and server-side Sentry, and production startup logs warn when those integrations are missing or only partially configured
+- Tightened SMTP configuration validation so half-configured credentials no longer look "ready"; for example, setting `SMTP_USER` without `SMTP_PASS` now correctly reports a partial setup instead of silently attempting unauthenticated delivery
 - Added env-gated Sentry monitoring to both runtimes: browser-side initialization plus a root error boundary fallback in the React app, and server-side exception capture plus fatal-process flushing in the Express API
 - Added Husky + lint-staged at the repo root so staged client/server files auto-run through the existing ESLint configs plus Prettier on commit, and the existing pre-push quality gate is now wired through Husky as well
 - Optimized the production map bundle by runtime-loading Mapbox GL JS from Mapbox's CDN and removing the 1.7 MB lazy `mapbox-gl` chunk from the Vite build
@@ -43,6 +45,7 @@ Keep moving through Milestone 2 now that auth, Google sign-in, password recovery
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - Google OAuth is implemented in-app now, but each environment still needs valid Google OAuth credentials plus an authorized redirect URI before live sign-in will work there
 - Auth email delivery is implemented in-app now, but each environment still needs valid SMTP settings before password reset and email verification will send real emails there
+- `/api/v1/health` now exposes safe readiness flags for SMTP, Google OAuth, and server Sentry so deployment setup gaps can be checked without digging through logs
 - Sentry monitoring is implemented in-app now, but each environment still needs `SENTRY_DSN` and/or `VITE_SENTRY_DSN` configured before events will actually flow to Sentry there
 
 ## Where Things Are

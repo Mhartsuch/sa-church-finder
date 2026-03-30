@@ -7,6 +7,7 @@ import { resolveClientUrls } from '../lib/session.js'
 import { AppError, AuthError } from '../middleware/error-handler.js'
 import logger from '../lib/logger.js'
 import { isEmailDeliveryConfigured } from '../lib/email.js'
+import { getGoogleOAuthStatus } from '../lib/integration-status.js'
 import {
   AuthForgotPasswordBody,
   AuthLoginBody,
@@ -15,10 +16,7 @@ import {
   AuthResetPasswordBody,
   AuthVerifyEmailBody,
 } from '../schemas/auth.schema.js'
-import {
-  sendEmailVerificationEmail,
-  sendPasswordResetEmail,
-} from './auth-email.service.js'
+import { sendEmailVerificationEmail, sendPasswordResetEmail } from './auth-email.service.js'
 import { AppRole, AuthUser } from '../types/auth.types.js'
 
 const authUserSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -95,16 +93,12 @@ function resolveEmailVerificationTokenTtlMs(): number {
 }
 
 function shouldExposePasswordResetPreview(): boolean {
-  return (
-    process.env.NODE_ENV !== 'production' &&
-    process.env.AUTH_EXPOSE_RESET_PREVIEW === 'true'
-  )
+  return process.env.NODE_ENV !== 'production' && process.env.AUTH_EXPOSE_RESET_PREVIEW === 'true'
 }
 
 function shouldExposeVerificationPreview(): boolean {
   return (
-    process.env.NODE_ENV !== 'production' &&
-    process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW === 'true'
+    process.env.NODE_ENV !== 'production' && process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW === 'true'
   )
 }
 
@@ -197,9 +191,7 @@ async function issueEmailVerificationToken(input: {
     )
   }
 
-  const { rawToken, tokenHash, expiresAt } = issueOneTimeToken(
-    resolveEmailVerificationTokenTtlMs(),
-  )
+  const { rawToken, tokenHash, expiresAt } = issueOneTimeToken(resolveEmailVerificationTokenTtlMs())
 
   await prisma.$transaction([
     prisma.emailVerificationToken.deleteMany({
@@ -263,15 +255,8 @@ async function issueEmailVerificationToken(input: {
   return previewUrl ? { previewUrl } : {}
 }
 
-function hasGoogleOAuthConfig(): boolean {
-  return Boolean(
-    process.env.GOOGLE_CLIENT_ID?.trim() &&
-      process.env.GOOGLE_CLIENT_SECRET?.trim(),
-  )
-}
-
 export function isGoogleOAuthConfigured(): boolean {
-  return hasGoogleOAuthConfig()
+  return getGoogleOAuthStatus().configured
 }
 
 function requireGoogleOAuthConfig(): {
@@ -305,11 +290,7 @@ async function parseGoogleJsonResponse(response: Response): Promise<unknown> {
 
 function normalizeGoogleUserProfile(payload: unknown): NormalizedGoogleUserProfile {
   if (!payload || typeof payload !== 'object') {
-    throw new AppError(
-      502,
-      'GOOGLE_OAUTH_FAILED',
-      'Google sign-in could not be completed',
-    )
+    throw new AppError(502, 'GOOGLE_OAUTH_FAILED', 'Google sign-in could not be completed')
   }
 
   const profile = payload as GoogleUserInfoResponse
@@ -367,11 +348,7 @@ async function exchangeGoogleCodeForUserProfile(
       },
       'Google OAuth token exchange failed',
     )
-    throw new AppError(
-      502,
-      'GOOGLE_OAUTH_FAILED',
-      'Google sign-in could not be completed',
-    )
+    throw new AppError(502, 'GOOGLE_OAUTH_FAILED', 'Google sign-in could not be completed')
   }
 
   const userInfoResponse = await fetch(GOOGLE_USERINFO_URL, {
@@ -391,19 +368,13 @@ async function exchangeGoogleCodeForUserProfile(
       },
       'Google OAuth user info request failed',
     )
-    throw new AppError(
-      502,
-      'GOOGLE_OAUTH_FAILED',
-      'Google sign-in could not be completed',
-    )
+    throw new AppError(502, 'GOOGLE_OAUTH_FAILED', 'Google sign-in could not be completed')
   }
 
   return normalizeGoogleUserProfile(userInfoPayload)
 }
 
-async function syncGoogleUserProfile(
-  profile: NormalizedGoogleUserProfile,
-): Promise<AuthUser> {
+async function syncGoogleUserProfile(profile: NormalizedGoogleUserProfile): Promise<AuthUser> {
   const existingGoogleUser = await prisma.user.findUnique({
     where: { googleId: profile.googleId },
     select: authUserWithGoogleSelect,
@@ -511,11 +482,7 @@ export async function authenticateGoogleUser(
     }
 
     logger.error({ err: error }, 'Unexpected Google OAuth failure')
-    throw new AppError(
-      502,
-      'GOOGLE_OAUTH_FAILED',
-      'Google sign-in could not be completed',
-    )
+    throw new AppError(502, 'GOOGLE_OAUTH_FAILED', 'Google sign-in could not be completed')
   }
 }
 
@@ -552,7 +519,7 @@ export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
           userId: user.id,
           previewUrl: verificationResult.previewUrl,
         },
-      'Email verification preview ready after registration',
+        'Email verification preview ready after registration',
       )
     }
   } catch (error) {
@@ -651,10 +618,7 @@ export async function verifyEmail(input: AuthVerifyEmailBody): Promise<VerifyEma
     }
   }
 
-  if (
-    emailVerificationToken.usedAt ||
-    emailVerificationToken.expiresAt <= new Date()
-  ) {
+  if (emailVerificationToken.usedAt || emailVerificationToken.expiresAt <= new Date()) {
     throw new AppError(
       400,
       'INVALID_EMAIL_VERIFICATION_TOKEN',
@@ -715,9 +679,7 @@ export async function requestPasswordReset(input: AuthForgotPasswordBody): Promi
     return {}
   }
 
-  const { rawToken, tokenHash, expiresAt } = issueOneTimeToken(
-    resolvePasswordResetTokenTtlMs(),
-  )
+  const { rawToken, tokenHash, expiresAt } = issueOneTimeToken(resolvePasswordResetTokenTtlMs())
 
   await prisma.$transaction([
     prisma.passwordResetToken.deleteMany({
@@ -764,10 +726,7 @@ export async function requestPasswordReset(input: AuthForgotPasswordBody): Promi
       )
     }
   } else {
-    logger.warn(
-      { userId: user.id },
-      'Password reset email not sent because SMTP is not configured',
-    )
+    logger.warn({ userId: user.id }, 'Password reset email not sent because SMTP is not configured')
   }
 
   return previewUrl ? { previewUrl } : {}
@@ -790,11 +749,7 @@ export async function resetPassword(input: AuthResetPasswordBody): Promise<void>
     passwordResetToken.usedAt ||
     passwordResetToken.expiresAt <= new Date()
   ) {
-    throw new AppError(
-      400,
-      'INVALID_RESET_TOKEN',
-      'Password reset link is invalid or has expired',
-    )
+    throw new AppError(400, 'INVALID_RESET_TOKEN', 'Password reset link is invalid or has expired')
   }
 
   const passwordHash = await bcrypt.hash(input.password, 12)

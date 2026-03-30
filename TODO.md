@@ -62,6 +62,7 @@
 
 ### Completed
 
+- [x] Backend integration readiness visibility - added safe `/api/v1/health` integration status for SMTP/Google/Sentry, production startup warnings for missing live credentials, and stricter SMTP partial-config validation so misconfigured auth email delivery is easier to spot before testing (2026-03-30)
 - [x] Husky + lint-staged workflow polish - added root Husky hooks, staged-file ESLint/Prettier rules that reuse the existing client/server configs, a manual `npm run lint-staged` entry point, and documented the new local hook behavior in Quick Start (2026-03-30)
 - [x] Error monitoring foundation - added env-gated Sentry setup for the React SPA and Express API, a browser crash fallback, server-side exception capture that skips normal 4xx app errors, Render/env example wiring, and config tests (2026-03-30)
 - [x] Mapbox bundle optimization - moved Mapbox GL JS to a runtime CDN loader, aliased the bundled package to a tiny stub, removed the 1.7 MB lazy `mapbox-gl` chunk from the client build, and kept the interactive map flow unchanged (2026-03-30)
@@ -136,4 +137,4 @@
 
 ---
 
-_Last updated: 2026-03-30 (Sentry error monitoring foundation landed)_
+_Last updated: 2026-03-30 (integration readiness health/status pass landed)_
