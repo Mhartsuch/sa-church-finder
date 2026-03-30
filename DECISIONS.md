@@ -11,6 +11,14 @@
 
 ## Decisions
 
+### DEC-012: Runtime-load Mapbox GL from Mapbox's CDN instead of bundling the library into the client build
+- **Date:** 2026-03-30
+- **Status:** ACTIVE
+- **Decision:** Keep `react-map-gl` for the map UI, but stop shipping the full `mapbox-gl` package inside the Vite build. Instead, load Mapbox GL JS and its stylesheet from Mapbox's CDN at runtime only when the interactive map is opened, and alias the bundled `mapbox-gl` import to a tiny stub so `react-map-gl` does not pull the package into a large lazy chunk.
+- **Alternatives Considered:** Keep the existing lazy chunk and accept the 1.7 MB build output; try only Rollup manual chunking; replace the map stack with a different library such as MapLibre.
+- **Reasoning:** The map was already lazy-loaded behind the Search page's map toggle, but the production build still emitted a very large `mapbox-gl` chunk that kept surfacing as an unresolved performance warning. Manual chunking would only reshuffle that weight, not remove it. Swapping libraries would have been a much larger product and testing change. Runtime-loading the official Mapbox script keeps the current UX and API token model intact while materially shrinking the built assets that ship with the app.
+- **Consequences:** The interactive map now depends on the Mapbox CDN in addition to the existing Mapbox tile/style requests. The `mapbox-gl` npm package still stays in `client/package.json` for types and local development compatibility, but it is no longer bundled into production assets.
+
 ### DEC-011: Keep auth preview links as an explicit fallback even after SMTP delivery is added
 - **Date:** 2026-03-29
 - **Status:** ACTIVE

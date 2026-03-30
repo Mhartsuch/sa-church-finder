@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { MapPlaceholder } from './MapPlaceholder'
 
-// Lazy-load InteractiveMap to avoid loading mapbox-gl if not needed
+// Lazy-load InteractiveMap so the React map UI and the runtime Mapbox loader
+// are only requested when the user actually opens the map.
 const InteractiveMap = lazy(() =>
   import('./InteractiveMap').then((m) => ({ default: m.InteractiveMap }))
 )
@@ -13,7 +14,8 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
  * - InteractiveMap (Mapbox GL JS) when VITE_MAPBOX_TOKEN is set
  * - MapPlaceholder (SVG fallback) when no token is available
  *
- * Uses lazy loading so mapbox-gl is only downloaded when needed.
+ * Uses lazy loading so the map UI and CDN-hosted Mapbox runtime are only requested
+ * when needed.
  */
 export const MapContainer = () => {
   if (!MAPBOX_TOKEN) {

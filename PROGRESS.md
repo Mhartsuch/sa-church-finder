@@ -12,6 +12,37 @@
 
 ## Log
 
+### 2026-03-30 - Mapbox Bundle Optimization
+
+**Focus:** Closed the long-running Mapbox production bundle-size follow-up without changing the search-page UX.
+
+**Completed:**
+- **Runtime-loaded Mapbox GL:** Added a small browser loader that injects the Mapbox GL JS script and stylesheet from Mapbox's CDN only when the interactive map is opened, while preserving the existing `react-map-gl` integration and token-gated map behavior.
+- **Bundle cleanup:** Aliased Vite's `mapbox-gl` resolution to a tiny local stub and passed the real runtime loader through `MapGL`'s `mapLib` prop so the client build no longer ships the 1.7 MB lazy `mapbox-gl` chunk.
+- **Map component follow-through:** Removed the direct bundled Mapbox CSS import from `InteractiveMap`, updated the map container comments to reflect the new loading path, and kept the existing popup/control styling intact through the CDN stylesheet plus local overrides.
+- **Project memory updates:** Marked the Mapbox bundle task complete and removed the old known-bug note from the repo status docs.
+
+**Remaining Notes:**
+- A valid `VITE_MAPBOX_TOKEN` is still required anywhere the live interactive map should be enabled.
+- Live Google OAuth and SMTP delivery still depend on environment-specific credentials.
+
+**Verification:**
+- Ran `npm.cmd run typecheck` successfully in `client/`.
+- Ran `npm.cmd run lint` successfully in `client/`.
+- Ran `npm.cmd run build` successfully in `client/` outside the sandbox after the initial sandboxed build hit `spawn EPERM`.
+- Verified the production build output no longer contains the old `mapbox-gl` 1.7 MB chunk; the build now emits a tiny `mapbox-gl-runtime` stub plus a ~23 kB `InteractiveMap` chunk.
+
+**Files Changed:**
+- `client/src/components/map/InteractiveMap.tsx`
+- `client/src/components/map/MapContainer.tsx`
+- `client/src/lib/load-mapbox-gl.ts`
+- `client/src/lib/mapbox-gl-runtime.ts`
+- `client/vite.config.ts`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+- `TODO.md`
+
 ### 2026-03-29 - Auth Email Delivery
 
 **Focus:** Finished the remaining Milestone 2 auth transport gap by wiring real SMTP-backed delivery for password reset and email verification emails.
@@ -25,7 +56,7 @@
 **Remaining Notes:**
 - The code path for auth email delivery is now implemented, but each environment still needs real SMTP provider settings before those emails will send there.
 - Google OAuth still depends on valid environment-specific credentials and authorized redirect URIs anywhere live sign-in should work.
-- The known Mapbox chunk-size warning remains unchanged and is still a separate performance follow-up.
+- The known Mapbox chunk-size warning was resolved on 2026-03-30 by moving the runtime library out of the client bundle.
 
 **Verification:**
 - Ran `npm.cmd run typecheck` successfully in `server/`.
@@ -59,7 +90,7 @@
 
 **Remaining Notes:**
 - Real transactional email delivery is now the clearest remaining Milestone 2 follow-up, with environment-specific Google OAuth credential setup still needed anywhere live Google sign-in should work.
-- The known lazy-loaded `mapbox-gl` chunk-size warning remains unchanged and is still a separate performance follow-up.
+- The known lazy-loaded `mapbox-gl` chunk-size warning was resolved on 2026-03-30 by moving the runtime library out of the client bundle.
 
 **Verification:**
 - Ran `npm.cmd run typecheck` successfully in `client/`.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { ArrowRight, Star } from 'lucide-react';
 import MapGL, {
   GeolocateControl,
@@ -8,16 +8,17 @@ import MapGL, {
   Popup,
   ViewStateChangeEvent,
 } from 'react-map-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
 
 import { DEFAULT_RADIUS } from '@/constants';
 import { useChurches } from '@/hooks/useChurches';
+import { loadMapboxGl } from '@/lib/load-mapbox-gl';
 import { useSearchStore } from '@/stores/search-store';
 import { IChurchSummary } from '@/types/church';
 import { formatDistance, formatRating, getNextService } from '@/utils/format';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+const mapboxGlPromise = loadMapboxGl() as NonNullable<ComponentProps<typeof MapGL>['mapLib']>;
 
 const getShortLabel = (name: string) => {
   const stripped = name
@@ -149,6 +150,7 @@ export const InteractiveMap = () => {
           longitude: mapCenter.lng,
           zoom: mapZoom,
         }}
+        mapLib={mapboxGlPromise}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/light-v11"
         onMoveEnd={handleMoveEnd}

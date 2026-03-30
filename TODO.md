@@ -46,7 +46,7 @@
 - [x] Add review helpful voting follow-up after the MVP - completed 2026-03-28
 - [x] Add review moderation follow-ups after the MVP - completed 2026-03-29
 - [x] Wire real transactional email delivery for auth emails (password reset + verification) - completed 2026-03-29
-- [ ] Review lazy-loaded Mapbox bundle size warning and optimize only if it becomes a real production issue
+- [x] Review lazy-loaded Mapbox bundle size warning and optimize the production bundle by runtime-loading Mapbox GL from CDN instead of bundling the library - completed 2026-03-30
 
 ### P3 - Low
 - [ ] Add Husky + lint-staged for pre-commit hooks
@@ -55,6 +55,7 @@
 - [x] Add keyboard navigation support for search results - result cards, search submit controls, and popup CTA made keyboard-accessible (2026-03-28)
 
 ### Completed
+- [x] Mapbox bundle optimization - moved Mapbox GL JS to a runtime CDN loader, aliased the bundled package to a tiny stub, removed the 1.7 MB lazy `mapbox-gl` chunk from the client build, and kept the interactive map flow unchanged (2026-03-30)
 - [x] Account page UX refresh - rewrote the signed-in copy to feel member-facing, improved saved/review empty states with clearer next actions, and replaced the internal-looking sidebar checklist with user-centered guidance (2026-03-29)
 - [x] Auth email delivery - added SMTP-backed password reset + email verification delivery, preserved opt-in preview links for local development, added auth email templates, Render/env wiring docs, and server auth test coverage (2026-03-29)
 - [x] Search workspace UX pass - search-page toolbar with mobile search input, sort control, removable active-filter chips, slide-over advanced filters, and cleaner desktop map/list steering (2026-03-29)
@@ -120,8 +121,7 @@
 
 ## Known Bugs
 - ~~Mapbox map not loading on Render (showing SVG placeholder instead)~~ — **Fixed 2026-03-29**: `VITE_MAPBOX_TOKEN` was missing from Render env vars; added to `render.yaml`. Token must be set in Render dashboard and a redeploy triggered.
-- Lazy-loaded `mapbox-gl` chunk still exceeds Vite's size warning threshold - monitor before optimizing
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
-*Last updated: 2026-03-29 (Auth email delivery landed)*
+*Last updated: 2026-03-30 (Mapbox bundle optimization landed)*

@@ -8,9 +8,10 @@
 SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 now has the local auth foundation plus real account features: email/password auth, Google sign-in, saved churches, written reviews, helpful voting, password recovery, email verification, and SMTP-backed auth email delivery all work end to end across church profiles and the account page.
 
 ### Current Priority
-Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, review moderation, and SMTP-backed auth email delivery are live end to end. The biggest open items are now environment-specific credential setup for live Google sign-in and SMTP delivery, plus any remaining performance polish like the large lazy-loaded Mapbox chunk.
+Keep moving through Milestone 2 now that auth, Google sign-in, password recovery, saved churches, reviews, helpful voting, email verification, review moderation, SMTP-backed auth email delivery, and the Mapbox bundle optimization are live end to end. The biggest open items are now environment-specific credential setup for live Google sign-in and SMTP delivery, plus lower-priority workflow polish like Husky/lint-staged or error monitoring.
 
 ### Recently Completed
+- Optimized the production map bundle by runtime-loading Mapbox GL JS from Mapbox's CDN and removing the 1.7 MB lazy `mapbox-gl` chunk from the Vite build
 - Added SMTP-backed auth email delivery for password reset and email verification, while preserving opt-in preview-link fallback for local development
 - Refreshed the signed-in account page UX so it reads like a member dashboard instead of an internal milestone checklist, with clearer empty states and more useful guidance
 - Added review moderation end to end: authenticated review reporting, a site-admin flagged-review queue, and moderation resolution actions on the account page
@@ -34,7 +35,6 @@ Keep moving through Milestone 2 now that auth, Google sign-in, password recovery
 
 ### Known Blockers
 - A Mapbox token is still required anywhere the live interactive map should be enabled
-- The lazy-loaded `mapbox-gl` chunk is still large in production builds, so bundle-size optimization remains an open performance follow-up
 - Google OAuth is implemented in-app now, but each environment still needs valid Google OAuth credentials plus an authorized redirect URI before live sign-in will work there
 - Auth email delivery is implemented in-app now, but each environment still needs valid SMTP settings before password reset and email verification will send real emails there
 
@@ -110,4 +110,4 @@ When you finish a session, update:
 - `TODO.md` to reflect completed and new tasks
 
 ---
-*Last updated: 2026-03-29 by Codex*
+*Last updated: 2026-03-30 by Codex*

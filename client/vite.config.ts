@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'mapbox-gl': path.resolve(__dirname, './src/lib/mapbox-gl-runtime.ts'),
     },
   },
   server: {
