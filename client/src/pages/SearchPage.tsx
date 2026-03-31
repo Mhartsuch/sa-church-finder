@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, List, Map, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ChurchList } from '@/components/church/ChurchList';
 import { MapContainer } from '@/components/map/MapContainer';
@@ -18,7 +19,36 @@ const SORT_OPTIONS = [
   { value: 'name', label: 'Name (A-Z)' },
 ] as const;
 
+interface SearchPageLocationState {
+  openFilters?: boolean;
+  [key: string]: unknown;
+}
+
+const getSearchPageLocationState = (state: unknown): SearchPageLocationState | null => {
+  if (typeof state !== 'object' || state === null) {
+    return null;
+  }
+
+  return state as SearchPageLocationState;
+};
+
+const stripOpenFiltersFlag = (state: unknown): SearchPageLocationState | null => {
+  const locationState = getSearchPageLocationState(state);
+
+  if (!locationState) {
+    return null;
+  }
+
+  const rest = { ...locationState };
+
+  delete rest.openFilters;
+
+  return Object.keys(rest).length > 0 ? rest : null;
+};
+
 export const SearchPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false,
   );
@@ -33,8 +63,27 @@ export const SearchPage = () => {
   const setQuery = useSearchStore((state) => state.setQuery);
   const setSort = useSearchStore((state) => state.setSort);
   const clearFilters = useSearchStore((state) => state.clearFilters);
+  const locationState = getSearchPageLocationState(location.state);
 
   useURLSearchState();
+
+  useEffect(() => {
+    if (locationState?.openFilters !== true) {
+      return;
+    }
+
+    setIsFiltersOpen(true);
+    navigate(
+      {
+        pathname: location.pathname,
+        search: location.search,
+      },
+      {
+        replace: true,
+        state: stripOpenFiltersFlag(location.state),
+      },
+    );
+  }, [location.pathname, location.search, location.state, locationState?.openFilters, navigate]);
 
   useEffect(() => {
     const handleResize = () => {

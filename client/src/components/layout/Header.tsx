@@ -28,6 +28,26 @@ export const Header = () => {
     }
   };
 
+  const handleOpenFilters = () => {
+    if (location.pathname === '/' || location.pathname === '/search') {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: location.search,
+        },
+        {
+          replace: true,
+          state: { openFilters: true },
+        },
+      );
+      return;
+    }
+
+    navigate('/search', {
+      state: { openFilters: true },
+    });
+  };
+
   const firstName = user?.name.split(' ')[0] || 'Account';
   const avatarLabel =
     user?.name
@@ -54,7 +74,7 @@ export const Header = () => {
               <SearchBar
                 variant="compact"
                 onSubmit={handleSearchSubmit}
-                onOpenFilters={handleSearchSubmit}
+                onOpenFilters={handleOpenFilters}
               />
             </div>
           </div>
@@ -82,7 +102,9 @@ export const Header = () => {
                 setTheme((current) => (current === 'light' ? 'dark' : 'light'));
               }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#222222] transition-colors hover:bg-[#f7f7f7]"
-              aria-label={theme === 'light' ? 'Enable dark theme preview' : 'Enable light theme preview'}
+              aria-label={
+                theme === 'light' ? 'Enable dark theme preview' : 'Enable light theme preview'
+              }
               title={theme === 'light' ? 'Dark theme preview' : 'Light theme preview'}
             >
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
@@ -99,7 +121,13 @@ export const Header = () => {
             <Link
               to={menuHref}
               className="flex items-center gap-2.5 rounded-full border border-[#dddddd] bg-white px-3 py-2 transition-shadow hover:shadow-airbnb-subtle"
-              aria-label={isLoading ? 'Checking account session' : user ? `Open ${firstName} account` : 'Open account menu'}
+              aria-label={
+                isLoading
+                  ? 'Checking account session'
+                  : user
+                    ? `Open ${firstName} account`
+                    : 'Open account menu'
+              }
             >
               <Menu className="h-4 w-4 text-[#222222]" />
               <div className="flex h-[30px] min-w-[30px] items-center justify-center rounded-full bg-[#717171] px-2 text-xs font-semibold text-white">
