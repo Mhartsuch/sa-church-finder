@@ -154,7 +154,7 @@ export const SearchPage = () => {
             <CategoryFilter
               compareActive={showMap && !isMobile}
               onCompare={() => {
-                setShowMap(true);
+                setShowMap((current) => !current);
               }}
               onOpenFilters={() => {
                 setIsFiltersOpen(true);
@@ -297,25 +297,27 @@ export const SearchPage = () => {
           </div>
         </section>
 
-        <div className="reference-fab">
-          <button
-            type="button"
-            onClick={() => setShowMap((current) => !current)}
-            className="reference-fab-button"
-          >
-            {showMap ? (
-              <>
-                Show list
-                <List className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Show map
-                <Map className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </div>
+        {isMobile ? (
+          <div className="reference-fab">
+            <button
+              type="button"
+              onClick={() => setShowMap((current) => !current)}
+              className="reference-fab-button"
+            >
+              {showMap ? (
+                <>
+                  Show list
+                  <List className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  Show map
+                  <Map className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {isFiltersOpen ? (

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,7 +17,17 @@ vi.mock('@/components/map/MapContainer', () => ({
 }));
 
 vi.mock('@/components/search/CategoryFilter', () => ({
-  CategoryFilter: () => <div>Category filter</div>,
+  CategoryFilter: ({
+    compareActive = false,
+    onCompare,
+  }: {
+    compareActive?: boolean;
+    onCompare?: () => void;
+  }) => (
+    <button type="button" aria-pressed={compareActive} onClick={onCompare}>
+      Compare
+    </button>
+  ),
 }));
 
 vi.mock('@/hooks/useChurches', () => ({
@@ -75,5 +85,30 @@ describe('SearchPage', () => {
     );
 
     expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+  });
+
+  it('toggles compare mode from the toolbar button', () => {
+    render(
+      <MemoryRouter initialEntries={['/search']}>
+        <Routes>
+          <Route path="/search" element={<SearchPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const compareButton = screen.getByRole('button', { name: 'Compare' });
+
+    expect(compareButton).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText('Map container')).not.toBeInTheDocument();
+
+    fireEvent.click(compareButton);
+
+    expect(compareButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Map container')).toBeInTheDocument();
+
+    fireEvent.click(compareButton);
+
+    expect(compareButton).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText('Map container')).not.toBeInTheDocument();
   });
 });

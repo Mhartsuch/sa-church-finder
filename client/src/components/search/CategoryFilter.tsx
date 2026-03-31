@@ -39,7 +39,12 @@ const CATEGORIES: CategoryItem[] = [
   { id: 'episcopal', label: 'Episcopal', icon: Sunrise, queryValue: 'Episcopal' },
   { id: 'lutheran', label: 'Lutheran', icon: Leaf, denominationValue: 'Lutheran' },
   { id: 'non-denom', label: 'Non-Denom', icon: Trees, denominationValue: 'Non-denominational' },
-  { id: 'presbyterian', label: 'Presbyterian', icon: ScrollText, denominationValue: 'Presbyterian' },
+  {
+    id: 'presbyterian',
+    label: 'Presbyterian',
+    icon: ScrollText,
+    denominationValue: 'Presbyterian',
+  },
   { id: 'missions', label: 'Missions', icon: Landmark, queryValue: 'Mission' },
   { id: 'megachurch', label: 'Megachurch', icon: Building2, queryValue: 'Megachurch' },
 ];
@@ -133,6 +138,7 @@ export const CategoryFilter = ({
           <button
             type="button"
             onClick={onCompare}
+            aria-pressed={compareActive}
             className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
               compareActive
                 ? 'border-[#222222] bg-[#222222] text-white'
