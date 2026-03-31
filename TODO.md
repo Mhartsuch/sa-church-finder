@@ -11,9 +11,10 @@
 
 ## Current Milestone
 
-**Milestone:** Milestone 3 - Events & Community (Foundation)  
+**Milestone:** Temporary MVP Demo Readiness Track  
 **Target Date:** TBD  
-**Goal:** Start surfacing church-specific events and the first community-management workflows so profiles feel alive beyond static listing data.
+**Goal:** Make the current product reliable, trustworthy, and demo-ready by hardening existing flows, curating 25-50 polished real San Antonio church profiles, and finishing live deployment/domain readiness.
+**Roadmap Note:** Milestone 3 remains the next product roadmap milestone, but new milestone slices are temporarily deferred unless they directly unblock the MVP demo.
 
 ---
 
@@ -23,12 +24,15 @@
 
 - [x] Set up PostgreSQL + PostGIS database, run Prisma migrations, seed database - Supabase cloud (us-west-2), completed 2026-03-28
 - [x] **Deploy to Render** - backend + frontend live on Render, env wiring verified, and live site smoke-tested end-to-end (2026-03-28)
+- [x] Run MVP baseline audit (`lint`, `typecheck`, `test`, `build`) - completed 2026-03-30
 
 ### P1 - High
 
-- [x] Launch church events foundation on church profile pages (public events API, type/date filters, upcoming-this-week summary, and seeded sample events) - completed 2026-03-30
-- [ ] Build church claim request flow (claim CTA on unclaimed listings + authenticated request submission)
-- [ ] Add church-admin event creation/edit tools after the claim flow lands
+- [ ] Smoke test the current live MVP flows end to end on the deployed app (search, profile, auth, saves, reviews, events)
+- [ ] Curate a shortlist of 25-50 real San Antonio churches for the first polished MVP dataset
+- [ ] Refine church profiles so the shortlisted records have trustworthy descriptions, contact info, website links, service details, and clean metadata
+- [ ] Review the current seeded/live dataset for rough copy, inconsistent naming, weak images, and missing fields that hurt the demo
+- [ ] Prepare the launch-ready deployment checklist for a shareable domain (Render settings, env vars, callback URLs, and DNS/custom-domain wiring)
 - [x] Replace placeholder auth API with real local session-based auth (`register`, `login`, `logout`, `me`) - completed 2026-03-28
 - [x] Add auth UI and client-side current-session integration - completed 2026-03-28
 - [x] Build saved churches MVP (save/unsave on cards + profile, account list) - completed 2026-03-28
@@ -44,9 +48,12 @@
 
 ### P2 - Medium
 
+- [ ] Resume Milestone 3 church claim request flow after the MVP demo push
+- [ ] Resume church-admin event creation/edit tools after the claim flow lands
 - [x] Configure real SMTP provider credentials in each live environment so auth emails send outside local development - user confirmed live setup completed 2026-03-30
 - [ ] Add aggregated events discovery/feed page after per-church events are stable
 - [ ] Expand recurring-event handling beyond stored RRULE metadata
+- [x] Launch church events foundation on church profile pages (public events API, type/date filters, upcoming-this-week summary, and seeded sample events) - completed 2026-03-30
 - [x] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist - completed 2026-03-29
 - [x] Add responsive layout (mobile tabs for map/list) - completed 2026-03-27
 - [x] Add loading skeleton animations to ChurchCard - shimmer effect component, completed 2026-03-27
@@ -143,4 +150,4 @@
 
 ---
 
-_Last updated: 2026-03-30 (Milestone 3 church-events foundation landed; user confirmed live SMTP setup)_
+_Last updated: 2026-03-30 (temporary MVP demo readiness track started; baseline audit passed)_

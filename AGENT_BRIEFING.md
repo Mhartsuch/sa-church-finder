@@ -6,14 +6,15 @@
 
 ### Project in One Paragraph
 
-SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 auth and account work is now complete in-app, and Milestone 3 has started with a public church-events foundation: church profile pages can now load upcoming events via a dedicated API with type/date filters, seeded data, and upcoming-this-week summary cards.
+SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 auth and account work is now complete in-app, and Milestone 3 has started with a public church-events foundation: church profile pages can now load upcoming events via a dedicated API with type/date filters, seeded data, and upcoming-this-week summary cards. The immediate delivery focus is temporarily shifted from new milestone expansion to MVP demo readiness.
 
 ### Current Priority
 
-Keep moving through Milestone 3 now that the public church-events foundation is live on profile pages. The next highest-value slices are the church-claim request flow, admin ownership tooling for event management, and any follow-up events discovery surfaces beyond the current per-church experience. SMTP is now considered configured in the live environments per user confirmation, while Google sign-in and optional Sentry still depend on environment-specific credentials where those integrations should be active.
+Prioritize MVP demo readiness over new Milestone 3 slices for now. The next highest-value work is to verify the current product end to end, curate 25-50 polished real San Antonio church profiles, and finish launch/domain readiness so the app is easy to demo credibly on a public URL. Church claim flows, admin ownership tooling, and broader events discovery remain the next roadmap work, but they are temporarily deferred unless they directly unblock the demo. SMTP is considered configured in the live environments per user confirmation, while Google sign-in and optional Sentry still depend on environment-specific credentials where those integrations should be active.
 
 ### Recently Completed
 
+- Verified the current repository baseline for MVP work: root `lint`, `typecheck`, `test`, and `build` all passed on 2026-03-30 (tests and build required rerunning outside the Windows sandbox because Vite/Vitest process spawning hit `spawn EPERM`)
 - Added the Milestone 3 church-events foundation end to end: new `GET /api/v1/churches/:slug/events` filtering API, seeded upcoming sample events, and a church-profile events section with type/date filters plus upcoming-this-week and next-gathering summaries
 - Added deployment-readiness visibility for backend integrations: `/api/v1/health` now reports safe readiness status for SMTP email delivery, Google OAuth, and server-side Sentry, and production startup logs warn when those integrations are missing or only partially configured
 - Tightened SMTP configuration validation so half-configured credentials no longer look "ready"; for example, setting `SMTP_USER` without `SMTP_PASS` now correctly reports a partial setup instead of silently attempting unauthenticated delivery
@@ -43,6 +44,8 @@ Keep moving through Milestone 3 now that the public church-events foundation is 
 
 ### Known Blockers
 
+- The current curated dataset is still too small and uneven for a strong demo; the seed currently covers 22 churches and now needs a polished 25-50 church MVP shortlist
+- A stable custom domain and the related frontend/backend callback URL updates still need to be finalized before the most credible public demo
 - A Mapbox token is still required anywhere the live interactive map should be enabled
 - Google OAuth is implemented in-app now, but each environment still needs valid Google OAuth credentials plus an authorized redirect URI before live sign-in will work there
 - `/api/v1/health` now exposes safe readiness flags for SMTP, Google OAuth, and server Sentry so deployment setup gaps can be checked without digging through logs
@@ -83,6 +86,7 @@ sa-church-finder/
 4. `CONVENTIONS.md` for coding rules
 5. `DECISIONS.md` for past architectural choices
 6. `PROGRESS.md` and `TODO.md` for current execution state
+7. `docs/MVP_PROFILE_CURATION.md` for the temporary MVP church-data curation queue
 
 ## Conventions to Follow
 

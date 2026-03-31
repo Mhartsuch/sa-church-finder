@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-016: Temporarily prioritize MVP demo readiness over continuing the next Milestone 3 slices
+
+- **Date:** 2026-03-30
+- **Status:** REVISIT
+- **Decision:** Pause the default milestone-driven sequence after the public church-events foundation and temporarily optimize for a believable MVP demo instead. The immediate priorities are reliability of the existing product, a polished shortlist of 25-50 real San Antonio church profiles, and launch/domain readiness on a shareable public URL.
+- **Alternatives Considered:** Continue directly into church-claim workflows and admin tooling; keep expanding Milestone 3 and Milestone 4 features before tightening the core demo; postpone the roadmap shift until after a larger real-data import.
+- **Reasoning:** The product already has a substantial feature surface for search, profiles, auth, saved churches, reviews, and per-church events, but the most important gap for a strong demo is not feature count. It is whether the current app feels reliable, trustworthy, and populated with polished real data. A short MVP-focused pass creates a clearer path to showing the product confidently without pretending that a broader milestone checklist matters more than demo readiness.
+- **Consequences:** Task tracking and agent guidance should prioritize baseline verification, live smoke testing, church-profile curation, and domain/deployment prep over new community-management features for now. Milestone 3 claim/admin/event-discovery follow-ups remain part of the roadmap and should be revisited after the MVP demo is credible.
+
 ### DEC-015: Start Milestone 3 with public church-events reading before church-claim and admin tooling
 
 - **Date:** 2026-03-30

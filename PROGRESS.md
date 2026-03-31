@@ -13,6 +13,38 @@
 
 ## Log
 
+### 2026-03-30 - Temporary MVP Demo Readiness Track
+
+**Focus:** Shifted the project temporarily from the next milestone slices to MVP demo readiness so the current app can be shown confidently with reliable functionality, stronger church data, and a cleaner launch path.
+
+**Completed:**
+
+- **Baseline audit:** Verified the current root quality gates all pass for the existing codebase: `lint`, `typecheck`, `test`, and `build`.
+- **Roadmap reprioritization:** Updated the task board, project context, agent briefing, and decision log so future sessions prioritize demo readiness over immediately continuing church-claim and admin-tooling work.
+- **Data-work discovery:** Re-checked the seed shape and confirmed the current seed still only covers 22 churches, which reinforces the need for a curated 25-50 church MVP shortlist before the next demo push.
+- **Curation tracker:** Added `docs/MVP_PROFILE_CURATION.md` with the MVP quality bar, seeded church queue, and immediate next steps for profile verification and expansion.
+
+**Remaining Notes:**
+
+- The next concrete MVP workstreams are live smoke testing, polishing the church dataset, and preparing the public domain/callback wiring.
+- Milestone 3 claim/admin/event-discovery work is intentionally deferred for now, not canceled.
+
+**Verification:**
+
+- Ran `npm.cmd run lint` successfully at the repo root.
+- Ran `npm.cmd run typecheck` successfully at the repo root.
+- Ran `npm.cmd run test` successfully at the repo root after rerunning outside the Windows sandbox because Vitest/Vite config loading hit `spawn EPERM`.
+- Ran `npm.cmd run build` successfully at the repo root after rerunning outside the Windows sandbox because Vite/esbuild process spawning was blocked in the sandbox.
+
+**Files Changed:**
+
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROJECT_CONTEXT.md`
+- `PROGRESS.md`
+- `TODO.md`
+- `docs/MVP_PROFILE_CURATION.md`
+
 ### 2026-03-30 - Milestone 3 Church Events Foundation
 
 **Focus:** Moved the roadmap into Milestone 3 by making church profiles feel alive with real upcoming event data instead of static listing information alone.

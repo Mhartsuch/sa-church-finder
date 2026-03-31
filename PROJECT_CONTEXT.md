@@ -62,7 +62,7 @@ software
 
 ## Current Status
 
-Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, Milestone 2 now includes session-based email/password auth, Google sign-in, password recovery, email verification, saved churches, and written-review flows, and Milestone 3 has started with church-profile event listings backed by a dedicated events API and seeded upcoming community data.
+Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, Milestone 2 now includes session-based email/password auth, Google sign-in, password recovery, email verification, saved churches, and written-review flows, and Milestone 3 has started with church-profile event listings backed by a dedicated events API and seeded upcoming community data. The immediate delivery focus is temporarily MVP demo readiness: verify the current functionality, improve the quality of the church dataset, and finish launch/domain setup before resuming the next Milestone 3 feature slices.
 
 ## Important Links
 
