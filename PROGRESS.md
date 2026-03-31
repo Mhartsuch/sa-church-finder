@@ -13,6 +13,44 @@
 
 ## Log
 
+### 2026-03-30 - Render Smoke Test And Session-Store Production Fix
+
+**Focus:** Started the highest-priority MVP smoke test against the live Render deployment and converted the first real production failure into a concrete repo fix.
+
+**Completed:**
+
+- **Live smoke-test pass:** Probed the live frontend and backend URLs on Render, confirmed the frontend root and profile-route rewrites respond, confirmed the public church search and profile APIs respond, and verified backend health is reachable in production.
+- **Regression diagnosis:** Confirmed that live `POST /api/v1/auth/register` and `POST /api/v1/auth/login` are currently returning `500 Internal Server Error` on Render and that no session cookie is being established there, which means live auth-gated flows like saved churches and review mutations are blocked in production right now.
+- **Session-store hardening:** Added a committed Prisma SQL migration for the `user_sessions` table and changed the session middleware so production no longer depends on `connect-pg-simple` creating that table lazily at request time. Local non-production environments still keep the runtime auto-create fallback.
+- **Deploy-path follow-through:** Updated the Render backend build command to run `npx prisma migrate deploy` before generate/build so committed DB migrations apply automatically on future backend deploys instead of relying on manual drift-prone steps.
+- **Project memory updates:** Recorded the live auth regression and the repo-side fix path in the task board, decisions log, quick start notes, and agent briefing so the next session has an accurate handoff.
+
+**Remaining Notes:**
+
+- The production auth fix is not live yet from inside this repo session; the backend still needs a Render redeploy so the new migration actually runs against the hosted database.
+- The P1 smoke-test task should stay open until Render is redeployed and the live auth, saves, and reviews flows are rechecked end to end.
+- The production `/api/v1/health` response still reports `version: "dev"` and `commit: "unknown"`; that is a separate deployment-metadata follow-up from the auth blocker.
+
+**Verification:**
+
+- Queried the live Render frontend, backend health endpoint, public church search endpoint, and a live frontend church-profile route successfully via `curl.exe`.
+- Confirmed the production auth regression directly against the live API: `POST /api/v1/auth/register` and `POST /api/v1/auth/login` each returned `500` during the smoke test, and `GET /api/v1/auth/me` remained `401` because no live session cookie was issued.
+- Ran `npm.cmd run lint:server` successfully at the repo root.
+- Ran `npm.cmd run typecheck:server` successfully at the repo root.
+- Ran `npm.cmd --prefix server run test -- --runInBand` successfully after the default Jest worker mode hit the known Windows `spawn EPERM` restriction in this environment.
+- Ran `npm.cmd run build:server` successfully at the repo root.
+
+**Files Changed:**
+
+- `server/src/lib/session.ts`
+- `server/prisma/migrations/20260330213000_add_user_sessions_table/migration.sql`
+- `render.yaml`
+- `QUICKSTART.md`
+- `TODO.md`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+
 ### 2026-03-30 - MVP Dataset Audit And Church Profile Empty-Media Polish
 
 **Focus:** Tightened MVP demo readiness by removing the fake photo-gallery feel from church profiles and turning the current seed review into a concrete data-cleanup handoff.

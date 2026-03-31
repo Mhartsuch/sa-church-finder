@@ -84,6 +84,8 @@ The blueprint now prewires the default Render service URLs for:
 - `VITE_API_URL=https://sa-church-finder-api.onrender.com`
 - `CLIENT_URL=https://sa-church-finder.onrender.com`
 
+The backend Render build command now runs `npx prisma migrate deploy` before `prisma generate` and `npm run build`, so committed database migrations such as the session-store table are applied automatically during deploys.
+
 You still need to set:
 
 - `DATABASE_URL` on the backend to the Supabase session pooler URL or another reachable Postgres/PostGIS URL

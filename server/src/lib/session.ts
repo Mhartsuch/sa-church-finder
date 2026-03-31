@@ -3,6 +3,7 @@ import session from 'express-session'
 import connectPgSimple from 'connect-pg-simple'
 
 export const SESSION_COOKIE_NAME = 'sa_church_finder.sid'
+export const SESSION_TABLE_NAME = 'user_sessions'
 
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30
 const VALID_SESSION_COOKIE_SAME_SITE_VALUES = ['lax', 'strict', 'none'] as const
@@ -27,14 +28,16 @@ function resolveSessionCookieSameSite(): session.CookieOptions['sameSite'] {
 
   if (
     configuredValue &&
-    VALID_SESSION_COOKIE_SAME_SITE_VALUES.includes(
-      configuredValue as SessionCookieSameSite,
-    )
+    VALID_SESSION_COOKIE_SAME_SITE_VALUES.includes(configuredValue as SessionCookieSameSite)
   ) {
     return configuredValue as SessionCookieSameSite
   }
 
   return process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+}
+
+function shouldCreateSessionTableAtRuntime(): boolean {
+  return process.env.NODE_ENV !== 'production'
 }
 
 export const createSessionMiddleware = (): RequestHandler => {
@@ -60,8 +63,8 @@ export const createSessionMiddleware = (): RequestHandler => {
 
     config.store = new PgStore({
       conString: process.env.DATABASE_URL,
-      createTableIfMissing: true,
-      tableName: 'user_sessions',
+      createTableIfMissing: shouldCreateSessionTableAtRuntime(),
+      tableName: SESSION_TABLE_NAME,
     })
   }
 

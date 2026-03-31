@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-017: Manage the PostgreSQL session table through committed migrations instead of runtime auto-creation in production
+
+- **Date:** 2026-03-30
+- **Status:** ACTIVE
+- **Decision:** Keep `connect-pg-simple` as the session store, but create the `user_sessions` table through a committed SQL migration and stop relying on `createTableIfMissing` in production. Runtime table auto-creation remains allowed only outside production for local convenience.
+- **Alternatives Considered:** Continue relying on `connect-pg-simple` to create the session table on first production auth request; add a one-off manual SQL step outside the repo; replace the PostgreSQL-backed session store immediately with another persistence layer.
+- **Reasoning:** The 2026-03-30 Render smoke test showed `POST /api/v1/auth/register` and `POST /api/v1/auth/login` returning `500`, which blocked all live authenticated MVP flows. The shared failure point was the production session persistence path, and the session table had never been managed explicitly in Prisma migrations. Making the session schema part of the committed deploy path keeps production auth deterministic and avoids runtime DDL surprises on the first live request.
+- **Consequences:** Backend deploys now need to run `npx prisma migrate deploy` so the `user_sessions` table exists before traffic hits auth routes. The Render blueprint has been updated accordingly. Local non-production environments can still auto-create the session table if needed, but production should treat it as migration-managed infrastructure.
+
 ### DEC-016: Temporarily prioritize MVP demo readiness over continuing the next Milestone 3 slices
 
 - **Date:** 2026-03-30

@@ -22,6 +22,7 @@
 
 ### P0 - Critical
 
+- [ ] Restore live auth/session flows on Render by applying the new `user_sessions` migration and redeploying the backend - 2026-03-30 smoke test found `POST /api/v1/auth/register` and `POST /api/v1/auth/login` returning `500`, which blocks live auth, saves, and reviews
 - [x] Set up PostgreSQL + PostGIS database, run Prisma migrations, seed database - Supabase cloud (us-west-2), completed 2026-03-28
 - [x] **Deploy to Render** - backend + frontend live on Render, env wiring verified, and live site smoke-tested end-to-end (2026-03-28)
 - [x] Run MVP baseline audit (`lint`, `typecheck`, `test`, `build`) - completed 2026-03-30
@@ -147,9 +148,11 @@
 
 ## Known Bugs
 
+- Live auth regression on Render - `POST /api/v1/auth/register` and `POST /api/v1/auth/login` returned `500 Internal Server Error` during the 2026-03-30 smoke test, so saved churches and review mutations are currently blocked there until the `user_sessions` migration is deployed
+
 - ~~Mapbox map not loading on Render (showing SVG placeholder instead)~~ — **Fixed 2026-03-29**: `VITE_MAPBOX_TOKEN` was missing from Render env vars; added to `render.yaml`. Token must be set in Render dashboard and a redeploy triggered.
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
 
-_Last updated: 2026-03-30 (temporary MVP demo readiness track started; baseline audit passed)_
+_Last updated: 2026-03-30 (live smoke test exposed a Render auth regression; session-store migration fix is queued for redeploy)_
