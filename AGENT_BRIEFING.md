@@ -14,6 +14,8 @@ Prioritize MVP demo readiness over new Milestone 3 slices for now. The next high
 
 ### Recently Completed
 
+- Replaced the church profile page's fake photo-gallery placeholders with a real visit-summary hero and planning cards so profiles still feel deliberate while the dataset has no curated cover images yet
+- Audited the current seeded church dataset and documented the biggest MVP-demo data gaps in `docs/MVP_DATASET_AUDIT.md`, including zero seeded cover images, sparse profile emails, inconsistent service labeling, and a likely bad ZIP for Friendship West Baptist Church
 - Verified the current repository baseline for MVP work: root `lint`, `typecheck`, `test`, and `build` all passed on 2026-03-30 (tests and build required rerunning outside the Windows sandbox because Vite/Vitest process spawning hit `spawn EPERM`)
 - Added the Milestone 3 church-events foundation end to end: new `GET /api/v1/churches/:slug/events` filtering API, seeded upcoming sample events, and a church-profile events section with type/date filters plus upcoming-this-week and next-gathering summaries
 - Added deployment-readiness visibility for backend integrations: `/api/v1/health` now reports safe readiness status for SMTP email delivery, Google OAuth, and server-side Sentry, and production startup logs warn when those integrations are missing or only partially configured
@@ -87,6 +89,7 @@ sa-church-finder/
 5. `DECISIONS.md` for past architectural choices
 6. `PROGRESS.md` and `TODO.md` for current execution state
 7. `docs/MVP_PROFILE_CURATION.md` for the temporary MVP church-data curation queue
+8. `docs/MVP_DATASET_AUDIT.md` for the seed-wide audit findings and first-pass cleanup order
 
 ## Conventions to Follow
 

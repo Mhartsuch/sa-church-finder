@@ -29,7 +29,7 @@ import {
   useFlagReview,
   useRemoveHelpfulVote,
 } from '@/hooks/useReviews';
-import { getChurchMonogram, getChurchVisualTheme } from '@/lib/church-visuals';
+import { ChurchProfileHero } from '@/components/church/ChurchProfileHero';
 import { IChurchService } from '@/types/church';
 import { ChurchEventType, IChurchEvent } from '@/types/event';
 import { IReview, ReviewSort } from '@/types/review';
@@ -236,8 +236,6 @@ export const ChurchProfilePage = () => {
   const googleMapsEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(
     `${church.address}, ${church.city}, ${church.state} ${church.zipCode}`,
   )}&z=15&output=embed`;
-  const churchTheme = getChurchVisualTheme(church);
-  const churchMonogram = getChurchMonogram(church.name);
 
   const groupedServices = groupServicesByDay(church.services);
   const isSavePending =
@@ -358,54 +356,7 @@ export const ChurchProfilePage = () => {
         </Link>
       </div>
 
-      <div className="mx-auto mb-6 max-w-[1180px] px-6 lg:px-0">
-        <div className="grid h-[330px] grid-cols-4 gap-2 overflow-hidden rounded-[32px] lg:h-[420px]">
-          <div
-            className={`relative col-span-2 row-span-2 overflow-hidden bg-gradient-to-br ${churchTheme.surfaceClass}`}
-          >
-            <div className={`absolute inset-0 ${churchTheme.glowClass}`} />
-            <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(0,0,0,0.04),rgba(0,0,0,0.3))]" />
-            <div className="absolute right-5 top-5 flex h-16 w-16 items-center justify-center rounded-[24px] border border-white/25 bg-white/12 text-lg font-semibold tracking-[0.24em] text-white backdrop-blur-sm">
-              {churchMonogram}
-            </div>
-            <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-              <span
-                className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm ${churchTheme.outlineClass}`}
-              >
-                {church.denomination || 'San Antonio church'}
-              </span>
-              <div className="mt-4 max-w-md">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
-                  {church.neighborhood || `${church.city}, ${church.state}`}
-                </p>
-                <p className="mt-1 text-[30px] font-semibold leading-[1.05]">{church.name}</p>
-                {church.description ? (
-                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-white/80">
-                    {church.description}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-          <div className="relative cursor-pointer bg-gray-100">
-            <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
-          </div>
-          <div className="relative cursor-pointer bg-gray-200">
-            <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
-          </div>
-          <div className="relative cursor-pointer bg-gray-100">
-            <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
-          </div>
-          <div className="relative cursor-pointer bg-gray-200">
-            <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
-            <div className="absolute bottom-3 right-3">
-              <button className="rounded-lg border border-[#222222] bg-white px-4 py-1.5 text-xs font-semibold text-[#222222] transition-colors hover:bg-gray-50">
-                Show all photos
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ChurchProfileHero church={church} directionsUrl={googleMapsUrl} />
 
       <div className="mx-auto max-w-[1180px] px-6 pb-16 lg:px-0">
         <div className="flex flex-col gap-12 lg:flex-row lg:gap-24">

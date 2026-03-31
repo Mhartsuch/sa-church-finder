@@ -31,7 +31,7 @@
 - [ ] Smoke test the current live MVP flows end to end on the deployed app (search, profile, auth, saves, reviews, events)
 - [ ] Curate a shortlist of 25-50 real San Antonio churches for the first polished MVP dataset
 - [ ] Refine church profiles so the shortlisted records have trustworthy descriptions, contact info, website links, service details, and clean metadata
-- [ ] Review the current seeded/live dataset for rough copy, inconsistent naming, weak images, and missing fields that hurt the demo
+- [x] Review the current seeded/live dataset for rough copy, inconsistent naming, weak images, and missing fields that hurt the demo - seed audit documented in `docs/MVP_DATASET_AUDIT.md` (2026-03-30)
 - [ ] Prepare the launch-ready deployment checklist for a shareable domain (Render settings, env vars, callback URLs, and DNS/custom-domain wiring)
 - [x] Replace placeholder auth API with real local session-based auth (`register`, `login`, `logout`, `me`) - completed 2026-03-28
 - [x] Add auth UI and client-side current-session integration - completed 2026-03-28
@@ -75,6 +75,8 @@
 ### Completed
 
 - [x] Milestone 3 events foundation - added a public `/api/v1/churches/:slug/events` endpoint with type/date filtering, seeded upcoming events, and a church-profile events section with upcoming-this-week and next-gathering summaries (2026-03-30)
+- [x] Church profile empty-media polish - replaced the fake gallery placeholders with a visit-summary hero and planning cards so church profiles still feel intentional before real cover images are curated (2026-03-30)
+- [x] MVP dataset seed audit - documented seed-wide data gaps, likely verification risks, and the recommended cleanup order in `docs/MVP_DATASET_AUDIT.md` (2026-03-30)
 - [x] Backend integration readiness visibility - added safe `/api/v1/health` integration status for SMTP/Google/Sentry, production startup warnings for missing live credentials, and stricter SMTP partial-config validation so misconfigured auth email delivery is easier to spot before testing (2026-03-30)
 - [x] Husky + lint-staged workflow polish - added root Husky hooks, staged-file ESLint/Prettier rules that reuse the existing client/server configs, a manual `npm run lint-staged` entry point, and documented the new local hook behavior in Quick Start (2026-03-30)
 - [x] Error monitoring foundation - added env-gated Sentry setup for the React SPA and Express API, a browser crash fallback, server-side exception capture that skips normal 4xx app errors, Render/env example wiring, and config tests (2026-03-30)

@@ -15,6 +15,7 @@ Current starting point:
 - The seed currently contains 22 church records
 - The seed also contains non-church records for `Test User` and `Site Admin`; those are not part of this queue
 - We need at least 3 additional churches to hit the minimum 25-profile target
+- See `docs/MVP_DATASET_AUDIT.md` for the seed-wide audit findings and the first-pass cleanup order
 
 ## Profile Quality Bar
 

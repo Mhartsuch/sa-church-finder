@@ -13,6 +13,40 @@
 
 ## Log
 
+### 2026-03-30 - MVP Dataset Audit And Church Profile Empty-Media Polish
+
+**Focus:** Tightened MVP demo readiness by removing the fake photo-gallery feel from church profiles and turning the current seed review into a concrete data-cleanup handoff.
+
+**Completed:**
+
+- **Church profile hero polish:** Replaced the old fake gallery placeholders and dead "Show all photos" chrome on church profile pages with a real visit-summary hero plus supporting cards for location, weekly rhythm, language/access details, and visit-planning links.
+- **Focused client coverage:** Added a dedicated `ChurchProfileHero` component test to lock in the no-cover-image fallback behavior and normalized website/directions CTA links.
+- **Seed dataset audit:** Reviewed the current `server/prisma/seed.ts` dataset and documented repo-visible MVP issues in `docs/MVP_DATASET_AUDIT.md`, including zero seeded cover images, sparse profile emails, inconsistent service labeling, and the likely bad Friendship West ZIP.
+- **Project memory updates:** Marked the seeded/live dataset review task complete, linked the new audit doc from the curation tracker and agent briefing, and recorded the new empty-media profile polish in the task board.
+
+**Remaining Notes:**
+
+- The next data pass should verify the highest-confidence anchor churches against official public sources before editing seed facts.
+- The MVP still needs at least 3 additional real San Antonio churches after the current 22 are triaged.
+- Live smoke testing and public-domain readiness remain open P1 workstreams.
+
+**Verification:**
+
+- Ran `npm.cmd run test -- src/components/church/ChurchProfileHero.test.tsx` successfully in `client/`.
+- Ran `npm.cmd run lint:client` successfully at the repo root.
+- Ran `npm.cmd run typecheck:client` successfully at the repo root.
+
+**Files Changed:**
+
+- `client/src/components/church/ChurchProfileHero.tsx`
+- `client/src/components/church/ChurchProfileHero.test.tsx`
+- `client/src/pages/ChurchProfilePage.tsx`
+- `docs/MVP_DATASET_AUDIT.md`
+- `docs/MVP_PROFILE_CURATION.md`
+- `AGENT_BRIEFING.md`
+- `PROGRESS.md`
+- `TODO.md`
+
 ### 2026-03-30 - Temporary MVP Demo Readiness Track
 
 **Focus:** Shifted the project temporarily from the next milestone slices to MVP demo readiness so the current app can be shown confidently with reliable functionality, stronger church data, and a cleaner launch path.
