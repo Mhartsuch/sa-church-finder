@@ -82,7 +82,7 @@ The repo includes a `render.yaml` blueprint for both services:
 The blueprint now prewires the default Render service URLs for:
 
 - `VITE_API_URL=https://sa-church-finder-api.onrender.com`
-- `CLIENT_URL=https://sa-church-finder.onrender.com`
+- `CLIENT_URL=https://sachurchfinder.com,https://sa-church-finder.onrender.com`
 
 The backend Render build command now runs `npx prisma migrate deploy` before `prisma generate` and `npm run build`, so committed database migrations such as the session-store table are applied automatically during deploys.
 

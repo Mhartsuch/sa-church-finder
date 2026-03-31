@@ -1,9 +1,9 @@
 import { RequestHandler } from 'express'
 import session from 'express-session'
-import connectPgSimple from 'connect-pg-simple'
+
+import { PrismaSessionStore } from './prisma-session-store.js'
 
 export const SESSION_COOKIE_NAME = 'sa_church_finder.sid'
-export const SESSION_TABLE_NAME = 'user_sessions'
 
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30
 const VALID_SESSION_COOKIE_SAME_SITE_VALUES = ['lax', 'strict', 'none'] as const
@@ -36,8 +36,12 @@ function resolveSessionCookieSameSite(): session.CookieOptions['sameSite'] {
   return process.env.NODE_ENV === 'production' ? 'none' : 'lax'
 }
 
-function shouldCreateSessionTableAtRuntime(): boolean {
-  return process.env.NODE_ENV !== 'production'
+function shouldUseDatabaseSessionStore(): boolean {
+  return (
+    Boolean(process.env.DATABASE_URL) &&
+    process.env.NODE_ENV !== 'test' &&
+    !process.env.JEST_WORKER_ID
+  )
 }
 
 export const createSessionMiddleware = (): RequestHandler => {
@@ -58,14 +62,8 @@ export const createSessionMiddleware = (): RequestHandler => {
     },
   }
 
-  if (process.env.NODE_ENV !== 'test' && process.env.DATABASE_URL) {
-    const PgStore = connectPgSimple(session)
-
-    config.store = new PgStore({
-      conString: process.env.DATABASE_URL,
-      createTableIfMissing: shouldCreateSessionTableAtRuntime(),
-      tableName: SESSION_TABLE_NAME,
-    })
+  if (shouldUseDatabaseSessionStore()) {
+    config.store = new PrismaSessionStore()
   }
 
   return session(config)

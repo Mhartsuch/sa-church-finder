@@ -22,7 +22,7 @@
 
 ### P0 - Critical
 
-- [ ] Restore live auth/session flows on Render by applying the new `user_sessions` migration and redeploying the backend - 2026-03-30 smoke test found `POST /api/v1/auth/register` and `POST /api/v1/auth/login` returning `500`, which blocks live auth, saves, and reviews
+- [ ] Restore live auth/session flows on the deployed app by redeploying the backend with the Prisma-backed session-store fix - the rerun from `https://sachurchfinder.com` now shows CORS is healthy, but `POST /api/v1/auth/register` and `POST /api/v1/auth/login` still return `500`, which keeps saves and reviews blocked
 - [x] Set up PostgreSQL + PostGIS database, run Prisma migrations, seed database - Supabase cloud (us-west-2), completed 2026-03-28
 - [x] **Deploy to Render** - backend + frontend live on Render, env wiring verified, and live site smoke-tested end-to-end (2026-03-28)
 - [x] Run MVP baseline audit (`lint`, `typecheck`, `test`, `build`) - completed 2026-03-30
@@ -33,7 +33,7 @@
 - [ ] Curate a shortlist of 25-50 real San Antonio churches for the first polished MVP dataset
 - [ ] Refine church profiles so the shortlisted records have trustworthy descriptions, contact info, website links, service details, and clean metadata
 - [x] Review the current seeded/live dataset for rough copy, inconsistent naming, weak images, and missing fields that hurt the demo - seed audit documented in `docs/MVP_DATASET_AUDIT.md` (2026-03-30)
-- [ ] Prepare the launch-ready deployment checklist for a shareable domain (Render settings, env vars, callback URLs, and DNS/custom-domain wiring)
+- [x] Prepare the launch-ready deployment checklist for a shareable domain (Render settings, env vars, callback URLs, and DNS/custom-domain wiring) - user confirmed `sachurchfinder.com` is live; repo defaults updated for the custom frontend origin (2026-03-30)
 - [x] Replace placeholder auth API with real local session-based auth (`register`, `login`, `logout`, `me`) - completed 2026-03-28
 - [x] Add auth UI and client-side current-session integration - completed 2026-03-28
 - [x] Build saved churches MVP (save/unsave on cards + profile, account list) - completed 2026-03-28
@@ -148,11 +148,11 @@
 
 ## Known Bugs
 
-- Live auth regression on Render - `POST /api/v1/auth/register` and `POST /api/v1/auth/login` returned `500 Internal Server Error` during the 2026-03-30 smoke test, so saved churches and review mutations are currently blocked there until the `user_sessions` migration is deployed
+- Live auth regression on the deployed app - a rerun from `https://sachurchfinder.com` shows the custom-domain CORS headers are now correct, but `POST /api/v1/auth/register` and `POST /api/v1/auth/login` still return `500 Internal Server Error`, so live auth, saved churches, and review mutations remain blocked until the backend is redeployed with the Prisma-backed session-store fix
 
 - ~~Mapbox map not loading on Render (showing SVG placeholder instead)~~ — **Fixed 2026-03-29**: `VITE_MAPBOX_TOKEN` was missing from Render env vars; added to `render.yaml`. Token must be set in Render dashboard and a redeploy triggered.
 - 4 moderate vulns in client, 1 moderate vuln in server after the dependency sweep - not urgent
 
 ---
 
-_Last updated: 2026-03-30 (live smoke test exposed a Render auth regression; session-store migration fix is queued for redeploy)_
+_Last updated: 2026-03-30 (`sachurchfinder.com` is live and CORS is healthy there; backend redeploy still needed for the Prisma session-store auth fix)_

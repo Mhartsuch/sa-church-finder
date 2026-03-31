@@ -12,14 +12,23 @@
 
 ## Decisions
 
-### DEC-017: Manage the PostgreSQL session table through committed migrations instead of runtime auto-creation in production
+### DEC-018: Replace the `connect-pg-simple` runtime path with a Prisma-backed session store
 
 - **Date:** 2026-03-30
 - **Status:** ACTIVE
-- **Decision:** Keep `connect-pg-simple` as the session store, but create the `user_sessions` table through a committed SQL migration and stop relying on `createTableIfMissing` in production. Runtime table auto-creation remains allowed only outside production for local convenience.
-- **Alternatives Considered:** Continue relying on `connect-pg-simple` to create the session table on first production auth request; add a one-off manual SQL step outside the repo; replace the PostgreSQL-backed session store immediately with another persistence layer.
-- **Reasoning:** The 2026-03-30 Render smoke test showed `POST /api/v1/auth/register` and `POST /api/v1/auth/login` returning `500`, which blocked all live authenticated MVP flows. The shared failure point was the production session persistence path, and the session table had never been managed explicitly in Prisma migrations. Making the session schema part of the committed deploy path keeps production auth deterministic and avoids runtime DDL surprises on the first live request.
-- **Consequences:** Backend deploys now need to run `npx prisma migrate deploy` so the `user_sessions` table exists before traffic hits auth routes. The Render blueprint has been updated accordingly. Local non-production environments can still auto-create the session table if needed, but production should treat it as migration-managed infrastructure.
+- **Decision:** Stop using `connect-pg-simple` for runtime session persistence and replace it with a small Prisma-backed Express session store that reads and writes the `user_sessions` table directly through the existing Prisma client.
+- **Alternatives Considered:** Keep trying to stabilize `connect-pg-simple` with migrations and Render config tweaks alone; switch to a different third-party session-store package; fall back to in-memory sessions in production.
+- **Reasoning:** After the custom domain and backend origin wiring were corrected, the live `register` and `login` routes still returned `500`, which meant the remaining failure was deeper than CORS. The app's normal Prisma-backed queries were already healthy in production, while the only consistently fragile path was the separate `pg`-based session adapter. Moving session persistence onto Prisma reuses the database access path the rest of the app already proves out, reduces moving parts, and keeps the fix inside code we can test locally.
+- **Consequences:** The backend still keeps the committed `user_sessions` migration and Render `migrate deploy` step, but live auth no longer depends on the `connect-pg-simple` runtime path. The repo now has a dedicated Prisma session-store test suite, and the next live validation step is a backend redeploy followed by another smoke test.
+
+### DEC-017: Manage the PostgreSQL session table through committed migrations instead of runtime auto-creation in production
+
+- **Date:** 2026-03-30
+- **Status:** SUPERSEDED
+- **Decision:** Keep the `user_sessions` table in committed SQL migrations so session persistence has an explicit schema path instead of depending on ad hoc runtime table creation.
+- **Alternatives Considered:** Continue relying only on runtime auto-creation for the session table; add a one-off manual SQL step outside the repo.
+- **Reasoning:** The first live auth regression pointed at the session persistence layer, and making the table schema explicit was still the right first hardening step even though the runtime adapter itself later changed.
+- **Consequences:** The migration and Render deploy wiring remain useful, but the old `connect-pg-simple` runtime path has been superseded by the Prisma-backed store in DEC-018.
 
 ### DEC-016: Temporarily prioritize MVP demo readiness over continuing the next Milestone 3 slices
 
@@ -154,7 +163,7 @@
 - **Decision:** Use server-side sessions with HTTP-only cookies instead of JWT tokens.
 - **Alternatives Considered:** JWT with refresh tokens; Auth0/Clerk managed auth.
 - **Reasoning:** Sessions are simpler to implement securely, support immediate invalidation (logout works instantly), and avoid the common JWT pitfalls (token storage in localStorage, refresh token rotation complexity). The app has a single backend server, so session state is straightforward. Managed auth (Auth0) was overkill for the MVP budget.
-- **Consequences:** Session store needs PostgreSQL adapter (`connect-pg-simple`). CORS configuration requires `credentials: include` on frontend. Not suitable for a multi-server setup without a shared session store (Redis) — but not needed for MVP scale.
+- **Consequences:** Session auth still needs PostgreSQL-backed persistence plus `credentials: include` on the frontend. The current implementation uses a Prisma-backed session store. It is not suitable for a multi-server setup without a shared session store (Redis) — but that is still acceptable for MVP scale.
 
 ### DEC-005: Cloudinary for image hosting
 

@@ -13,6 +13,69 @@
 
 ## Log
 
+### 2026-03-30 - Live Auth Rerun And Prisma Session Store Replacement
+
+**Focus:** Re-ran the live smoke test after the custom-domain deployment work and turned the remaining auth failure into a stronger backend fix.
+
+**Completed:**
+
+- **Live rerun:** Rechecked the deployed app from `https://sachurchfinder.com` and confirmed the custom-domain CORS headers are now correct, which means the domain/origin wiring is no longer the blocker.
+- **Failure isolation:** Confirmed that live `POST /api/v1/auth/register` and `POST /api/v1/auth/login` still return `500`, while auth-gated save and review mutations still fail behind that, so the remaining problem is the server-side session persistence path.
+- **Session-store replacement:** Replaced the runtime `connect-pg-simple` dependency with a Prisma-backed session store that reads and writes the `user_sessions` table through the same Prisma client path the rest of the production app already uses successfully.
+- **Test coverage:** Added a dedicated `prisma-session-store` test suite and tightened the session middleware bootstrap so Jest never accidentally reaches for the real database path when cookie-setting tests temporarily force production-like settings.
+
+**Remaining Notes:**
+
+- The new Prisma-backed session store is still only local code until the backend is redeployed.
+- The next live step is another backend deploy, followed by a fresh smoke test of register, login, saves, reviews, and logout from `https://sachurchfinder.com`.
+
+**Verification:**
+
+- Re-ran the live auth smoke check against `https://sachurchfinder.com` and confirmed the current deployed backend now returns `Access-Control-Allow-Origin: https://sachurchfinder.com`, but `register` and `login` still return `500`.
+- Ran `npm.cmd run lint:server` successfully at the repo root.
+- Ran `npm.cmd run typecheck:server` successfully at the repo root.
+- Ran `npm.cmd --prefix server run test -- --runInBand` successfully.
+- Ran `npm.cmd run build:server` successfully at the repo root.
+
+**Files Changed:**
+
+- `server/src/lib/prisma-session-store.ts`
+- `server/src/lib/prisma-session-store.test.ts`
+- `server/src/lib/session.ts`
+- `TODO.md`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `FEATURES.md`
+- `PROGRESS.md`
+
+### 2026-03-30 - Custom Domain Confirmed And Backend Origin Defaults Updated
+
+**Focus:** Recorded the new `sachurchfinder.com` launch milestone and folded the custom-domain origin into the remaining live auth/debug work instead of treating domain readiness as a separate open track.
+
+**Completed:**
+
+- **Domain milestone update:** Marked the shareable-domain readiness task complete based on user confirmation that `https://sachurchfinder.com` is now live.
+- **Backend origin default update:** Updated the Render backend default `CLIENT_URL` value to allow both `https://sachurchfinder.com` and the legacy Render frontend URL so the next backend deploy can serve the custom domain without breaking cookie/CORS-based auth flows.
+- **Tracking refresh:** Updated the task board and agent briefing so the custom domain is no longer treated as a pending milestone item, while the remaining live blocker stays focused on the backend redeploy for auth/session and origin syncing.
+
+**Remaining Notes:**
+
+- A live header check still indicates the current backend deployment is not yet allowing `https://sachurchfinder.com`, so the repo change has not taken effect in production yet.
+- The production auth blocker should still be treated as the top P0 until the backend is redeployed and the full auth smoke test is rerun on the custom domain.
+
+**Verification:**
+
+- Confirmed `https://sachurchfinder.com` responds with `200 OK`.
+- Confirmed the current backend still omits `Access-Control-Allow-Origin` for `https://sachurchfinder.com`, which is why the repo-side `CLIENT_URL` update is still needed live.
+
+**Files Changed:**
+
+- `render.yaml`
+- `QUICKSTART.md`
+- `TODO.md`
+- `AGENT_BRIEFING.md`
+- `PROGRESS.md`
+
 ### 2026-03-30 - Render Smoke Test And Session-Store Production Fix
 
 **Focus:** Started the highest-priority MVP smoke test against the live Render deployment and converted the first real production failure into a concrete repo fix.
