@@ -1,28 +1,28 @@
 export interface HomeSpotlight {
-  slug: string
-  name: string
-  denomination: string
-  neighborhood: string
-  address: string
-  website: string
-  serviceSummary: string
-  badge: string
-  blurb: string
-  highlights: string[]
+  slug: string;
+  name: string;
+  denomination: string;
+  neighborhood: string;
+  address: string;
+  website: string;
+  serviceSummary: string;
+  badge: string;
+  blurb: string;
+  highlights: string[];
 }
 
 export const HOME_SPOTLIGHTS: HomeSpotlight[] = [
   {
-    slug: 'cathedral-of-saint-ferdinand',
+    slug: 'san-fernando-cathedral',
     name: 'San Fernando Cathedral',
     denomination: 'Catholic',
     neighborhood: 'Downtown',
     address: '231 W Commerce St',
     website: 'https://sfcathedral.org/',
-    serviceSummary: 'Mass, livestreams, and downtown parish life',
+    serviceSummary: 'English, Spanish, and bilingual Mass in the heart of downtown',
     badge: 'Historic anchor',
     blurb:
-      'Built around the heart of downtown, San Fernando Cathedral is one of San Antonio’s defining church landmarks and one of the oldest continuously active congregations in Texas.',
+      "Built around the heart of downtown, San Fernando Cathedral is one of San Antonio's defining church landmarks and one of the oldest continuously active congregations in Texas.",
     highlights: ['Canary Islands roots', 'Spanish & English ministry', 'Main Plaza'],
   },
   {
@@ -32,7 +32,7 @@ export const HOME_SPOTLIGHTS: HomeSpotlight[] = [
     neighborhood: 'Downtown',
     address: '515 McCullough Ave',
     website: 'https://fbcsa.org/',
-    serviceSummary: 'Bible study, worship, livestreams, and city-center ministry',
+    serviceSummary: 'Traditional, contemporary, Spanish, and Karenni Sunday worship',
     badge: 'Heart of the city',
     blurb:
       'FBCSA describes itself as a community in the heart of the city, pairing a long downtown history with a broad mix of worship, study, and family ministries.',
@@ -55,26 +55,30 @@ export const HOME_SPOTLIGHTS: HomeSpotlight[] = [
     slug: 'mission-concepcion',
     name: 'Mission Concepcion',
     denomination: 'Catholic',
-    neighborhood: 'South Side',
+    neighborhood: 'Mission Reach',
     address: '807 Mission Rd',
     website: 'https://www.missionconcepcion.org/',
-    serviceSummary: 'Active parish life inside a UNESCO World Heritage site',
+    serviceSummary: 'Sunday Mass at 10 a.m. and noon inside the mission',
     badge: 'World Heritage parish',
     blurb:
       'Mission Concepcion remains an active Catholic worship space while also standing as one of the oldest unrestored stone churches in the United States.',
-    highlights: ['Founded in 1731', 'UNESCO World Heritage site', 'South Side mission corridor'],
+    highlights: ['Founded in 1731', 'UNESCO World Heritage site', 'Mission corridor'],
   },
   {
-    slug: 'holy-spirit-episcopal-church',
+    slug: 'episcopal-church-of-the-holy-spirit',
     name: 'Episcopal Church of the Holy Spirit',
     denomination: 'Episcopal',
     neighborhood: 'Northwest',
     address: '11093 Bandera Rd',
     website: 'https://www.sentbythespirit.org/',
-    serviceSummary: 'Sunday worship at 10 a.m. and 5:30 p.m. plus Wednesday Eucharist',
+    serviceSummary: 'Sunday Eucharist at 10 a.m. and 5:30 p.m. plus Wednesday healing prayers',
     badge: 'Northwest parish',
     blurb:
       'Holy Spirit centers its ministry on unity, prayer, and welcome, with traditional and reflective worship options and a steady neighborhood rhythm on Bandera Road.',
-    highlights: ['Morning and evening worship', 'Healing prayers midweek', 'Children and youth formation'],
+    highlights: [
+      'Morning and evening worship',
+      'Healing prayers midweek',
+      'Children and youth formation',
+    ],
   },
-]
+];

@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { curatedChurches } from './curated-seed-churches'
 
 const prisma = new PrismaClient()
 
@@ -29,7 +30,7 @@ function addMinutes(date: Date, minutes: number): Date {
 }
 
 // ──────────────────────────────────────────────
-// Church seed data — 22 real San Antonio churches
+// Church seed data — 25 real San Antonio churches
 // Coordinates verified against Google Maps
 // ──────────────────────────────────────────────
 
@@ -53,6 +54,8 @@ interface SeedChurch {
   avgRating?: string
   reviewCount?: number
   isClaimed?: boolean
+  coverImageUrl?: string
+  coverImageAltText?: string
   services: Array<{
     dayOfWeek: number
     startTime: string
@@ -62,9 +65,9 @@ interface SeedChurch {
   }>
 }
 
-const churches: SeedChurch[] = [
+const legacyChurches: SeedChurch[] = [
   {
-    name: 'Cathedral of Saint Ferdinand',
+    name: 'San Fernando Cathedral',
     denomination: 'Catholic',
     denominationFamily: 'Catholic',
     address: '115 Main Plaza',
@@ -73,18 +76,32 @@ const churches: SeedChurch[] = [
     latitude: '29.42410000',
     longitude: '-98.49360000',
     phone: '(210) 227-1297',
-    website: 'www.cathedral-sf.org',
-    pastorName: 'Archbishop Gustavo García-Siller',
-    yearEstablished: 1868,
-    description: 'Historic cathedral serving the San Antonio Catholic community with traditional Spanish architecture.',
-    amenities: ['Parking', 'Wheelchair Accessible', 'Choir', 'Gift Shop'],
+    email: 'info@sfcathedral.org',
+    website: 'sfcathedral.org',
+    pastorName: 'Archbishop Gustavo Garcia-Siller',
+    yearEstablished: 1731,
+    description:
+      "Historic downtown cathedral parish serving San Antonio with daily Mass, bilingual ministry, and one of the city's defining sacred spaces.",
+    amenities: ['Parking', 'Wheelchair Accessible', 'Livestream', 'Gift Shop'],
     languages: ['English', 'Spanish'],
     avgRating: '4.60',
     reviewCount: 45,
     isClaimed: true,
     services: [
-      { dayOfWeek: 0, startTime: '08:00', endTime: '09:00', serviceType: 'Sunday Mass', language: 'English' },
-      { dayOfWeek: 0, startTime: '10:00', endTime: '11:30', serviceType: 'Sunday Mass', language: 'Spanish' },
+      {
+        dayOfWeek: 0,
+        startTime: '08:00',
+        endTime: '09:00',
+        serviceType: 'Sunday Mass',
+        language: 'English',
+      },
+      {
+        dayOfWeek: 0,
+        startTime: '10:00',
+        endTime: '11:30',
+        serviceType: 'Sunday Mass',
+        language: 'Spanish',
+      },
       { dayOfWeek: 3, startTime: '12:10', endTime: '12:40', serviceType: 'Weekday Mass' },
     ],
   },
@@ -101,12 +118,19 @@ const churches: SeedChurch[] = [
     email: 'info@fbcsa.org',
     website: 'www.fbcsa.org',
     yearEstablished: 1861,
-    description: 'Downtown Baptist church centered on Bible study, worship, and a broad mix of city-facing ministries.',
+    description:
+      'Downtown Baptist church centered on Bible study, worship, and a broad mix of city-facing ministries.',
     amenities: ['Parking', 'Wheelchair Accessible', 'Nursery', 'Sunday School'],
     avgRating: '4.30',
     reviewCount: 32,
     services: [
-      { dayOfWeek: 0, startTime: '08:45', endTime: '10:00', serviceType: 'Worship Service', language: 'English' },
+      {
+        dayOfWeek: 0,
+        startTime: '08:45',
+        endTime: '10:00',
+        serviceType: 'Worship Service',
+        language: 'English',
+      },
       { dayOfWeek: 0, startTime: '11:00', endTime: '12:15', serviceType: 'Worship Service' },
       { dayOfWeek: 3, startTime: '18:30', endTime: '19:30', serviceType: 'Midweek Service' },
     ],
@@ -123,8 +147,15 @@ const churches: SeedChurch[] = [
     phone: '(210) 496-2500',
     website: 'www.covenantsa.com',
     yearEstablished: 1985,
-    description: 'Contemporary non-denominational church with emphasis on community outreach and modern worship.',
-    amenities: ['Large Parking', 'Wheelchair Accessible', 'Nursery', 'Youth Programs', 'Coffee Bar'],
+    description:
+      'Contemporary non-denominational church with emphasis on community outreach and modern worship.',
+    amenities: [
+      'Large Parking',
+      'Wheelchair Accessible',
+      'Nursery',
+      'Youth Programs',
+      'Coffee Bar',
+    ],
     languages: ['English'],
     avgRating: '4.70',
     reviewCount: 58,
@@ -170,14 +201,14 @@ const churches: SeedChurch[] = [
     phone: '(210) 226-8341',
     website: 'www.travisparkunited.org',
     yearEstablished: 1876,
-    description: 'Historic downtown Methodist church known for affirming worship, justice work, and a visibly inclusive community.',
+    description:
+      'Historic downtown Methodist church known for inclusive worship, justice-minded outreach, and a strong neighborhood presence.',
     amenities: ['Limited Parking', 'Wheelchair Accessible', 'Nursery'],
     languages: ['English'],
     avgRating: '4.20',
     reviewCount: 19,
     services: [
-      { dayOfWeek: 0, startTime: '08:30', endTime: '09:30', serviceType: 'Traditional Service' },
-      { dayOfWeek: 0, startTime: '10:45', endTime: '12:00', serviceType: 'Contemporary Service' },
+      { dayOfWeek: 0, startTime: '09:45', endTime: '11:00', serviceType: 'Worship Service' },
     ],
   },
   {
@@ -198,8 +229,20 @@ const churches: SeedChurch[] = [
     avgRating: '4.50',
     reviewCount: 22,
     services: [
-      { dayOfWeek: 0, startTime: '09:00', endTime: '10:30', serviceType: 'Service', language: 'Spanish' },
-      { dayOfWeek: 0, startTime: '11:00', endTime: '12:30', serviceType: 'Service', language: 'Spanish' },
+      {
+        dayOfWeek: 0,
+        startTime: '09:00',
+        endTime: '10:30',
+        serviceType: 'Service',
+        language: 'Spanish',
+      },
+      {
+        dayOfWeek: 0,
+        startTime: '11:00',
+        endTime: '12:30',
+        serviceType: 'Service',
+        language: 'Spanish',
+      },
       { dayOfWeek: 5, startTime: '19:30', endTime: '21:00', serviceType: 'Friday Service' },
     ],
   },
@@ -237,7 +280,8 @@ const churches: SeedChurch[] = [
     phone: '(210) 481-8724',
     website: 'www.graceChurchSA.com',
     yearEstablished: 1999,
-    description: 'Bible-centered non-denominational church with focus on discipleship and community.',
+    description:
+      'Bible-centered non-denominational church with focus on discipleship and community.',
     amenities: ['Parking', 'Wheelchair Accessible', 'Nursery', 'Small Groups'],
     languages: ['English'],
     avgRating: '4.80',
@@ -249,7 +293,7 @@ const churches: SeedChurch[] = [
     ],
   },
   {
-    name: 'Holy Spirit Episcopal Church',
+    name: 'Episcopal Church of the Holy Spirit',
     denomination: 'Episcopal',
     denominationFamily: 'Anglican',
     address: '11093 Bandera Road',
@@ -260,16 +304,17 @@ const churches: SeedChurch[] = [
     phone: '(210) 314-6729',
     email: 'holyspirit@sentbythespirit.org',
     website: 'www.sentbythespirit.org',
-    pastorName: 'The Rev. JoNell Lindh',
-    yearEstablished: 1952,
-    description: 'Episcopal parish on the northwest side offering traditional morning worship, an evening reflective service, and midweek healing Eucharist.',
-    amenities: ['Parking', 'Wheelchair Accessible', 'Livestream', 'Youth Programs'],
+    pastorName: 'The Rev. Jason Roberts',
+    description:
+      'Northwest San Antonio Episcopal parish centered on weekly Eucharist, prayer, and family formation with both morning and evening Sunday worship.',
+    amenities: ['Parking', 'Wheelchair Accessible', 'Livestream', 'Kids Ministry'],
     languages: ['English'],
     avgRating: '4.50',
     reviewCount: 12,
     services: [
-      { dayOfWeek: 0, startTime: '08:00', endTime: '08:45', serviceType: 'Holy Eucharist' },
-      { dayOfWeek: 0, startTime: '10:15', endTime: '11:30', serviceType: 'Holy Eucharist' },
+      { dayOfWeek: 0, startTime: '10:00', endTime: '11:15', serviceType: 'Holy Eucharist' },
+      { dayOfWeek: 0, startTime: '17:30', endTime: '18:15', serviceType: 'Holy Eucharist' },
+      { dayOfWeek: 3, startTime: '17:00', endTime: '17:45', serviceType: 'Holy Eucharist' },
     ],
   },
   {
@@ -284,18 +329,31 @@ const churches: SeedChurch[] = [
     phone: '(210) 226-8400',
     website: 'www.southsidebaptist.org',
     yearEstablished: 1947,
-    description: 'Community-focused Baptist church serving South San Antonio with bilingual services.',
+    description:
+      'Community-focused Baptist church serving South San Antonio with bilingual services.',
     amenities: ['Parking', 'Wheelchair Accessible', 'Nursery', 'Community Center'],
     languages: ['English', 'Spanish'],
     avgRating: '4.00',
     reviewCount: 18,
     services: [
-      { dayOfWeek: 0, startTime: '09:00', endTime: '10:15', serviceType: 'Service', language: 'English' },
-      { dayOfWeek: 0, startTime: '11:00', endTime: '12:30', serviceType: 'Service', language: 'Spanish' },
+      {
+        dayOfWeek: 0,
+        startTime: '09:00',
+        endTime: '10:15',
+        serviceType: 'Service',
+        language: 'English',
+      },
+      {
+        dayOfWeek: 0,
+        startTime: '11:00',
+        endTime: '12:30',
+        serviceType: 'Service',
+        language: 'Spanish',
+      },
     ],
   },
   {
-    name: 'Mission Concepción',
+    name: 'Mission Concepcion',
     denomination: 'Catholic',
     denominationFamily: 'Catholic',
     address: '807 Mission Road',
@@ -303,10 +361,11 @@ const churches: SeedChurch[] = [
     neighborhood: 'Southtown',
     latitude: '29.37780000',
     longitude: '-98.48360000',
-    phone: '(210) 932-1052',
+    phone: '(210) 533-8955',
     website: 'www.missionconcepcion.org',
-    yearEstablished: 1755,
-    description: 'Historic mission church dating back to colonial era with ongoing active parish.',
+    yearEstablished: 1731,
+    description:
+      "Active Catholic parish inside the San Antonio Missions corridor, pairing neighborhood worship with one of the city's most recognizable historic churches.",
     amenities: ['Parking', 'Wheelchair Accessible', 'Historic Site'],
     languages: ['English', 'Spanish'],
     avgRating: '4.90',
@@ -405,8 +464,20 @@ const churches: SeedChurch[] = [
     avgRating: '4.60',
     reviewCount: 8,
     services: [
-      { dayOfWeek: 0, startTime: '10:00', endTime: '11:30', serviceType: 'Worship', language: 'Korean' },
-      { dayOfWeek: 0, startTime: '11:45', endTime: '12:45', serviceType: 'Youth Service', language: 'English' },
+      {
+        dayOfWeek: 0,
+        startTime: '10:00',
+        endTime: '11:30',
+        serviceType: 'Worship',
+        language: 'Korean',
+      },
+      {
+        dayOfWeek: 0,
+        startTime: '11:45',
+        endTime: '12:45',
+        serviceType: 'Youth Service',
+        language: 'English',
+      },
     ],
   },
   {
@@ -421,7 +492,8 @@ const churches: SeedChurch[] = [
     phone: '(210) 436-3011',
     website: 'www.stmarys.edu/campus-ministry',
     yearEstablished: 1955,
-    description: "Catholic center serving St. Mary's University students and surrounding community.",
+    description:
+      "Catholic center serving St. Mary's University students and surrounding community.",
     amenities: ['Parking', 'Wheelchair Accessible', 'Student Center'],
     languages: ['English', 'Spanish'],
     avgRating: '4.10',
@@ -489,7 +561,8 @@ const churches: SeedChurch[] = [
     phone: '(210) 340-8500',
     website: 'www.victorychurchsa.org',
     yearEstablished: 2007,
-    description: 'Modern Foursquare church with focus on contemporary worship and community outreach.',
+    description:
+      'Modern Foursquare church with focus on contemporary worship and community outreach.',
     amenities: ['Parking', 'Wheelchair Accessible', 'Nursery', 'Youth Programs'],
     languages: ['English'],
     avgRating: '4.40',
@@ -500,25 +573,39 @@ const churches: SeedChurch[] = [
     ],
   },
   {
-    name: 'San Antonio Chinese Baptist Church',
+    name: 'First Chinese Baptist Church of San Antonio',
     denomination: 'Baptist',
     denominationFamily: 'Baptist',
-    address: '3303 Thousand Oaks Drive',
-    zipCode: '78232',
-    neighborhood: 'North San Antonio',
-    latitude: '29.52340000',
-    longitude: '-98.45670000',
-    phone: '(210) 494-5825',
-    website: 'www.sacbc.org',
-    yearEstablished: 1980,
-    description: 'Chinese-speaking Baptist congregation serving the Asian community.',
-    amenities: ['Parking', 'Wheelchair Accessible', 'Community Events'],
-    languages: ['Mandarin', 'Cantonese', 'English'],
+    address: '5481 Prue Road',
+    zipCode: '78240',
+    neighborhood: 'Northwest',
+    latitude: '29.54485500',
+    longitude: '-98.59385000',
+    phone: '(210) 558-6393',
+    website: 'fcbcsa.org',
+    pastorName: 'John Lee',
+    yearEstablished: 1923,
+    description:
+      'Historic multilingual Baptist church serving Chinese-speaking and English-speaking worshippers with Sunday services, discipleship, and family ministries on the northwest side.',
+    amenities: ['Parking', 'Wheelchair Accessible', 'Livestream', 'Kids Ministry'],
+    languages: ['Chinese', 'English'],
     avgRating: '4.50',
     reviewCount: 6,
     services: [
-      { dayOfWeek: 0, startTime: '09:30', endTime: '10:45', serviceType: 'Worship', language: 'Mandarin' },
-      { dayOfWeek: 0, startTime: '11:00', endTime: '12:15', serviceType: 'Worship', language: 'English' },
+      {
+        dayOfWeek: 0,
+        startTime: '09:45',
+        endTime: '11:00',
+        serviceType: 'Chinese Worship Service',
+        language: 'Chinese',
+      },
+      {
+        dayOfWeek: 0,
+        startTime: '11:15',
+        endTime: '12:30',
+        serviceType: 'English Worship Service',
+        language: 'English',
+      },
     ],
   },
   {
@@ -533,7 +620,8 @@ const churches: SeedChurch[] = [
     phone: '(210) 532-8211',
     website: 'www.pocgic-sa.org',
     yearEstablished: 1963,
-    description: 'Historic COGIC church serving the South San Antonio community with vibrant worship.',
+    description:
+      'Historic COGIC church serving the South San Antonio community with vibrant worship.',
     amenities: ['Parking', 'Wheelchair Accessible', 'Food Pantry'],
     languages: ['English', 'Spanish'],
     avgRating: '4.20',
@@ -567,7 +655,101 @@ const churches: SeedChurch[] = [
       { dayOfWeek: 6, startTime: '19:00', endTime: '20:30', serviceType: 'Saturday Night Live' },
     ],
   },
+  {
+    name: 'Oak Hills Church',
+    denomination: 'Non-denominational',
+    denominationFamily: 'Non-denominational',
+    address: '19595 IH 10 W',
+    zipCode: '78257',
+    neighborhood: 'Far Northwest',
+    latitude: '29.65439560',
+    longitude: '-98.62552520',
+    phone: '(210) 698-6868',
+    website: 'oakhills.church',
+    description:
+      'Large northwest-side congregation known for Bible teaching, local service, and multiple Sunday worship options, including an on-campus Spanish-language gathering.',
+    amenities: ['Parking', 'Wheelchair Accessible', 'Livestream', 'Coffee Bar', 'Kids Ministry'],
+    languages: ['English', 'Spanish'],
+    services: [
+      { dayOfWeek: 0, startTime: '08:30', endTime: '09:45', serviceType: 'Worship Service' },
+      { dayOfWeek: 0, startTime: '10:00', endTime: '11:15', serviceType: 'Worship Service' },
+      { dayOfWeek: 0, startTime: '11:30', endTime: '12:45', serviceType: 'Worship Service' },
+      {
+        dayOfWeek: 0,
+        startTime: '11:30',
+        endTime: '12:45',
+        serviceType: 'Servicio en Espanol',
+        language: 'Spanish',
+      },
+    ],
+  },
+  {
+    name: 'First Presbyterian Church of San Antonio',
+    denomination: 'Presbyterian',
+    denominationFamily: 'Presbyterian',
+    address: '404 N Alamo Street',
+    zipCode: '78205',
+    neighborhood: 'Downtown',
+    latitude: '29.42896910',
+    longitude: '-98.48502520',
+    phone: '(210) 226-0215',
+    website: 'www.fpcsanantonio.org',
+    description:
+      'Historic downtown Presbyterian congregation focused on Bible teaching, discipleship, city ministry, and church planting across San Antonio.',
+    amenities: ['Parking', 'Wheelchair Accessible', 'Nursery', 'Livestream', 'Kids Ministry'],
+    languages: ['English'],
+    services: [
+      { dayOfWeek: 0, startTime: '09:30', endTime: '10:45', serviceType: 'Worship Service' },
+      { dayOfWeek: 0, startTime: '11:00', endTime: '12:15', serviceType: 'Worship Service' },
+    ],
+  },
+  {
+    name: 'St. Luke Catholic Church',
+    denomination: 'Catholic',
+    denominationFamily: 'Catholic',
+    address: '4603 Manitou Drive',
+    zipCode: '78228',
+    neighborhood: 'West Side',
+    latitude: '29.48619960',
+    longitude: '-98.57590990',
+    phone: '(210) 433-2777',
+    email: 'church@saintlukeparish.com',
+    website: 'saintlukeparish.com',
+    pastorName: 'Fr. Joel Quezada',
+    yearEstablished: 1959,
+    description:
+      'Multicultural West Side Catholic parish with a full weekend Mass schedule, weekday worship, parish school, and strong faith-formation ministries.',
+    amenities: [
+      'Parking',
+      'Wheelchair Accessible',
+      'Parish School',
+      'Faith Formation',
+      'Livestream',
+    ],
+    languages: ['English', 'Spanish'],
+    services: [
+      { dayOfWeek: 6, startTime: '17:30', endTime: '18:30', serviceType: 'Saturday Mass' },
+      { dayOfWeek: 0, startTime: '08:00', endTime: '09:00', serviceType: 'Sunday Mass' },
+      { dayOfWeek: 0, startTime: '10:00', endTime: '11:00', serviceType: 'Sunday Mass' },
+      { dayOfWeek: 0, startTime: '12:00', endTime: '13:00', serviceType: 'Sunday Mass' },
+      {
+        dayOfWeek: 0,
+        startTime: '14:00',
+        endTime: '15:00',
+        serviceType: 'Sunday Mass',
+        language: 'Spanish',
+      },
+      { dayOfWeek: 0, startTime: '16:00', endTime: '17:00', serviceType: 'Sunday Mass' },
+      { dayOfWeek: 5, startTime: '12:00', endTime: '12:45', serviceType: 'Weekday Mass' },
+    ],
+  },
 ]
+
+// Keep the older wide shortlist only as reference while the seed now uses the
+// 12-profile gold set.
+void legacyChurches
+
+const churches: SeedChurch[] = curatedChurches
 
 async function main() {
   console.log('Starting seed...\n')
@@ -624,6 +806,7 @@ async function main() {
   // The DB trigger `churches_location_sync` automatically populates
   // the `location` geography column from latitude/longitude on insert.
   const createdChurches = []
+  let createdPhotoCount = 0
 
   for (const churchData of churches) {
     const slug = generateSlug(churchData.name)
@@ -647,9 +830,7 @@ async function main() {
         description: churchData.description,
         amenities: churchData.amenities || [],
         languages: churchData.languages || ['English'],
-        avgRating: new Prisma.Decimal(churchData.avgRating || '0'),
-        reviewCount: churchData.reviewCount || 0,
-        isClaimed: churchData.isClaimed || false,
+        coverImageUrl: churchData.coverImageUrl,
         services: {
           create: churchData.services.map((service) => ({
             dayOfWeek: service.dayOfWeek,
@@ -665,11 +846,23 @@ async function main() {
       },
     })
 
+    if (churchData.coverImageUrl) {
+      await prisma.churchPhoto.create({
+        data: {
+          churchId: church.id,
+          url: churchData.coverImageUrl,
+          altText: churchData.coverImageAltText || `${churchData.name} cover image`,
+        },
+      })
+      createdPhotoCount += 1
+    }
+
     createdChurches.push(church)
     console.log(`  ✓ ${church.name} (${church.services.length} services)`)
   }
 
   console.log(`\nCreated ${createdChurches.length} churches`)
+  console.log(`Created ${createdPhotoCount} church photos`)
 
   // ── Verify PostGIS location column was populated ──
   try {
@@ -704,38 +897,15 @@ async function main() {
   // ── Create sample reviews ──
   const reviewChurches = createdChurches.slice(0, 5)
 
-  const reviewData = [
-    {
-      churchIndex: 0,
-      rating: '4.50',
-      body: 'Wonderful service and welcoming community! The music was beautiful and the sermon was very inspiring. The historic building adds so much to the worship experience.',
-      welcomeRating: 5, worshipRating: 5, sermonRating: 4, facilitiesRating: 4,
-    },
-    {
-      churchIndex: 1,
-      rating: '4.00',
-      body: 'Great experience overall. Very family-friendly with excellent programs for children. The contemporary service had great energy.',
-      welcomeRating: 4, worshipRating: 4, sermonRating: 4, facilitiesRating: 4,
-    },
-    {
-      churchIndex: 2,
-      rating: '5.00',
-      body: 'One of the best church experiences I have had in San Antonio. The coffee bar before service is a great touch, and the worship team is incredible.',
-      welcomeRating: 5, worshipRating: 5, sermonRating: 5, facilitiesRating: 5,
-    },
-    {
-      churchIndex: 3,
-      rating: '4.00',
-      body: 'Powerful worship and a strong sense of community. The prayer room is a beautiful addition.',
-      welcomeRating: 4, worshipRating: 5, sermonRating: 4, facilitiesRating: 3,
-    },
-    {
-      churchIndex: 4,
-      rating: '4.50',
-      body: 'Love the commitment to social justice. Both the traditional and contemporary services are excellent in their own ways.',
-      welcomeRating: 5, worshipRating: 4, sermonRating: 5, facilitiesRating: 4,
-    },
-  ]
+  const reviewData: Array<{
+    churchIndex: number
+    rating: string
+    body: string
+    welcomeRating: number
+    worshipRating: number
+    sermonRating: number
+    facilitiesRating: number
+  }> = []
 
   for (const review of reviewData) {
     const church = reviewChurches[review.churchIndex]
@@ -754,10 +924,10 @@ async function main() {
       })
     }
   }
-  console.log(`Created ${reviewData.length} sample reviews`)
+  console.log(`Created ${reviewData.length} seeded reviews`)
 
   // ── Create saved churches ──
-  // Create sample events
+  // No events are seeded for the active gold set.
   const eventBlueprints = [
     {
       title: 'Neighborhood Dinner',
@@ -835,7 +1005,7 @@ async function main() {
 
   let createdEventCount = 0
 
-  for (const [index, church] of createdChurches.entries()) {
+  for (const [index, church] of [] as Array<[number, (typeof createdChurches)[number]]>) {
     const primaryBlueprint = eventBlueprints[index % eventBlueprints.length]
     const primaryStart = createFutureDate(
       (index % 6) + 1,
@@ -884,10 +1054,10 @@ async function main() {
       createdEventCount += 1
     }
   }
-  console.log(`Created ${createdEventCount} sample events`)
+  console.log(`Created ${createdEventCount} seeded events`)
 
   // Create saved churches
-  const savedChurchIds = createdChurches.slice(0, 3).map(c => c.id)
+  const savedChurchIds = createdChurches.slice(0, 3).map((c) => c.id)
   for (const churchId of savedChurchIds) {
     await prisma.userSavedChurch.create({
       data: { userId: testUser.id, churchId },

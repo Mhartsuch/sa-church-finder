@@ -68,10 +68,9 @@ export const SearchPage = () => {
   const activeAdvancedFilterCount = Object.values(filters).filter(
     (value) => value !== undefined && value !== '',
   ).length;
-  const reviewTotal = churches.reduce((sum, church) => sum + church.reviewCount, 0);
-  const denominationCount = new Set(
-    churches.map((church) => church.denomination).filter(Boolean),
-  ).size;
+  const photoBackedCount = churches.filter((church) => Boolean(church.coverImageUrl)).length;
+  const denominationCount = new Set(churches.map((church) => church.denomination).filter(Boolean))
+    .size;
 
   const resultsHeading = isLoading
     ? 'Finding churches in San Antonio'
@@ -129,13 +128,12 @@ export const SearchPage = () => {
               </button>
               <div className="reference-hero-content">
                 <h1 className="reference-hero-title">
-                  Find your <span className="reference-hero-highlight">spiritual home</span> in
-                  San Antonio
+                  Find your <span className="reference-hero-highlight">spiritual home</span> in San
+                  Antonio
                 </h1>
                 <p className="reference-hero-copy">
-                  Discover {totalResults || churches.length} churches across every denomination,
-                  from historic missions to modern worship centers. Read reviews, compare services,
-                  and find the perfect fit.
+                  Explore a curated set of real San Antonio churches with strong photography,
+                  verified service details, and polished visit-planning profiles.
                 </p>
                 <button
                   type="button"
@@ -152,11 +150,15 @@ export const SearchPage = () => {
                     <div className="reference-hero-stat-label">Churches</div>
                   </div>
                   <div>
-                    <div className="reference-hero-stat-number">{reviewTotal.toLocaleString()}+</div>
-                    <div className="reference-hero-stat-label">Reviews</div>
+                    <div className="reference-hero-stat-number">
+                      {Math.max(photoBackedCount, 0)}
+                    </div>
+                    <div className="reference-hero-stat-label">With photos</div>
                   </div>
                   <div>
-                    <div className="reference-hero-stat-number">{Math.max(denominationCount, 10)}+</div>
+                    <div className="reference-hero-stat-number">
+                      {Math.max(denominationCount, 10)}+
+                    </div>
                     <div className="reference-hero-stat-label">Denominations</div>
                   </div>
                 </div>

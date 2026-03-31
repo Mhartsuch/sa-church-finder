@@ -2,98 +2,61 @@
 
 ## Scope
 
-Seed-only review of the current `server/prisma/seed.ts` church dataset on 2026-03-30.
+Seed-level snapshot of the current curated MVP dataset in `server/prisma/seed.ts` as of 2026-03-30.
 
-This audit is intentionally limited to what is already in the repo. It does not verify facts against live church websites yet. The goal is to surface the rough edges that are already obvious before the deeper source-verification pass starts.
+This document now reflects the active gold-set strategy rather than the earlier broad shortlist audit.
 
 ## Snapshot
 
-- Seeded churches: 22
-- Additional churches still needed to hit the 25-profile minimum: 3
-- Seeded cover images: 0
-- Seeded profile emails: 2
-- Seeded pastor names: 5
-- Seeded claimed profiles: 6
-- Profiles with explicit languages: 21
+- Seeded churches in the active MVP set: 12
+- Seeded cover images: 12
+- Seeded church photo records: 12
+- Seeded profile emails: 7
+- Seeded review aggregates: 0
+- Seeded written reviews: 0
+- Seeded upcoming events: 0
 
-## Repo-Based Findings
+## What Improved
 
-### 1. The dataset is visually thin right now
+### 1. The dataset is now visually credible
 
-- No `coverImageUrl` values are seeded, and no church photo records are created in the seed.
-- Every current church profile therefore depends on fallback visuals instead of real church imagery.
-- This is acceptable for local development, but it weakens the trust level of the public MVP demo if we do not add a clear photo strategy during curation.
+- Every active seeded church now has a real `coverImageUrl`
+- The seed also creates one `church_photos` record per active church so the image exists as profile media, not just a hero field
+- Church cards and church profile pages can now render real imagery instead of relying on abstract fallbacks
 
-### 2. Contact depth is uneven
+### 2. The active set is intentionally smaller and higher-confidence
 
-- Every seeded church has a website and phone number in the seed.
-- Only 2 of 22 profiles include an email address.
-- Most profiles therefore lean on website clicks instead of giving a direct contact path.
+- The broad 25-church shortlist has been replaced, for seeding purposes, by a 12-church gold set
+- The active list now favors churches with strong official-source verification, strong geography/denomination anchors, and visually compelling profiles
+- Ambiguous, weak, or lower-confidence records are no longer part of the active MVP seed
 
-### 3. Copy and service labeling are inconsistent
+### 3. The seed is more honest
 
-- Several descriptions are strong and specific, but many still read like thin seed copy.
-- Some service labels are polished (`Sunday Mass`, `Traditional Service`, `Holy Eucharist`), while others stay generic (`Service`, `Worship`, `Midweek Service`).
-- Amenity naming also varies in tone and precision (`Parking`, `Large Parking`, `Ample Parking`, `Community Center`, `Youth Center`).
+- The active gold set no longer depends on fake aggregate ratings
+- No sample written reviews are seeded
+- No sample events are seeded
+- This keeps the demo from implying community activity the product has not actually earned yet
 
-### 4. A few records look risky even before web verification
+## Remaining Risks
 
-- `Friendship West Baptist Church` uses ZIP `78702`, which is not a San Antonio ZIP and should be treated as a likely bad record until verified.
-- Several names are generic enough that the exact public-facing brand should be confirmed before demo use: `Dominion Church`, `Victory Church`, `New Life Church`, and `Pentecostal Church of God in Christ`.
-- `Lakewood Church San Antonio` should be verified carefully so we do not present a confusing or inaccurate local identity in the MVP.
+### 1. Image rights and attribution still need a launch-grade solution
 
-## Suggested Cleanup Order
+- The current MVP seed references real externally hosted cover images for demo quality
+- Before any public launch beyond a controlled demo, the app should move to a clearer licensing, attribution, and hosting workflow
 
-### Start With These High-Confidence Anchor Profiles
+### 2. Legacy seed scaffolding still exists in `server/prisma/seed.ts`
 
-- Cathedral of Saint Ferdinand
-- Travis Park United Methodist Church
-- Holy Spirit Episcopal Church
-- Mission Concepcion
-- First Baptist Church of San Antonio
-- Broadway Baptist Church
-- Bethel Lutheran Church
-- St. Mary's University Catholic Center
+- The old wider shortlist remains in the file as inactive reference data because of patch-size constraints during the pivot
+- The active seed path now points only at the curated 12-church gold set, but a future cleanup pass should delete the dormant legacy list outright
 
-These already read like strong demo anchors because they provide distinct geography, denomination coverage, and less generic positioning in the current seed.
+## Recommended Next Step
 
-### Verify These Before They Make The MVP Shortlist
-
-- Covenant Church San Antonio
-- Cornerstone Church
-- New Life Church
-- Grace Church San Antonio
-- Dominion Church
-- Lakewood Church San Antonio
-- Victory Church
-- Pentecostal Church of God in Christ
-
-These are not necessarily bad records, but the seed alone suggests branding, copy specificity, or official-name accuracy should be confirmed before they are treated as polished MVP entries.
-
-### Treat These As Highest-Risk Data Checks
-
-- Friendship West Baptist Church
-  Reason: the current seed ZIP is `78702`, which strongly suggests a location mismatch.
-- San Antonio Korean Church
-  Reason: multilingual representation is valuable, so this should be kept only if the official identity, website, and service structure verify cleanly.
-- San Antonio Chinese Baptist Church
-  Reason: same multilingual-representation value, but we should confirm the exact current brand and service language mix from source.
-- Southside Baptist Church
-  Reason: useful geography coverage, but the seed copy and service labels are still thin.
-
-## Immediate Follow-Through
-
-1. Verify the highest-confidence anchor profiles against official public sources first.
-2. Replace or fix any records that fail basic address, ZIP, website, or official-name verification.
-3. Standardize service labels and amenity vocabulary while refining the kept profiles.
-4. Add at least 3 additional real San Antonio churches only after the current 22 are triaged.
-5. Decide whether the MVP photo strategy is:
-   - real curated cover images,
-   - verified website-driven photo sourcing,
-   - or intentional no-photo placeholders for launch.
+1. Finish the live backend redeploy and smoke test so the polished gold-set profiles can be checked on the deployed product.
+2. If we stay in repo work, add a source-credit pattern for profile images before expanding the dataset again.
 
 ## Related Files
 
 - `docs/MVP_PROFILE_CURATION.md`
 - `server/prisma/seed.ts`
+- `server/prisma/curated-seed-churches.ts`
 - `TODO.md`

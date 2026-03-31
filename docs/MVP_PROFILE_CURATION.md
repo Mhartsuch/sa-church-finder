@@ -2,81 +2,58 @@
 
 ## Goal
 
-Build a polished, trustworthy MVP church dataset for demo use.
+Build a small, premium-quality MVP dataset for demo use.
 
 Target:
 
-- Minimum: 25 real San Antonio church profiles
-- Preferred: 25-50 real San Antonio church profiles
-- Quality bar: every included profile should feel intentional, accurate, and presentation-ready
+- 12 real San Antonio church profiles
+- Every profile should feel intentionally chosen, source-backed, and visually strong
+- Every included church should have at least one real cover image
 
-Current starting point:
+Current state:
 
-- The seed currently contains 22 church records
-- The seed also contains non-church records for `Test User` and `Site Admin`; those are not part of this queue
-- We need at least 3 additional churches to hit the minimum 25-profile target
-- See `docs/MVP_DATASET_AUDIT.md` for the seed-wide audit findings and the first-pass cleanup order
+- The active seed now uses 12 curated church records
+- Every seeded church profile includes a real `coverImageUrl`
+- The seed no longer relies on synthetic review aggregates, written reviews, or upcoming events to make the dataset feel fuller than it is
+- See `docs/MVP_DATASET_AUDIT.md` for the current gold-set snapshot and remaining follow-ups
 
 ## Profile Quality Bar
 
-Each MVP church profile should meet all of these standards before we call it demo-ready:
+Each gold-set profile should meet all of these standards:
 
-- Exact church name matches the official public-facing name
-- Website points to the official church site
-- Address, zip code, and neighborhood are correct
-- Denomination and denomination family are reasonable and consistent
-- Description is neutral, polished, and specific rather than generic filler copy
-- Main service times are current enough to be believable for a demo
-- Languages are explicit when applicable
-- Amenities are useful, consistent, and not padded with weak filler
-- Pastor name and year established are included only when verified
-- Cover image strategy is defined so the profile does not feel empty or broken
-- Notes include where the profile still needs verification or enrichment
+- The church is clearly real and currently active in San Antonio
+- The name matches the church's public-facing identity closely enough for demo trust
+- Website, address, phone, and service details come from official public sources
+- Description is polished, neutral, and specific
+- Neighborhood and denomination feel consistent and useful in search
+- Amenities and languages are helpful, not padded
+- The profile has a real cover photo that makes the page feel intentional
+- We avoid synthetic social proof until the app earns real user activity
 
-## Curation Workflow
+## Active Gold Set
 
-1. Verify the current seeded 22 churches and raise each one to the MVP quality bar.
-2. Add at least 3 more real San Antonio churches to reach the 25-profile minimum.
-3. Expand toward 50 only after the first 25 feel consistently strong.
-4. Do not keep weak profiles just to hit the count target.
+| Church                                               | Status | Notes                                                                                        |
+| ---------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| San Fernando Cathedral                               | ready  | Downtown cathedral anchor with full bilingual weekend Mass rhythm and real cover image       |
+| First Baptist Church of San Antonio                  | ready  | Verified plan-a-visit schedule with multiple Sunday worship expressions and real cover image |
+| Travis Park United Methodist Church                  | ready  | Official 9:45 a.m. downtown worship and strong inclusive identity                            |
+| Mission Concepcion                                   | ready  | Verified Sunday Mass times from official site; image and copy now feel demo-ready            |
+| First Presbyterian Church of San Antonio             | ready  | Downtown Presbyterian anchor with verified 9:30 and 11:00 worship options                    |
+| Episcopal Church of the Holy Spirit                  | ready  | Verified Sunday and Wednesday Eucharist schedule with polished imagery                       |
+| Mission San Jose Catholic Church                     | ready  | Historic South Side mission parish with verified bilingual weekend Masses                    |
+| Basilica of the National Shrine of the Little Flower | ready  | West Side basilica with verified bilingual Mass schedule and strong exterior image           |
+| St. Mark's Episcopal Church                          | ready  | Downtown Episcopal profile with current Sunday schedule and polished hero image              |
+| Our Lady of the Atonement Catholic Church            | ready  | Ordinariate parish with distinctive liturgy profile and verified current Mass times          |
+| St. Joseph Catholic Church                           | ready  | Downtown landmark church with current Mass times and strong hero photography                 |
+| St. Anthony Mary Claret Catholic Church              | ready  | Large Far West Side parish with full Sunday schedule, livestreams, and real cover image      |
 
-## Status Labels
+## Explicitly Out Of The Gold Set
 
-- `needs-audit`: seeded, but not yet reviewed against the MVP quality bar
-- `needs-verification`: likely real, but core facts still need source verification
-- `needs-enrichment`: verified but still thin, generic, or visually weak
-- `ready`: strong enough to show in the MVP demo
+- Ambiguous or low-confidence records such as Friendship West Baptist Church, Lakewood Church San Antonio, and similarly generic listings are no longer part of the active MVP seed
+- Thin or visually weak profiles like First Chinese Baptist Church of San Antonio were removed from the active seed so the demo optimizes for trust and quality over breadth
 
-## Current Seed Queue
+## Remaining Follow-Ups
 
-| Church                                | Status      | Notes                                                                        |
-| ------------------------------------- | ----------- | ---------------------------------------------------------------------------- |
-| Cathedral of Saint Ferdinand          | needs-audit | Historic downtown flagship profile; likely strong demo candidate             |
-| First Baptist Church of San Antonio   | needs-audit | Should verify branding, website, and service schedule                        |
-| Covenant Church San Antonio           | needs-audit | Good north-side candidate; verify current name and service times             |
-| Cornerstone Church                    | needs-audit | Large recognizable profile; verify official branding and pastor info         |
-| Travis Park United Methodist Church   | needs-audit | Strong downtown/inclusive profile candidate                                  |
-| New Life Church                       | needs-audit | Verify official site, service language mix, and branding specificity         |
-| Alamo Heights Baptist Church          | needs-audit | Likely good neighborhood balance candidate                                   |
-| Grace Church San Antonio              | needs-audit | Verify official capitalization/branding and contact details                  |
-| Holy Spirit Episcopal Church          | needs-audit | Good Anglican/Episcopal coverage candidate                                   |
-| Southside Baptist Church              | needs-audit | Verify current website and profile depth                                     |
-| Mission Concepcion                    | needs-audit | Verify naming convention and how to represent it in church-search UX         |
-| Dominion Church                       | needs-audit | Verify whether branding should stay this generic or use fuller official name |
-| Lakewood Church San Antonio           | needs-audit | Verify official identity and whether this is the best representative listing |
-| Broadway Baptist Church               | needs-audit | Strong central-city candidate if data quality is high                        |
-| San Antonio Korean Church             | needs-audit | Important multilingual/community representation candidate                    |
-| Friendship West Baptist Church        | needs-audit | Verify exact church identity and San Antonio fit                             |
-| Bethel Lutheran Church                | needs-audit | Good denominational diversity candidate                                      |
-| Victory Church                        | needs-audit | Verify official branding and whether profile stands out enough for MVP       |
-| San Antonio Chinese Baptist Church    | needs-audit | Important multilingual/community representation candidate                    |
-| Pentecostal Church of God in Christ   | needs-audit | Verify exact official name and whether a fuller branded name exists          |
-| St. Mary's University Catholic Center | needs-audit | Good campus/Catholic representation candidate                                |
-| Christ's Church of the Valley         | needs-audit | Strong non-denominational/family-ministry candidate                          |
-
-## Immediate Next Steps
-
-- Audit the live product manually so we know whether any current flows fail outside automated tests
-- Verify the 22 seeded churches against official public sources
-- Add at least 3 new San Antonio churches with strong coverage across geography and denomination
-- Decide on the MVP image approach for profiles that do not yet have trustworthy visuals
+- Add a true attribution/licensing workflow before any public launch that depends on third-party hosted images
+- Revisit whether the app should surface photo-source credit in the UI
+- Expand beyond 12 only after a new church can meet the same gold-set standard

@@ -12,6 +12,24 @@
 
 ## Decisions
 
+### DEC-020: Prefer a 12-profile gold set with real photography over a broader but thinner MVP church shortlist
+
+- **Date:** 2026-03-30
+- **Status:** ACTIVE
+- **Decision:** Narrow the active MVP dataset to 12 high-confidence San Antonio churches, require a real cover image for every seeded profile, and stop seeding synthetic reviews or events for demo polish.
+- **Alternatives Considered:** Keep the broader 25-profile shortlist active even though several records were thin or visually weak; continue inventing review/event activity to make the app feel fuller; postpone the image pass until a larger import pipeline exists.
+- **Reasoning:** The user explicitly preferred a smaller number of excellent profiles over a broader but inconsistent list, and that direction better fits the current product surface. A tight, source-backed church set with real photos makes the demo feel more trustworthy than a longer list padded by weak records, fake social proof, or empty visual treatment.
+- **Consequences:** The active seed now optimizes for quality and trust instead of count. Future expansion should only happen when a new church can meet the same standard. Image licensing and attribution are now the main remaining data-quality follow-up before any broader public launch.
+
+### DEC-019: Source MVP church curation from official church sites and keep new shortlist additions unrated
+
+- **Date:** 2026-03-30
+- **Status:** ACTIVE
+- **Decision:** For the MVP church curation pass, prefer official public church websites for names, addresses, websites, service schedules, and leadership details, use address geocoding only to place verified profiles on the map, and leave newly added shortlist records at zero ratings/review counts until the app has real user-generated review data for them.
+- **Alternatives Considered:** Continue adding churches from memory or mixed third-party directories first and verify later; seed new profiles with invented demo ratings/review counts to make the list look fuller; postpone the shortlist until a larger import pipeline exists.
+- **Reasoning:** The MVP demo needs to feel trustworthy before it feels comprehensive. Official church sites are the highest-confidence source for current public-facing identity and visit-planning details, while map coordinates still need an address-to-point step for the product experience. Avoiding fabricated ratings on new additions keeps the shortlist from inventing social proof that the product has not earned yet.
+- **Consequences:** The 25-church shortlist now has a stronger factual baseline, but future curation passes should keep checking official sources as schedules and leadership change. Newly added churches will appear unrated until genuine in-app reviews exist, and older seeded records with synthetic ratings remain a separate cleanup target if the team wants the whole dataset to follow the same standard.
+
 ### DEC-018: Replace the `connect-pg-simple` runtime path with a Prisma-backed session store
 
 - **Date:** 2026-03-30
@@ -34,7 +52,7 @@
 
 - **Date:** 2026-03-30
 - **Status:** REVISIT
-- **Decision:** Pause the default milestone-driven sequence after the public church-events foundation and temporarily optimize for a believable MVP demo instead. The immediate priorities are reliability of the existing product, a polished shortlist of 25-50 real San Antonio church profiles, and launch/domain readiness on a shareable public URL.
+- **Decision:** Pause the default milestone-driven sequence after the public church-events foundation and temporarily optimize for a believable MVP demo instead. The immediate priorities are reliability of the existing product, a polished real-church MVP dataset, and launch/domain readiness on a shareable public URL.
 - **Alternatives Considered:** Continue directly into church-claim workflows and admin tooling; keep expanding Milestone 3 and Milestone 4 features before tightening the core demo; postpone the roadmap shift until after a larger real-data import.
 - **Reasoning:** The product already has a substantial feature surface for search, profiles, auth, saved churches, reviews, and per-church events, but the most important gap for a strong demo is not feature count. It is whether the current app feels reliable, trustworthy, and populated with polished real data. A short MVP-focused pass creates a clearer path to showing the product confidently without pretending that a broader milestone checklist matters more than demo readiness.
 - **Consequences:** Task tracking and agent guidance should prioritize baseline verification, live smoke testing, church-profile curation, and domain/deployment prep over new community-management features for now. Milestone 3 claim/admin/event-discovery follow-ups remain part of the roadmap and should be revisited after the MVP demo is credible.

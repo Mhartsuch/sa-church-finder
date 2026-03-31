@@ -13,6 +13,76 @@
 
 ## Log
 
+### 2026-03-30 - 12-Church Gold Set With Real Cover Photos
+
+**Focus:** Pivoted the MVP dataset from a broader shortlist to a much tighter gold set so the demo emphasizes trust, polish, and real church imagery.
+
+**Completed:**
+
+- **Gold-set seed path:** Added `server/prisma/curated-seed-churches.ts` with 12 high-confidence San Antonio churches and switched the active seed path to use that curated dataset instead of the wider shortlist.
+- **Real profile imagery:** Seeded a real `coverImageUrl` for every active church and created one `church_photos` record per church so cards and profiles can render real church photography.
+- **Trust cleanup:** Removed fake social-proof behavior from the active seed path by stopping synthetic review aggregates, seeded written reviews, and seeded upcoming events from being created for the demo dataset.
+- **Search-page honesty pass:** Updated the Search page hero to describe the product as a curated photo-backed church set instead of leaning on review-count marketing that no longer reflects the seed.
+- **Tracking refresh:** Updated the task board, curation tracker, dataset audit, and decision log to reflect the new 12-profile gold-set strategy.
+
+**Remaining Notes:**
+
+- The top repo-external blocker is still the live backend redeploy and production smoke test for auth/session flows.
+- The current image approach is strong enough for a demo, but image licensing/attribution should be tightened before any broader public launch.
+- The inactive broader shortlist still lives inside `server/prisma/seed.ts` as dormant reference data and should be deleted in a future cleanup pass.
+
+**Files Changed:**
+
+- `server/prisma/curated-seed-churches.ts`
+- `server/prisma/seed.ts`
+- `client/src/pages/SearchPage.tsx`
+- `client/src/constants/home-spotlights.ts`
+- `docs/MVP_PROFILE_CURATION.md`
+- `docs/MVP_DATASET_AUDIT.md`
+- `TODO.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+
+### 2026-03-30 - Source-Backed MVP Shortlist Expansion To 25 Churches
+
+**Focus:** Converted the MVP church-shortlist task from a planning note into a real dataset pass by refreshing several seeded profiles from official church sources and adding enough verified churches to clear the 25-profile minimum.
+
+**Completed:**
+
+- **Seed expansion:** Added three real San Antonio churches to `server/prisma/seed.ts` so the seed now reaches 25 churches: Oak Hills Church, First Presbyterian Church of San Antonio, and St. Luke Catholic Church.
+- **Profile refreshes:** Updated several seeded records to better match current public-facing identity and visit details, including San Fernando Cathedral, Travis Park United Methodist Church, Episcopal Church of the Holy Spirit, Mission Concepcion, and First Chinese Baptist Church of San Antonio.
+- **Coordinate follow-through:** Used address geocoding to place the new shortlist additions and the corrected First Chinese Baptist Church campus on the map without guessing coordinates.
+- **Tracking refresh:** Updated the curation tracker, task board, agent briefing, decision log, and API/docs references so the shortlist minimum is now treated as met and future sessions can focus on second-pass profile polish instead of rediscovering additions.
+- **Slug cleanup:** Updated the homepage spotlight slugs and legacy example references so renamed records still line up with the reseeded dataset.
+
+**Remaining Notes:**
+
+- The live P0 auth blocker is still external to this repo session: the Render backend needs a redeploy before register/login, saves, and review mutations can be re-smoked on `https://sachurchfinder.com`.
+- The shortlist count is now strong enough for the MVP, but a number of profiles still need better service-detail verification, richer contact depth, and an intentional no-photo or curated-photo strategy before the whole dataset feels uniformly demo-ready.
+- Older seeded profiles still include synthetic rating/count values from earlier seed work; newly added shortlist entries were left unrated, and a wider consistency pass can decide whether the older synthetic social proof should also be removed.
+
+**Verification:**
+
+- Ran `npx.cmd prettier --write API_EXAMPLES.md AGENT_BRIEFING.md DECISIONS.md TODO.md docs/MVP_DATASET_AUDIT.md docs/MVP_PROFILE_CURATION.md client/src/constants/home-spotlights.ts server/prisma/seed.ts server/src/data/churches.ts` successfully.
+- Ran `npm.cmd run lint:client` successfully at the repo root.
+- Ran `npm.cmd run lint:server` successfully at the repo root.
+- Ran `npm.cmd run typecheck:client` successfully at the repo root.
+- Ran `npm.cmd run typecheck:server` successfully at the repo root.
+- Ran `npx.cmd eslint prisma/seed.ts` successfully in `server/`.
+
+**Files Changed:**
+
+- `server/prisma/seed.ts`
+- `client/src/constants/home-spotlights.ts`
+- `server/src/data/churches.ts`
+- `docs/MVP_PROFILE_CURATION.md`
+- `docs/MVP_DATASET_AUDIT.md`
+- `API_EXAMPLES.md`
+- `TODO.md`
+- `AGENT_BRIEFING.md`
+- `DECISIONS.md`
+- `PROGRESS.md`
+
 ### 2026-03-30 - Live Auth Rerun And Prisma Session Store Replacement
 
 **Focus:** Re-ran the live smoke test after the custom-domain deployment work and turned the remaining auth failure into a stronger backend fix.

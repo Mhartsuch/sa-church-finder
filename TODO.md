@@ -13,7 +13,7 @@
 
 **Milestone:** Temporary MVP Demo Readiness Track  
 **Target Date:** TBD  
-**Goal:** Make the current product reliable, trustworthy, and demo-ready by hardening existing flows, curating 25-50 polished real San Antonio church profiles, and finishing live deployment/domain readiness.
+**Goal:** Make the current product reliable, trustworthy, and demo-ready by hardening existing flows, curating 12 polished real San Antonio church profiles with real photography, and finishing live deployment/domain readiness.
 **Roadmap Note:** Milestone 3 remains the next product roadmap milestone, but new milestone slices are temporarily deferred unless they directly unblock the MVP demo.
 
 ---
@@ -30,8 +30,8 @@
 ### P1 - High
 
 - [ ] Smoke test the current live MVP flows end to end on the deployed app (search, profile, auth, saves, reviews, events)
-- [ ] Curate a shortlist of 25-50 real San Antonio churches for the first polished MVP dataset
-- [ ] Refine church profiles so the shortlisted records have trustworthy descriptions, contact info, website links, service details, and clean metadata
+- [x] Curate a gold set of 12 real San Antonio churches for the polished MVP dataset - the seed now uses a curated 12-church hero set with real cover images and only high-confidence profiles (2026-03-30)
+- [x] Refine church profiles so the shortlisted records have trustworthy descriptions, contact info, website links, service details, and clean metadata - completed for the current 12-church gold set with real cover images and honest zero-review baselines (2026-03-30)
 - [x] Review the current seeded/live dataset for rough copy, inconsistent naming, weak images, and missing fields that hurt the demo - seed audit documented in `docs/MVP_DATASET_AUDIT.md` (2026-03-30)
 - [x] Prepare the launch-ready deployment checklist for a shareable domain (Render settings, env vars, callback URLs, and DNS/custom-domain wiring) - user confirmed `sachurchfinder.com` is live; repo defaults updated for the custom frontend origin (2026-03-30)
 - [x] Replace placeholder auth API with real local session-based auth (`register`, `login`, `logout`, `me`) - completed 2026-03-28
@@ -75,8 +75,10 @@
 
 ### Completed
 
+- [x] MVP dataset narrowed to a 12-church gold set - replaced the broad shortlist with 12 high-confidence San Antonio churches, seeded real cover images for every profile, and stopped seeding synthetic reviews/events so the demo data stays trustworthy (2026-03-30)
 - [x] Milestone 3 events foundation - added a public `/api/v1/churches/:slug/events` endpoint with type/date filtering, seeded upcoming events, and a church-profile events section with upcoming-this-week and next-gathering summaries (2026-03-30)
 - [x] Church profile empty-media polish - replaced the fake gallery placeholders with a visit-summary hero and planning cards so church profiles still feel intentional before real cover images are curated (2026-03-30)
+- [x] MVP shortlist expansion to 25 profiles - completed earlier on 2026-03-30 and later superseded by the tighter 12-church gold-set strategy for demo quality
 - [x] MVP dataset seed audit - documented seed-wide data gaps, likely verification risks, and the recommended cleanup order in `docs/MVP_DATASET_AUDIT.md` (2026-03-30)
 - [x] Backend integration readiness visibility - added safe `/api/v1/health` integration status for SMTP/Google/Sentry, production startup warnings for missing live credentials, and stricter SMTP partial-config validation so misconfigured auth email delivery is easier to spot before testing (2026-03-30)
 - [x] Husky + lint-staged workflow polish - added root Husky hooks, staged-file ESLint/Prettier rules that reuse the existing client/server configs, a manual `npm run lint-staged` entry point, and documented the new local hook behavior in Quick Start (2026-03-30)

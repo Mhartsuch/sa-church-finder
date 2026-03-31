@@ -1,6 +1,7 @@
 # SA Church Finder API - Usage Examples
 
 ## Base URL
+
 ```
 http://localhost:3001/api/v1/churches
 ```
@@ -13,60 +14,68 @@ http://localhost:3001/api/v1/churches
 
 #### Query Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `lat` | number | 29.4241 | Latitude of search center (San Antonio) |
-| `lng` | number | -98.4936 | Longitude of search center |
-| `radius` | number | 10 | Search radius in miles |
-| `q` | string | - | Text search in church name/description |
-| `denomination` | string | - | Filter by denomination family |
-| `day` | number (0-6) | - | Filter by service day (0=Sunday) |
-| `time` | string | - | Filter by time: `morning`, `afternoon`, `evening` |
-| `language` | string | - | Filter by service language |
-| `amenities` | string | - | Comma-separated amenities (all must match) |
-| `sort` | string | distance | Sort by: `distance`, `rating`, `name` |
-| `page` | number | 1 | Page number for pagination |
-| `pageSize` | number | 20 | Results per page (max 100) |
-| `bounds` | string | - | Bounding box: `sw_lat,sw_lng,ne_lat,ne_lng` |
+| Parameter      | Type         | Default  | Description                                       |
+| -------------- | ------------ | -------- | ------------------------------------------------- |
+| `lat`          | number       | 29.4241  | Latitude of search center (San Antonio)           |
+| `lng`          | number       | -98.4936 | Longitude of search center                        |
+| `radius`       | number       | 10       | Search radius in miles                            |
+| `q`            | string       | -        | Text search in church name/description            |
+| `denomination` | string       | -        | Filter by denomination family                     |
+| `day`          | number (0-6) | -        | Filter by service day (0=Sunday)                  |
+| `time`         | string       | -        | Filter by time: `morning`, `afternoon`, `evening` |
+| `language`     | string       | -        | Filter by service language                        |
+| `amenities`    | string       | -        | Comma-separated amenities (all must match)        |
+| `sort`         | string       | distance | Sort by: `distance`, `rating`, `name`             |
+| `page`         | number       | 1        | Page number for pagination                        |
+| `pageSize`     | number       | 20       | Results per page (max 100)                        |
+| `bounds`       | string       | -        | Bounding box: `sw_lat,sw_lng,ne_lat,ne_lng`       |
 
 #### Example Requests
 
 **Basic search (nearby churches):**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches"
 ```
 
 **Search by name:**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?q=baptist"
 ```
 
 **Baptist churches on Sunday morning:**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?denomination=Baptist&day=0&time=morning"
 ```
 
 **Churches with Spanish services:**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?language=Spanish"
 ```
 
 **Churches with parking AND wheelchair access:**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?amenities=Parking,Wheelchair+Accessible"
 ```
 
 **Search within 5 miles, sort by rating:**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?radius=5&sort=rating"
 ```
 
 **Paginated results (page 2, 10 per page):**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?page=2&pageSize=10"
 ```
 
 **Bounding box search:**
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?bounds=29.35,-98.55,29.55,-98.40"
 ```
@@ -78,22 +87,27 @@ curl "http://localhost:3001/api/v1/churches?bounds=29.35,-98.55,29.55,-98.40"
   "data": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440001",
-      "name": "Cathedral of Saint Ferdinand",
-      "slug": "cathedral-of-saint-ferdinand",
+      "name": "San Fernando Cathedral",
+      "slug": "san-fernando-cathedral",
       "denomination": "Catholic",
       "denominationFamily": "Catholic",
-      "address": "115 Main Plaza",
+      "address": "231 West Commerce Street",
       "city": "San Antonio",
       "state": "TX",
       "zipCode": "78205",
-      "latitude": 29.4241,
-      "longitude": -98.4936,
+      "latitude": 29.4252292,
+      "longitude": -98.4959976,
       "phone": "(210) 227-1297",
-      "website": "www.cathedral-sf.org",
-      "avgRating": 4.6,
-      "reviewCount": 45,
+      "website": "sfcathedral.org",
+      "avgRating": 0,
+      "reviewCount": 0,
       "languages": ["English", "Spanish"],
-      "amenities": ["Parking", "Wheelchair Accessible", "Choir", "Gift Shop"],
+      "amenities": [
+        "Parking",
+        "Wheelchair Accessible",
+        "Livestream",
+        "Gift Shop"
+      ],
       "distance": 0.0,
       "services": [
         {
@@ -111,8 +125,8 @@ curl "http://localhost:3001/api/v1/churches?bounds=29.35,-98.55,29.55,-98.40"
   "meta": {
     "page": 1,
     "pageSize": 20,
-    "total": 22,
-    "totalPages": 2,
+    "total": 12,
+    "totalPages": 1,
     "center": {
       "lat": 29.4241,
       "lng": -98.4936
@@ -132,7 +146,7 @@ Returns the full church profile including all services, amenities, and metadata.
 #### Example Requests
 
 ```bash
-curl "http://localhost:3001/api/v1/churches/cathedral-of-saint-ferdinand"
+curl "http://localhost:3001/api/v1/churches/san-fernando-cathedral"
 ```
 
 #### Response
@@ -141,29 +155,33 @@ curl "http://localhost:3001/api/v1/churches/cathedral-of-saint-ferdinand"
 {
   "data": {
     "id": "550e8400-e29b-41d4-a716-446655440001",
-    "name": "Cathedral of Saint Ferdinand",
-    "slug": "cathedral-of-saint-ferdinand",
+    "name": "San Fernando Cathedral",
+    "slug": "san-fernando-cathedral",
     "denomination": "Catholic",
     "denominationFamily": "Catholic",
-    "description": "Historic cathedral serving the San Antonio Catholic community with traditional Spanish architecture.",
-    "address": "115 Main Plaza",
+    "description": "Historic downtown cathedral parish serving San Antonio with daily Mass, bilingual ministry, and one of the city's defining sacred spaces.",
+    "address": "231 West Commerce Street",
     "city": "San Antonio",
     "state": "TX",
     "zipCode": "78205",
     "neighborhood": "Downtown",
-    "latitude": 29.4241,
-    "longitude": -98.4936,
+    "latitude": 29.4252292,
+    "longitude": -98.4959976,
     "phone": "(210) 227-1297",
-    "email": null,
-    "website": "www.cathedral-sf.org",
-    "pastorName": "Archbishop Gustavo García-Siller",
-    "yearEstablished": 1868,
-    "avgRating": 4.6,
-    "reviewCount": 45,
-    "isClaimed": true,
+    "email": "info@sfcathedral.org",
+    "website": "sfcathedral.org",
+    "yearEstablished": 1731,
+    "avgRating": 0,
+    "reviewCount": 0,
+    "isClaimed": false,
     "languages": ["English", "Spanish"],
-    "amenities": ["Parking", "Wheelchair Accessible", "Choir", "Gift Shop"],
-    "coverImageUrl": null,
+    "amenities": [
+      "Parking",
+      "Wheelchair Accessible",
+      "Livestream",
+      "Gift Shop"
+    ],
+    "coverImageUrl": "https://files.ecatholic.com/14746/slideshows/homeFullXL/92374647_3324271397586488_3078929138149490688_n.jpg?t=1737473297000",
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z",
     "services": [
@@ -212,6 +230,7 @@ curl "http://localhost:3001/api/v1/churches/cathedral-of-saint-ferdinand"
 ## Filter Parameters Details
 
 ### Days of Week
+
 - `0` = Sunday
 - `1` = Monday
 - `2` = Tuesday
@@ -221,11 +240,13 @@ curl "http://localhost:3001/api/v1/churches/cathedral-of-saint-ferdinand"
 - `6` = Saturday
 
 ### Time Categories
+
 - `morning` - Services before 12:00 PM
 - `afternoon` - Services 12:00 PM - 5:00 PM
 - `evening` - Services after 5:00 PM
 
 ### Available Denomination Families
+
 - Baptist
 - Catholic
 - Anglican
@@ -235,6 +256,7 @@ curl "http://localhost:3001/api/v1/churches/cathedral-of-saint-ferdinand"
 - Non-denominational
 
 ### Available Languages
+
 - English
 - Spanish
 - Korean
@@ -242,6 +264,7 @@ curl "http://localhost:3001/api/v1/churches/cathedral-of-saint-ferdinand"
 - Cantonese
 
 ### Available Amenities
+
 - Parking
 - Large Parking
 - Ample Parking
@@ -271,21 +294,25 @@ curl "http://localhost:3001/api/v1/churches/cathedral-of-saint-ferdinand"
 ## Complex Query Examples
 
 ### Find Spanish-language Baptist churches with parking near downtown:
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?denomination=Baptist&language=Spanish&amenities=Parking&lat=29.42&lng=-98.49&radius=5"
 ```
 
 ### Get evening services in North San Antonio, sorted by rating:
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?lat=29.55&lng=-98.45&radius=8&time=evening&sort=rating"
 ```
 
 ### Find all churches offering both Nursery and Sunday School:
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?amenities=Nursery,Sunday+School"
 ```
 
 ### Search for Methodist churches on Sundays:
+
 ```bash
 curl "http://localhost:3001/api/v1/churches?denomination=Methodist&day=0"
 ```
