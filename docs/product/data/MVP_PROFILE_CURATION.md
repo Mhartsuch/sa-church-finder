@@ -15,7 +15,7 @@ Current state:
 - The active seed now uses 12 curated church records
 - Every seeded church profile includes a real `coverImageUrl`
 - The seed no longer relies on synthetic review aggregates, written reviews, or upcoming events to make the dataset feel fuller than it is
-- See `docs/MVP_DATASET_AUDIT.md` for the current gold-set snapshot and remaining follow-ups
+- See `docs/product/data/MVP_DATASET_AUDIT.md` for the current gold-set snapshot and remaining follow-ups
 
 ## Profile Quality Bar
 

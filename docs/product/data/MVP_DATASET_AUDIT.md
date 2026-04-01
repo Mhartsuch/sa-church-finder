@@ -56,7 +56,7 @@ This document now reflects the active gold-set strategy rather than the earlier 
 
 ## Related Files
 
-- `docs/MVP_PROFILE_CURATION.md`
+- `docs/product/data/MVP_PROFILE_CURATION.md`
 - `server/prisma/seed.ts`
 - `server/prisma/curated-seed-churches.ts`
-- `TODO.md`
+- `docs/process/TODO.md`

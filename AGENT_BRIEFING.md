@@ -22,7 +22,7 @@ Prioritize MVP demo readiness over new Milestone 3 slices for now. The immediate
 - Ran the first Render smoke-test pass on 2026-03-30 and confirmed the live frontend, church search API, church profile API, and frontend profile route are reachable, while also catching a production auth regression where register/login now return `500` before any session cookie is established
 - Landed an initial production auth fix locally by adding a committed Prisma SQL migration for the `user_sessions` table and updating the Render backend build to run `npx prisma migrate deploy` automatically during deploys
 - Replaced the church profile page's fake photo-gallery placeholders with a real visit-summary hero and planning cards so profiles still feel deliberate while the dataset has no curated cover images yet
-- Audited the current seeded church dataset and documented the biggest MVP-demo data gaps in `docs/MVP_DATASET_AUDIT.md`, including zero seeded cover images, sparse profile emails, inconsistent service labeling, and a likely bad ZIP for Friendship West Baptist Church
+- Audited the current seeded church dataset and documented the biggest MVP-demo data gaps in `docs/product/data/MVP_DATASET_AUDIT.md`, including zero seeded cover images, sparse profile emails, inconsistent service labeling, and a likely bad ZIP for Friendship West Baptist Church
 - Verified the current repository baseline for MVP work: root `lint`, `typecheck`, `test`, and `build` all passed on 2026-03-30 (tests and build required rerunning outside the Windows sandbox because Vite/Vitest process spawning hit `spawn EPERM`)
 - Added the Milestone 3 church-events foundation end to end: new `GET /api/v1/churches/:slug/events` filtering API, seeded upcoming sample events, and a church-profile events section with type/date filters plus upcoming-this-week and next-gathering summaries
 - Added deployment-readiness visibility for backend integrations: `/api/v1/health` now reports safe readiness status for SMTP email delivery, Google OAuth, and server-side Sentry, and production startup logs warn when those integrations are missing or only partially configured
@@ -81,22 +81,26 @@ sa-church-finder/
 |   |   `-- lib/                # Logger and Prisma client
 |   `-- prisma/                 # Schema, migrations, seed
 |-- render.yaml                 # Render blueprint for frontend + backend
-|-- PROGRESS.md                 # Session-by-session work log
-|-- TODO.md                     # Prioritized task board
-|-- QUICKSTART.md               # Local setup and useful commands
-`-- docs/                       # Supporting project docs
+|-- README.md                   # Repo overview and docs index
+`-- docs/
+    |-- engineering/           # Architecture, API, conventions, data model
+    |-- history/               # Session-by-session work log
+    |-- process/               # Task board, decisions, branching, instructions
+    |-- product/               # Product specs, brand, and dataset notes
+    `-- setup/                 # Local setup and useful commands
 ```
 
 ### Important Files to Read
 
 1. This file (`AGENT_BRIEFING.md`)
-2. `PROJECT_CONTEXT.md` for the broader product context
-3. `ARCHITECTURE.md` for system design and data flow
-4. `CONVENTIONS.md` for coding rules
-5. `DECISIONS.md` for past architectural choices
-6. `PROGRESS.md` and `TODO.md` for current execution state
-7. `docs/MVP_PROFILE_CURATION.md` for the temporary MVP church-data curation queue
-8. `docs/MVP_DATASET_AUDIT.md` for the seed-wide audit findings and first-pass cleanup order
+2. `README.md` for the repo-level overview
+3. `docs/product/PROJECT_CONTEXT.md` for the broader product context
+4. `docs/engineering/ARCHITECTURE.md` for system design and data flow
+5. `docs/engineering/CONVENTIONS.md` for coding rules
+6. `docs/process/DECISIONS.md` for past architectural choices
+7. `docs/history/PROGRESS.md` and `docs/process/TODO.md` for current execution state
+8. `docs/product/data/MVP_PROFILE_CURATION.md` for the temporary MVP church-data curation queue
+9. `docs/product/data/MVP_DATASET_AUDIT.md` for the seed-wide audit findings and first-pass cleanup order
 
 ## Conventions to Follow
 
@@ -129,7 +133,7 @@ sa-church-finder/
 2. Do not use `any` in TypeScript; use `unknown` and narrow, or define proper types.
 3. Do not store secrets in code; use environment variables.
 4. Do not skip error handling on API routes.
-5. Do not modify the database schema without updating `DATA_MODELS.md`.
+5. Do not modify the database schema without updating `docs/engineering/DATA_MODELS.md`.
 6. Do not assume old docs describing the in-memory data layer are still accurate; the app now depends on Prisma/PostGIS.
 
 ## Session End Checklist
@@ -137,10 +141,10 @@ sa-church-finder/
 When you finish a session, update:
 
 - This file's current state summary if priorities changed
-- `PROGRESS.md` with what was accomplished
-- `DECISIONS.md` if any significant choices were made
-- `TODO.md` to reflect completed and new tasks
+- `docs/history/PROGRESS.md` with what was accomplished
+- `docs/process/DECISIONS.md` if any significant choices were made
+- `docs/process/TODO.md` to reflect completed and new tasks
 
 ---
 
-_Last updated: 2026-03-30 by Codex_
+_Last updated: 2026-03-31 by Codex_

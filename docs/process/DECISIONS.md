@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-021: Keep the repo root light and organize project docs under `docs/`
+
+- **Date:** 2026-03-31
+- **Status:** ACTIVE
+- **Decision:** Keep only the main repo entry points at the root (`README.md` and `AGENT_BRIEFING.md`) and move supporting documentation into categorized folders under `docs/`.
+- **Alternatives Considered:** Leave all project Markdown at the root; delete older docs aggressively instead of reorganizing them; keep moving docs around ad hoc without a stable structure.
+- **Reasoning:** The root had become noisy enough that it was harder to spot the files that actually matter when starting work. A simple docs hierarchy makes the repo easier to scan while preserving planning history, process notes, and active reference material.
+- **Consequences:** Future doc additions should default to the appropriate `docs/` subfolder unless they are true repo-level entry points. Historical references may still mention older root-level paths, especially inside the append-only progress log.
+
 ### DEC-020: Prefer a 12-profile gold set with real photography over a broader but thinner MVP church shortlist
 
 - **Date:** 2026-03-30

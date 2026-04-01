@@ -13,13 +13,17 @@ main          ← production-ready code, auto-deploys
 ## Branch Types
 
 ### `main`
+
 Production branch. Every commit here triggers a deployment. Protected by CI — all checks must pass. Only receives merges from `develop` via pull request.
 
 ### `develop`
+
 Integration branch where feature work is merged and tested together. Preview deploys run here so you can verify before promoting to `main`.
 
 ### Feature / fix / chore branches
+
 Created from `develop`. Named with a prefix and short description:
+
 - `feature/` — new functionality
 - `fix/` — bug fixes
 - `chore/` — dependencies, refactoring, docs
@@ -27,6 +31,7 @@ Created from `develop`. Named with a prefix and short description:
 ## Workflow
 
 1. **Start work:** branch off `develop`
+
    ```bash
    git checkout develop
    git pull origin develop
@@ -36,6 +41,7 @@ Created from `develop`. Named with a prefix and short description:
 2. **Commit often.** Write clear commit messages.
 
 3. **Push and open a PR** targeting `develop`:
+
    ```bash
    git push -u origin feature/my-feature
    # Open PR on GitHub → base: develop
@@ -62,6 +68,7 @@ Every deploy to `main` is automatically tagged (e.g., `v20260327-abc1234`) so yo
 Deployments are auto-tagged by CI with the format `vYYYYMMDD-<short-sha>`. These tags serve as rollback targets and a deployment audit trail.
 
 To see recent releases:
+
 ```bash
 git tag --sort=-creatordate | head -10
 ```

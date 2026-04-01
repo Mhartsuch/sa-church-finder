@@ -3,6 +3,7 @@
 > Rules that every agent session must follow when writing code in this project. Consistency across sessions is critical for long-term maintainability.
 
 ## Language & Framework
+
 - TypeScript (strict mode) for all code — frontend and backend
 - React 18 with functional components and hooks
 - Express 4 for the REST API
@@ -40,23 +41,25 @@ server/
 ```
 
 ## Naming Conventions
-| Thing | Convention | Example |
-|---|---|---|
-| Files (components) | PascalCase | `ChurchCard.tsx` |
-| Files (non-component) | kebab-case | `church-service.ts` |
-| Functions | camelCase | `getChurchById()` |
-| Variables | camelCase | `currentFilters` |
-| Constants | UPPER_SNAKE_CASE | `MAX_SEARCH_RADIUS` |
-| React components | PascalCase | `ChurchCard` |
-| Types/Interfaces | PascalCase with prefix | `IChurchFilters`, `TSearchParams` |
-| Database tables | snake_case plural | `church_services` |
-| Database columns | snake_case | `created_at` |
-| API endpoints | kebab-case plural | `/api/v1/churches` |
-| Branches | type/kebab-description | `feature/church-search` |
-| Commits | Conventional Commits | `feat: add church search endpoint` |
-| Environment vars | UPPER_SNAKE_CASE | `DATABASE_URL` |
+
+| Thing                 | Convention             | Example                            |
+| --------------------- | ---------------------- | ---------------------------------- |
+| Files (components)    | PascalCase             | `ChurchCard.tsx`                   |
+| Files (non-component) | kebab-case             | `church-service.ts`                |
+| Functions             | camelCase              | `getChurchById()`                  |
+| Variables             | camelCase              | `currentFilters`                   |
+| Constants             | UPPER_SNAKE_CASE       | `MAX_SEARCH_RADIUS`                |
+| React components      | PascalCase             | `ChurchCard`                       |
+| Types/Interfaces      | PascalCase with prefix | `IChurchFilters`, `TSearchParams`  |
+| Database tables       | snake_case plural      | `church_services`                  |
+| Database columns      | snake_case             | `created_at`                       |
+| API endpoints         | kebab-case plural      | `/api/v1/churches`                 |
+| Branches              | type/kebab-description | `feature/church-search`            |
+| Commits               | Conventional Commits   | `feat: add church search endpoint` |
+| Environment vars      | UPPER_SNAKE_CASE       | `DATABASE_URL`                     |
 
 ## Code Style
+
 - Prettier for formatting (printWidth: 100, singleQuote: true, trailingComma: all)
 - ESLint with TypeScript strict rules
 - 2-space indentation
@@ -67,6 +70,7 @@ server/
 - Destructure props and objects
 
 ## Error Handling
+
 - Frontend: React Error Boundaries for component crashes; toast notifications for API errors
 - Backend: Centralized error-handling middleware; all routes wrapped in async try/catch
 - Custom error classes: `AppError`, `NotFoundError`, `ValidationError`, `AuthError`
@@ -74,18 +78,21 @@ server/
 - Never expose stack traces or internal details in production error responses
 
 ## Logging
+
 - Use `pino` logger (structured JSON in production, pretty-print in development)
 - Log levels: error, warn, info, debug
 - Always log: request ID, user ID (if authenticated), endpoint, response status
 - Never log: passwords, tokens, full request bodies with sensitive data
 
 ## Comments
+
 - Use JSDoc for public functions and complex types
 - Inline comments only for non-obvious logic (explain WHY, not WHAT)
 - TODO comments require a ticket/issue reference: `// TODO(#42): implement pagination`
 - No commented-out code — use git history instead
 
 ## Git Workflow
+
 - Branch from `main` for all work
 - Branch naming: `feature/`, `fix/`, `refactor/`, `docs/`, `test/`
 - Squash merge to `main` via PR
@@ -93,10 +100,12 @@ server/
 - No direct pushes to `main`
 
 ## Dependencies
+
 - Check existing packages before adding new ones
 - Prefer well-maintained packages with TypeScript support
 - Document any new dependency in the PR description with rationale
 - Pin major versions in package.json
 
 ---
-*Last updated: 2026-03-26*
+
+_Last updated: 2026-03-26_

@@ -1,6 +1,8 @@
 # Progress Log
 
 > Append-only log of work done on this project. Each session adds an entry at the top. This is the project's memory.
+>
+> Documentation note: on 2026-03-31, most root-level Markdown files were reorganized under `docs/`. Older entries may still mention the pre-cleanup paths.
 
 ## How to Use This File
 
@@ -12,6 +14,36 @@
 ---
 
 ## Log
+
+### 2026-03-31 - Documentation Cleanup And Reorganization
+
+**Focus:** Reduced root-level Markdown sprawl without deleting project knowledge.
+
+**Completed:**
+
+- **Docs hierarchy:** Moved supporting Markdown files into categorized `docs/engineering`, `docs/product`, `docs/process`, `docs/history`, and `docs/setup` folders.
+- **Landing pages:** Added a root `README.md` plus `docs/README.md` so contributors can find the right documentation quickly.
+- **Reference refresh:** Updated the active agent/process docs to point at the new locations instead of the old root-level paths.
+- **Scaffolding cleanup:** Removed the empty `docs/api` and `docs/mockups` directories.
+
+**Remaining Notes:**
+
+- `AGENT_BRIEFING.md` intentionally stays at the repo root as the primary session entry point.
+- Historical file references lower in this log still reflect the old layout and are preserved as historical context.
+
+**Files Changed:**
+
+- `README.md`
+- `AGENT_BRIEFING.md`
+- `docs/README.md`
+- `docs/history/PROGRESS.md`
+- `docs/process/DECISIONS.md`
+- `docs/process/RECOMMENDED_PROJECT_INSTRUCTIONS.md`
+- `docs/process/TODO.md`
+- `docs/product/data/MVP_DATASET_AUDIT.md`
+- `docs/product/data/MVP_PROFILE_CURATION.md`
+
+---
 
 ### 2026-03-30 - 12-Church Gold Set With Real Cover Photos
 
