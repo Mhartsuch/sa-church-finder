@@ -8,6 +8,7 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '../lib/prisma.js'
+import { getViewerClaimForChurch } from './church-claim.service.js'
 import { IBounds, IChurch, IChurchSummary, ISearchParams, ISearchResponse } from '../types/church.types.js'
 
 const DEFAULT_CENTER_LAT = 29.4241
@@ -338,6 +339,7 @@ export async function getChurchBySlug(
         },
       })
     : null
+  const viewerClaim = userId ? await getViewerClaimForChurch(church.id, userId) : null
 
   return {
     ...church,
@@ -345,6 +347,7 @@ export async function getChurchBySlug(
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
     isSaved: Boolean(savedChurch),
+    viewerClaim,
     services: church.services,
   }
 }
@@ -372,6 +375,7 @@ export async function getChurchById(
         },
       })
     : null
+  const viewerClaim = userId ? await getViewerClaimForChurch(church.id, userId) : null
 
   return {
     ...church,
@@ -379,6 +383,7 @@ export async function getChurchById(
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
     isSaved: Boolean(savedChurch),
+    viewerClaim,
     services: church.services,
   }
 }

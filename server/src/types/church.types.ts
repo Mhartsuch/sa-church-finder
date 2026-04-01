@@ -2,6 +2,17 @@
  * Church domain types and interfaces
  */
 
+export type ChurchClaimStatus = 'pending' | 'approved' | 'rejected'
+
+export interface IViewerChurchClaim {
+  id: string
+  status: ChurchClaimStatus
+  roleTitle: string
+  verificationEmail: string
+  createdAt: Date
+  reviewedAt?: Date | null
+}
+
 export interface IChurchService {
   id: string
   churchId: string
@@ -42,6 +53,7 @@ export interface IChurch {
   languages: string[]
   amenities: string[]
   coverImageUrl?: string | null
+  viewerClaim?: IViewerChurchClaim | null
   createdAt: Date
   updatedAt: Date
   services: IChurchService[]

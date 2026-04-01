@@ -11,6 +11,7 @@ import { initializeServerSentry } from './lib/sentry.js'
 import { errorHandler } from './middleware/error-handler.js'
 import authRoutes from './routes/auth.routes.js'
 import churchRoutes from './routes/church.routes.js'
+import claimRoutes from './routes/claim.routes.js'
 import reviewRoutes from './routes/review.routes.js'
 import userRoutes from './routes/users.routes.js'
 
@@ -51,6 +52,7 @@ export const createApp = (): Express => {
   app.use('/api/v1/churches', churchRoutes)
   app.use('/api/v1/auth', authRoutes)
   app.use('/api/v1/users', userRoutes)
+  app.use('/api/v1', claimRoutes)
   app.use('/api/v1', reviewRoutes)
 
   app.use((req: Request, res: Response) => {

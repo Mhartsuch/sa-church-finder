@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   ArrowRight,
+  Building2,
   CheckCircle2,
   Compass,
   Heart,
@@ -15,6 +16,11 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth'
+import {
+  useAdminChurchClaims,
+  useResolveChurchClaim,
+  useUserChurchClaims,
+} from '@/hooks/useChurchClaims'
 import { useSavedChurches, useToggleSavedChurch } from '@/hooks/useChurches'
 import {
   useDeleteReview,
@@ -22,6 +28,7 @@ import {
   useResolveFlaggedReview,
   useUserReviews,
 } from '@/hooks/useReviews'
+import { ChurchClaimStatus } from '@/types/church-claim'
 import { formatRating } from '@/utils/format'
 
 const formatMemberSince = (createdAt: string): string => {
@@ -56,11 +63,43 @@ const formatFlaggedDate = (reviewDate: string): string => {
   }).format(new Date(reviewDate))
 }
 
+const formatClaimDate = (reviewDate: string): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(reviewDate))
+}
+
 const formatRoleLabel = (role: string): string => {
   return role
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+const formatClaimStatusLabel = (status: ChurchClaimStatus): string => {
+  switch (status) {
+    case 'approved':
+      return 'Approved'
+    case 'rejected':
+      return 'Rejected'
+    case 'pending':
+    default:
+      return 'Pending'
+  }
+}
+
+const getClaimStatusClasses = (status: ChurchClaimStatus): string => {
+  switch (status) {
+    case 'approved':
+      return 'bg-[#effaf3] text-[#166534]'
+    case 'rejected':
+      return 'bg-[#fff1f4] text-[#9f1239]'
+    case 'pending':
+    default:
+      return 'bg-[#eff6ff] text-[#1d4ed8]'
+  }
 }
 
 const AccountPage = () => {
@@ -79,12 +118,23 @@ const AccountPage = () => {
     error: userReviewsError,
   } = useUserReviews(user?.id ?? null)
   const {
+    data: churchClaims,
+    isLoading: isChurchClaimsLoading,
+    error: churchClaimsError,
+  } = useUserChurchClaims(user?.id ?? null)
+  const {
+    data: adminChurchClaims,
+    isLoading: isAdminChurchClaimsLoading,
+    error: adminChurchClaimsError,
+  } = useAdminChurchClaims(user?.role === 'site_admin')
+  const {
     data: flaggedReviews,
     isLoading: isFlaggedReviewsLoading,
     error: flaggedReviewsError,
   } = useFlaggedReviews(user?.role === 'site_admin')
   const toggleSavedChurchMutation = useToggleSavedChurch()
   const deleteReviewMutation = useDeleteReview()
+  const resolveChurchClaimMutation = useResolveChurchClaim()
   const resolveFlaggedReviewMutation = useResolveFlaggedReview()
   const [actionError, setActionError] = useState<string | null>(null)
   const [verificationNotice, setVerificationNotice] = useState<{
@@ -98,6 +148,7 @@ const AccountPage = () => {
 
   const savedChurchCount = savedChurches.length
   const writtenReviewCount = userReviews.length
+  const claimCount = churchClaims?.meta.total ?? 0
   const roleLabel = formatRoleLabel(user.role)
   const isAccountActivityLoading = isSavedChurchesLoading || isUserReviewsLoading
   const dashboardSummary = isAccountActivityLoading
@@ -125,6 +176,14 @@ const AccountPage = () => {
 
   if (!isAccountActivityLoading && writtenReviewCount === 0) {
     nextSteps.push('Leave your first review after a visit so future-you remembers the feel.')
+  }
+
+  if (!isChurchClaimsLoading && claimCount === 0 && user.role !== 'church_admin') {
+    nextSteps.push('If you represent a church, open its profile and send a claim request with a church-domain email.')
+  }
+
+  if (user.role === 'church_admin') {
+    nextSteps.push('Your church-admin access is ready; listing and event editing tools are the next Milestone 3 slice.')
   }
 
   if (!user.emailVerified) {
@@ -236,6 +295,34 @@ const AccountPage = () => {
         error instanceof Error
           ? error.message
           : 'Unable to resolve that flagged review right now.',
+      )
+    }
+  }
+
+  const handleResolveChurchClaim = async (
+    claimId: string,
+    status: 'approved' | 'rejected',
+    churchName: string,
+  ) => {
+    setActionError(null)
+
+    if (
+      status === 'rejected' &&
+      !window.confirm(`Reject the pending church claim for ${churchName}?`)
+    ) {
+      return
+    }
+
+    try {
+      await resolveChurchClaimMutation.mutateAsync({
+        claimId,
+        status,
+      })
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to resolve that church claim right now.',
       )
     }
   }
@@ -561,6 +648,197 @@ const AccountPage = () => {
                 )}
               </div>
             </div>
+
+            <div className='mt-6 rounded-[28px] border border-gray-200 p-5'>
+              <div className='flex items-center gap-3'>
+                <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6faf8] text-[#1f4d45]'>
+                  <Building2 className='h-5 w-5' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-[#222222]'>Church claims</h3>
+                  <p className='text-sm text-[#555555]'>
+                    Track the listing-access requests tied to your account
+                  </p>
+                </div>
+              </div>
+
+              {isChurchClaimsLoading ? (
+                <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                  Loading your church claims...
+                </p>
+              ) : churchClaimsError ? (
+                <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                  {churchClaimsError.message}
+                </p>
+              ) : !churchClaims || churchClaims.data.length === 0 ? (
+                <div className='mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fcfbf8] p-4'>
+                  <p className='text-sm leading-6 text-[#555555]'>
+                    If you represent a church, start from its profile page and
+                    submit a claim request with a staff or ministry email that
+                    matches the church&apos;s public domain.
+                  </p>
+                  <Link
+                    to='/search'
+                    className='mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#1f4d45] hover:underline'
+                  >
+                    Find a church to claim
+                    <ArrowRight className='h-4 w-4' />
+                  </Link>
+                </div>
+              ) : (
+                <div className='mt-4 space-y-3'>
+                  {churchClaims.data.map((claim) => (
+                    <div
+                      key={claim.id}
+                      className='rounded-2xl border border-gray-200 bg-[#fcfbf8] p-4'
+                    >
+                      <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
+                        <div className='min-w-0'>
+                          <div className='flex flex-wrap items-center gap-2'>
+                            <Link
+                              to={`/churches/${claim.church.slug}`}
+                              className='text-sm font-semibold text-[#222222] hover:underline'
+                            >
+                              {claim.church.name}
+                            </Link>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getClaimStatusClasses(
+                                claim.status,
+                              )}`}
+                            >
+                              {formatClaimStatusLabel(claim.status)}
+                            </span>
+                          </div>
+                          <p className='mt-1 text-sm text-[#555555]'>
+                            {claim.roleTitle} · {claim.verificationEmail}
+                          </p>
+                          <p className='mt-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                            Submitted {formatClaimDate(claim.createdAt)}
+                            {claim.reviewedAt
+                              ? ` · Reviewed ${formatClaimDate(claim.reviewedAt)}`
+                              : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className='mt-3 text-sm leading-6 text-[#555555]'>
+                        {claim.status === 'approved'
+                          ? 'This listing is now connected to your account, and the next church-admin tools will build on that access.'
+                          : claim.status === 'pending'
+                            ? 'A site admin still needs to review this request before the listing becomes church-managed.'
+                            : 'This request was not approved. If the listing is still unclaimed, you can submit a fresh request from the church page.'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {user.role === 'site_admin' ? (
+              <div className='mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f6faf8] p-5'>
+                <div className='flex items-center gap-3'>
+                  <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle'>
+                    <Building2 className='h-5 w-5' />
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-[#222222]'>
+                      Church claim queue
+                    </h3>
+                    <p className='text-sm text-[#555555]'>
+                      Representatives waiting for listing access approval
+                    </p>
+                  </div>
+                </div>
+
+                {isAdminChurchClaimsLoading ? (
+                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                    Loading church claims...
+                  </p>
+                ) : adminChurchClaimsError ? (
+                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                    {adminChurchClaimsError.message}
+                  </p>
+                ) : !adminChurchClaims || adminChurchClaims.data.length === 0 ? (
+                  <div className='mt-4 rounded-[24px] border border-dashed border-[#b7d1c3] bg-white/80 p-4'>
+                    <p className='text-sm leading-6 text-[#555555]'>
+                      No church claim requests are waiting for review right now.
+                    </p>
+                  </div>
+                ) : (
+                  <div className='mt-4 space-y-3'>
+                    {adminChurchClaims.data.map((claim) => {
+                      const isResolvingClaim =
+                        resolveChurchClaimMutation.isPending &&
+                        resolveChurchClaimMutation.variables?.claimId === claim.id
+
+                      return (
+                        <div
+                          key={claim.id}
+                          className='rounded-2xl border border-[#d7e6dc] bg-white p-4'
+                        >
+                          <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
+                            <div className='min-w-0'>
+                              <Link
+                                to={`/churches/${claim.church.slug}`}
+                                className='text-sm font-semibold text-[#222222] hover:underline'
+                              >
+                                {claim.church.name}
+                              </Link>
+                              <p className='mt-1 text-sm text-[#555555]'>
+                                {claim.user.name} · {claim.user.email}
+                              </p>
+                              <p className='mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                                {claim.roleTitle} · Submitted {formatClaimDate(claim.createdAt)}
+                              </p>
+                              <p className='mt-2 text-sm leading-6 text-[#555555]'>
+                                Verification email: {claim.verificationEmail}
+                              </p>
+                            </div>
+
+                            <div className='flex flex-wrap gap-2'>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  void handleResolveChurchClaim(
+                                    claim.id,
+                                    'approved',
+                                    claim.church.name,
+                                  )
+                                }}
+                                disabled={isResolvingClaim}
+                                className='rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-4 py-2 text-sm font-semibold text-[#1d4ed8] transition-colors hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-70'
+                              >
+                                {isResolvingClaim &&
+                                resolveChurchClaimMutation.variables?.status === 'approved'
+                                  ? 'Approving...'
+                                  : 'Approve claim'}
+                              </button>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  void handleResolveChurchClaim(
+                                    claim.id,
+                                    'rejected',
+                                    claim.church.name,
+                                  )
+                                }}
+                                disabled={isResolvingClaim}
+                                className='rounded-full border border-[#ffd6df] bg-white px-4 py-2 text-sm font-semibold text-[#FF385C] transition-colors hover:bg-[#fff1f4] disabled:cursor-not-allowed disabled:opacity-70'
+                              >
+                                {isResolvingClaim &&
+                                resolveChurchClaimMutation.variables?.status === 'rejected'
+                                  ? 'Rejecting...'
+                                  : 'Reject claim'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {user.role === 'site_admin' ? (
               <div className='mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f6faf8] p-5'>

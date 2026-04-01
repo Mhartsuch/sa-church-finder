@@ -15,6 +15,59 @@
 
 ## Log
 
+### 2026-03-31 - Milestone 3 Roadmap Restored And Church Claim Flow Landed
+
+**Focus:** Dropped the temporary MVP-first task track, returned the repo to the original Milestone 3 roadmap, and implemented the first ownership workflow slice so church reps can claim listings.
+
+**Completed:**
+
+- **Backend claim workflow:** Added `server/src/services/church-claim.service.ts` plus new route/schema support for `POST /api/v1/churches/:id/claim`, `GET /api/v1/users/:id/claims`, and `GET/PATCH /api/v1/admin/claims`.
+- **Ownership-aware church detail:** Extended the church detail payload so signed-in viewers can see their own claim status for the current church and the profile page can react to pending/approved/rejected states.
+- **Profile/account UX:** Added a church-claim card on unclaimed church profiles, a member-facing claim-history section on the account page, and a site-admin approval queue alongside the existing moderation dashboard.
+- **Roadmap reset:** Updated `docs/process/TODO.md`, `AGENT_BRIEFING.md`, `docs/product/PROJECT_CONTEXT.md`, and `docs/process/DECISIONS.md` so the active roadmap is back on Milestone 3 instead of the temporary MVP-demo track.
+- **Coverage:** Added focused server and client tests for the new claim endpoints/API layer.
+
+**Remaining Notes:**
+
+- The next roadmap task is church-admin event creation/edit tooling built on top of approved church claims.
+- The deployed app still needs the separate backend redeploy for the Prisma-backed session-store auth fix before live auth/save/review flows can be re-smoked on `https://sachurchfinder.com`.
+
+**Verification:**
+
+- Ran `npm.cmd run typecheck` successfully in `server/`.
+- Ran `npm.cmd test -- claim.routes.test.ts --runInBand` successfully in `server/`.
+- Ran `npm.cmd run lint` successfully in `server/`.
+- Ran `npm.cmd run typecheck` successfully in `client/`.
+- Ran `npm.cmd test -- church-claims.test.ts` successfully in `client/` after rerunning outside the sandbox because the first Vitest attempt hit `spawn EPERM`.
+- Ran `npm.cmd run lint` successfully in `client/`.
+
+**Files Changed:**
+
+- `server/src/services/church-claim.service.ts`
+- `server/src/routes/claim.routes.ts`
+- `server/src/routes/claim.routes.test.ts`
+- `server/src/routes/users.routes.ts`
+- `server/src/schemas/claim.schema.ts`
+- `server/src/schemas/user.schema.ts`
+- `server/src/services/church.service.ts`
+- `server/src/types/church-claim.types.ts`
+- `server/src/types/church.types.ts`
+- `server/src/app.ts`
+- `client/src/api/church-claims.ts`
+- `client/src/api/church-claims.test.ts`
+- `client/src/hooks/useChurchClaims.ts`
+- `client/src/types/church-claim.ts`
+- `client/src/types/church.ts`
+- `client/src/pages/ChurchProfilePage.tsx`
+- `client/src/pages/AccountPage.tsx`
+- `docs/process/TODO.md`
+- `AGENT_BRIEFING.md`
+- `docs/product/PROJECT_CONTEXT.md`
+- `docs/process/DECISIONS.md`
+- `docs/history/PROGRESS.md`
+
+---
+
 ### 2026-03-31 - Documentation Cleanup And Reorganization
 
 **Focus:** Reduced root-level Markdown sprawl without deleting project knowledge.

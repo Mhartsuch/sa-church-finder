@@ -11,10 +11,10 @@
 
 ## Current Milestone
 
-**Milestone:** Temporary MVP Demo Readiness Track  
+**Milestone:** Milestone 3 - Church Claim & Admin Ownership  
 **Target Date:** TBD  
-**Goal:** Make the current product reliable, trustworthy, and demo-ready by hardening existing flows, curating 12 polished real San Antonio church profiles with real photography, and finishing live deployment/domain readiness.
-**Roadmap Note:** Milestone 3 remains the next product roadmap milestone, but new milestone slices are temporarily deferred unless they directly unblock the MVP demo.
+**Goal:** Let church representatives claim listings and unlock the church-admin workflow that will power event creation/editing and future listing-management tools.
+**Roadmap Note:** The temporary MVP-demo detour is complete. Keep Milestone 3 moving forward from the shipped public events foundation, while still tracking the live auth deployment regression as a separate production blocker.
 
 ---
 
@@ -29,7 +29,10 @@
 
 ### P1 - High
 
-- [ ] Smoke test the current live MVP flows end to end on the deployed app (search, profile, auth, saves, reviews, events)
+- [ ] Build church-admin event creation/edit tools now that approved claims can establish church-admin ownership
+- [ ] Add aggregated events discovery/feed page after church-admin event tools are live
+- [x] Build Milestone 3 church claim request flow - added member-facing claim submission on unclaimed church profiles, account-page claim history, a site-admin approval queue, and server/client coverage (2026-03-31)
+- [ ] Smoke test the current live flows end to end on the deployed app (search, profile, auth, saves, reviews, events)
 - [x] Curate a gold set of 12 real San Antonio churches for the polished MVP dataset - the seed now uses a curated 12-church hero set with real cover images and only high-confidence profiles (2026-03-30)
 - [x] Refine church profiles so the shortlisted records have trustworthy descriptions, contact info, website links, service details, and clean metadata - completed for the current 12-church gold set with real cover images and honest zero-review baselines (2026-03-30)
 - [x] Review the current seeded/live dataset for rough copy, inconsistent naming, weak images, and missing fields that hurt the demo - seed audit documented in `docs/product/data/MVP_DATASET_AUDIT.md` (2026-03-30)
@@ -49,10 +52,7 @@
 
 ### P2 - Medium
 
-- [ ] Resume Milestone 3 church claim request flow after the MVP demo push
-- [ ] Resume church-admin event creation/edit tools after the claim flow lands
 - [x] Configure real SMTP provider credentials in each live environment so auth emails send outside local development - user confirmed live setup completed 2026-03-30
-- [ ] Add aggregated events discovery/feed page after per-church events are stable
 - [ ] Expand recurring-event handling beyond stored RRULE metadata
 - [x] Launch church events foundation on church profile pages (public events API, type/date filters, upcoming-this-week summary, and seeded sample events) - completed 2026-03-30
 - [x] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist - completed 2026-03-29
@@ -75,6 +75,7 @@
 
 ### Completed
 
+- [x] Milestone 3 church claim request flow - added `POST /api/v1/churches/:id/claim`, `GET /api/v1/users/:id/claims`, `GET/PATCH /api/v1/admin/claims`, church-profile claim UI, account-page claim history, site-admin approval actions, and focused server/client test coverage (2026-03-31)
 - [x] MVP dataset narrowed to a 12-church gold set - replaced the broad shortlist with 12 high-confidence San Antonio churches, seeded real cover images for every profile, and stopped seeding synthetic reviews/events so the demo data stays trustworthy (2026-03-30)
 - [x] Milestone 3 events foundation - added a public `/api/v1/churches/:slug/events` endpoint with type/date filtering, seeded upcoming events, and a church-profile events section with upcoming-this-week and next-gathering summaries (2026-03-30)
 - [x] Church profile empty-media polish - replaced the fake gallery placeholders with a visit-summary hero and planning cards so church profiles still feel intentional before real cover images are curated (2026-03-30)
@@ -158,4 +159,4 @@
 
 ---
 
-_Last updated: 2026-03-31 (docs reorganized under `docs/`; `sachurchfinder.com` is live and CORS is healthy there; backend redeploy still needed for the Prisma session-store auth fix)_
+_Last updated: 2026-03-31 (roadmap focus returned to Milestone 3; church claim requests are now live in-app; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_

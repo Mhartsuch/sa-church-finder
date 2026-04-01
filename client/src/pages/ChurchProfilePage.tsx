@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
 
 import ReviewForm from '@/components/reviews/ReviewForm';
 import { useAuthSession } from '@/hooks/useAuth';
+import { useSubmitChurchClaim } from '@/hooks/useChurchClaims';
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches';
 import { useChurchEvents } from '@/hooks/useEvents';
 import {
@@ -76,6 +77,14 @@ const groupServicesByDay = (services: IChurchService[]) => {
 };
 
 const formatReviewDate = (date: string): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(date));
+};
+
+const formatClaimDate = (date: string): string => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -143,6 +152,24 @@ const formatEventTypeLabel = (eventType: ChurchEventType): string => {
   }
 };
 
+const getClaimDomainHint = (website?: string | null, email?: string | null): string | null => {
+  if (email?.includes('@')) {
+    return email.split('@').pop() ?? null;
+  }
+
+  if (!website) {
+    return null;
+  }
+
+  try {
+    const withProtocol = website.startsWith('http') ? website : `https://${website}`;
+    const hostname = new URL(withProtocol).hostname.replace(/^www\./, '');
+    return hostname || null;
+  } catch {
+    return null;
+  }
+};
+
 const buildEventDateWindow = (
   baseIso: string,
   range: EventDateRange,
@@ -177,6 +204,7 @@ export const ChurchProfilePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuthSession();
+  const submitChurchClaimMutation = useSubmitChurchClaim();
   const toggleSavedChurchMutation = useToggleSavedChurch();
   const addHelpfulVoteMutation = useAddHelpfulVote();
   const flagReviewMutation = useFlagReview();
@@ -188,6 +216,11 @@ export const ChurchProfilePage = () => {
   const [reviewSort, setReviewSort] = useState<ReviewSort>('recent');
   const [reviewPage, setReviewPage] = useState(1);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimNotice, setClaimNotice] = useState<string | null>(null);
+  const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
+  const [claimRoleTitle, setClaimRoleTitle] = useState('');
+  const [claimVerificationEmail, setClaimVerificationEmail] = useState('');
   const [helpfulVoteError, setHelpfulVoteError] = useState<string | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const eventWindow = buildEventDateWindow(eventWindowBaseIso, eventDateRange);
@@ -247,19 +280,33 @@ export const ChurchProfilePage = () => {
   const churchEvents = churchEventsResponse?.data ?? [];
   const upcomingThisWeekCount = churchEvents.filter(isEventWithinNextWeek).length;
   const nextUpcomingEvent = churchEvents[0] ?? null;
+  const viewerClaim = church.viewerClaim ?? null;
+  const claimDomainHint = getClaimDomainHint(church.website, church.email);
+  const isSubmittingClaim =
+    submitChurchClaimMutation.isPending &&
+    submitChurchClaimMutation.variables?.churchId === church.id;
+  const canSubmitClaim =
+    !church.isClaimed &&
+    viewerClaim?.status !== 'pending' &&
+    viewerClaim?.status !== 'approved';
+  const showClaimCard = !church.isClaimed || Boolean(viewerClaim);
+
+  const navigateToLogin = () => {
+    navigate('/login', {
+      state: {
+        from: {
+          pathname: location.pathname,
+          search: location.search,
+        },
+      },
+    });
+  };
 
   const handleToggleSave = async () => {
     setSaveError(null);
 
     if (!user) {
-      navigate('/login', {
-        state: {
-          from: {
-            pathname: location.pathname,
-            search: location.search,
-          },
-        },
-      });
+      navigateToLogin();
       return;
     }
 
@@ -279,14 +326,7 @@ export const ChurchProfilePage = () => {
     setReviewNotice(null);
 
     if (!user) {
-      navigate('/login', {
-        state: {
-          from: {
-            pathname: location.pathname,
-            search: location.search,
-          },
-        },
-      });
+      navigateToLogin();
       return;
     }
 
@@ -310,14 +350,7 @@ export const ChurchProfilePage = () => {
     setReviewNotice(null);
 
     if (!user) {
-      navigate('/login', {
-        state: {
-          from: {
-            pathname: location.pathname,
-            search: location.search,
-          },
-        },
-      });
+      navigateToLogin();
       return;
     }
 
@@ -342,6 +375,50 @@ export const ChurchProfilePage = () => {
   const handleEventDateRangeChange = (value: EventDateRange) => {
     setEventDateRange(value);
     setEventWindowBaseIso(new Date().toISOString());
+  };
+
+  const handleOpenClaimForm = () => {
+    setClaimError(null);
+    setClaimNotice(null);
+
+    if (!user) {
+      navigateToLogin();
+      return;
+    }
+
+    setIsClaimFormOpen(true);
+    if (!claimVerificationEmail) {
+      setClaimVerificationEmail(user.email);
+    }
+  };
+
+  const handleSubmitChurchClaim = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setClaimError(null);
+    setClaimNotice(null);
+
+    if (!user) {
+      navigateToLogin();
+      return;
+    }
+
+    try {
+      await submitChurchClaimMutation.mutateAsync({
+        churchId: church.id,
+        roleTitle: claimRoleTitle,
+        verificationEmail: claimVerificationEmail,
+      });
+      setClaimNotice(
+        'Your claim request is now in the review queue. A site admin can approve it from the dashboard.',
+      );
+      setIsClaimFormOpen(false);
+    } catch (submissionError) {
+      setClaimError(
+        submissionError instanceof Error
+          ? submissionError.message
+          : 'Unable to submit that church claim right now.',
+      );
+    }
   };
 
   return (
@@ -994,6 +1071,143 @@ export const ChurchProfilePage = () => {
                   </a>
                 ) : null}
               </div>
+
+              {showClaimCard ? (
+                <div className="mt-6 border-t border-gray-200 pt-6">
+                  <div className="rounded-[28px] border border-[#e8dfd2] bg-[#fcfbf8] p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle">
+                        <CheckCircle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-semibold text-[#222222]">
+                          {viewerClaim?.status === 'approved'
+                            ? 'You manage this listing'
+                            : viewerClaim?.status === 'pending'
+                              ? 'Claim request pending'
+                              : 'Represent this church?'}
+                        </h4>
+                        <p className="mt-1 text-sm leading-6 text-[#555555]">
+                          {viewerClaim?.status === 'approved'
+                            ? 'Your church claim was approved. Listing editing and event-management tools are the next Milestone 3 slice.'
+                            : viewerClaim?.status === 'pending'
+                              ? 'A site admin still needs to review your request before this listing becomes church-managed.'
+                              : 'Church representatives can request access to manage listing details and upcoming events.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {claimNotice ? (
+                      <div className="mt-4 rounded-2xl border border-[#bfdbfe] bg-white px-4 py-3 text-sm text-[#1d4ed8]">
+                        {claimNotice}
+                      </div>
+                    ) : null}
+
+                    {claimError ? (
+                      <div className="mt-4 rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]">
+                        {claimError}
+                      </div>
+                    ) : null}
+
+                    {viewerClaim ? (
+                      <div className="mt-4 rounded-2xl border border-[#e7ded1] bg-white px-4 py-4 text-sm text-[#555555]">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8f8f8f]">
+                          {viewerClaim.status === 'approved'
+                            ? 'Approved'
+                            : viewerClaim.status === 'pending'
+                              ? 'Pending review'
+                              : 'Not approved'}
+                        </p>
+                        <p className="mt-2 leading-6">
+                          Requested as <span className="font-semibold text-[#222222]">{viewerClaim.roleTitle}</span> with{' '}
+                          <span className="font-semibold text-[#222222]">
+                            {viewerClaim.verificationEmail}
+                          </span>
+                          .
+                        </p>
+                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#8f8f8f]">
+                          Submitted {formatClaimDate(viewerClaim.createdAt)}
+                          {viewerClaim.reviewedAt
+                            ? ` · Reviewed ${formatClaimDate(viewerClaim.reviewedAt)}`
+                            : ''}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {canSubmitClaim ? (
+                      isClaimFormOpen ? (
+                        <form className="mt-4 space-y-3" onSubmit={handleSubmitChurchClaim}>
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8f8f8f]">
+                              Your role
+                            </span>
+                            <input
+                              value={claimRoleTitle}
+                              onChange={(event) => {
+                                setClaimRoleTitle(event.target.value);
+                              }}
+                              placeholder="Executive Pastor"
+                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8f8f8f]">
+                              Church email
+                            </span>
+                            <input
+                              type="email"
+                              value={claimVerificationEmail}
+                              onChange={(event) => {
+                                setClaimVerificationEmail(event.target.value);
+                              }}
+                              placeholder={claimDomainHint ? `you@${claimDomainHint}` : 'you@church.org'}
+                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                            />
+                          </label>
+
+                          <p className="text-xs leading-5 text-[#717171]">
+                            Use a staff or ministry address that matches the church&apos;s public
+                            website or contact email
+                            {claimDomainHint ? `, like ${claimDomainHint}` : ''}.
+                          </p>
+
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              type="submit"
+                              disabled={isSubmittingClaim}
+                              className="rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                              {isSubmittingClaim ? 'Submitting...' : 'Submit claim request'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsClaimFormOpen(false);
+                              }}
+                              className="rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="mt-4">
+                          <button
+                            type="button"
+                            onClick={handleOpenClaimForm}
+                            className="rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+                          >
+                            {viewerClaim?.status === 'rejected'
+                              ? 'Submit a new claim request'
+                              : 'Claim this church'}
+                          </button>
+                        </div>
+                      )
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

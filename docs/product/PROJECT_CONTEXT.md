@@ -62,7 +62,7 @@ software
 
 ## Current Status
 
-Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, Milestone 2 now includes session-based email/password auth, Google sign-in, password recovery, email verification, saved churches, and written-review flows, and Milestone 3 has started with church-profile event listings backed by a dedicated events API and seeded upcoming community data. The immediate delivery focus is temporarily MVP demo readiness: verify the current functionality, improve the quality of the church dataset, and finish launch/domain setup before resuming the next Milestone 3 feature slices.
+Active Development - Milestone 1 is complete and deployed live on Render. The search experience, interactive map, and church profile page are in production, the app runs against Supabase Postgres/PostGIS, Milestone 2 includes session-based email/password auth, Google sign-in, password recovery, email verification, saved churches, and written-review flows, and Milestone 3 now includes both church-profile event listings and the first ownership workflow: representatives can submit church claim requests from unclaimed listings, track them on the account page, and site admins can approve or reject them. The next planned slice is church-admin event creation/edit tooling on top of approved claims, while the existing live-auth deployment regression still needs a backend redeploy and re-smoke on `sachurchfinder.com`.
 
 ## Important Links
 
@@ -77,4 +77,4 @@ Active Development - Milestone 1 is complete and deployed live on Render. The se
 
 ---
 
-_Last updated: 2026-03-30_
+_Last updated: 2026-03-31_

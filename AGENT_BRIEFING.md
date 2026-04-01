@@ -6,14 +6,15 @@
 
 ### Project in One Paragraph
 
-SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 auth and account work is now complete in-app, and Milestone 3 has started with a public church-events foundation: church profile pages can now load upcoming events via a dedicated API with type/date filters, seeded data, and upcoming-this-week summary cards. The immediate delivery focus is temporarily shifted from new milestone expansion to MVP demo readiness.
+SA Church Finder is an Airbnb-style web app for discovering churches in San Antonio, Texas. It uses React + TypeScript on the frontend and Node.js/Express + Prisma/PostgreSQL (PostGIS) on the backend. Milestone 1 core search and discovery work is implemented, including the search page, church profile page, URL-synced filters, responsive mobile map/list behavior, and a Mapbox-powered interactive map with clustering and viewport-based querying. Milestone 2 auth and account work is complete in-app, and Milestone 3 now includes both the public church-events foundation and the first church-ownership slice: representatives can submit church claim requests from unclaimed profiles, see claim history on the account page, and site admins can approve or reject those requests from their dashboard queue.
 
 ### Current Priority
 
-Prioritize MVP demo readiness over new Milestone 3 slices for now. The immediate top priority is restoring live auth/session flows on the deployed app: the 2026-03-30 production smoke test and follow-up rerun from `https://sachurchfinder.com` both confirmed that `POST /api/v1/auth/register` and `POST /api/v1/auth/login` are still returning `500`, which blocks live auth, saved churches, and review mutations. The custom domain is now live per user confirmation, and the custom-domain CORS headers are also healthy now, so the remaining blocker is the session persistence path itself. A Prisma-backed replacement for the old `connect-pg-simple` store is now in the repo and still needs one more backend redeploy before it can be verified live. Once that is done, continue the broader smoke test and verify the new 12-church gold-set dataset in production. The active seed now prefers a smaller set of high-confidence churches with real cover images and honest zero-review baselines over the earlier wider shortlist. Church claim flows, admin ownership tooling, and broader events discovery remain the next roadmap work, but they are temporarily deferred unless they directly unblock the demo. SMTP is considered configured in the live environments per user confirmation, while Google sign-in and optional Sentry still depend on environment-specific credentials where those integrations should be active.
+The roadmap focus is back on Milestone 3. The next product task is church-admin event creation/edit tooling built on top of approved church claims. Separately, there is still one production blocker to keep in view: the 2026-03-30 production smoke test and follow-up rerun from `https://sachurchfinder.com` confirmed that `POST /api/v1/auth/register` and `POST /api/v1/auth/login` still return `500`, so the deployed app needs one more backend redeploy with the Prisma-backed session-store fix before live auth, saves, and review mutations can be re-verified. The custom domain is live, custom-domain CORS is healthy, and SMTP is considered configured in the live environments per user confirmation. Google sign-in and optional Sentry still depend on environment-specific credentials where those integrations should be active.
 
 ### Recently Completed
 
+- Added the Milestone 3 church-claim request flow end to end: new `POST /api/v1/churches/:id/claim`, `GET /api/v1/users/:id/claims`, and `GET/PATCH /api/v1/admin/claims` endpoints, church-profile claim submission UI, account-page claim history, and a site-admin approval queue
 - Narrowed the active MVP church dataset to a 12-profile gold set, seeded a real cover image for every active church, and stopped creating synthetic reviews/events so the demo data feels more trustworthy
 - Expanded the seeded church dataset from 22 to 25 records by adding Oak Hills Church, First Presbyterian Church of San Antonio, and St. Luke Catholic Church from official public sources, and refreshed several existing profile names/details to better match their current public-facing identities
 - Replaced the server's `connect-pg-simple` runtime dependency with a Prisma-backed session store that uses the same database path the rest of the production app already exercises, added a dedicated session-store test suite, and kept the `user_sessions` migration plus Render deploy wiring in place
@@ -99,8 +100,8 @@ sa-church-finder/
 5. `docs/engineering/CONVENTIONS.md` for coding rules
 6. `docs/process/DECISIONS.md` for past architectural choices
 7. `docs/history/PROGRESS.md` and `docs/process/TODO.md` for current execution state
-8. `docs/product/data/MVP_PROFILE_CURATION.md` for the temporary MVP church-data curation queue
-9. `docs/product/data/MVP_DATASET_AUDIT.md` for the seed-wide audit findings and first-pass cleanup order
+8. `docs/engineering/API_SPEC.md` for the currently implemented API surface, including church claims and admin moderation routes
+9. `docs/product/FEATURES.md` for the milestone roadmap and the next product slices after the current work
 
 ## Conventions to Follow
 

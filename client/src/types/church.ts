@@ -1,3 +1,5 @@
+import { IViewerChurchClaim } from '@/types/church-claim'
+
 export interface IChurch {
   id: string
   name: string
@@ -24,6 +26,7 @@ export interface IChurch {
   languages: string[]
   amenities: string[]
   coverImageUrl: string | null
+  viewerClaim?: IViewerChurchClaim | null
   services: IChurchService[]
 }
 

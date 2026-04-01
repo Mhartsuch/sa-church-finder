@@ -52,6 +52,9 @@ services:
     runtime: static
     region: oregon
     plan: free
+    domains:
+      - sachurchfinder.com
+      - www.sachurchfinder.com
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
@@ -64,6 +67,36 @@ services:
         sync: false
       - key: VITE_SENTRY_ENVIRONMENT
         value: production
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: >-
+          default-src 'self';
+          script-src 'self' https://api.mapbox.com https://*.sentry.io blob:;
+          style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com;
+          font-src 'self' https://fonts.gstatic.com;
+          img-src 'self' data: blob: https://api.mapbox.com https://*.mapbox.com;
+          connect-src 'self' https://sa-church-finder-api.onrender.com https://api.mapbox.com https://*.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://*.sentry.io;
+          worker-src 'self' blob:;
+          child-src blob:;
+          frame-ancestors 'none';
+          base-uri 'self';
+          form-action 'self'
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=63072000; includeSubDomains; preload
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(self)
     routes:
       - type: rewrite
         source: /*

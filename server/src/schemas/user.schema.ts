@@ -15,3 +15,11 @@ export const userReviewsSchema = z.object({
   query: z.object({}).passthrough(),
   body: z.object({}).passthrough(),
 })
+
+export const userClaimsSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }).passthrough(),
+  query: z.object({}).passthrough(),
+  body: z.object({}).passthrough(),
+})

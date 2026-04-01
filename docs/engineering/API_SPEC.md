@@ -334,6 +334,12 @@ Reset password with token.
 
 ### User
 
+#### `GET /users/:id/claims`
+
+Get a user's church claim requests. _(authenticated, own profile only)_
+
+---
+
 #### `GET /users/:id/reviews`
 
 Get all reviews by a user.
@@ -404,4 +410,4 @@ Submit a claim request for a church.
 
 ---
 
-_Last updated: 2026-03-26_
+_Last updated: 2026-03-31_

@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-022: Resume the original Milestone 3 roadmap after the temporary MVP detour
+
+- **Date:** 2026-03-31
+- **Status:** ACTIVE
+- **Decision:** Treat Milestone 3 church/community work as the active roadmap again, use the MVP hardening/data pass as supporting context rather than the main execution track, and continue directly into church-ownership tooling starting with claim requests.
+- **Alternatives Considered:** Keep prioritizing MVP/demo-specific hardening and curation tasks above all roadmap work; split future sessions evenly between roadmap features and demo polish; postpone the roadmap reset until after the live auth redeploy is verified.
+- **Reasoning:** The user explicitly asked to drop the temporary MVP roadmap and return to the original plan. The product now has enough foundation across discovery, auth, reviews, saves, and read-only events to justify moving forward with the intended church-ownership workflow. The live auth regression still matters, but it is better tracked as a production blocker than as the whole roadmap.
+- **Consequences:** The task board, project context, and agent handoff should point to church-admin event tooling as the next feature slice after the newly landed claim-request flow. MVP curation docs remain useful historical reference, but they are no longer the default task sequence.
+
 ### DEC-021: Keep the repo root light and organize project docs under `docs/`
 
 - **Date:** 2026-03-31
@@ -60,7 +69,7 @@
 ### DEC-016: Temporarily prioritize MVP demo readiness over continuing the next Milestone 3 slices
 
 - **Date:** 2026-03-30
-- **Status:** REVISIT
+- **Status:** SUPERSEDED
 - **Decision:** Pause the default milestone-driven sequence after the public church-events foundation and temporarily optimize for a believable MVP demo instead. The immediate priorities are reliability of the existing product, a polished real-church MVP dataset, and launch/domain readiness on a shareable public URL.
 - **Alternatives Considered:** Continue directly into church-claim workflows and admin tooling; keep expanding Milestone 3 and Milestone 4 features before tightening the core demo; postpone the roadmap shift until after a larger real-data import.
 - **Reasoning:** The product already has a substantial feature surface for search, profiles, auth, saved churches, reviews, and per-church events, but the most important gap for a strong demo is not feature count. It is whether the current app feels reliable, trustworthy, and populated with polished real data. A short MVP-focused pass creates a clearer path to showing the product confidently without pretending that a broader milestone checklist matters more than demo readiness.

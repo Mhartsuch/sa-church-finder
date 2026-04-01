@@ -1,0 +1,22 @@
+{
+  "name": "SA Church Finder",
+  "short_name": "Church Finder",
+  "description": "Discover churches across San Antonio with neighborhood search, detailed profiles, and community-driven reviews.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffdfb",
+  "theme_color": "#fffdfb",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ]
+}
