@@ -17,7 +17,7 @@ services:
       - key: PORT
         value: "10000"
       - key: CLIENT_URL
-        value: https://sachurchfinder.com,https://sa-church-finder.onrender.com
+        value: https://sachurchfinder.com,https://www.sachurchfinder.com,https://sa-church-finder.onrender.com
       - key: DATABASE_URL
         sync: false # Set manually to Supabase session pooler URL
       - key: SESSION_SECRET
@@ -81,7 +81,8 @@ services:
           child-src blob:;
           frame-ancestors 'none';
           base-uri 'self';
-          form-action 'self'
+          form-action 'self';
+          upgrade-insecure-requests
       - path: /*
         name: Strict-Transport-Security
         value: max-age=63072000; includeSubDomains; preload
