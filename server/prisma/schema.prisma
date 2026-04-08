@@ -82,6 +82,7 @@ model Church {
   languages             String[]               @default([])
   amenities             String[]               @default([])
   coverImageUrl         String?
+  googlePlaceId         String?                @unique
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   services              ChurchService[]
@@ -122,6 +123,7 @@ model ChurchPhoto {
   displayOrder          Int                    @default(0)
   uploadedById          String?
   uploadedBy            User?                  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  googlePhotoRef        String?
   createdAt             DateTime               @default(now())
 
   @@map("church_photos")

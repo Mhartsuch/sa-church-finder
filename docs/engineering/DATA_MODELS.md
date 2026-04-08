@@ -86,6 +86,7 @@
 | languages           | TEXT[]           | default ['English']     | Array of languages                                |
 | amenities           | TEXT[]           | default []              | e.g., ['parking', 'wheelchair', 'childcare']      |
 | cover_image_url     | TEXT             | NULLABLE                | Primary listing photo                             |
+| google_place_id     | TEXT             | UNIQUE, NULLABLE        | Google Places API ID for import deduplication     |
 | created_at          | TIMESTAMP        | default now()           |                                                   |
 | updated_at          | TIMESTAMP        | auto-update             |                                                   |
 
@@ -112,15 +113,16 @@
 
 ### church_photos
 
-| Column        | Type         | Constraints                | Notes                  |
-| ------------- | ------------ | -------------------------- | ---------------------- |
-| id            | UUID         | PK, default gen            |                        |
-| church_id     | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE      |
-| url           | TEXT         | NOT NULL                   | Cloudinary URL         |
-| alt_text      | VARCHAR(200) | NULLABLE                   | Accessibility text     |
-| display_order | SMALLINT     | default 0                  | Sort order in carousel |
-| uploaded_by   | UUID         | FK → users.id, NULLABLE    |                        |
-| created_at    | TIMESTAMP    | default now()              |                        |
+| Column           | Type         | Constraints                | Notes                                       |
+| ---------------- | ------------ | -------------------------- | ------------------------------------------- |
+| id               | UUID         | PK, default gen            |                                             |
+| church_id        | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                           |
+| url              | TEXT         | NOT NULL                   | Cloudinary URL                              |
+| alt_text         | VARCHAR(200) | NULLABLE                   | Accessibility text                          |
+| display_order    | SMALLINT     | default 0                  | Sort order in carousel                      |
+| uploaded_by      | UUID         | FK → users.id, NULLABLE    |                                             |
+| google_photo_ref | TEXT         | NULLABLE                   | Google Places photo resource name for dedup |
+| created_at       | TIMESTAMP    | default now()              |                                             |
 
 ### reviews
 
@@ -222,4 +224,4 @@
 
 ---
 
-_Last updated: 2026-03-28_
+_Last updated: 2026-04-07_

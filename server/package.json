@@ -11,7 +11,8 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "refresh:curated-data": "tsx prisma/refresh-curated-church-data.ts"
+    "refresh:curated-data": "tsx prisma/refresh-curated-church-data.ts",
+    "import:google-churches": "tsx src/scripts/google-import/index.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -25,6 +25,7 @@
     "db:seed": "cd server && npx prisma db seed",
     "db:refresh-curated-data": "cd server && npx tsx prisma/refresh-curated-church-data.ts",
     "db:studio": "cd server && npx prisma studio",
+    "import:google-churches": "cd server && npx tsx src/scripts/google-import/index.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },
