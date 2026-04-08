@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, List, Map, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -54,7 +54,15 @@ export const SearchPage = () => {
     typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false,
   );
   const [showMap, setShowMap] = useState(false);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [filterModalState, setFilterModalState] = useState<'closed' | 'open' | 'closing'>('closed');
+  const filterCloseTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const openFilterModal = useCallback(() => setFilterModalState('open'), []);
+  const closeFilterModal = useCallback(() => {
+    setFilterModalState('closing');
+    clearTimeout(filterCloseTimer.current);
+    filterCloseTimer.current = setTimeout(() => setFilterModalState('closed'), 280);
+  }, []);
   const [showHeroBanner, setShowHeroBanner] = useState(true);
   const query = useSearchStore((state) => state.query);
   const filters = useSearchStore((state) => state.filters);
@@ -74,7 +82,7 @@ export const SearchPage = () => {
       return;
     }
 
-    setIsFiltersOpen(true);
+    openFilterModal();
     navigate(
       {
         pathname: location.pathname,
@@ -85,7 +93,14 @@ export const SearchPage = () => {
         state: stripOpenFiltersFlag(location.state),
       },
     );
-  }, [location.pathname, location.search, location.state, locationState?.openFilters, navigate]);
+  }, [
+    location.pathname,
+    location.search,
+    location.state,
+    locationState?.openFilters,
+    navigate,
+    openFilterModal,
+  ]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -97,19 +112,19 @@ export const SearchPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!isFiltersOpen) {
+    if (filterModalState !== 'open') {
       return;
     }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsFiltersOpen(false);
+        closeFilterModal();
       }
     };
 
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [isFiltersOpen]);
+  }, [filterModalState, closeFilterModal]);
 
   const searchParams = useChurchSearchParams();
   const { data, error, isLoading } = useChurches(searchParams);
@@ -151,7 +166,7 @@ export const SearchPage = () => {
   return (
     <>
       <div className="flex-1 bg-white">
-        <div className="sticky top-[80px] z-40 border-b border-[#ebebeb] bg-white/96 backdrop-blur-md">
+        <div className="sticky top-[80px] z-40 border-b border-[#e8e4de] bg-white/96 backdrop-blur-md">
           <div className="mx-auto max-w-[1760px]">
             <CategoryFilter
               compareCount={compareCount}
@@ -159,7 +174,7 @@ export const SearchPage = () => {
                 navigate('/compare');
               }}
               onOpenFilters={() => {
-                setIsFiltersOpen(true);
+                openFilterModal();
               }}
             />
           </div>
@@ -221,8 +236,8 @@ export const SearchPage = () => {
         <section className="reference-results-shell">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-[14px] font-semibold text-[#222222]">{resultsHeading}</h2>
-              <p className="mt-1 text-[14px] text-[#717171]">
+              <h2 className="text-[14px] font-semibold text-[#1a1a1a]">{resultsHeading}</h2>
+              <p className="mt-1 text-[14px] text-[#6b6560]">
                 {resultsDescription}
                 {activeAdvancedFilterCount > 0
                   ? `  /  ${activeAdvancedFilterCount} filter${activeAdvancedFilterCount === 1 ? '' : 's'} active`
@@ -240,8 +255,8 @@ export const SearchPage = () => {
                   }}
                   className={`rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
                     showMap
-                      ? 'border-[#222222] bg-[#222222] text-white'
-                      : 'border-[#dddddd] bg-white text-[#222222] hover:border-[#222222]'
+                      ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
+                      : 'border-[#e0ddd8] bg-white text-[#1a1a1a] hover:border-[#1a1a1a]'
                   }`}
                 >
                   {showMap ? 'Hide map' : 'Show map'}
@@ -254,7 +269,7 @@ export const SearchPage = () => {
                   onChange={(event) => {
                     setSort(event.target.value as (typeof SORT_OPTIONS)[number]['value']);
                   }}
-                  className="appearance-none rounded-[10px] border border-[#dddddd] bg-white px-4 py-2.5 pr-10 text-[13px] font-semibold text-[#222222] outline-none transition-colors hover:border-[#222222] focus:border-[#222222]"
+                  className="appearance-none rounded-[10px] border border-[#e0ddd8] bg-white px-4 py-2.5 pr-10 text-[13px] font-semibold text-[#1a1a1a] outline-none transition-colors hover:border-[#1a1a1a] focus:border-[#1a1a1a]"
                 >
                   {SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -262,7 +277,7 @@ export const SearchPage = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#717171]" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b6560]" />
               </div>
             </div>
           </div>
@@ -274,18 +289,18 @@ export const SearchPage = () => {
                   key={`${token.key}-${token.value}`}
                   type="button"
                   onClick={() => removeToken(token.key)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#dddddd] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#222222] transition-colors hover:border-[#222222]"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#e0ddd8] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#1a1a1a] transition-colors hover:border-[#1a1a1a]"
                 >
                   <span>
                     {token.label}: {token.value}
                   </span>
-                  <X className="h-3.5 w-3.5 text-[#8f8f8f]" />
+                  <X className="h-3.5 w-3.5 text-[#9a8f7f]" />
                 </button>
               ))}
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-[13px] font-semibold text-[#717171] underline underline-offset-4 transition-colors hover:text-[#222222]"
+                className="text-[13px] font-semibold text-[#6b6560] underline underline-offset-4 transition-colors hover:text-[#1a1a1a]"
               >
                 Clear everything
               </button>
@@ -303,7 +318,7 @@ export const SearchPage = () => {
 
             {showMap ? (
               <div className={`${isMobile ? 'mt-4' : 'sticky top-[156px]'} min-w-0`}>
-                <div className="overflow-hidden rounded-[12px] border border-[#ebebeb] bg-white">
+                <div className="overflow-hidden rounded-[12px] border border-[#e8e4de] bg-white">
                   <div
                     className={`${isMobile ? 'h-[70vh] min-h-[460px]' : 'h-[calc(100vh-180px)] min-h-[620px]'}`}
                   >
@@ -338,22 +353,30 @@ export const SearchPage = () => {
         ) : null}
       </div>
 
-      {isFiltersOpen ? (
+      {filterModalState !== 'closed' ? (
         <div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:items-center sm:p-6"
-          onClick={() => setIsFiltersOpen(false)}
+          className={`fixed inset-0 z-[70] flex items-end justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:items-center sm:p-6 ${
+            filterModalState === 'closing'
+              ? 'animate-[modal-overlay-in_0.25s_ease-in_reverse_forwards]'
+              : 'animate-modal-overlay'
+          }`}
+          onClick={() => closeFilterModal()}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Filters"
-            className="w-full max-w-[780px] overflow-hidden rounded-[24px] bg-white shadow-[0_20px_80px_rgba(0,0,0,0.25)]"
+            className={`w-full max-w-[780px] overflow-hidden rounded-[24px] bg-white shadow-[0_20px_80px_rgba(0,0,0,0.25)] ${
+              filterModalState === 'closing'
+                ? 'animate-[modal-slide-up_0.25s_ease-in_reverse_forwards]'
+                : 'animate-modal-slide-up'
+            }`}
             onClick={(event) => event.stopPropagation()}
           >
             <FilterPanel
               resultCount={totalResults}
               onClose={() => {
-                setIsFiltersOpen(false);
+                closeFilterModal();
               }}
             />
           </div>

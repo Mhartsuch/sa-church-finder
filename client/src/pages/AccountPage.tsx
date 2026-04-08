@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   ArrowRight,
   Building2,
@@ -12,46 +12,48 @@ import {
   Sparkles,
   Star,
   Trash2,
-} from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+} from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth'
+import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
+import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth';
 import {
   useAdminChurchClaims,
   useResolveChurchClaim,
   useUserChurchClaims,
-} from '@/hooks/useChurchClaims'
-import { useSavedChurches, useToggleSavedChurch } from '@/hooks/useChurches'
+} from '@/hooks/useChurchClaims';
+import { useSavedChurches, useToggleSavedChurch } from '@/hooks/useChurches';
 import {
   useDeleteReview,
   useFlaggedReviews,
   useResolveFlaggedReview,
   useUserReviews,
-} from '@/hooks/useReviews'
-import { ChurchClaimStatus } from '@/types/church-claim'
-import { formatRating } from '@/utils/format'
+} from '@/hooks/useReviews';
+import { ChurchClaimStatus } from '@/types/church-claim';
+import { useToast } from '@/hooks/useToast';
+import { formatRating } from '@/utils/format';
 
 const formatMemberSince = (createdAt: string): string => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'long',
     year: 'numeric',
-  }).format(new Date(createdAt))
-}
+  }).format(new Date(createdAt));
+};
 
 const formatSavedDate = (savedAt: string): string => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
-  }).format(new Date(savedAt))
-}
+  }).format(new Date(savedAt));
+};
 
 const formatReviewDate = (reviewDate: string): string => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(reviewDate))
-}
+  }).format(new Date(reviewDate));
+};
 
 const formatFlaggedDate = (reviewDate: string): string => {
   return new Intl.DateTimeFormat('en-US', {
@@ -60,97 +62,104 @@ const formatFlaggedDate = (reviewDate: string): string => {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  }).format(new Date(reviewDate))
-}
+  }).format(new Date(reviewDate));
+};
 
 const formatClaimDate = (reviewDate: string): string => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(reviewDate))
-}
+  }).format(new Date(reviewDate));
+};
 
 const formatRoleLabel = (role: string): string => {
   return role
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
+    .join(' ');
+};
 
 const formatClaimStatusLabel = (status: ChurchClaimStatus): string => {
   switch (status) {
     case 'approved':
-      return 'Approved'
+      return 'Approved';
     case 'rejected':
-      return 'Rejected'
+      return 'Rejected';
     case 'pending':
     default:
-      return 'Pending'
+      return 'Pending';
   }
-}
+};
 
 const getClaimStatusClasses = (status: ChurchClaimStatus): string => {
   switch (status) {
     case 'approved':
-      return 'bg-[#effaf3] text-[#166534]'
+      return 'bg-[#effaf3] text-[#166534]';
     case 'rejected':
-      return 'bg-[#fff1f4] text-[#9f1239]'
+      return 'bg-[#fff0f3] text-[#a8083a]';
     case 'pending':
     default:
-      return 'bg-[#eff6ff] text-[#1d4ed8]'
+      return 'bg-[#eff6ff] text-[#1d4ed8]';
   }
-}
+};
 
 const AccountPage = () => {
-  const navigate = useNavigate()
-  const logoutMutation = useLogout()
-  const requestEmailVerificationMutation = useRequestEmailVerification()
-  const { user } = useAuthSession()
+  const navigate = useNavigate();
+  const logoutMutation = useLogout();
+  const requestEmailVerificationMutation = useRequestEmailVerification();
+  const { user } = useAuthSession();
   const {
     data: savedChurches = [],
     isLoading: isSavedChurchesLoading,
     error: savedChurchesError,
-  } = useSavedChurches(user?.id ?? null)
+  } = useSavedChurches(user?.id ?? null);
   const {
     data: userReviews = [],
     isLoading: isUserReviewsLoading,
     error: userReviewsError,
-  } = useUserReviews(user?.id ?? null)
+  } = useUserReviews(user?.id ?? null);
   const {
     data: churchClaims,
     isLoading: isChurchClaimsLoading,
     error: churchClaimsError,
-  } = useUserChurchClaims(user?.id ?? null)
+  } = useUserChurchClaims(user?.id ?? null);
   const {
     data: adminChurchClaims,
     isLoading: isAdminChurchClaimsLoading,
     error: adminChurchClaimsError,
-  } = useAdminChurchClaims(user?.role === 'site_admin')
+  } = useAdminChurchClaims(user?.role === 'site_admin');
   const {
     data: flaggedReviews,
     isLoading: isFlaggedReviewsLoading,
     error: flaggedReviewsError,
-  } = useFlaggedReviews(user?.role === 'site_admin')
-  const toggleSavedChurchMutation = useToggleSavedChurch()
-  const deleteReviewMutation = useDeleteReview()
-  const resolveChurchClaimMutation = useResolveChurchClaim()
-  const resolveFlaggedReviewMutation = useResolveFlaggedReview()
-  const [actionError, setActionError] = useState<string | null>(null)
+  } = useFlaggedReviews(user?.role === 'site_admin');
+  const toggleSavedChurchMutation = useToggleSavedChurch();
+  const deleteReviewMutation = useDeleteReview();
+  const resolveChurchClaimMutation = useResolveChurchClaim();
+  const resolveFlaggedReviewMutation = useResolveFlaggedReview();
+  const { addToast } = useToast();
+  const [actionError, setActionError] = useState<string | null>(null);
   const [verificationNotice, setVerificationNotice] = useState<{
-    message: string
-    previewUrl?: string
-  } | null>(null)
+    message: string;
+    previewUrl?: string;
+  } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
 
   if (!user) {
-    return null
+    return null;
   }
 
-  const savedChurchCount = savedChurches.length
-  const writtenReviewCount = userReviews.length
-  const claimCount = churchClaims?.meta.total ?? 0
-  const roleLabel = formatRoleLabel(user.role)
-  const isAccountActivityLoading = isSavedChurchesLoading || isUserReviewsLoading
+  const savedChurchCount = savedChurches.length;
+  const writtenReviewCount = userReviews.length;
+  const claimCount = churchClaims?.meta.total ?? 0;
+  const roleLabel = formatRoleLabel(user.role);
+  const isAccountActivityLoading = isSavedChurchesLoading || isUserReviewsLoading;
   const dashboardSummary = isAccountActivityLoading
     ? 'Pulling together your shortlist and visit notes now.'
     : savedChurchCount === 0 && writtenReviewCount === 0
@@ -163,97 +172,106 @@ const AccountPage = () => {
             savedChurchCount === 1 ? 'church' : 'churches'
           } and ${writtenReviewCount} written ${
             writtenReviewCount === 1 ? 'review' : 'reviews'
-          } helping you keep track of what stands out.`
-  const nextSteps: string[] = []
+          } helping you keep track of what stands out.`;
+  const nextSteps: string[] = [];
 
   if (isAccountActivityLoading) {
-    nextSteps.push('Your saved churches and review history will show up here as soon as they finish loading.')
+    nextSteps.push(
+      'Your saved churches and review history will show up here as soon as they finish loading.',
+    );
   }
 
   if (!isAccountActivityLoading && savedChurchCount === 0) {
-    nextSteps.push('Save a few churches so you can compare them later.')
+    nextSteps.push('Save a few churches so you can compare them later.');
   }
 
   if (!isAccountActivityLoading && writtenReviewCount === 0) {
-    nextSteps.push('Leave your first review after a visit so future-you remembers the feel.')
+    nextSteps.push('Leave your first review after a visit so future-you remembers the feel.');
   }
 
   if (!isChurchClaimsLoading && claimCount === 0 && user.role !== 'church_admin') {
-    nextSteps.push('If you represent a church, open its profile and send a claim request with a church-domain email.')
+    nextSteps.push(
+      'If you represent a church, open its profile and send a claim request with a church-domain email.',
+    );
   }
 
   if (user.role === 'church_admin') {
-    nextSteps.push('Your church-admin access is ready; listing and event editing tools are the next Milestone 3 slice.')
+    nextSteps.push(
+      'Your church-admin access is ready; listing and event editing tools are the next Milestone 3 slice.',
+    );
   }
 
   if (!user.emailVerified) {
-    nextSteps.push('Verify your email so password recovery and future account notices stay simple.')
+    nextSteps.push(
+      'Verify your email so password recovery and future account notices stay simple.',
+    );
   }
 
   if (nextSteps.length === 0) {
-    nextSteps.push('Keep exploring and add another church to your shortlist when one feels promising.')
+    nextSteps.push(
+      'Keep exploring and add another church to your shortlist when one feels promising.',
+    );
   }
 
-  const firstName = user.name.split(' ')[0] || user.name
+  const firstName = user.name.split(' ')[0] || user.name;
   const initials =
     user.name
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
-      .join('') || 'U'
+      .join('') || 'U';
 
   const handleLogout = async () => {
-    setActionError(null)
+    setActionError(null);
 
     try {
-      await logoutMutation.mutateAsync()
-      navigate('/', { replace: true })
+      await logoutMutation.mutateAsync();
+      navigate('/', { replace: true });
     } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : 'Unable to sign out right now.',
-      )
+      setActionError(error instanceof Error ? error.message : 'Unable to sign out right now.');
     }
-  }
+  };
 
   const handleToggleSavedChurch = async (churchId: string) => {
-    setActionError(null)
+    setActionError(null);
 
     try {
-      await toggleSavedChurchMutation.mutateAsync(churchId)
+      await toggleSavedChurchMutation.mutateAsync(churchId);
     } catch (error) {
       setActionError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to update saved churches right now.',
-      )
+        error instanceof Error ? error.message : 'Unable to update saved churches right now.',
+      );
     }
-  }
+  };
 
-  const handleDeleteReview = async (reviewId: string, churchName: string) => {
-    setActionError(null)
-
-    if (!window.confirm(`Delete your review for ${churchName}?`)) {
-      return
-    }
-
-    try {
-      await deleteReviewMutation.mutateAsync(reviewId)
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to delete your review right now.',
-      )
-    }
-  }
+  const handleDeleteReview = (reviewId: string, churchName: string) => {
+    setConfirmDialog({
+      title: 'Delete review?',
+      description: `Your review for ${churchName} will be permanently removed. This cannot be undone.`,
+      confirmLabel: 'Delete review',
+      onConfirm: async () => {
+        setActionError(null);
+        try {
+          await deleteReviewMutation.mutateAsync(reviewId);
+          setConfirmDialog(null);
+          addToast({ message: 'Review deleted', variant: 'success' });
+        } catch (error) {
+          setConfirmDialog(null);
+          setActionError(
+            error instanceof Error ? error.message : 'Unable to delete your review right now.',
+          );
+        }
+      },
+    });
+  };
 
   const handleRequestEmailVerification = async () => {
-    setActionError(null)
-    setVerificationNotice(null)
+    setActionError(null);
+    setVerificationNotice(null);
 
     try {
-      const result = await requestEmailVerificationMutation.mutateAsync()
+      const result = await requestEmailVerificationMutation.mutateAsync();
 
       setVerificationNotice({
         message:
@@ -261,139 +279,146 @@ const AccountPage = () => {
             ? 'Your email address is already verified.'
             : 'Verification instructions are ready for your inbox.',
         previewUrl: result.previewUrl,
-      })
+      });
     } catch (error) {
       setActionError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to send a verification link right now.',
-      )
+        error instanceof Error ? error.message : 'Unable to send a verification link right now.',
+      );
     }
-  }
+  };
 
-  const handleResolveFlaggedReview = async (
+  const handleResolveFlaggedReview = (
     reviewId: string,
     status: 'approved' | 'removed',
     churchName: string,
   ) => {
-    setActionError(null)
+    const execute = async () => {
+      setActionError(null);
+      try {
+        await resolveFlaggedReviewMutation.mutateAsync({ reviewId, status });
+        setConfirmDialog(null);
+        addToast({
+          message: status === 'removed' ? 'Review removed' : 'Review approved',
+          variant: 'success',
+        });
+      } catch (error) {
+        setConfirmDialog(null);
+        setActionError(
+          error instanceof Error
+            ? error.message
+            : 'Unable to resolve that flagged review right now.',
+        );
+      }
+    };
 
-    if (
-      status === 'removed' &&
-      !window.confirm(`Remove the flagged review for ${churchName}?`)
-    ) {
-      return
+    if (status === 'removed') {
+      setConfirmDialog({
+        title: 'Remove flagged review?',
+        description: `The flagged review for ${churchName} will be permanently removed.`,
+        confirmLabel: 'Remove review',
+        onConfirm: execute,
+      });
+    } else {
+      void execute();
     }
+  };
 
-    try {
-      await resolveFlaggedReviewMutation.mutateAsync({
-        reviewId,
-        status,
-      })
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to resolve that flagged review right now.',
-      )
-    }
-  }
-
-  const handleResolveChurchClaim = async (
+  const handleResolveChurchClaim = (
     claimId: string,
     status: 'approved' | 'rejected',
     churchName: string,
   ) => {
-    setActionError(null)
+    const execute = async () => {
+      setActionError(null);
+      try {
+        await resolveChurchClaimMutation.mutateAsync({ claimId, status });
+        setConfirmDialog(null);
+        addToast({
+          message: status === 'rejected' ? 'Claim rejected' : 'Claim approved',
+          variant: 'success',
+        });
+      } catch (error) {
+        setConfirmDialog(null);
+        setActionError(
+          error instanceof Error ? error.message : 'Unable to resolve that church claim right now.',
+        );
+      }
+    };
 
-    if (
-      status === 'rejected' &&
-      !window.confirm(`Reject the pending church claim for ${churchName}?`)
-    ) {
-      return
+    if (status === 'rejected') {
+      setConfirmDialog({
+        title: 'Reject church claim?',
+        description: `The pending claim for ${churchName} will be rejected.`,
+        confirmLabel: 'Reject claim',
+        onConfirm: execute,
+      });
+    } else {
+      void execute();
     }
-
-    try {
-      await resolveChurchClaimMutation.mutateAsync({
-        claimId,
-        status,
-      })
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to resolve that church claim right now.',
-      )
-    }
-  }
+  };
 
   return (
-    <div className='flex flex-1 bg-[#fcfbf8]'>
-      <div className='mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12'>
-        <div className='mb-8 space-y-3'>
-          <p className='text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]'>
+    <div className="flex flex-1 bg-[#faf8f5]">
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
+        <div className="mb-8 space-y-3">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#d90b45]">
             Member dashboard
           </p>
-          <h1 className='text-4xl font-bold tracking-tight text-[#222222] sm:text-5xl'>
+          <h1 className="text-4xl font-bold tracking-tight text-[#1a1a1a] sm:text-5xl">
             Good to see you, {firstName}.
           </h1>
-          <p className='max-w-3xl text-base leading-7 text-[#555555]'>
-            This is your running home for saved churches, visit notes, and the
-            account details that help you pick your search back up later.
+          <p className="max-w-3xl text-base leading-7 text-[#5c5650]">
+            This is your running home for saved churches, visit notes, and the account details that
+            help you pick your search back up later.
           </p>
         </div>
 
-        <div className='grid gap-6 lg:grid-cols-[1.1fr,0.9fr]'>
-          <section className='rounded-[32px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle sm:p-8'>
-            <div className='flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between'>
-              <div className='flex items-center gap-4'>
-                <div className='flex h-16 w-16 items-center justify-center rounded-[24px] bg-[#222222] text-xl font-bold text-white'>
+        <div className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
+          <section className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-[#1a1a1a] text-xl font-bold text-white">
                   {initials}
                 </div>
                 <div>
-                  <h2 className='text-2xl font-bold tracking-tight text-[#222222]'>
-                    {user.name}
-                  </h2>
-                  <p className='mt-1 text-sm text-[#555555]'>{user.email}</p>
-                  <p className='mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f8f8f]'>
+                  <h2 className="text-2xl font-bold tracking-tight text-[#1a1a1a]">{user.name}</h2>
+                  <p className="mt-1 text-sm text-[#5c5650]">{user.email}</p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9a8f7f]">
                     {roleLabel}
                   </p>
                 </div>
               </div>
 
-              <div className='inline-flex items-center gap-2 rounded-full border border-gray-200 bg-[#f8f8f8] px-4 py-2 text-sm font-semibold text-[#222222]'>
+              <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-[#f8f8f8] px-4 py-2 text-sm font-semibold text-[#1a1a1a]">
                 <CheckCircle2
-                  className={`h-4 w-4 ${user.emailVerified ? 'text-[#1f9d55]' : 'text-[#FF385C]'}`}
+                  className={`h-4 w-4 ${user.emailVerified ? 'text-[#2d7a3e]' : 'text-[#d90b45]'}`}
                 />
                 {user.emailVerified ? 'Email ready' : 'Email still needs verification'}
               </div>
             </div>
 
-            <p className='mt-6 max-w-3xl text-sm leading-7 text-[#555555]'>
-              {dashboardSummary}
-            </p>
+            <p className="mt-6 max-w-3xl text-sm leading-7 text-[#5c5650]">{dashboardSummary}</p>
 
             {!user.emailVerified ? (
-              <div className='mt-6 rounded-[28px] border border-[#ffd6df] bg-[#fff7f9] p-5'>
-                <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+              <div className="mt-6 rounded-[28px] border border-[#ffc2cc] bg-[#fff0f3] p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h3 className='text-lg font-semibold text-[#222222]'>
+                    <h3 className="text-lg font-semibold text-[#1a1a1a]">
                       Confirm your email before you need it
                     </h3>
-                    <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                      Verifying {user.email} makes password recovery and future
-                      account notices much smoother. We can send you a fresh link
-                      any time.
+                    <p className="mt-2 text-sm leading-6 text-[#5c5650]">
+                      Verifying {user.email} makes password recovery and future account notices much
+                      smoother. We can send you a fresh link any time.
                     </p>
                   </div>
 
                   <button
-                    type='button'
+                    type="button"
                     onClick={() => {
-                      void handleRequestEmailVerification()
+                      void handleRequestEmailVerification();
                     }}
                     disabled={requestEmailVerificationMutation.isPending}
-                    className='rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70'
+                    className="rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {requestEmailVerificationMutation.isPending
                       ? 'Sending link...'
@@ -402,16 +427,16 @@ const AccountPage = () => {
                 </div>
 
                 {verificationNotice ? (
-                  <div className='mt-4 space-y-3'>
-                    <div className='rounded-2xl border border-[#c9defa] bg-white px-4 py-3 text-sm text-[#1d4ed8]'>
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-2xl border border-[#c9defa] bg-white px-4 py-3 text-sm text-[#1d4ed8]">
                       {verificationNotice.message}
                     </div>
                     {verificationNotice.previewUrl ? (
-                      <div className='rounded-2xl border border-[#c9defa] bg-[#f5f9ff] px-4 py-3 text-sm text-[#1d4ed8]'>
+                      <div className="rounded-2xl border border-[#c9defa] bg-[#f5f9ff] px-4 py-3 text-sm text-[#1d4ed8]">
                         Development preview is enabled in this environment:{' '}
                         <a
                           href={verificationNotice.previewUrl}
-                          className='font-semibold underline underline-offset-4'
+                          className="font-semibold underline underline-offset-4"
                         >
                           open the verification link
                         </a>
@@ -423,281 +448,267 @@ const AccountPage = () => {
               </div>
             ) : null}
 
-            <div className='mt-6 grid gap-4 md:grid-cols-2'>
-              <div className='rounded-[28px] bg-[#fff7f3] p-5'>
-                <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#FF385C] shadow-airbnb-subtle'>
-                  <Mail className='h-5 w-5' />
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-[28px] bg-[#fff5f0] p-5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#d90b45] shadow-airbnb-subtle">
+                  <Mail className="h-5 w-5" />
                 </div>
-                <h3 className='mt-4 text-lg font-semibold text-[#222222]'>
-                  Your account
-                </h3>
-                <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                  Member since {formatMemberSince(user.createdAt)}. Whether you
-                  sign in with email/password or Google, your saved churches and
-                  reviews stay tied to the same place.
+                <h3 className="mt-4 text-lg font-semibold text-[#1a1a1a]">Your account</h3>
+                <p className="mt-2 text-sm leading-6 text-[#5c5650]">
+                  Member since {formatMemberSince(user.createdAt)}. Whether you sign in with
+                  email/password or Google, your saved churches and reviews stay tied to the same
+                  place.
                 </p>
               </div>
 
-              <div className='rounded-[28px] bg-[#f6faf8] p-5'>
-                <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle'>
-                  <ShieldCheck className='h-5 w-5' />
+              <div className="rounded-[28px] bg-[#f5faf7] p-5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle">
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
-                <h3 className='mt-4 text-lg font-semibold text-[#222222]'>
-                  What this page is for
-                </h3>
-                <p className='mt-2 text-sm leading-6 text-[#555555]'>
-                  Use this dashboard to keep a shortlist, revisit your notes,
-                  manage email verification, and head back into the search when
-                  you want a few more options.
+                <h3 className="mt-4 text-lg font-semibold text-[#1a1a1a]">What this page is for</h3>
+                <p className="mt-2 text-sm leading-6 text-[#5c5650]">
+                  Use this dashboard to keep a shortlist, revisit your notes, manage email
+                  verification, and head back into the search when you want a few more options.
                 </p>
               </div>
             </div>
 
-            <div className='mt-6 grid gap-4 md:grid-cols-2'>
-              <div className='rounded-[28px] border border-gray-200 p-5'>
-                <div className='flex items-center gap-3'>
-                  <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f4] text-[#FF385C]'>
-                    <Heart className='h-5 w-5' />
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-[28px] border border-gray-200 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f3] text-[#d90b45]">
+                    <Heart className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className='text-lg font-semibold text-[#222222]'>
-                      Saved churches
-                    </h3>
-                    <p className='text-sm text-[#555555]'>
-                      {savedChurchCount} saved{' '}
-                      {savedChurchCount === 1 ? 'church' : 'churches'}
+                    <h3 className="text-lg font-semibold text-[#1a1a1a]">Saved churches</h3>
+                    <p className="text-sm text-[#5c5650]">
+                      {savedChurchCount} saved {savedChurchCount === 1 ? 'church' : 'churches'}
                     </p>
                   </div>
                 </div>
                 {isSavedChurchesLoading ? (
-                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                  <p className="mt-4 text-sm leading-6 text-[#5c5650]">
                     Loading your saved churches...
                   </p>
                 ) : savedChurchesError ? (
-                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                  <p className="mt-4 text-sm leading-6 text-[#a8083a]">
                     {savedChurchesError.message}
                   </p>
                 ) : savedChurchCount === 0 ? (
-                  <div className='mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fcfbf8] p-4'>
-                    <div className='flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#FF385C] shadow-airbnb-subtle'>
-                      <Compass className='h-5 w-5' />
+                  <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#faf8f5] p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#d90b45] shadow-airbnb-subtle">
+                      <Compass className="h-5 w-5" />
                     </div>
-                    <p className='mt-3 text-sm leading-6 text-[#555555]'>
-                      Your shortlist starts on the search page. Save churches
-                      from results or profile pages so promising options stay in
-                      one place.
+                    <p className="mt-3 text-sm leading-6 text-[#5c5650]">
+                      Your shortlist starts on the search page. Save churches from results or
+                      profile pages so promising options stay in one place.
                     </p>
                     <Link
-                      to='/search'
-                      className='mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#FF385C] hover:underline'
+                      to="/search"
+                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#d90b45] hover:underline"
                     >
                       Browse churches
-                      <ArrowRight className='h-4 w-4' />
+                      <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 ) : (
-                  <div className='mt-4 space-y-3'>
+                  <div className="mt-4 space-y-3">
                     {savedChurches.map((church) => {
                       const isUpdating =
                         toggleSavedChurchMutation.isPending &&
-                        toggleSavedChurchMutation.variables === church.id
+                        toggleSavedChurchMutation.variables === church.id;
 
                       return (
                         <div
                           key={church.id}
-                          className='rounded-2xl border border-gray-200 bg-[#fcfbf8] p-4'
+                          className="rounded-2xl border border-gray-200 bg-[#faf8f5] p-4"
                         >
-                          <div className='flex items-start justify-between gap-3'>
-                            <div className='min-w-0'>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
                               <Link
                                 to={`/churches/${church.slug}`}
-                                className='text-sm font-semibold text-[#222222] hover:underline'
+                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
                               >
                                 {church.name}
                               </Link>
-                              <p className='mt-1 text-sm text-[#555555]'>
+                              <p className="mt-1 text-sm text-[#5c5650]">
                                 {church.denomination || 'Church listing'}
                               </p>
-                              <p className='mt-2 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.12em] text-[#8f8f8f]'>
-                                <MapPin className='h-3.5 w-3.5' />
+                              <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.12em] text-[#9a8f7f]">
+                                <MapPin className="h-3.5 w-3.5" />
                                 {church.neighborhood || church.city}
                               </p>
                             </div>
 
                             <button
-                              type='button'
+                              type="button"
                               onClick={() => {
-                                void handleToggleSavedChurch(church.id)
+                                void handleToggleSavedChurch(church.id);
                               }}
                               disabled={isUpdating}
-                              className='rounded-full border border-[#ffd6df] bg-white px-3 py-1.5 text-xs font-semibold text-[#FF385C] transition-colors hover:bg-[#fff1f4] disabled:cursor-not-allowed disabled:opacity-70'
+                              className="rounded-full border border-[#ffc2cc] bg-white px-3 py-1.5 text-xs font-semibold text-[#d90b45] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               {isUpdating ? 'Updating...' : 'Remove save'}
                             </button>
                           </div>
 
-                          <div className='mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]'>
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#6b6560]">
                             <span>Saved {formatSavedDate(church.savedAt)}</span>
                             <span>{church.reviewCount} reviews</span>
                           </div>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 )}
               </div>
 
-              <div className='rounded-[28px] border border-gray-200 p-5'>
-                <div className='flex items-center gap-3'>
-                  <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef7ff] text-[#2563eb]'>
-                    <MessageSquareText className='h-5 w-5' />
+              <div className="rounded-[28px] border border-gray-200 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef7ff] text-[#2563eb]">
+                    <MessageSquareText className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className='text-lg font-semibold text-[#222222]'>Your reviews</h3>
-                    <p className='text-sm text-[#555555]'>
-                      {writtenReviewCount} written{' '}
-                      {writtenReviewCount === 1 ? 'review' : 'reviews'}
+                    <h3 className="text-lg font-semibold text-[#1a1a1a]">Your reviews</h3>
+                    <p className="text-sm text-[#5c5650]">
+                      {writtenReviewCount} written {writtenReviewCount === 1 ? 'review' : 'reviews'}
                     </p>
                   </div>
                 </div>
 
                 {isUserReviewsLoading ? (
-                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                  <p className="mt-4 text-sm leading-6 text-[#5c5650]">
                     Loading your review history...
                   </p>
                 ) : userReviewsError ? (
-                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                  <p className="mt-4 text-sm leading-6 text-[#a8083a]">
                     {userReviewsError.message}
                   </p>
                 ) : writtenReviewCount === 0 ? (
-                  <div className='mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fcfbf8] p-4'>
-                    <div className='flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#2563eb] shadow-airbnb-subtle'>
-                      <Sparkles className='h-5 w-5' />
+                  <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#faf8f5] p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#2563eb] shadow-airbnb-subtle">
+                      <Sparkles className="h-5 w-5" />
                     </div>
-                    <p className='mt-3 text-sm leading-6 text-[#555555]'>
-                      After you visit a church, leave a short review so you can
-                      remember the welcome, tone, and overall fit later on.
+                    <p className="mt-3 text-sm leading-6 text-[#5c5650]">
+                      After you visit a church, leave a short review so you can remember the
+                      welcome, tone, and overall fit later on.
                     </p>
                     <Link
-                      to='/search'
-                      className='mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#2563eb] hover:underline'
+                      to="/search"
+                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#2563eb] hover:underline"
                     >
                       Find a church to review
-                      <ArrowRight className='h-4 w-4' />
+                      <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 ) : (
-                  <div className='mt-4 space-y-3'>
+                  <div className="mt-4 space-y-3">
                     {userReviews.map((review) => {
                       const isDeleting =
                         deleteReviewMutation.isPending &&
-                        deleteReviewMutation.variables === review.id
+                        deleteReviewMutation.variables === review.id;
 
                       return (
                         <div
                           key={review.id}
-                          className='rounded-2xl border border-gray-200 bg-[#fcfbf8] p-4'
+                          className="rounded-2xl border border-gray-200 bg-[#faf8f5] p-4"
                         >
-                          <div className='flex items-start justify-between gap-3'>
-                            <div className='min-w-0'>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
                               <Link
                                 to={`/churches/${review.church.slug}#reviews`}
-                                className='text-sm font-semibold text-[#222222] hover:underline'
+                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
                               >
                                 {review.church.name}
                               </Link>
-                              <p className='mt-1 text-sm text-[#555555]'>
+                              <p className="mt-1 text-sm text-[#5c5650]">
                                 {review.church.denomination || 'Church listing'}
                               </p>
                             </div>
                             <button
-                              type='button'
+                              type="button"
                               onClick={() => {
-                                void handleDeleteReview(review.id, review.church.name)
+                                void handleDeleteReview(review.id, review.church.name);
                               }}
                               disabled={isDeleting}
-                              className='inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70'
+                              className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
                             >
-                              <Trash2 className='h-3.5 w-3.5' />
+                              <Trash2 className="h-3.5 w-3.5" />
                               {isDeleting ? 'Deleting...' : 'Delete review'}
                             </button>
                           </div>
 
-                          <div className='mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]'>
-                            <span className='inline-flex items-center gap-1 font-semibold text-[#222222]'>
-                              <Star className='h-3.5 w-3.5 fill-[#222222] text-[#222222]' />
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#6b6560]">
+                            <span className="inline-flex items-center gap-1 font-semibold text-[#1a1a1a]">
+                              <Star className="h-3.5 w-3.5 fill-[#1a1a1a] text-[#1a1a1a]" />
                               {formatRating(review.rating)}
                             </span>
                             <span>Updated {formatReviewDate(review.updatedAt)}</span>
                           </div>
 
-                          <p className='mt-3 text-sm leading-6 text-[#555555]'>
-                            {review.body}
-                          </p>
+                          <p className="mt-3 text-sm leading-6 text-[#5c5650]">{review.body}</p>
 
                           <Link
                             to={`/churches/${review.church.slug}#reviews`}
-                            className='mt-3 inline-flex text-sm font-semibold text-[#2563eb] hover:underline'
+                            className="mt-3 inline-flex text-sm font-semibold text-[#2563eb] hover:underline"
                           >
                             Edit on church page
                           </Link>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 )}
               </div>
             </div>
 
-            <div className='mt-6 rounded-[28px] border border-gray-200 p-5'>
-              <div className='flex items-center gap-3'>
-                <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6faf8] text-[#1f4d45]'>
-                  <Building2 className='h-5 w-5' />
+            <div className="mt-6 rounded-[28px] border border-gray-200 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f5faf7] text-[#1f4d45]">
+                  <Building2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className='text-lg font-semibold text-[#222222]'>Church claims</h3>
-                  <p className='text-sm text-[#555555]'>
+                  <h3 className="text-lg font-semibold text-[#1a1a1a]">Church claims</h3>
+                  <p className="text-sm text-[#5c5650]">
                     Track the listing-access requests tied to your account
                   </p>
                 </div>
               </div>
 
               {isChurchClaimsLoading ? (
-                <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                <p className="mt-4 text-sm leading-6 text-[#5c5650]">
                   Loading your church claims...
                 </p>
               ) : churchClaimsError ? (
-                <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
-                  {churchClaimsError.message}
-                </p>
+                <p className="mt-4 text-sm leading-6 text-[#a8083a]">{churchClaimsError.message}</p>
               ) : !churchClaims || churchClaims.data.length === 0 ? (
-                <div className='mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fcfbf8] p-4'>
-                  <p className='text-sm leading-6 text-[#555555]'>
-                    If you represent a church, start from its profile page and
-                    submit a claim request with a staff or ministry email that
-                    matches the church&apos;s public domain.
+                <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#faf8f5] p-4">
+                  <p className="text-sm leading-6 text-[#5c5650]">
+                    If you represent a church, start from its profile page and submit a claim
+                    request with a staff or ministry email that matches the church&apos;s public
+                    domain.
                   </p>
                   <Link
-                    to='/search'
-                    className='mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#1f4d45] hover:underline'
+                    to="/search"
+                    className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#1f4d45] hover:underline"
                   >
                     Find a church to claim
-                    <ArrowRight className='h-4 w-4' />
+                    <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
               ) : (
-                <div className='mt-4 space-y-3'>
+                <div className="mt-4 space-y-3">
                   {churchClaims.data.map((claim) => (
                     <div
                       key={claim.id}
-                      className='rounded-2xl border border-gray-200 bg-[#fcfbf8] p-4'
+                      className="rounded-2xl border border-gray-200 bg-[#faf8f5] p-4"
                     >
-                      <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
-                        <div className='min-w-0'>
-                          <div className='flex flex-wrap items-center gap-2'>
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Link
                               to={`/churches/${claim.church.slug}`}
-                              className='text-sm font-semibold text-[#222222] hover:underline'
+                              className="text-sm font-semibold text-[#1a1a1a] hover:underline"
                             >
                               {claim.church.name}
                             </Link>
@@ -709,10 +720,10 @@ const AccountPage = () => {
                               {formatClaimStatusLabel(claim.status)}
                             </span>
                           </div>
-                          <p className='mt-1 text-sm text-[#555555]'>
+                          <p className="mt-1 text-sm text-[#5c5650]">
                             {claim.roleTitle} · {claim.verificationEmail}
                           </p>
-                          <p className='mt-2 text-xs font-medium uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-[#9a8f7f]">
                             Submitted {formatClaimDate(claim.createdAt)}
                             {claim.reviewedAt
                               ? ` · Reviewed ${formatClaimDate(claim.reviewedAt)}`
@@ -721,7 +732,7 @@ const AccountPage = () => {
                         </div>
                       </div>
 
-                      <p className='mt-3 text-sm leading-6 text-[#555555]'>
+                      <p className="mt-3 text-sm leading-6 text-[#5c5650]">
                         {claim.status === 'approved'
                           ? 'This listing is now connected to your account, and the next church-admin tools will build on that access.'
                           : claim.status === 'pending'
@@ -735,78 +746,74 @@ const AccountPage = () => {
             </div>
 
             {user.role === 'site_admin' ? (
-              <div className='mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f6faf8] p-5'>
-                <div className='flex items-center gap-3'>
-                  <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle'>
-                    <Building2 className='h-5 w-5' />
+              <div className="mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f5faf7] p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle">
+                    <Building2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className='text-lg font-semibold text-[#222222]'>
-                      Church claim queue
-                    </h3>
-                    <p className='text-sm text-[#555555]'>
+                    <h3 className="text-lg font-semibold text-[#1a1a1a]">Church claim queue</h3>
+                    <p className="text-sm text-[#5c5650]">
                       Representatives waiting for listing access approval
                     </p>
                   </div>
                 </div>
 
                 {isAdminChurchClaimsLoading ? (
-                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
-                    Loading church claims...
-                  </p>
+                  <p className="mt-4 text-sm leading-6 text-[#5c5650]">Loading church claims...</p>
                 ) : adminChurchClaimsError ? (
-                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                  <p className="mt-4 text-sm leading-6 text-[#a8083a]">
                     {adminChurchClaimsError.message}
                   </p>
                 ) : !adminChurchClaims || adminChurchClaims.data.length === 0 ? (
-                  <div className='mt-4 rounded-[24px] border border-dashed border-[#b7d1c3] bg-white/80 p-4'>
-                    <p className='text-sm leading-6 text-[#555555]'>
+                  <div className="mt-4 rounded-[24px] border border-dashed border-[#b7d1c3] bg-white/80 p-4">
+                    <p className="text-sm leading-6 text-[#5c5650]">
                       No church claim requests are waiting for review right now.
                     </p>
                   </div>
                 ) : (
-                  <div className='mt-4 space-y-3'>
+                  <div className="mt-4 space-y-3">
                     {adminChurchClaims.data.map((claim) => {
                       const isResolvingClaim =
                         resolveChurchClaimMutation.isPending &&
-                        resolveChurchClaimMutation.variables?.claimId === claim.id
+                        resolveChurchClaimMutation.variables?.claimId === claim.id;
 
                       return (
                         <div
                           key={claim.id}
-                          className='rounded-2xl border border-[#d7e6dc] bg-white p-4'
+                          className="rounded-2xl border border-[#d7e6dc] bg-white p-4"
                         >
-                          <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
-                            <div className='min-w-0'>
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0">
                               <Link
                                 to={`/churches/${claim.church.slug}`}
-                                className='text-sm font-semibold text-[#222222] hover:underline'
+                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
                               >
                                 {claim.church.name}
                               </Link>
-                              <p className='mt-1 text-sm text-[#555555]'>
+                              <p className="mt-1 text-sm text-[#5c5650]">
                                 {claim.user.name} · {claim.user.email}
                               </p>
-                              <p className='mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#9a8f7f]">
                                 {claim.roleTitle} · Submitted {formatClaimDate(claim.createdAt)}
                               </p>
-                              <p className='mt-2 text-sm leading-6 text-[#555555]'>
+                              <p className="mt-2 text-sm leading-6 text-[#5c5650]">
                                 Verification email: {claim.verificationEmail}
                               </p>
                             </div>
 
-                            <div className='flex flex-wrap gap-2'>
+                            <div className="flex flex-wrap gap-2">
                               <button
-                                type='button'
+                                type="button"
                                 onClick={() => {
                                   void handleResolveChurchClaim(
                                     claim.id,
                                     'approved',
                                     claim.church.name,
-                                  )
+                                  );
                                 }}
                                 disabled={isResolvingClaim}
-                                className='rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-4 py-2 text-sm font-semibold text-[#1d4ed8] transition-colors hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-70'
+                                className="rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-4 py-2 text-sm font-semibold text-[#1d4ed8] transition-colors hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 {isResolvingClaim &&
                                 resolveChurchClaimMutation.variables?.status === 'approved'
@@ -814,16 +821,16 @@ const AccountPage = () => {
                                   : 'Approve claim'}
                               </button>
                               <button
-                                type='button'
+                                type="button"
                                 onClick={() => {
                                   void handleResolveChurchClaim(
                                     claim.id,
                                     'rejected',
                                     claim.church.name,
-                                  )
+                                  );
                                 }}
                                 disabled={isResolvingClaim}
-                                className='rounded-full border border-[#ffd6df] bg-white px-4 py-2 text-sm font-semibold text-[#FF385C] transition-colors hover:bg-[#fff1f4] disabled:cursor-not-allowed disabled:opacity-70'
+                                className="rounded-full border border-[#ffc2cc] bg-white px-4 py-2 text-sm font-semibold text-[#d90b45] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 {isResolvingClaim &&
                                 resolveChurchClaimMutation.variables?.status === 'rejected'
@@ -833,7 +840,7 @@ const AccountPage = () => {
                             </div>
                           </div>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 )}
@@ -841,76 +848,75 @@ const AccountPage = () => {
             ) : null}
 
             {user.role === 'site_admin' ? (
-              <div className='mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f6faf8] p-5'>
-                <div className='flex items-center gap-3'>
-                  <div className='flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle'>
-                    <ShieldCheck className='h-5 w-5' />
+              <div className="mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f5faf7] p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle">
+                    <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className='text-lg font-semibold text-[#222222]'>
+                    <h3 className="text-lg font-semibold text-[#1a1a1a]">
                       Review moderation queue
                     </h3>
-                    <p className='text-sm text-[#555555]'>
+                    <p className="text-sm text-[#5c5650]">
                       Community-reported reviews waiting for a decision
                     </p>
                   </div>
                 </div>
 
                 {isFlaggedReviewsLoading ? (
-                  <p className='mt-4 text-sm leading-6 text-[#555555]'>
+                  <p className="mt-4 text-sm leading-6 text-[#5c5650]">
                     Loading flagged reviews...
                   </p>
                 ) : flaggedReviewsError ? (
-                  <p className='mt-4 text-sm leading-6 text-[#9f1239]'>
+                  <p className="mt-4 text-sm leading-6 text-[#a8083a]">
                     {flaggedReviewsError.message}
                   </p>
                 ) : !flaggedReviews || flaggedReviews.data.length === 0 ? (
-                  <div className='mt-4 rounded-[24px] border border-dashed border-[#b7d1c3] bg-white/80 p-4'>
-                    <p className='text-sm leading-6 text-[#555555]'>
-                      No flagged reviews are waiting for moderation right now.
-                      This queue is clear.
+                  <div className="mt-4 rounded-[24px] border border-dashed border-[#b7d1c3] bg-white/80 p-4">
+                    <p className="text-sm leading-6 text-[#5c5650]">
+                      No flagged reviews are waiting for moderation right now. This queue is clear.
                     </p>
                   </div>
                 ) : (
-                  <div className='mt-4 space-y-3'>
+                  <div className="mt-4 space-y-3">
                     {flaggedReviews.data.map((review) => {
                       const isResolving =
                         resolveFlaggedReviewMutation.isPending &&
-                        resolveFlaggedReviewMutation.variables?.reviewId === review.id
+                        resolveFlaggedReviewMutation.variables?.reviewId === review.id;
 
                       return (
                         <div
                           key={review.id}
-                          className='rounded-2xl border border-[#d7e6dc] bg-white p-4'
+                          className="rounded-2xl border border-[#d7e6dc] bg-white p-4"
                         >
-                          <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
-                            <div className='min-w-0'>
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0">
                               <Link
                                 to={`/churches/${review.church.slug}#reviews`}
-                                className='text-sm font-semibold text-[#222222] hover:underline'
+                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
                               >
                                 {review.church.name}
                               </Link>
-                              <p className='mt-1 text-sm text-[#555555]'>
+                              <p className="mt-1 text-sm text-[#5c5650]">
                                 Flagged {formatFlaggedDate(review.flaggedAt)} by community reporting
                               </p>
-                              <p className='mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8f8f8f]'>
+                              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#9a8f7f]">
                                 Reviewer: {review.user.name}
                               </p>
                             </div>
 
-                            <div className='flex flex-wrap gap-2'>
+                            <div className="flex flex-wrap gap-2">
                               <button
-                                type='button'
+                                type="button"
                                 onClick={() => {
                                   void handleResolveFlaggedReview(
                                     review.id,
                                     'approved',
                                     review.church.name,
-                                  )
+                                  );
                                 }}
                                 disabled={isResolving}
-                                className='rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-4 py-2 text-sm font-semibold text-[#1d4ed8] transition-colors hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-70'
+                                className="rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-4 py-2 text-sm font-semibold text-[#1d4ed8] transition-colors hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 {isResolving &&
                                 resolveFlaggedReviewMutation.variables?.status === 'approved'
@@ -918,16 +924,16 @@ const AccountPage = () => {
                                   : 'Keep live'}
                               </button>
                               <button
-                                type='button'
+                                type="button"
                                 onClick={() => {
                                   void handleResolveFlaggedReview(
                                     review.id,
                                     'removed',
                                     review.church.name,
-                                  )
+                                  );
                                 }}
                                 disabled={isResolving}
-                                className='rounded-full border border-[#ffd6df] bg-white px-4 py-2 text-sm font-semibold text-[#FF385C] transition-colors hover:bg-[#fff1f4] disabled:cursor-not-allowed disabled:opacity-70'
+                                className="rounded-full border border-[#ffc2cc] bg-white px-4 py-2 text-sm font-semibold text-[#d90b45] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 {isResolving &&
                                 resolveFlaggedReviewMutation.variables?.status === 'removed'
@@ -937,19 +943,17 @@ const AccountPage = () => {
                             </div>
                           </div>
 
-                          <div className='mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]'>
-                            <span className='inline-flex items-center gap-1 font-semibold text-[#222222]'>
-                              <Star className='h-3.5 w-3.5 fill-[#222222] text-[#222222]' />
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#6b6560]">
+                            <span className="inline-flex items-center gap-1 font-semibold text-[#1a1a1a]">
+                              <Star className="h-3.5 w-3.5 fill-[#1a1a1a] text-[#1a1a1a]" />
                               {formatRating(review.rating)}
                             </span>
                             <span>Updated {formatReviewDate(review.updatedAt)}</span>
                           </div>
 
-                          <p className='mt-3 text-sm leading-6 text-[#555555]'>
-                            {review.body}
-                          </p>
+                          <p className="mt-3 text-sm leading-6 text-[#5c5650]">{review.body}</p>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 )}
@@ -957,25 +961,22 @@ const AccountPage = () => {
             ) : null}
           </section>
 
-          <aside className='rounded-[32px] bg-[#1f4d45] p-6 text-white shadow-airbnb sm:p-8'>
-            <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10'>
-              <ShieldCheck className='h-6 w-6' />
+          <aside className="rounded-[32px] bg-[#1f4d45] p-6 text-white shadow-airbnb sm:p-8">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+              <ShieldCheck className="h-6 w-6" />
             </div>
 
-            <h2 className='mt-6 text-2xl font-bold tracking-tight'>
-              Keep this dashboard useful
-            </h2>
-            <p className='mt-3 text-sm leading-7 text-white/85'>
-              Search for churches that feel promising, save the ones worth a
-              second look, and leave quick notes after a visit so your decision
-              gets easier over time.
+            <h2 className="mt-6 text-2xl font-bold tracking-tight">Keep this dashboard useful</h2>
+            <p className="mt-3 text-sm leading-7 text-white/85">
+              Search for churches that feel promising, save the ones worth a second look, and leave
+              quick notes after a visit so your decision gets easier over time.
             </p>
 
-            <div className='mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5'>
-              <p className='text-sm font-semibold uppercase tracking-[0.18em] text-white/70'>
+            <div className="mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
                 Next steps
               </p>
-              <div className='mt-4 space-y-3 text-sm leading-6 text-white/90'>
+              <div className="mt-4 space-y-3 text-sm leading-6 text-white/90">
                 {nextSteps.map((step) => (
                   <p key={step}>{step}</p>
                 ))}
@@ -983,25 +984,25 @@ const AccountPage = () => {
             </div>
 
             {actionError ? (
-              <div className='mt-6 rounded-2xl border border-[#ffb4c1]/40 bg-[#43111c] px-4 py-3 text-sm text-[#ffd3dc]'>
+              <div className="mt-6 rounded-2xl border border-[#ffc2cc]/40 bg-[#43111c] px-4 py-3 text-sm text-[#ffd3dc]">
                 {actionError}
               </div>
             ) : null}
 
-            <div className='mt-6 flex flex-col gap-3'>
+            <div className="mt-6 flex flex-col gap-3">
               <button
-                type='button'
+                type="button"
                 onClick={() => {
-                  void handleLogout()
+                  void handleLogout();
                 }}
                 disabled={logoutMutation.isPending}
-                className='rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1f4d45] transition-colors hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-70'
+                className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1f4d45] transition-colors hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {logoutMutation.isPending ? 'Signing you out...' : 'Sign out'}
               </button>
               <Link
-                to='/search'
-                className='rounded-full border border-white/20 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-white/10'
+                to="/search"
+                className="rounded-full border border-white/20 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
                 Explore more churches
               </Link>
@@ -1009,8 +1010,25 @@ const AccountPage = () => {
           </aside>
         </div>
       </div>
-    </div>
-  )
-}
 
-export default AccountPage
+      <ConfirmDialog
+        open={confirmDialog !== null}
+        title={confirmDialog?.title ?? ''}
+        description={confirmDialog?.description ?? ''}
+        confirmLabel={confirmDialog?.confirmLabel ?? 'Confirm'}
+        variant="destructive"
+        isPending={
+          deleteReviewMutation.isPending ||
+          resolveFlaggedReviewMutation.isPending ||
+          resolveChurchClaimMutation.isPending
+        }
+        onConfirm={() => {
+          if (confirmDialog) void confirmDialog.onConfirm();
+        }}
+        onCancel={() => setConfirmDialog(null)}
+      />
+    </div>
+  );
+};
+
+export default AccountPage;

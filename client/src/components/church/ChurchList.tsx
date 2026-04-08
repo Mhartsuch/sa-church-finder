@@ -4,8 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuthSession } from '@/hooks/useAuth';
 import { useChurchSearchParams, useChurches, useToggleSavedChurch } from '@/hooks/useChurches';
+import { useToast } from '@/hooks/useToast';
 import { useCompareStore } from '@/stores/compare-store';
 import { useSearchStore } from '@/stores/search-store';
+import { IChurchSummary } from '@/types/church';
 import { NoResults } from '@/components/search/NoResults';
 import { ChurchCard } from './ChurchCard';
 import { ChurchCardSkeletonGrid } from './ChurchCardSkeleton';
@@ -25,6 +27,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const setPage = useSearchStore((state) => state.setPage);
   const selectedChurches = useCompareStore((state) => state.selectedChurches);
   const toggleChurch = useCompareStore((state) => state.toggleChurch);
+  const { addToast } = useToast();
   const [actionError, setActionError] = useState<string | null>(null);
 
   const searchParams = useChurchSearchParams();
@@ -51,12 +54,20 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
 
     try {
       await toggleSavedChurchMutation.mutateAsync(churchId);
+      const church = churches.find((c) => c.id === churchId);
+      const wasSaved = church?.isSaved;
+      addToast({
+        message: wasSaved ? 'Removed from your wishlist' : 'Saved to your wishlist',
+        variant: 'success',
+      });
     } catch (saveError) {
-      setActionError(
-        saveError instanceof Error
-          ? saveError.message
-          : 'Unable to update saved churches right now.',
-      );
+      addToast({
+        message:
+          saveError instanceof Error
+            ? saveError.message
+            : 'Unable to update saved churches right now.',
+        variant: 'error',
+      });
     }
   };
 
@@ -68,8 +79,8 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <h3 className="mb-2 text-lg font-semibold text-[#222222]">Something went wrong</h3>
-          <p className="text-sm text-[#717171]">{error.message}</p>
+          <h3 className="mb-2 text-lg font-semibold text-[#1a1a1a]">Something went wrong</h3>
+          <p className="text-sm text-[#6b6560]">{error.message}</p>
         </div>
       </div>
     );
@@ -82,7 +93,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   return (
     <div>
       {actionError ? (
-        <div className="mb-5 rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]">
+        <div className="mb-5 rounded-2xl border border-[#ffc2cc] bg-[#fff0f3] px-4 py-3 text-sm text-[#a8083a]">
           {actionError}
         </div>
       ) : null}
@@ -101,23 +112,39 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
             : 'grid grid-cols-1 gap-x-6 gap-y-10 md:grid-cols-2'
         }
       >
-        {churches.map((church) => (
-          <ChurchCard
+        {churches.map((church, index) => (
+          <div
             key={church.id}
-            church={church}
-            isHovered={hoveredChurchId === church.id}
-            isCompared={selectedChurches.some((selectedChurch) => selectedChurch.id === church.id)}
-            onHover={setHoveredChurch}
-            onClick={(slug) => navigate(`/churches/${slug}`)}
-            onToggleCompare={toggleChurch}
-            onToggleSave={(churchId) => {
-              void handleToggleSave(churchId);
-            }}
-            isSavePending={
-              toggleSavedChurchMutation.isPending &&
-              toggleSavedChurchMutation.variables === church.id
-            }
-          />
+            className="animate-card-in"
+            style={{ animationDelay: `${index * 60}ms` }}
+          >
+            <ChurchCard
+              church={church}
+              isHovered={hoveredChurchId === church.id}
+              isCompared={selectedChurches.some(
+                (selectedChurch) => selectedChurch.id === church.id,
+              )}
+              onHover={setHoveredChurch}
+              onClick={(slug) => navigate(`/churches/${slug}`)}
+              onToggleCompare={(c: IChurchSummary) => {
+                const wasCompared = selectedChurches.some((s) => s.id === c.id);
+                toggleChurch(c);
+                addToast({
+                  message: wasCompared
+                    ? `${c.name} removed from compare`
+                    : `${c.name} added to compare`,
+                  variant: 'info',
+                });
+              }}
+              onToggleSave={(churchId) => {
+                void handleToggleSave(churchId);
+              }}
+              isSavePending={
+                toggleSavedChurchMutation.isPending &&
+                toggleSavedChurchMutation.variables === church.id
+              }
+            />
+          </div>
         ))}
       </div>
 
@@ -126,7 +153,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#222222] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#1a1a1a] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -151,8 +178,8 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
                   onClick={() => setPage(pageNum)}
                   className={`h-8 w-8 rounded-full text-sm font-semibold transition-colors ${
                     page === pageNum
-                      ? 'bg-[#222222] text-white'
-                      : 'text-[#222222] hover:bg-gray-100'
+                      ? 'bg-[#1a1a1a] text-white'
+                      : 'text-[#1a1a1a] hover:bg-gray-100'
                   }`}
                 >
                   {pageNum}
@@ -164,7 +191,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#222222] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#1a1a1a] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />

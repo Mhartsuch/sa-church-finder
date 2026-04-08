@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 
+import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import { useAuthSession } from '@/hooks/useAuth';
 import { useSubmitChurchClaim } from '@/hooks/useChurchClaims';
@@ -31,6 +32,7 @@ import {
   useRemoveHelpfulVote,
 } from '@/hooks/useReviews';
 import { ChurchProfileHero } from '@/components/church/ChurchProfileHero';
+import { useToast } from '@/hooks/useToast';
 import { IChurchService } from '@/types/church';
 import { ChurchEventType, IChurchEvent } from '@/types/event';
 import { IReview, ReviewSort } from '@/types/review';
@@ -221,8 +223,10 @@ export const ChurchProfilePage = () => {
   const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
   const [claimRoleTitle, setClaimRoleTitle] = useState('');
   const [claimVerificationEmail, setClaimVerificationEmail] = useState('');
+  const { addToast } = useToast();
   const [helpfulVoteError, setHelpfulVoteError] = useState<string | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const [flagDialogReviewId, setFlagDialogReviewId] = useState<string | null>(null);
   const eventWindow = buildEventDateWindow(eventWindowBaseIso, eventDateRange);
   const {
     data: churchEventsResponse,
@@ -250,11 +254,11 @@ export const ChurchProfilePage = () => {
   if (error || !church) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8">
-        <h2 className="mb-2 text-2xl font-bold text-[#222222]">Church Not Found</h2>
-        <p className="mb-6 text-[#717171]">We couldn&apos;t find a church at this address.</p>
+        <h2 className="mb-2 text-2xl font-bold text-[#1a1a1a]">Church Not Found</h2>
+        <p className="mb-6 text-[#6b6560]">We couldn&apos;t find a church at this address.</p>
         <button
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#222222] px-6 py-3 font-semibold text-white transition-colors hover:bg-black"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-6 py-3 font-semibold text-white transition-colors hover:bg-black"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Search
@@ -286,9 +290,7 @@ export const ChurchProfilePage = () => {
     submitChurchClaimMutation.isPending &&
     submitChurchClaimMutation.variables?.churchId === church.id;
   const canSubmitClaim =
-    !church.isClaimed &&
-    viewerClaim?.status !== 'pending' &&
-    viewerClaim?.status !== 'approved';
+    !church.isClaimed && viewerClaim?.status !== 'pending' && viewerClaim?.status !== 'approved';
   const showClaimCard = !church.isClaimed || Boolean(viewerClaim);
 
   const navigateToLogin = () => {
@@ -312,12 +314,18 @@ export const ChurchProfilePage = () => {
 
     try {
       await toggleSavedChurchMutation.mutateAsync(church.id);
+      addToast({
+        message: church.isSaved ? 'Removed from your wishlist' : 'Saved to your wishlist',
+        variant: 'success',
+      });
     } catch (toggleError) {
-      setSaveError(
-        toggleError instanceof Error
-          ? toggleError.message
-          : 'Unable to update saved churches right now.',
-      );
+      addToast({
+        message:
+          toggleError instanceof Error
+            ? toggleError.message
+            : 'Unable to update saved churches right now.',
+        variant: 'error',
+      });
     }
   };
 
@@ -345,7 +353,7 @@ export const ChurchProfilePage = () => {
     }
   };
 
-  const handleFlagReview = async (review: IReview) => {
+  const handleFlagReviewRequest = (review: IReview) => {
     setHelpfulVoteError(null);
     setReviewNotice(null);
 
@@ -354,21 +362,31 @@ export const ChurchProfilePage = () => {
       return;
     }
 
-    if (!window.confirm('Report this review for moderator follow-up?')) {
-      return;
-    }
+    setFlagDialogReviewId(review.id);
+  };
+
+  const handleFlagReviewConfirmed = async () => {
+    if (!flagDialogReviewId) return;
 
     try {
-      const result = await flagReviewMutation.mutateAsync(review.id);
-      setReviewNotice(
-        result.status === 'already-flagged'
-          ? 'That review is already waiting in the moderation queue.'
-          : 'Thanks. That review is now queued for moderation and hidden from public listings while it is reviewed.',
-      );
+      const result = await flagReviewMutation.mutateAsync(flagDialogReviewId);
+      setFlagDialogReviewId(null);
+      addToast({
+        message:
+          result.status === 'already-flagged'
+            ? 'That review is already in the moderation queue'
+            : 'Review reported for moderation',
+        variant: result.status === 'already-flagged' ? 'info' : 'success',
+      });
     } catch (flagError) {
-      setHelpfulVoteError(
-        flagError instanceof Error ? flagError.message : 'Unable to report that review right now.',
-      );
+      setFlagDialogReviewId(null);
+      addToast({
+        message:
+          flagError instanceof Error
+            ? flagError.message
+            : 'Unable to report that review right now.',
+        variant: 'error',
+      });
     }
   };
 
@@ -408,9 +426,7 @@ export const ChurchProfilePage = () => {
         roleTitle: claimRoleTitle,
         verificationEmail: claimVerificationEmail,
       });
-      setClaimNotice(
-        'Your claim request is now in the review queue. A site admin can approve it from the dashboard.',
-      );
+      addToast({ message: 'Claim request submitted for review', variant: 'success' });
       setIsClaimFormOpen(false);
     } catch (submissionError) {
       setClaimError(
@@ -422,11 +438,11 @@ export const ChurchProfilePage = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#fffdfb]">
+    <div className="flex-1 overflow-y-auto bg-[#faf8f5]">
       <div className="mx-auto max-w-[1180px] px-6 pb-4 pt-6 lg:px-0">
         <Link
           to="/"
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#222222] hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#1a1a1a] hover:underline"
         >
           <ChevronLeft className="h-4 w-4" />
           Back
@@ -439,44 +455,44 @@ export const ChurchProfilePage = () => {
         <div className="flex flex-col gap-12 lg:flex-row lg:gap-24">
           <div className="min-w-0 flex-1">
             <div className="border-b border-gray-200 pb-6">
-              <h1 className="mb-1 text-[26px] font-bold text-[#222222]">{church.name}</h1>
+              <h1 className="mb-1 text-[26px] font-bold text-[#1a1a1a]">{church.name}</h1>
 
               <div className="flex flex-wrap items-center gap-1.5 text-[14px]">
                 {church.avgRating > 0 && (
                   <>
                     <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-[#222222] text-[#222222]" />
+                      <Star className="h-4 w-4 fill-[#1a1a1a] text-[#1a1a1a]" />
                       <span className="font-semibold">{formatRating(church.avgRating)}</span>
                     </div>
-                    <span className="text-[#717171]">&middot;</span>
-                    <a href="#reviews" className="font-semibold text-[#222222] underline">
+                    <span className="text-[#6b6560]">&middot;</span>
+                    <a href="#reviews" className="font-semibold text-[#1a1a1a] underline">
                       {church.reviewCount} reviews
                     </a>
-                    <span className="text-[#717171]">&middot;</span>
+                    <span className="text-[#6b6560]">&middot;</span>
                   </>
                 )}
                 {church.isClaimed && (
                   <>
-                    <span className="flex items-center gap-1 font-medium text-[#222222]">
+                    <span className="flex items-center gap-1 font-medium text-[#1a1a1a]">
                       <CheckCircle className="h-4 w-4" />
                       Claimed
                     </span>
-                    <span className="text-[#717171]">&middot;</span>
+                    <span className="text-[#6b6560]">&middot;</span>
                   </>
                 )}
                 {church.denomination && (
                   <>
-                    <span className="font-semibold text-[#222222]">{church.denomination}</span>
-                    <span className="text-[#717171]">&middot;</span>
+                    <span className="font-semibold text-[#1a1a1a]">{church.denomination}</span>
+                    <span className="text-[#6b6560]">&middot;</span>
                   </>
                 )}
-                <button className="font-semibold text-[#222222] underline">
+                <button className="font-semibold text-[#1a1a1a] underline">
                   {church.neighborhood || church.city}, {church.state}
                 </button>
               </div>
 
               <div className="mt-4 flex items-center gap-4">
-                <button className="flex items-center gap-2 text-sm font-semibold text-[#222222] underline hover:text-black">
+                <button className="flex items-center gap-2 text-sm font-semibold text-[#1a1a1a] underline hover:text-black">
                   <Share className="h-4 w-4" />
                   Share
                 </button>
@@ -486,10 +502,10 @@ export const ChurchProfilePage = () => {
                     void handleToggleSave();
                   }}
                   disabled={isSavePending}
-                  className="flex items-center gap-2 text-sm font-semibold text-[#222222] underline hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex items-center gap-2 text-sm font-semibold text-[#1a1a1a] underline hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <Heart
-                    className={`h-4 w-4 ${church.isSaved ? 'fill-[#FF385C] text-[#FF385C]' : ''}`}
+                    className={`h-4 w-4 ${church.isSaved ? 'fill-[#d90b45] text-[#d90b45]' : ''}`}
                   />
                   {isSavePending
                     ? church.isSaved
@@ -502,7 +518,7 @@ export const ChurchProfilePage = () => {
               </div>
 
               {saveError ? (
-                <div className="mt-4 rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]">
+                <div className="mt-4 rounded-2xl border border-[#ffc2cc] bg-[#fff0f3] px-4 py-3 text-sm text-[#a8083a]">
                   {saveError}
                 </div>
               ) : null}
@@ -510,10 +526,10 @@ export const ChurchProfilePage = () => {
 
             {(church.description || church.pastorName || church.yearEstablished) && (
               <div className="border-b border-gray-200 py-8">
-                <h2 className="mb-5 text-[22px] font-semibold text-[#222222]">About this church</h2>
+                <h2 className="mb-5 text-[22px] font-semibold text-[#1a1a1a]">About this church</h2>
 
                 {church.description ? (
-                  <p className="mb-6 text-[16px] leading-relaxed text-[#222222]">
+                  <p className="mb-6 text-[16px] leading-relaxed text-[#1a1a1a]">
                     {church.description}
                   </p>
                 ) : null}
@@ -521,19 +537,19 @@ export const ChurchProfilePage = () => {
                 <div className="flex flex-col gap-5">
                   {church.pastorName ? (
                     <div className="flex items-center gap-4">
-                      <Users className="h-6 w-6 text-[#222222]" />
+                      <Users className="h-6 w-6 text-[#1a1a1a]" />
                       <div>
-                        <p className="text-[14px] font-semibold text-[#222222]">Pastor</p>
-                        <p className="text-[14px] text-[#717171]">{church.pastorName}</p>
+                        <p className="text-[14px] font-semibold text-[#1a1a1a]">Pastor</p>
+                        <p className="text-[14px] text-[#6b6560]">{church.pastorName}</p>
                       </div>
                     </div>
                   ) : null}
                   {church.yearEstablished ? (
                     <div className="flex items-center gap-4">
-                      <Calendar className="h-6 w-6 text-[#222222]" />
+                      <Calendar className="h-6 w-6 text-[#1a1a1a]" />
                       <div>
-                        <p className="text-[14px] font-semibold text-[#222222]">Established</p>
-                        <p className="text-[14px] text-[#717171]">{church.yearEstablished}</p>
+                        <p className="text-[14px] font-semibold text-[#1a1a1a]">Established</p>
+                        <p className="text-[14px] text-[#6b6560]">{church.yearEstablished}</p>
                       </div>
                     </div>
                   ) : null}
@@ -543,19 +559,19 @@ export const ChurchProfilePage = () => {
 
             {groupedServices.length > 0 ? (
               <div className="border-b border-gray-200 py-8">
-                <h2 className="mb-5 text-[22px] font-semibold text-[#222222]">Service schedule</h2>
+                <h2 className="mb-5 text-[22px] font-semibold text-[#1a1a1a]">Service schedule</h2>
                 <div className="space-y-5">
                   {groupedServices.map(({ day, dayName, services }) => (
                     <div key={day}>
-                      <h3 className="mb-2 text-[16px] font-semibold text-[#222222]">{dayName}</h3>
+                      <h3 className="mb-2 text-[16px] font-semibold text-[#1a1a1a]">{dayName}</h3>
                       <div className="space-y-2">
                         {services.map((service) => (
                           <div
                             key={service.id}
-                            className="flex items-center gap-3 text-[14px] text-[#717171]"
+                            className="flex items-center gap-3 text-[14px] text-[#6b6560]"
                           >
-                            <Clock className="h-4 w-4 flex-shrink-0 text-[#717171]" />
-                            <span className="font-medium text-[#222222]">
+                            <Clock className="h-4 w-4 flex-shrink-0 text-[#6b6560]" />
+                            <span className="font-medium text-[#1a1a1a]">
                               {formatServiceTime(service.startTime)}
                               {service.endTime ? ` - ${formatServiceTime(service.endTime)}` : ''}
                             </span>
@@ -579,8 +595,8 @@ export const ChurchProfilePage = () => {
             <div className="border-b border-gray-200 py-8">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                  <h2 className="text-[22px] font-semibold text-[#222222]">Events and community</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#555555]">
+                  <h2 className="text-[22px] font-semibold text-[#1a1a1a]">Events and community</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5c5650]">
                     See what is happening beyond Sunday morning, from studies and service days to
                     community nights that help you get a feel for the church.
                   </p>
@@ -588,7 +604,7 @@ export const ChurchProfilePage = () => {
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
                   <label>
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8f8f8f]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a8f7f]">
                       Event type
                     </span>
                     <select
@@ -596,7 +612,7 @@ export const ChurchProfilePage = () => {
                       onChange={(event) => {
                         setEventTypeFilter(event.target.value as EventTypeFilter);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
                     >
                       {EVENT_TYPE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -607,7 +623,7 @@ export const ChurchProfilePage = () => {
                   </label>
 
                   <label>
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8f8f8f]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a8f7f]">
                       Date range
                     </span>
                     <select
@@ -615,7 +631,7 @@ export const ChurchProfilePage = () => {
                       onChange={(event) => {
                         handleEventDateRangeChange(event.target.value as EventDateRange);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
                     >
                       {EVENT_DATE_RANGE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -632,7 +648,7 @@ export const ChurchProfilePage = () => {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8c5b2e]">
                     Upcoming this week
                   </p>
-                  <p className="mt-3 text-4xl font-semibold text-[#222222]">
+                  <p className="mt-3 text-4xl font-semibold text-[#1a1a1a]">
                     {isEventsLoading ? '...' : upcomingThisWeekCount}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[#6b5a46]">
@@ -645,7 +661,7 @@ export const ChurchProfilePage = () => {
                 </div>
 
                 <div className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8f8f8f]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a8f7f]">
                     Next gathering
                   </p>
                   {isEventsLoading ? (
@@ -655,22 +671,22 @@ export const ChurchProfilePage = () => {
                     </div>
                   ) : nextUpcomingEvent ? (
                     <div className="mt-4">
-                      <p className="text-xl font-semibold text-[#222222]">
+                      <p className="text-xl font-semibold text-[#1a1a1a]">
                         {nextUpcomingEvent.title}
                       </p>
-                      <p className="mt-2 text-sm text-[#555555]">
+                      <p className="mt-2 text-sm text-[#5c5650]">
                         {formatEventDate(nextUpcomingEvent.startTime)} at{' '}
                         {formatEventTimeRange(
                           nextUpcomingEvent.startTime,
                           nextUpcomingEvent.endTime,
                         )}
                       </p>
-                      <p className="mt-1 text-sm text-[#717171]">
+                      <p className="mt-1 text-sm text-[#6b6560]">
                         {nextUpcomingEvent.locationOverride || church.address}
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm leading-6 text-[#555555]">
+                    <p className="mt-4 text-sm leading-6 text-[#5c5650]">
                       No upcoming events match the current filters yet.
                     </p>
                   )}
@@ -678,7 +694,7 @@ export const ChurchProfilePage = () => {
               </div>
 
               {eventsError ? (
-                <div className="mt-6 rounded-[28px] border border-[#ffb4c1] bg-[#fff1f4] px-5 py-4 text-sm text-[#9f1239]">
+                <div className="mt-6 rounded-[28px] border border-[#ffc2cc] bg-[#fff0f3] px-5 py-4 text-sm text-[#a8083a]">
                   {eventsError.message}
                 </div>
               ) : isEventsLoading ? (
@@ -714,27 +730,27 @@ export const ChurchProfilePage = () => {
                               </span>
                             ) : null}
                           </div>
-                          <h3 className="mt-4 text-xl font-semibold text-[#222222]">
+                          <h3 className="mt-4 text-xl font-semibold text-[#1a1a1a]">
                             {event.title}
                           </h3>
                           {event.description ? (
-                            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#555555]">
+                            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5c5650]">
                               {event.description}
                             </p>
                           ) : null}
                         </div>
 
-                        <div className="rounded-[24px] bg-[#fcfbf8] px-5 py-4 text-sm text-[#555555] lg:min-w-[250px]">
+                        <div className="rounded-[24px] bg-[#faf8f5] px-5 py-4 text-sm text-[#5c5650] lg:min-w-[250px]">
                           <div className="flex items-center gap-3">
-                            <Calendar className="h-4 w-4 text-[#222222]" />
+                            <Calendar className="h-4 w-4 text-[#1a1a1a]" />
                             <span>{formatEventDate(event.startTime)}</span>
                           </div>
                           <div className="mt-3 flex items-center gap-3">
-                            <Clock className="h-4 w-4 text-[#222222]" />
+                            <Clock className="h-4 w-4 text-[#1a1a1a]" />
                             <span>{formatEventTimeRange(event.startTime, event.endTime)}</span>
                           </div>
                           <div className="mt-3 flex items-center gap-3">
-                            <MapPin className="h-4 w-4 text-[#222222]" />
+                            <MapPin className="h-4 w-4 text-[#1a1a1a]" />
                             <span>{event.locationOverride || church.address}</span>
                           </div>
                         </div>
@@ -743,7 +759,7 @@ export const ChurchProfilePage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-[#fcfbf8] px-6 py-8 text-sm leading-7 text-[#555555]">
+                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-[#faf8f5] px-6 py-8 text-sm leading-7 text-[#5c5650]">
                   No events match this filter combination yet. Try widening the date range or
                   switching back to all event types.
                 </div>
@@ -752,20 +768,20 @@ export const ChurchProfilePage = () => {
 
             {church.amenities.length > 0 || church.languages.length > 0 ? (
               <div className="border-b border-gray-200 py-8">
-                <h2 className="mb-5 text-[22px] font-semibold text-[#222222]">
+                <h2 className="mb-5 text-[22px] font-semibold text-[#1a1a1a]">
                   What this church offers
                 </h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {church.amenities.map((amenity) => (
                     <div key={amenity} className="flex items-center gap-4 py-2">
-                      <CheckCircle className="h-6 w-6 text-[#222222]" />
-                      <span className="text-[16px] text-[#222222]">{amenity}</span>
+                      <CheckCircle className="h-6 w-6 text-[#1a1a1a]" />
+                      <span className="text-[16px] text-[#1a1a1a]">{amenity}</span>
                     </div>
                   ))}
                   {church.languages.map((language) => (
                     <div key={language} className="flex items-center gap-4 py-2">
-                      <Globe className="h-6 w-6 text-[#222222]" />
-                      <span className="text-[16px] text-[#222222]">{language} services</span>
+                      <Globe className="h-6 w-6 text-[#1a1a1a]" />
+                      <span className="text-[16px] text-[#1a1a1a]">{language} services</span>
                     </div>
                   ))}
                 </div>
@@ -775,8 +791,8 @@ export const ChurchProfilePage = () => {
             <div id="reviews" className="py-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-[22px] font-semibold text-[#222222]">Visitor reviews</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#555555]">
+                  <h2 className="text-[22px] font-semibold text-[#1a1a1a]">Visitor reviews</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5c5650]">
                     {writtenReviewCount > 0
                       ? `${writtenReviewCount} written ${writtenReviewCount === 1 ? 'review is' : 'reviews are'} currently published on SA Church Finder for this church.`
                       : church.reviewCount > 0
@@ -786,7 +802,7 @@ export const ChurchProfilePage = () => {
                 </div>
 
                 <label className="w-full sm:w-[220px]">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8f8f8f]">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a8f7f]">
                     Sort reviews
                   </span>
                   <select
@@ -795,7 +811,7 @@ export const ChurchProfilePage = () => {
                       setReviewSort(event.target.value as ReviewSort);
                       setReviewPage(1);
                     }}
-                    className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                    className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
                   >
                     {REVIEW_SORT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -816,7 +832,7 @@ export const ChurchProfilePage = () => {
               </div>
 
               {helpfulVoteError ? (
-                <div className="mt-6 rounded-[28px] border border-[#ffb4c1] bg-[#fff1f4] px-5 py-4 text-sm text-[#9f1239]">
+                <div className="mt-6 rounded-[28px] border border-[#ffc2cc] bg-[#fff0f3] px-5 py-4 text-sm text-[#a8083a]">
                   {helpfulVoteError}
                 </div>
               ) : null}
@@ -828,7 +844,7 @@ export const ChurchProfilePage = () => {
               ) : null}
 
               {reviewsError ? (
-                <div className="mt-6 rounded-[28px] border border-[#ffb4c1] bg-[#fff1f4] px-5 py-4 text-sm text-[#9f1239]">
+                <div className="mt-6 rounded-[28px] border border-[#ffc2cc] bg-[#fff0f3] px-5 py-4 text-sm text-[#a8083a]">
                   {reviewsError.message}
                 </div>
               ) : isReviewsLoading ? (
@@ -849,7 +865,7 @@ export const ChurchProfilePage = () => {
                   ))}
                 </div>
               ) : writtenReviews.length === 0 ? (
-                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-[#fcfbf8] px-5 py-6 text-sm leading-6 text-[#555555]">
+                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-[#faf8f5] px-5 py-6 text-sm leading-6 text-[#5c5650]">
                   No written reviews are live on SA Church Finder for this church yet.
                 </div>
               ) : (
@@ -874,18 +890,18 @@ export const ChurchProfilePage = () => {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-base font-semibold text-[#222222]">
+                              <h3 className="text-base font-semibold text-[#1a1a1a]">
                                 {review.user.name}
                               </h3>
                               {isOwnReview ? (
-                                <span className="rounded-full bg-[#fff1f4] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#FF385C]">
+                                <span className="rounded-full bg-[#fff0f3] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#d90b45]">
                                   Your review
                                 </span>
                               ) : null}
                             </div>
-                            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#555555]">
-                              <span className="inline-flex items-center gap-1 font-semibold text-[#222222]">
-                                <Star className="h-4 w-4 fill-[#222222] text-[#222222]" />
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#5c5650]">
+                              <span className="inline-flex items-center gap-1 font-semibold text-[#1a1a1a]">
+                                <Star className="h-4 w-4 fill-[#1a1a1a] text-[#1a1a1a]" />
                                 {formatRating(review.rating)}
                               </span>
                               <span>&middot;</span>
@@ -900,7 +916,7 @@ export const ChurchProfilePage = () => {
                           </div>
                         </div>
 
-                        <p className="mt-4 whitespace-pre-line text-sm leading-7 text-[#222222]">
+                        <p className="mt-4 whitespace-pre-line text-sm leading-7 text-[#1a1a1a]">
                           {review.body}
                         </p>
 
@@ -909,7 +925,7 @@ export const ChurchProfilePage = () => {
                             {subratings.map((item) => (
                               <span
                                 key={item.label}
-                                className="rounded-full bg-[#f7f7f7] px-3 py-1.5 text-xs font-medium text-[#555555]"
+                                className="rounded-full bg-[#f5f2ed] px-3 py-1.5 text-xs font-medium text-[#5c5650]"
                               >
                                 {item.label}: {item.value}/5
                               </span>
@@ -918,7 +934,7 @@ export const ChurchProfilePage = () => {
                         ) : null}
 
                         <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8f8f8f]">
+                          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#9a8f7f]">
                             {formatHelpfulCount(review.helpfulCount)}
                           </p>
 
@@ -927,10 +943,10 @@ export const ChurchProfilePage = () => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  void handleFlagReview(review);
+                                  handleFlagReviewRequest(review);
                                 }}
                                 disabled={isFlaggingReview}
-                                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 <ShieldAlert className="h-4 w-4" />
                                 {isFlaggingReview ? 'Reporting...' : 'Report'}
@@ -945,7 +961,7 @@ export const ChurchProfilePage = () => {
                                 className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
                                   review.viewerHasVotedHelpful
                                     ? 'border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] hover:bg-[#dbeafe]'
-                                    : 'border-gray-300 bg-white text-[#222222] hover:bg-gray-50'
+                                    : 'border-gray-300 bg-white text-[#1a1a1a] hover:bg-gray-50'
                                 }`}
                               >
                                 <ThumbsUp
@@ -967,18 +983,18 @@ export const ChurchProfilePage = () => {
               )}
 
               {reviewTotalPages > 1 ? (
-                <div className="mt-6 flex items-center justify-between gap-4 rounded-[28px] border border-gray-200 bg-[#fcfbf8] px-5 py-4">
+                <div className="mt-6 flex items-center justify-between gap-4 rounded-[28px] border border-gray-200 bg-[#faf8f5] px-5 py-4">
                   <button
                     type="button"
                     onClick={() => {
                       setReviewPage((current) => Math.max(1, current - 1));
                     }}
                     disabled={reviewPage === 1}
-                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Previous
                   </button>
-                  <p className="text-sm text-[#555555]">
+                  <p className="text-sm text-[#5c5650]">
                     Page {reviewPage} of {reviewTotalPages}
                   </p>
                   <button
@@ -987,7 +1003,7 @@ export const ChurchProfilePage = () => {
                       setReviewPage((current) => Math.min(reviewTotalPages, current + 1));
                     }}
                     disabled={reviewPage >= reviewTotalPages}
-                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Next
                   </button>
@@ -998,10 +1014,10 @@ export const ChurchProfilePage = () => {
 
           <div className="w-full flex-shrink-0 lg:w-[370px]">
             <div className="sticky top-[120px] rounded-[32px] border border-[#e8dfd2] bg-white p-6 shadow-airbnb-subtle">
-              <h3 className="mb-1 text-[22px] font-semibold text-[#222222]">
+              <h3 className="mb-1 text-[22px] font-semibold text-[#1a1a1a]">
                 Visit {church.name.split(' ').slice(0, 3).join(' ')}
               </h3>
-              <p className="mb-6 text-[14px] text-[#717171]">
+              <p className="mb-6 text-[14px] text-[#6b6560]">
                 Get directions or contact the church
               </p>
 
@@ -1016,10 +1032,10 @@ export const ChurchProfilePage = () => {
                   />
                 </div>
                 <div className="flex items-start gap-2">
-                  <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#222222]" />
+                  <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#1a1a1a]" />
                   <div>
-                    <p className="text-[14px] font-medium text-[#222222]">{church.address}</p>
-                    <p className="text-[14px] text-[#717171]">
+                    <p className="text-[14px] font-medium text-[#1a1a1a]">{church.address}</p>
+                    <p className="text-[14px] text-[#6b6560]">
                       {church.city}, {church.state} {church.zipCode}
                     </p>
                   </div>
@@ -1030,7 +1046,7 @@ export const ChurchProfilePage = () => {
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mb-4 block w-full rounded-lg bg-[#FF385C] px-6 py-3.5 text-center text-[16px] font-semibold text-white transition-colors hover:bg-[#E00B41]"
+                className="mb-4 block w-full rounded-lg bg-[#d90b45] px-6 py-3.5 text-center text-[16px] font-semibold text-white transition-colors hover:bg-[#b00838]"
               >
                 Get Directions
               </a>
@@ -1039,7 +1055,7 @@ export const ChurchProfilePage = () => {
                 {church.phone ? (
                   <a
                     href={`tel:${church.phone}`}
-                    className="flex items-center gap-3 text-[14px] text-[#222222] transition-colors hover:underline"
+                    className="flex items-center gap-3 text-[14px] text-[#1a1a1a] transition-colors hover:underline"
                   >
                     <Phone className="h-5 w-5" />
                     <span>{church.phone}</span>
@@ -1048,7 +1064,7 @@ export const ChurchProfilePage = () => {
                 {church.email ? (
                   <a
                     href={`mailto:${church.email}`}
-                    className="flex items-center gap-3 text-[14px] text-[#222222] transition-colors hover:underline"
+                    className="flex items-center gap-3 text-[14px] text-[#1a1a1a] transition-colors hover:underline"
                   >
                     <Mail className="h-5 w-5" />
                     <span>{church.email}</span>
@@ -1063,31 +1079,31 @@ export const ChurchProfilePage = () => {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-[14px] text-[#222222] transition-colors hover:underline"
+                    className="flex items-center gap-3 text-[14px] text-[#1a1a1a] transition-colors hover:underline"
                   >
                     <Globe className="h-5 w-5" />
                     <span className="truncate">{church.website}</span>
-                    <ExternalLink className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-[#717171]" />
+                    <ExternalLink className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-[#6b6560]" />
                   </a>
                 ) : null}
               </div>
 
               {showClaimCard ? (
                 <div className="mt-6 border-t border-gray-200 pt-6">
-                  <div className="rounded-[28px] border border-[#e8dfd2] bg-[#fcfbf8] p-5">
+                  <div className="rounded-[28px] border border-[#e8dfd2] bg-[#faf8f5] p-5">
                     <div className="flex items-start gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle">
                         <CheckCircle className="h-5 w-5" />
                       </div>
                       <div>
-                        <h4 className="text-base font-semibold text-[#222222]">
+                        <h4 className="text-base font-semibold text-[#1a1a1a]">
                           {viewerClaim?.status === 'approved'
                             ? 'You manage this listing'
                             : viewerClaim?.status === 'pending'
                               ? 'Claim request pending'
                               : 'Represent this church?'}
                         </h4>
-                        <p className="mt-1 text-sm leading-6 text-[#555555]">
+                        <p className="mt-1 text-sm leading-6 text-[#5c5650]">
                           {viewerClaim?.status === 'approved'
                             ? 'Your church claim was approved. Listing editing and event-management tools are the next Milestone 3 slice.'
                             : viewerClaim?.status === 'pending'
@@ -1104,14 +1120,14 @@ export const ChurchProfilePage = () => {
                     ) : null}
 
                     {claimError ? (
-                      <div className="mt-4 rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]">
+                      <div className="mt-4 rounded-2xl border border-[#ffc2cc] bg-[#fff0f3] px-4 py-3 text-sm text-[#a8083a]">
                         {claimError}
                       </div>
                     ) : null}
 
                     {viewerClaim ? (
-                      <div className="mt-4 rounded-2xl border border-[#e7ded1] bg-white px-4 py-4 text-sm text-[#555555]">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8f8f8f]">
+                      <div className="mt-4 rounded-2xl border border-[#e7ded1] bg-white px-4 py-4 text-sm text-[#5c5650]">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9a8f7f]">
                           {viewerClaim.status === 'approved'
                             ? 'Approved'
                             : viewerClaim.status === 'pending'
@@ -1119,13 +1135,17 @@ export const ChurchProfilePage = () => {
                               : 'Not approved'}
                         </p>
                         <p className="mt-2 leading-6">
-                          Requested as <span className="font-semibold text-[#222222]">{viewerClaim.roleTitle}</span> with{' '}
-                          <span className="font-semibold text-[#222222]">
+                          Requested as{' '}
+                          <span className="font-semibold text-[#1a1a1a]">
+                            {viewerClaim.roleTitle}
+                          </span>{' '}
+                          with{' '}
+                          <span className="font-semibold text-[#1a1a1a]">
                             {viewerClaim.verificationEmail}
                           </span>
                           .
                         </p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#8f8f8f]">
+                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#9a8f7f]">
                           Submitted {formatClaimDate(viewerClaim.createdAt)}
                           {viewerClaim.reviewedAt
                             ? ` · Reviewed ${formatClaimDate(viewerClaim.reviewedAt)}`
@@ -1138,7 +1158,7 @@ export const ChurchProfilePage = () => {
                       isClaimFormOpen ? (
                         <form className="mt-4 space-y-3" onSubmit={handleSubmitChurchClaim}>
                           <label className="block">
-                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8f8f8f]">
+                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9a8f7f]">
                               Your role
                             </span>
                             <input
@@ -1147,12 +1167,12 @@ export const ChurchProfilePage = () => {
                                 setClaimRoleTitle(event.target.value);
                               }}
                               placeholder="Executive Pastor"
-                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
                             />
                           </label>
 
                           <label className="block">
-                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8f8f8f]">
+                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9a8f7f]">
                               Church email
                             </span>
                             <input
@@ -1161,12 +1181,14 @@ export const ChurchProfilePage = () => {
                               onChange={(event) => {
                                 setClaimVerificationEmail(event.target.value);
                               }}
-                              placeholder={claimDomainHint ? `you@${claimDomainHint}` : 'you@church.org'}
-                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222]"
+                              placeholder={
+                                claimDomainHint ? `you@${claimDomainHint}` : 'you@church.org'
+                              }
+                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
                             />
                           </label>
 
-                          <p className="text-xs leading-5 text-[#717171]">
+                          <p className="text-xs leading-5 text-[#6b6560]">
                             Use a staff or ministry address that matches the church&apos;s public
                             website or contact email
                             {claimDomainHint ? `, like ${claimDomainHint}` : ''}.
@@ -1176,7 +1198,7 @@ export const ChurchProfilePage = () => {
                             <button
                               type="submit"
                               disabled={isSubmittingClaim}
-                              className="rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+                              className="rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               {isSubmittingClaim ? 'Submitting...' : 'Submit claim request'}
                             </button>
@@ -1185,7 +1207,7 @@ export const ChurchProfilePage = () => {
                               onClick={() => {
                                 setIsClaimFormOpen(false);
                               }}
-                              className="rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-50"
+                              className="rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50"
                             >
                               Cancel
                             </button>
@@ -1196,7 +1218,7 @@ export const ChurchProfilePage = () => {
                           <button
                             type="button"
                             onClick={handleOpenClaimForm}
-                            className="rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+                            className="rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
                           >
                             {viewerClaim?.status === 'rejected'
                               ? 'Submit a new claim request'
@@ -1215,9 +1237,22 @@ export const ChurchProfilePage = () => {
 
       <footer className="border-t border-[#e8dfd2] bg-[#f8f4ec]">
         <div className="mx-auto max-w-[1180px] px-6 py-6 lg:px-0">
-          <p className="text-sm text-[#717171]">&copy; 2026 SA Church Finder</p>
+          <p className="text-sm text-[#6b6560]">&copy; 2026 SA Church Finder</p>
         </div>
       </footer>
+
+      <ConfirmDialog
+        open={flagDialogReviewId !== null}
+        title="Report this review?"
+        description="This review will be queued for moderator follow-up and hidden from public listings while it is being reviewed."
+        confirmLabel="Report review"
+        variant="destructive"
+        isPending={flagReviewMutation.isPending}
+        onConfirm={() => {
+          void handleFlagReviewConfirmed();
+        }}
+        onCancel={() => setFlagDialogReviewId(null)}
+      />
     </div>
   );
 };

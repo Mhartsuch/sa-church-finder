@@ -1,41 +1,39 @@
-import { FormEvent, useEffect, useState } from 'react'
-import { LogIn, MessageSquareText, Trash2 } from 'lucide-react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { FormEvent, useEffect, useState } from 'react';
+import { LogIn, MessageSquareText, Trash2 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-import {
-  useCreateReview,
-  useDeleteReview,
-  useUpdateReview,
-} from '@/hooks/useReviews'
-import { IReview } from '@/types/review'
+import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
+import { useCreateReview, useDeleteReview, useUpdateReview } from '@/hooks/useReviews';
+import { useToast } from '@/hooks/useToast';
+import { IReview } from '@/types/review';
 
 type ReviewFormState = {
-  rating: string
-  body: string
-  welcomeRating: string
-  worshipRating: string
-  sermonRating: string
-  facilitiesRating: string
-}
+  rating: string;
+  body: string;
+  welcomeRating: string;
+  worshipRating: string;
+  sermonRating: string;
+  facilitiesRating: string;
+};
 
 type ReviewFormProps = {
-  churchId: string
-  churchName: string
-  currentUserReview: IReview | null
-  isAuthenticated: boolean
-}
+  churchId: string;
+  churchName: string;
+  currentUserReview: IReview | null;
+  isAuthenticated: boolean;
+};
 
-const RATING_OPTIONS = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1]
-const CATEGORY_RATING_OPTIONS = [1, 2, 3, 4, 5]
+const RATING_OPTIONS = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
+const CATEGORY_RATING_OPTIONS = [1, 2, 3, 4, 5];
 const CATEGORY_FIELDS: Array<{
-  field: 'welcomeRating' | 'worshipRating' | 'sermonRating' | 'facilitiesRating'
-  label: string
+  field: 'welcomeRating' | 'worshipRating' | 'sermonRating' | 'facilitiesRating';
+  label: string;
 }> = [
   { field: 'welcomeRating', label: 'Welcome' },
   { field: 'worshipRating', label: 'Worship' },
   { field: 'sermonRating', label: 'Sermon' },
   { field: 'facilitiesRating', label: 'Facilities' },
-]
+];
 
 const EMPTY_FORM_STATE: ReviewFormState = {
   rating: '5',
@@ -44,11 +42,11 @@ const EMPTY_FORM_STATE: ReviewFormState = {
   worshipRating: '',
   sermonRating: '',
   facilitiesRating: '',
-}
+};
 
 const toFormState = (review: IReview | null): ReviewFormState => {
   if (!review) {
-    return EMPTY_FORM_STATE
+    return EMPTY_FORM_STATE;
   }
 
   return {
@@ -58,35 +56,35 @@ const toFormState = (review: IReview | null): ReviewFormState => {
     worshipRating: review.worshipRating?.toString() ?? '',
     sermonRating: review.sermonRating?.toString() ?? '',
     facilitiesRating: review.facilitiesRating?.toString() ?? '',
-  }
-}
+  };
+};
 
 const parseOptionalRating = (value: string): number | null => {
   if (!value) {
-    return null
+    return null;
   }
 
-  return Number(value)
-}
+  return Number(value);
+};
 
 const validateFormState = (formState: ReviewFormState): string | null => {
-  const rating = Number(formState.rating)
-  const bodyLength = formState.body.trim().length
+  const rating = Number(formState.rating);
+  const bodyLength = formState.body.trim().length;
 
   if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-    return 'Choose an overall rating between 1 and 5.'
+    return 'Choose an overall rating between 1 and 5.';
   }
 
   if (bodyLength < 50) {
-    return 'Share at least 50 characters so other visitors have something useful to learn from.'
+    return 'Share at least 50 characters so other visitors have something useful to learn from.';
   }
 
   if (bodyLength > 2000) {
-    return 'Keep the written review under 2000 characters.'
+    return 'Keep the written review under 2000 characters.';
   }
 
-  return null
-}
+  return null;
+};
 
 const ReviewForm = ({
   churchId,
@@ -94,26 +92,26 @@ const ReviewForm = ({
   currentUserReview,
   isAuthenticated,
 }: ReviewFormProps) => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const createReviewMutation = useCreateReview()
-  const updateReviewMutation = useUpdateReview()
-  const deleteReviewMutation = useDeleteReview()
-  const [formState, setFormState] = useState<ReviewFormState>(() =>
-    toFormState(currentUserReview),
-  )
-  const [formError, setFormError] = useState<string | null>(null)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const createReviewMutation = useCreateReview();
+  const updateReviewMutation = useUpdateReview();
+  const deleteReviewMutation = useDeleteReview();
+  const { addToast } = useToast();
+  const [formState, setFormState] = useState<ReviewFormState>(() => toFormState(currentUserReview));
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
-    setFormState(toFormState(currentUserReview))
-    setFormError(null)
-  }, [currentUserReview])
+    setFormState(toFormState(currentUserReview));
+    setFormError(null);
+  }, [currentUserReview]);
 
-  const bodyLength = formState.body.trim().length
+  const bodyLength = formState.body.trim().length;
   const isPending =
     createReviewMutation.isPending ||
     updateReviewMutation.isPending ||
-    deleteReviewMutation.isPending
+    deleteReviewMutation.isPending;
 
   const handleRequireAuth = () => {
     navigate('/login', {
@@ -124,17 +122,17 @@ const ReviewForm = ({
           hash: '#reviews',
         },
       },
-    })
-  }
+    });
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setFormError(null)
+    event.preventDefault();
+    setFormError(null);
 
-    const validationError = validateFormState(formState)
+    const validationError = validateFormState(formState);
     if (validationError) {
-      setFormError(validationError)
-      return
+      setFormError(validationError);
+      return;
     }
 
     const payload = {
@@ -144,110 +142,108 @@ const ReviewForm = ({
       worshipRating: parseOptionalRating(formState.worshipRating),
       sermonRating: parseOptionalRating(formState.sermonRating),
       facilitiesRating: parseOptionalRating(formState.facilitiesRating),
-    }
+    };
 
     try {
       if (currentUserReview) {
         await updateReviewMutation.mutateAsync({
           reviewId: currentUserReview.id,
           ...payload,
-        })
+        });
+        addToast({ message: 'Review updated successfully', variant: 'success' });
       } else {
         await createReviewMutation.mutateAsync({
           churchId,
           ...payload,
-        })
+        });
+        addToast({
+          message: 'Review published \u2014 thank you for sharing your experience!',
+          variant: 'success',
+        });
       }
     } catch (error) {
       setFormError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to save your review right now.',
-      )
+        error instanceof Error ? error.message : 'Unable to save your review right now.',
+      );
     }
-  }
+  };
 
-  const handleDelete = async () => {
+  const handleDeleteConfirmed = async () => {
     if (!currentUserReview) {
-      return
+      return;
     }
 
-    setFormError(null)
-
-    if (!window.confirm(`Delete your review for ${churchName}?`)) {
-      return
-    }
+    setFormError(null);
 
     try {
-      await deleteReviewMutation.mutateAsync(currentUserReview.id)
+      await deleteReviewMutation.mutateAsync(currentUserReview.id);
+      setIsDeleteDialogOpen(false);
+      addToast({ message: 'Review deleted', variant: 'success' });
     } catch (error) {
+      setIsDeleteDialogOpen(false);
       setFormError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to delete your review right now.',
-      )
+        error instanceof Error ? error.message : 'Unable to delete your review right now.',
+      );
     }
-  }
+  };
 
   if (!isAuthenticated) {
     return (
-      <div className='rounded-[28px] border border-dashed border-gray-300 bg-[#fcfbf8] p-6'>
-        <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff1f4] text-[#FF385C]'>
-          <MessageSquareText className='h-6 w-6' />
+      <div className="rounded-[28px] border border-dashed border-gray-300 bg-[#faf8f5] p-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff0f3] text-[#d90b45]">
+          <MessageSquareText className="h-6 w-6" />
         </div>
-        <h3 className='mt-4 text-xl font-semibold text-[#222222]'>
-          Share your visit
-        </h3>
-        <p className='mt-2 max-w-2xl text-sm leading-6 text-[#555555]'>
-          Signed-in members can leave one review per church and edit it later as
-          they get to know the community better.
+        <h3 className="mt-4 text-xl font-semibold text-[#1a1a1a]">Share your visit</h3>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5c5650]">
+          Signed-in members can leave one review per church and edit it later as they get to know
+          the community better.
         </p>
         <button
-          type='button'
+          type="button"
           onClick={handleRequireAuth}
-          className='mt-5 inline-flex items-center gap-2 rounded-full bg-[#222222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black'
+          className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
         >
-          <LogIn className='h-4 w-4' />
+          <LogIn className="h-4 w-4" />
           Sign in to write a review
         </button>
       </div>
-    )
+    );
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className='rounded-[28px] border border-gray-200 bg-[#fcfbf8] p-6'
+      className="rounded-[28px] border border-gray-200 bg-[#faf8f5] p-6"
     >
-      <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className='text-xl font-semibold text-[#222222]'>
+          <h3 className="text-xl font-semibold text-[#1a1a1a]">
             {currentUserReview ? 'Update your review' : 'Write a review'}
           </h3>
-          <p className='mt-1 text-sm leading-6 text-[#555555]'>
+          <p className="mt-1 text-sm leading-6 text-[#5c5650]">
             {currentUserReview
               ? 'You can keep this feedback up to date anytime.'
               : 'Tell future visitors what stood out during your visit.'}
           </p>
         </div>
-        <p className='text-xs font-semibold uppercase tracking-[0.18em] text-[#8f8f8f]'>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a8f7f]">
           One review per church
         </p>
       </div>
 
-      <div className='mt-5 grid gap-4 md:grid-cols-2'>
-        <label className='block'>
-          <span className='text-sm font-semibold text-[#222222]'>Overall rating</span>
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-semibold text-[#1a1a1a]">Overall rating</span>
           <select
             value={formState.rating}
             onChange={(event) => {
               setFormState((current) => ({
                 ...current,
                 rating: event.target.value,
-              }))
+              }));
             }}
             disabled={isPending}
-            className='mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222] disabled:cursor-not-allowed disabled:opacity-70'
+            className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {RATING_OPTIONS.map((option) => (
               <option key={option} value={option.toString()}>
@@ -257,50 +253,48 @@ const ReviewForm = ({
           </select>
         </label>
 
-        <div className='rounded-2xl border border-[#ffe0e7] bg-white px-4 py-3'>
-          <p className='text-sm font-semibold text-[#222222]'>Written review</p>
-          <p className='mt-1 text-sm text-[#555555]'>
-            {bodyLength}/2000 characters
-          </p>
-          <p className='mt-2 text-xs leading-5 text-[#8f8f8f]'>
+        <div className="rounded-2xl border border-[#ffe0e7] bg-white px-4 py-3">
+          <p className="text-sm font-semibold text-[#1a1a1a]">Written review</p>
+          <p className="mt-1 text-sm text-[#5c5650]">{bodyLength}/2000 characters</p>
+          <p className="mt-2 text-xs leading-5 text-[#9a8f7f]">
             Aim for at least 50 characters so it is actually useful.
           </p>
         </div>
       </div>
 
-      <label className='mt-4 block'>
-        <span className='text-sm font-semibold text-[#222222]'>What was your experience like?</span>
+      <label className="mt-4 block">
+        <span className="text-sm font-semibold text-[#1a1a1a]">What was your experience like?</span>
         <textarea
           value={formState.body}
           onChange={(event) => {
             setFormState((current) => ({
               ...current,
               body: event.target.value,
-            }))
+            }));
           }}
           disabled={isPending}
           rows={6}
-          placeholder='Share what welcomed you, what the service felt like, and what future visitors should know.'
-          className='mt-2 w-full rounded-[24px] border border-gray-300 bg-white px-4 py-3 text-sm leading-6 text-[#222222] outline-none transition-colors focus:border-[#222222] disabled:cursor-not-allowed disabled:opacity-70'
+          placeholder="Share what welcomed you, what the service felt like, and what future visitors should know."
+          className="mt-2 w-full rounded-[24px] border border-gray-300 bg-white px-4 py-3 text-sm leading-6 text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] disabled:cursor-not-allowed disabled:opacity-70"
         />
       </label>
 
-      <div className='mt-5 grid gap-4 md:grid-cols-2'>
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
         {CATEGORY_FIELDS.map(({ field, label }) => (
-          <label key={field} className='block'>
-            <span className='text-sm font-semibold text-[#222222]'>{label}</span>
+          <label key={field} className="block">
+            <span className="text-sm font-semibold text-[#1a1a1a]">{label}</span>
             <select
               value={formState[field]}
               onChange={(event) => {
                 setFormState((current) => ({
                   ...current,
                   [field]: event.target.value,
-                }))
+                }));
               }}
               disabled={isPending}
-              className='mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222222] outline-none transition-colors focus:border-[#222222] disabled:cursor-not-allowed disabled:opacity-70'
+              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <option value=''>Skip for now</option>
+              <option value="">Skip for now</option>
               {CATEGORY_RATING_OPTIONS.map((option) => (
                 <option key={option} value={option.toString()}>
                   {option} / 5
@@ -312,16 +306,16 @@ const ReviewForm = ({
       </div>
 
       {formError ? (
-        <div className='mt-4 rounded-2xl border border-[#ffb4c1] bg-[#fff1f4] px-4 py-3 text-sm text-[#9f1239]'>
+        <div className="mt-4 rounded-2xl border border-[#ffc2cc] bg-[#fff0f3] px-4 py-3 text-sm text-[#a8083a]">
           {formError}
         </div>
       ) : null}
 
-      <div className='mt-5 flex flex-col gap-3 sm:flex-row sm:items-center'>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
         <button
-          type='submit'
+          type="submit"
           disabled={isPending}
-          className='rounded-full bg-[#FF385C] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#E00B41] disabled:cursor-not-allowed disabled:opacity-70'
+          className="rounded-full bg-[#d90b45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isPending
             ? currentUserReview
@@ -334,20 +328,31 @@ const ReviewForm = ({
 
         {currentUserReview ? (
           <button
-            type='button'
-            onClick={() => {
-              void handleDelete()
-            }}
+            type="button"
+            onClick={() => setIsDeleteDialogOpen(true)}
             disabled={isPending}
-            className='inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#222222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70'
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            <Trash2 className='h-4 w-4' />
+            <Trash2 className="h-4 w-4" />
             Delete review
           </button>
         ) : null}
       </div>
-    </form>
-  )
-}
 
-export default ReviewForm
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        title="Delete review?"
+        description={`Your review for ${churchName} will be permanently removed. This cannot be undone.`}
+        confirmLabel="Delete review"
+        variant="destructive"
+        isPending={deleteReviewMutation.isPending}
+        onConfirm={() => {
+          void handleDeleteConfirmed();
+        }}
+        onCancel={() => setIsDeleteDialogOpen(false)}
+      />
+    </form>
+  );
+};
+
+export default ReviewForm;
