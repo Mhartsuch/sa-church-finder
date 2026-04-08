@@ -19,7 +19,7 @@ type LoginFormState = {
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 
 const inputClasses =
-  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#1a1a1a] outline-none transition focus:border-[#d90b45] focus:ring-4 focus:ring-[#d90b45]/10';
+  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
 
 const validateForm = ({ email, password }: LoginFormState): string | null => {
   if (!email.trim()) {
@@ -93,7 +93,7 @@ const LoginPage = () => {
           <Link
             to={registerHref}
             state={location.state}
-            className="font-semibold text-[#1a1a1a] underline underline-offset-4"
+            className="font-semibold text-[#222] underline underline-offset-4"
           >
             Create one
           </Link>
@@ -102,8 +102,8 @@ const LoginPage = () => {
       }
     >
       <div className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#d90b45]">Sign in</p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1a1a1a]">
+        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">Sign in</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[#222]">
           Pick up where you left off.
         </h1>
         <p className="text-sm leading-6 text-[#5c5650]">
@@ -121,7 +121,7 @@ const LoginPage = () => {
 
         <GoogleAuthButton href={googleAuthUrl} label="Continue with Google" />
 
-        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#9a8f7f]">
+        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#999]">
           <span className="h-px flex-1 bg-gray-200" />
           Or continue with email
           <span className="h-px flex-1 bg-gray-200" />
@@ -129,7 +129,7 @@ const LoginPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <label className="block text-sm font-semibold text-[#1a1a1a]">
+        <label className="block text-sm font-semibold text-[#222]">
           Email
           <input
             type="email"
@@ -146,7 +146,7 @@ const LoginPage = () => {
           />
         </label>
 
-        <label className="block text-sm font-semibold text-[#1a1a1a]">
+        <label className="block text-sm font-semibold text-[#222]">
           Password
           <input
             type="password"
@@ -166,7 +166,7 @@ const LoginPage = () => {
         <div className="flex justify-end">
           <Link
             to="/forgot-password"
-            className="text-sm font-semibold text-[#d90b45] underline underline-offset-4"
+            className="text-sm font-semibold text-[#FF385C] underline underline-offset-4"
           >
             Forgot your password?
           </Link>
@@ -181,7 +181,7 @@ const LoginPage = () => {
         <button
           type="submit"
           disabled={loginMutation.isPending}
-          className="w-full rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loginMutation.isPending ? 'Signing you in...' : 'Sign in'}
         </button>

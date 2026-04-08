@@ -20,7 +20,7 @@ type RegisterFormState = {
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 
 const inputClasses =
-  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#1a1a1a] outline-none transition focus:border-[#d90b45] focus:ring-4 focus:ring-[#d90b45]/10';
+  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
 
 const validateForm = ({ name, email, password }: RegisterFormState): string | null => {
   if (!name.trim()) {
@@ -102,7 +102,7 @@ const RegisterPage = () => {
           <Link
             to={loginHref}
             state={location.state}
-            className="font-semibold text-[#1a1a1a] underline underline-offset-4"
+            className="font-semibold text-[#222] underline underline-offset-4"
           >
             Sign in instead
           </Link>
@@ -111,8 +111,8 @@ const RegisterPage = () => {
       }
     >
       <div className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#d90b45]">Sign up</p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1a1a1a]">
+        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">Sign up</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[#222]">
           Create your account your way.
         </h1>
         <p className="text-sm leading-6 text-[#5c5650]">
@@ -130,7 +130,7 @@ const RegisterPage = () => {
 
         <GoogleAuthButton href={googleAuthUrl} label="Continue with Google" />
 
-        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#9a8f7f]">
+        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#999]">
           <span className="h-px flex-1 bg-gray-200" />
           Or create an account with email
           <span className="h-px flex-1 bg-gray-200" />
@@ -138,7 +138,7 @@ const RegisterPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <label className="block text-sm font-semibold text-[#1a1a1a]">
+        <label className="block text-sm font-semibold text-[#222]">
           Name
           <input
             type="text"
@@ -155,7 +155,7 @@ const RegisterPage = () => {
           />
         </label>
 
-        <label className="block text-sm font-semibold text-[#1a1a1a]">
+        <label className="block text-sm font-semibold text-[#222]">
           Email
           <input
             type="email"
@@ -172,7 +172,7 @@ const RegisterPage = () => {
           />
         </label>
 
-        <label className="block text-sm font-semibold text-[#1a1a1a]">
+        <label className="block text-sm font-semibold text-[#222]">
           Password
           <input
             type="password"
@@ -198,7 +198,7 @@ const RegisterPage = () => {
         <button
           type="submit"
           disabled={registerMutation.isPending}
-          className="w-full rounded-full bg-[#d90b45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838] disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-full bg-[#FF385C] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {registerMutation.isPending ? 'Creating your account...' : 'Create account'}
         </button>

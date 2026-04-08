@@ -8,8 +8,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"DM Sans"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
-        display: ['"DM Serif Display"', 'Georgia', 'serif'],
+        sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -46,9 +45,9 @@ export default {
           foreground: 'hsl(var(--card-foreground))',
         },
         brand: {
-          DEFAULT: '#d90b45',
+          DEFAULT: '#FF385C',
           light: '#fff0f3',
-          dark: '#a8083a',
+          dark: '#D70466',
         },
         sage: {
           50: '#f5faf7',

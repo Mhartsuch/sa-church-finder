@@ -56,7 +56,7 @@ export const MapPlaceholder = () => {
       <div className="absolute top-4 left-4 right-4 z-10">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-airbnb text-sm">
           <AlertCircle className="w-4 h-4 text-sage-600 flex-shrink-0" />
-          <span className="text-[#1a1a1a] font-medium">Lightweight map preview</span>
+          <span className="text-[#222] font-medium">Lightweight map preview</span>
         </div>
       </div>
 
@@ -106,8 +106,8 @@ export const MapPlaceholder = () => {
                   width="5.6"
                   height="1.6"
                   rx="0.8"
-                  fill={isHighlighted ? '#1a1a1a' : 'white'}
-                  stroke={isHighlighted ? '#1a1a1a' : '#b0b0b0'}
+                  fill={isHighlighted ? '#222' : 'white'}
+                  stroke={isHighlighted ? '#222' : '#b0b0b0'}
                   strokeWidth="0.08"
                   className="transition-all"
                 />
@@ -116,7 +116,7 @@ export const MapPlaceholder = () => {
                   y={y + 0.35}
                   textAnchor="middle"
                   fontSize="0.75"
-                  fill={isHighlighted ? 'white' : '#1a1a1a'}
+                  fill={isHighlighted ? 'white' : '#222'}
                   fontWeight="700"
                   fontFamily="Nunito Sans, sans-serif"
                   className="pointer-events-none select-none"
@@ -133,8 +133,8 @@ export const MapPlaceholder = () => {
           <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm">
             <div className="text-center">
               <MapPin className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <h3 className="text-base font-semibold text-[#1a1a1a] mb-1">No churches on map</h3>
-              <p className="text-sm text-[#6b6560]">Adjust your filters to see results</p>
+              <h3 className="text-base font-semibold text-[#222] mb-1">No churches on map</h3>
+              <p className="text-sm text-[#717171]">Adjust your filters to see results</p>
             </div>
           </div>
         )}

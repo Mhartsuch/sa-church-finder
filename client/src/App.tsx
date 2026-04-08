@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import { RequireAuth } from '@/components/auth/RequireAuth';
+import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
+import { MobileNav } from '@/components/layout/MobileNav';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { ToastContainer } from '@/components/layout/Toast';
 import { ToastProvider } from '@/hooks/useToast';
@@ -18,7 +20,7 @@ import VerifyEmailPage from '@/pages/VerifyEmailPage';
 const App = () => {
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col bg-[#faf8f5]">
+      <div className="flex min-h-screen flex-col bg-[#fff]">
         <ScrollToTop />
         <Header />
         <Routes>
@@ -40,6 +42,8 @@ const App = () => {
             }
           />
         </Routes>
+        <Footer />
+        <MobileNav />
       </div>
       <ToastContainer />
     </ToastProvider>

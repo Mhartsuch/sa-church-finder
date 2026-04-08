@@ -7,7 +7,7 @@ export const GoogleAuthButton = ({ href, label }: GoogleAuthButtonProps) => {
   return (
     <a
       href={href}
-      className="inline-flex w-full items-center justify-center gap-3 rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50"
+      className="inline-flex w-full items-center justify-center gap-3 rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#222] transition-colors hover:bg-gray-50"
     >
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" focusable="false">
         <path

@@ -67,10 +67,10 @@ export const ConfirmDialog = ({
             </div>
           )}
           <div className="flex-1">
-            <h3 id="confirm-title" className="text-[16px] font-semibold text-[#1a1a1a]">
+            <h3 id="confirm-title" className="text-[16px] font-semibold text-[#222]">
               {title}
             </h3>
-            <p id="confirm-desc" className="mt-1.5 text-[14px] leading-relaxed text-[#6b6560]">
+            <p id="confirm-desc" className="mt-1.5 text-[14px] leading-relaxed text-[#717171]">
               {description}
             </p>
           </div>
@@ -81,7 +81,7 @@ export const ConfirmDialog = ({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-xl border border-[#e0ddd8] px-5 py-2.5 text-[14px] font-semibold text-[#1a1a1a] transition-colors hover:border-[#1a1a1a] disabled:opacity-50"
+            className="rounded-xl border border-[#ddd] px-5 py-2.5 text-[14px] font-semibold text-[#222] transition-colors hover:border-[#222] disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -91,7 +91,7 @@ export const ConfirmDialog = ({
             onClick={onConfirm}
             disabled={isPending}
             className={`rounded-xl px-5 py-2.5 text-[14px] font-semibold text-white transition-colors disabled:opacity-70 ${
-              isDestructive ? 'bg-brand hover:bg-brand-dark' : 'bg-[#1a1a1a] hover:bg-black'
+              isDestructive ? 'bg-brand hover:bg-brand-dark' : 'bg-[#222] hover:bg-black'
             }`}
           >
             {isPending ? 'Please wait\u2026' : confirmLabel}

@@ -10,7 +10,7 @@ type ResetPasswordFormState = {
 };
 
 const inputClasses =
-  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#1a1a1a] outline-none transition focus:border-[#d90b45] focus:ring-4 focus:ring-[#d90b45]/10';
+  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
 
 const validateForm = (token: string, formState: ResetPasswordFormState): string | null => {
   if (!token) {
@@ -77,7 +77,7 @@ const ResetPasswordPage = () => {
           Need a fresh link?{' '}
           <Link
             to="/forgot-password"
-            className="font-semibold text-[#1a1a1a] underline underline-offset-4"
+            className="font-semibold text-[#222] underline underline-offset-4"
           >
             Request another reset email
           </Link>
@@ -86,10 +86,10 @@ const ResetPasswordPage = () => {
       }
     >
       <div className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#d90b45]">
+        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">
           Reset password
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1a1a1a]">Set a new password.</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#222]">Set a new password.</h1>
         <p className="text-sm leading-6 text-[#5c5650]">
           You&apos;ll use this new password the next time you sign in. The reset does not
           automatically log you into the app.
@@ -104,7 +104,7 @@ const ResetPasswordPage = () => {
 
           <Link
             to="/forgot-password"
-            className="inline-flex rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            className="inline-flex rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
           >
             Request a new link
           </Link>
@@ -118,14 +118,14 @@ const ResetPasswordPage = () => {
 
           <Link
             to="/login"
-            className="inline-flex rounded-full bg-[#d90b45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838]"
+            className="inline-flex rounded-full bg-[#FF385C] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838]"
           >
             Return to sign in
           </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <label className="block text-sm font-semibold text-[#1a1a1a]">
+          <label className="block text-sm font-semibold text-[#222]">
             New password
             <input
               type="password"
@@ -142,7 +142,7 @@ const ResetPasswordPage = () => {
             />
           </label>
 
-          <label className="block text-sm font-semibold text-[#1a1a1a]">
+          <label className="block text-sm font-semibold text-[#222]">
             Confirm new password
             <input
               type="password"
@@ -168,7 +168,7 @@ const ResetPasswordPage = () => {
           <button
             type="submit"
             disabled={resetPasswordMutation.isPending}
-            className="w-full rounded-full bg-[#d90b45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838] disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-full bg-[#FF385C] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {resetPasswordMutation.isPending ? 'Updating password...' : 'Update password'}
           </button>

@@ -41,9 +41,9 @@ export const AuthPageShell = ({
   footer,
 }: AuthPageShellProps) => {
   return (
-    <div className="flex flex-1 bg-[#faf8f5]">
+    <div className="flex flex-1 bg-[#fff]">
       <div className="relative mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr,0.95fr] lg:px-10 lg:py-10">
-        <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(160deg,#d90b45_0%,#e63e5c_55%,#ffd0c0_100%)] p-8 text-white shadow-airbnb sm:p-10">
+        <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(160deg,#FF385C_0%,#e63e5c_55%,#ffd0c0_100%)] p-8 text-white shadow-airbnb sm:p-10">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-44 w-44 rounded-full bg-[#1f4d45]/20 blur-3xl" />
 

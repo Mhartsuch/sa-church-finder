@@ -46,7 +46,7 @@ const VerifyEmailPage = () => {
           Need another link?{' '}
           <Link
             to={fallbackPath}
-            className="font-semibold text-[#1a1a1a] underline underline-offset-4"
+            className="font-semibold text-[#222] underline underline-offset-4"
           >
             {fallbackLabel}
           </Link>
@@ -55,10 +55,10 @@ const VerifyEmailPage = () => {
       }
     >
       <div className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#d90b45]">
+        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">
           Email verification
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1a1a1a]">Finalize verification.</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#222]">Finalize verification.</h1>
         <p className="text-sm leading-6 text-[#5c5650]">
           Once this succeeds, your account badge and future auth flows will reflect that the address
           has been confirmed.
@@ -74,13 +74,13 @@ const VerifyEmailPage = () => {
 
           <Link
             to={fallbackPath}
-            className="inline-flex rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            className="inline-flex rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
           >
             {fallbackLabel}
           </Link>
         </div>
       ) : verifyEmailMutation.isPending ? (
-        <div className="mt-8 rounded-[28px] border border-gray-200 bg-[#faf8f5] p-5 text-sm leading-6 text-[#5c5650]">
+        <div className="mt-8 rounded-[28px] border border-gray-200 bg-[#fff] p-5 text-sm leading-6 text-[#5c5650]">
           Verifying your email now...
         </div>
       ) : verificationError ? (
@@ -91,7 +91,7 @@ const VerifyEmailPage = () => {
 
           <Link
             to={fallbackPath}
-            className="inline-flex rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            className="inline-flex rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
           >
             {user ? 'Back to account' : 'Back to sign in'}
           </Link>
@@ -106,7 +106,7 @@ const VerifyEmailPage = () => {
 
           <Link
             to={user ? '/account' : '/login'}
-            className="inline-flex rounded-full bg-[#d90b45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838]"
+            className="inline-flex rounded-full bg-[#FF385C] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b00838]"
           >
             {user ? 'Return to account' : 'Go to sign in'}
           </Link>

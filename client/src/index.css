@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Serif+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,42 +6,42 @@
 
 @layer base {
   :root {
-    --brand: 348 83% 47%;
-    --brand-light: 348 100% 96%;
-    --brand-gradient: linear-gradient(135deg, #d90b45 0%, #e61e4d 40%, #ff6b6b 100%);
-    --background: 30 25% 99%;
+    --brand: 350 100% 61%;
+    --brand-light: 350 100% 96%;
+    --brand-gradient: linear-gradient(to right, #e61e4d, #e31c5f, #d70466);
+    --background: 0 0% 100%;
     --foreground: 0 0% 13%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 13%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 13%;
-    --muted: 30 12% 96%;
+    --muted: 0 0% 97%;
     --muted-foreground: 0 0% 44%;
     --accent: var(--brand);
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 30 8% 90%;
-    --input: 30 8% 90%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
     --ring: var(--brand);
     --radius: 12px;
     --primary: var(--brand);
     --primary-foreground: 0 0% 100%;
-    --secondary: 30 12% 96%;
+    --secondary: 0 0% 97%;
     --secondary-foreground: 0 0% 13%;
   }
 
   [data-theme='dark'] {
-    --background: 231 18% 11%;
-    --foreground: 0 0% 96%;
-    --card: 230 18% 15%;
-    --card-foreground: 0 0% 96%;
-    --popover: 230 18% 15%;
-    --popover-foreground: 0 0% 96%;
-    --muted: 230 14% 19%;
-    --muted-foreground: 0 0% 76%;
-    --border: 231 16% 24%;
-    --input: 231 16% 24%;
+    --background: 240 25% 14%;
+    --foreground: 0 0% 93%;
+    --card: 228 36% 16%;
+    --card-foreground: 0 0% 93%;
+    --popover: 228 36% 16%;
+    --popover-foreground: 0 0% 93%;
+    --muted: 220 36% 19%;
+    --muted-foreground: 0 0% 60%;
+    --border: 245 25% 23%;
+    --input: 245 25% 23%;
   }
 }
 
@@ -60,12 +60,12 @@
   body {
     @apply bg-background text-foreground;
     font-family:
-      'DM Sans',
+      'Inter',
       -apple-system,
       BlinkMacSystemFont,
       'Segoe UI',
       sans-serif;
-    color: #1a1a1a;
+    color: #222;
     line-height: 1.6;
     background: hsl(var(--background));
     letter-spacing: -0.01em;
@@ -113,7 +113,7 @@
     display: flex;
     align-items: stretch;
     width: 100%;
-    border: 1px solid #e0ddd8;
+    border: 1px solid #ddd;
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.98);
     box-shadow:
@@ -147,7 +147,7 @@
     width: 1px;
     height: 32px;
     transform: translateY(-50%);
-    background: #e8e4de;
+    background: #ebebeb;
   }
 
   .reference-search-label {
@@ -156,7 +156,7 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #1a1a1a;
+    color: #222;
   }
 
   .reference-search-input {
@@ -166,19 +166,19 @@
     margin-top: 2px;
     font-size: 14px;
     font-weight: 500;
-    color: #1a1a1a;
+    color: #222;
     outline: none;
   }
 
   .reference-search-input::placeholder {
-    color: #9a9590;
+    color: #717171;
   }
 
   .reference-search-summary {
     margin-top: 2px;
     font-size: 14px;
     font-weight: 500;
-    color: #6b6560;
+    color: #717171;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -238,15 +238,18 @@
   }
 
   .reference-hero-title {
-    font-family: 'DM Serif Display', Georgia, serif;
-    font-size: clamp(2rem, 3.5vw, 3.25rem);
-    font-weight: 400;
+    font-family:
+      'Inter',
+      -apple-system,
+      sans-serif;
+    font-size: clamp(2rem, 3.5vw, 2.25rem);
+    font-weight: 800;
     line-height: 1.1;
     letter-spacing: -0.02em;
   }
 
   .reference-hero-highlight {
-    background: linear-gradient(90deg, #ff6b6b 0%, #ffa07a 100%);
+    background: linear-gradient(90deg, #ff385c 0%, #e61e4d 50%, #d70466 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -309,7 +312,10 @@
   }
 
   .reference-hero-stat-number {
-    font-family: 'DM Serif Display', Georgia, serif;
+    font-family:
+      'Inter',
+      -apple-system,
+      sans-serif;
     font-size: 28px;
     font-weight: 400;
   }
@@ -339,7 +345,7 @@
     align-items: center;
     gap: 8px;
     border-radius: 24px;
-    background: #1a1a1a;
+    background: #222;
     padding: 14px 24px;
     font-size: 14px;
     font-weight: 600;
@@ -370,14 +376,14 @@
 
   .church-popup .mapboxgl-popup-close-button {
     @apply text-lg w-7 h-7 flex items-center justify-center rounded-full;
-    color: #6b6560;
+    color: #717171;
     right: 4px;
     top: 4px;
   }
 
   .church-popup .mapboxgl-popup-close-button:hover {
     @apply bg-gray-100;
-    color: #1a1a1a;
+    color: #222;
   }
 
   .hide-scrollbar {

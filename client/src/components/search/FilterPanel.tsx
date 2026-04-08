@@ -41,8 +41,8 @@ const FilterOptionButton = ({
     aria-pressed={active}
     className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
       active
-        ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
-        : 'border-[#e0ddd8] bg-white text-[#6b6560] hover:border-[#1a1a1a] hover:bg-[#f5f2ed] hover:text-[#1a1a1a]'
+        ? 'border-[#222] bg-[#222] text-white'
+        : 'border-[#ddd] bg-white text-[#717171] hover:border-[#222] hover:bg-[#f7f7f7] hover:text-[#222]'
     }`}
   >
     {label}
@@ -54,10 +54,10 @@ const FilterSection = ({ label, description, filterKey, options }: FilterSection
   const setFilter = useSearchStore((state) => state.setFilter);
 
   return (
-    <section className="rounded-[24px] border border-[#e8e4de] bg-white p-5">
+    <section className="rounded-[24px] border border-[#ebebeb] bg-white p-5">
       <div className="flex flex-col gap-1">
-        <h3 className="text-base font-semibold text-[#1a1a1a]">{label}</h3>
-        <p className="text-sm leading-6 text-[#6b6560]">{description}</p>
+        <h3 className="text-base font-semibold text-[#222]">{label}</h3>
+        <p className="text-sm leading-6 text-[#717171]">{description}</p>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -90,13 +90,13 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
 
   return (
     <div className="flex max-h-[88vh] flex-col bg-[#fbfbfb]">
-      <div className="border-b border-[#e8e4de] bg-white px-6 py-5 sm:px-8">
+      <div className="border-b border-[#ebebeb] bg-white px-6 py-5 sm:px-8">
         <div className="flex items-center justify-between gap-4">
           {onClose ? (
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1a1a1a] transition-colors hover:bg-[#f5f2ed]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#222] transition-colors hover:bg-[#f7f7f7]"
               aria-label="Close filters"
             >
               <X className="h-4 w-4" />
@@ -105,7 +105,7 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
             <div className="h-10 w-10" />
           )}
 
-          <h2 className="text-lg font-semibold text-[#1a1a1a]">Filters</h2>
+          <h2 className="text-lg font-semibold text-[#222]">Filters</h2>
 
           <div className="h-10 w-10" />
         </div>
@@ -157,9 +157,9 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
         />
       </div>
 
-      <div className="border-t border-[#e8e4de] bg-white px-6 py-5 sm:px-8 sm:py-6">
+      <div className="border-t border-[#ebebeb] bg-white px-6 py-5 sm:px-8 sm:py-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#f5f2ed] px-4 py-2 text-sm font-semibold text-[#6b6560]">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#f7f7f7] px-4 py-2 text-sm font-semibold text-[#717171]">
             <SlidersHorizontal className="h-4 w-4" />
             {activeFilterCount === 0
               ? 'No filters selected'
@@ -170,14 +170,14 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
             <button
               type="button"
               onClick={clearFilters}
-              className="rounded-full border border-[#e0ddd8] bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a] transition-colors hover:border-[#1a1a1a] hover:bg-[#f5f2ed]"
+              className="rounded-full border border-[#ddd] bg-white px-5 py-3 text-sm font-semibold text-[#222] transition-colors hover:border-[#222] hover:bg-[#f7f7f7]"
             >
               Clear all
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               {resultCount === 1 ? 'Show 1 church' : `Show ${resultCount} churches`}
             </button>

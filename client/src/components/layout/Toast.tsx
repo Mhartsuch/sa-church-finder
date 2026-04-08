@@ -48,13 +48,13 @@ const ToastItem = ({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: str
       className={`flex w-[360px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border ${styles.border} ${styles.bg} px-4 py-3.5 shadow-airbnb ${isExiting ? 'animate-toast-out' : 'animate-toast-in'}`}
     >
       <Icon className={`h-5 w-5 flex-shrink-0 ${styles.icon}`} />
-      <p className="flex-1 pt-px text-[14px] font-medium leading-snug text-[#1a1a1a]">
+      <p className="flex-1 pt-px text-[14px] font-medium leading-snug text-[#222]">
         {toast.message}
       </p>
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="flex-shrink-0 rounded-full p-0.5 text-[#9a8f7f] transition-colors hover:text-[#1a1a1a]"
+        className="flex-shrink-0 rounded-full p-0.5 text-[#999] transition-colors hover:text-[#222]"
         aria-label="Dismiss notification"
       >
         <X className="h-4 w-4" />

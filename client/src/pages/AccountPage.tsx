@@ -358,13 +358,13 @@ const AccountPage = () => {
   };
 
   return (
-    <div className="flex flex-1 bg-[#faf8f5]">
+    <div className="flex flex-1 bg-[#fff]">
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
         <div className="mb-8 space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#d90b45]">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">
             Member dashboard
           </p>
-          <h1 className="text-4xl font-bold tracking-tight text-[#1a1a1a] sm:text-5xl">
+          <h1 className="text-4xl font-bold tracking-tight text-[#222] sm:text-5xl">
             Good to see you, {firstName}.
           </h1>
           <p className="max-w-3xl text-base leading-7 text-[#5c5650]">
@@ -377,21 +377,21 @@ const AccountPage = () => {
           <section className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle sm:p-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-[#1a1a1a] text-xl font-bold text-white">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-[#222] text-xl font-bold text-white">
                   {initials}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-[#1a1a1a]">{user.name}</h2>
+                  <h2 className="text-2xl font-bold tracking-tight text-[#222]">{user.name}</h2>
                   <p className="mt-1 text-sm text-[#5c5650]">{user.email}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9a8f7f]">
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#999]">
                     {roleLabel}
                   </p>
                 </div>
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-[#f8f8f8] px-4 py-2 text-sm font-semibold text-[#1a1a1a]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-[#f8f8f8] px-4 py-2 text-sm font-semibold text-[#222]">
                 <CheckCircle2
-                  className={`h-4 w-4 ${user.emailVerified ? 'text-[#2d7a3e]' : 'text-[#d90b45]'}`}
+                  className={`h-4 w-4 ${user.emailVerified ? 'text-[#166534]' : 'text-[#FF385C]'}`}
                 />
                 {user.emailVerified ? 'Email ready' : 'Email still needs verification'}
               </div>
@@ -403,7 +403,7 @@ const AccountPage = () => {
               <div className="mt-6 rounded-[28px] border border-[#ffc2cc] bg-[#fff0f3] p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-[#1a1a1a]">
+                    <h3 className="text-lg font-semibold text-[#222]">
                       Confirm your email before you need it
                     </h3>
                     <p className="mt-2 text-sm leading-6 text-[#5c5650]">
@@ -418,7 +418,7 @@ const AccountPage = () => {
                       void handleRequestEmailVerification();
                     }}
                     disabled={requestEmailVerificationMutation.isPending}
-                    className="rounded-full bg-[#1a1a1a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+                    className="rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {requestEmailVerificationMutation.isPending
                       ? 'Sending link...'
@@ -450,10 +450,10 @@ const AccountPage = () => {
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div className="rounded-[28px] bg-[#fff5f0] p-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#d90b45] shadow-airbnb-subtle">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#FF385C] shadow-airbnb-subtle">
                   <Mail className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#1a1a1a]">Your account</h3>
+                <h3 className="mt-4 text-lg font-semibold text-[#222]">Your account</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5c5650]">
                   Member since {formatMemberSince(user.createdAt)}. Whether you sign in with
                   email/password or Google, your saved churches and reviews stay tied to the same
@@ -465,7 +465,7 @@ const AccountPage = () => {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#1a1a1a]">What this page is for</h3>
+                <h3 className="mt-4 text-lg font-semibold text-[#222]">What this page is for</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5c5650]">
                   Use this dashboard to keep a shortlist, revisit your notes, manage email
                   verification, and head back into the search when you want a few more options.
@@ -476,11 +476,11 @@ const AccountPage = () => {
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div className="rounded-[28px] border border-gray-200 p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f3] text-[#d90b45]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f3] text-[#FF385C]">
                     <Heart className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#1a1a1a]">Saved churches</h3>
+                    <h3 className="text-lg font-semibold text-[#222]">Saved churches</h3>
                     <p className="text-sm text-[#5c5650]">
                       {savedChurchCount} saved {savedChurchCount === 1 ? 'church' : 'churches'}
                     </p>
@@ -495,8 +495,8 @@ const AccountPage = () => {
                     {savedChurchesError.message}
                   </p>
                 ) : savedChurchCount === 0 ? (
-                  <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#faf8f5] p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#d90b45] shadow-airbnb-subtle">
+                  <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fff] p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#FF385C] shadow-airbnb-subtle">
                       <Compass className="h-5 w-5" />
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[#5c5650]">
@@ -505,7 +505,7 @@ const AccountPage = () => {
                     </p>
                     <Link
                       to="/search"
-                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#d90b45] hover:underline"
+                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#FF385C] hover:underline"
                     >
                       Browse churches
                       <ArrowRight className="h-4 w-4" />
@@ -521,20 +521,20 @@ const AccountPage = () => {
                       return (
                         <div
                           key={church.id}
-                          className="rounded-2xl border border-gray-200 bg-[#faf8f5] p-4"
+                          className="rounded-2xl border border-gray-200 bg-[#fff] p-4"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <Link
                                 to={`/churches/${church.slug}`}
-                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
+                                className="text-sm font-semibold text-[#222] hover:underline"
                               >
                                 {church.name}
                               </Link>
                               <p className="mt-1 text-sm text-[#5c5650]">
                                 {church.denomination || 'Church listing'}
                               </p>
-                              <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.12em] text-[#9a8f7f]">
+                              <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.12em] text-[#999]">
                                 <MapPin className="h-3.5 w-3.5" />
                                 {church.neighborhood || church.city}
                               </p>
@@ -546,13 +546,13 @@ const AccountPage = () => {
                                 void handleToggleSavedChurch(church.id);
                               }}
                               disabled={isUpdating}
-                              className="rounded-full border border-[#ffc2cc] bg-white px-3 py-1.5 text-xs font-semibold text-[#d90b45] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
+                              className="rounded-full border border-[#ffc2cc] bg-white px-3 py-1.5 text-xs font-semibold text-[#FF385C] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               {isUpdating ? 'Updating...' : 'Remove save'}
                             </button>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#6b6560]">
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]">
                             <span>Saved {formatSavedDate(church.savedAt)}</span>
                             <span>{church.reviewCount} reviews</span>
                           </div>
@@ -569,7 +569,7 @@ const AccountPage = () => {
                     <MessageSquareText className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#1a1a1a]">Your reviews</h3>
+                    <h3 className="text-lg font-semibold text-[#222]">Your reviews</h3>
                     <p className="text-sm text-[#5c5650]">
                       {writtenReviewCount} written {writtenReviewCount === 1 ? 'review' : 'reviews'}
                     </p>
@@ -585,7 +585,7 @@ const AccountPage = () => {
                     {userReviewsError.message}
                   </p>
                 ) : writtenReviewCount === 0 ? (
-                  <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#faf8f5] p-4">
+                  <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fff] p-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#2563eb] shadow-airbnb-subtle">
                       <Sparkles className="h-5 w-5" />
                     </div>
@@ -611,13 +611,13 @@ const AccountPage = () => {
                       return (
                         <div
                           key={review.id}
-                          className="rounded-2xl border border-gray-200 bg-[#faf8f5] p-4"
+                          className="rounded-2xl border border-gray-200 bg-[#fff] p-4"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <Link
                                 to={`/churches/${review.church.slug}#reviews`}
-                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
+                                className="text-sm font-semibold text-[#222] hover:underline"
                               >
                                 {review.church.name}
                               </Link>
@@ -631,16 +631,16 @@ const AccountPage = () => {
                                 void handleDeleteReview(review.id, review.church.name);
                               }}
                               disabled={isDeleting}
-                              className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
+                              className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               {isDeleting ? 'Deleting...' : 'Delete review'}
                             </button>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#6b6560]">
-                            <span className="inline-flex items-center gap-1 font-semibold text-[#1a1a1a]">
-                              <Star className="h-3.5 w-3.5 fill-[#1a1a1a] text-[#1a1a1a]" />
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]">
+                            <span className="inline-flex items-center gap-1 font-semibold text-[#222]">
+                              <Star className="h-3.5 w-3.5 fill-[#222] text-[#222]" />
                               {formatRating(review.rating)}
                             </span>
                             <span>Updated {formatReviewDate(review.updatedAt)}</span>
@@ -668,7 +668,7 @@ const AccountPage = () => {
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#1a1a1a]">Church claims</h3>
+                  <h3 className="text-lg font-semibold text-[#222]">Church claims</h3>
                   <p className="text-sm text-[#5c5650]">
                     Track the listing-access requests tied to your account
                   </p>
@@ -682,7 +682,7 @@ const AccountPage = () => {
               ) : churchClaimsError ? (
                 <p className="mt-4 text-sm leading-6 text-[#a8083a]">{churchClaimsError.message}</p>
               ) : !churchClaims || churchClaims.data.length === 0 ? (
-                <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#faf8f5] p-4">
+                <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-[#fff] p-4">
                   <p className="text-sm leading-6 text-[#5c5650]">
                     If you represent a church, start from its profile page and submit a claim
                     request with a staff or ministry email that matches the church&apos;s public
@@ -701,14 +701,14 @@ const AccountPage = () => {
                   {churchClaims.data.map((claim) => (
                     <div
                       key={claim.id}
-                      className="rounded-2xl border border-gray-200 bg-[#faf8f5] p-4"
+                      className="rounded-2xl border border-gray-200 bg-[#fff] p-4"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <Link
                               to={`/churches/${claim.church.slug}`}
-                              className="text-sm font-semibold text-[#1a1a1a] hover:underline"
+                              className="text-sm font-semibold text-[#222] hover:underline"
                             >
                               {claim.church.name}
                             </Link>
@@ -723,7 +723,7 @@ const AccountPage = () => {
                           <p className="mt-1 text-sm text-[#5c5650]">
                             {claim.roleTitle} · {claim.verificationEmail}
                           </p>
-                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-[#9a8f7f]">
+                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-[#999]">
                             Submitted {formatClaimDate(claim.createdAt)}
                             {claim.reviewedAt
                               ? ` · Reviewed ${formatClaimDate(claim.reviewedAt)}`
@@ -752,7 +752,7 @@ const AccountPage = () => {
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#1a1a1a]">Church claim queue</h3>
+                    <h3 className="text-lg font-semibold text-[#222]">Church claim queue</h3>
                     <p className="text-sm text-[#5c5650]">
                       Representatives waiting for listing access approval
                     </p>
@@ -787,14 +787,14 @@ const AccountPage = () => {
                             <div className="min-w-0">
                               <Link
                                 to={`/churches/${claim.church.slug}`}
-                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
+                                className="text-sm font-semibold text-[#222] hover:underline"
                               >
                                 {claim.church.name}
                               </Link>
                               <p className="mt-1 text-sm text-[#5c5650]">
                                 {claim.user.name} · {claim.user.email}
                               </p>
-                              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#9a8f7f]">
+                              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#999]">
                                 {claim.roleTitle} · Submitted {formatClaimDate(claim.createdAt)}
                               </p>
                               <p className="mt-2 text-sm leading-6 text-[#5c5650]">
@@ -830,7 +830,7 @@ const AccountPage = () => {
                                   );
                                 }}
                                 disabled={isResolvingClaim}
-                                className="rounded-full border border-[#ffc2cc] bg-white px-4 py-2 text-sm font-semibold text-[#d90b45] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="rounded-full border border-[#ffc2cc] bg-white px-4 py-2 text-sm font-semibold text-[#FF385C] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 {isResolvingClaim &&
                                 resolveChurchClaimMutation.variables?.status === 'rejected'
@@ -854,9 +854,7 @@ const AccountPage = () => {
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#1a1a1a]">
-                      Review moderation queue
-                    </h3>
+                    <h3 className="text-lg font-semibold text-[#222]">Review moderation queue</h3>
                     <p className="text-sm text-[#5c5650]">
                       Community-reported reviews waiting for a decision
                     </p>
@@ -893,14 +891,14 @@ const AccountPage = () => {
                             <div className="min-w-0">
                               <Link
                                 to={`/churches/${review.church.slug}#reviews`}
-                                className="text-sm font-semibold text-[#1a1a1a] hover:underline"
+                                className="text-sm font-semibold text-[#222] hover:underline"
                               >
                                 {review.church.name}
                               </Link>
                               <p className="mt-1 text-sm text-[#5c5650]">
                                 Flagged {formatFlaggedDate(review.flaggedAt)} by community reporting
                               </p>
-                              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#9a8f7f]">
+                              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#999]">
                                 Reviewer: {review.user.name}
                               </p>
                             </div>
@@ -933,7 +931,7 @@ const AccountPage = () => {
                                   );
                                 }}
                                 disabled={isResolving}
-                                className="rounded-full border border-[#ffc2cc] bg-white px-4 py-2 text-sm font-semibold text-[#d90b45] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="rounded-full border border-[#ffc2cc] bg-white px-4 py-2 text-sm font-semibold text-[#FF385C] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 {isResolving &&
                                 resolveFlaggedReviewMutation.variables?.status === 'removed'
@@ -943,9 +941,9 @@ const AccountPage = () => {
                             </div>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#6b6560]">
-                            <span className="inline-flex items-center gap-1 font-semibold text-[#1a1a1a]">
-                              <Star className="h-3.5 w-3.5 fill-[#1a1a1a] text-[#1a1a1a]" />
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#717171]">
+                            <span className="inline-flex items-center gap-1 font-semibold text-[#222]">
+                              <Star className="h-3.5 w-3.5 fill-[#222] text-[#222]" />
                               {formatRating(review.rating)}
                             </span>
                             <span>Updated {formatReviewDate(review.updatedAt)}</span>

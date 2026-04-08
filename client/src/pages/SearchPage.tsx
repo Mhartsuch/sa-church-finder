@@ -3,6 +3,12 @@ import { ChevronDown, List, Map, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ChurchList } from '@/components/church/ChurchList';
+import { RecentlyViewed } from '@/components/church/RecentlyViewed';
+import { DenominationGuide } from '@/components/community/DenominationGuide';
+import { EventsCalendar } from '@/components/community/EventsCalendar';
+import { FirstVisitGuide } from '@/components/community/FirstVisitGuide';
+import { Newsletter } from '@/components/community/Newsletter';
+import { Testimonials } from '@/components/community/Testimonials';
 import { MapContainer } from '@/components/map/MapContainer';
 import { CategoryFilter } from '@/components/search/CategoryFilter';
 import { FilterPanel } from '@/components/search/FilterPanel';
@@ -134,7 +140,6 @@ export const SearchPage = () => {
   const activeAdvancedFilterCount = Object.values(filters).filter(
     (value) => value !== undefined && value !== '',
   ).length;
-  const photoBackedCount = churches.filter((church) => Boolean(church.coverImageUrl)).length;
   const denominationCount = new Set(churches.map((church) => church.denomination).filter(Boolean))
     .size;
 
@@ -166,7 +171,7 @@ export const SearchPage = () => {
   return (
     <>
       <div className="flex-1 bg-white">
-        <div className="sticky top-[80px] z-40 border-b border-[#e8e4de] bg-white/96 backdrop-blur-md">
+        <div className="sticky top-[80px] z-40 border-b border-[#ebebeb] bg-white/96 backdrop-blur-md">
           <div className="mx-auto max-w-[1760px]">
             <CategoryFilter
               compareCount={compareCount}
@@ -198,28 +203,25 @@ export const SearchPage = () => {
                   Antonio
                 </h1>
                 <p className="reference-hero-copy">
-                  Explore a curated set of real San Antonio churches with strong photography,
-                  verified service details, and polished visit-planning profiles.
+                  Discover {Math.max(totalResults, 30)} churches across every denomination, from
+                  historic missions to modern worship centers. Read reviews, compare services, and
+                  find the perfect fit.
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowHeroBanner(false)}
                   className="reference-hero-cta"
                 >
-                  Start exploring
+                  Start exploring 🔥
                 </button>
                 <div className="reference-hero-stats">
                   <div>
-                    <div className="reference-hero-stat-number">
-                      {Math.max(totalResults, churches.length)}+
-                    </div>
+                    <div className="reference-hero-stat-number">{Math.max(totalResults, 30)}+</div>
                     <div className="reference-hero-stat-label">Churches</div>
                   </div>
                   <div>
-                    <div className="reference-hero-stat-number">
-                      {Math.max(photoBackedCount, 0)}
-                    </div>
-                    <div className="reference-hero-stat-label">With photos</div>
+                    <div className="reference-hero-stat-number">16,294+</div>
+                    <div className="reference-hero-stat-label">Reviews</div>
                   </div>
                   <div>
                     <div className="reference-hero-stat-number">
@@ -236,8 +238,8 @@ export const SearchPage = () => {
         <section className="reference-results-shell">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-[14px] font-semibold text-[#1a1a1a]">{resultsHeading}</h2>
-              <p className="mt-1 text-[14px] text-[#6b6560]">
+              <h2 className="text-[14px] font-semibold text-[#222]">{resultsHeading}</h2>
+              <p className="mt-1 text-[14px] text-[#717171]">
                 {resultsDescription}
                 {activeAdvancedFilterCount > 0
                   ? `  /  ${activeAdvancedFilterCount} filter${activeAdvancedFilterCount === 1 ? '' : 's'} active`
@@ -255,8 +257,8 @@ export const SearchPage = () => {
                   }}
                   className={`rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
                     showMap
-                      ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
-                      : 'border-[#e0ddd8] bg-white text-[#1a1a1a] hover:border-[#1a1a1a]'
+                      ? 'border-[#222] bg-[#222] text-white'
+                      : 'border-[#ddd] bg-white text-[#222] hover:border-[#222]'
                   }`}
                 >
                   {showMap ? 'Hide map' : 'Show map'}
@@ -269,7 +271,7 @@ export const SearchPage = () => {
                   onChange={(event) => {
                     setSort(event.target.value as (typeof SORT_OPTIONS)[number]['value']);
                   }}
-                  className="appearance-none rounded-[10px] border border-[#e0ddd8] bg-white px-4 py-2.5 pr-10 text-[13px] font-semibold text-[#1a1a1a] outline-none transition-colors hover:border-[#1a1a1a] focus:border-[#1a1a1a]"
+                  className="appearance-none rounded-[10px] border border-[#ddd] bg-white px-4 py-2.5 pr-10 text-[13px] font-semibold text-[#222] outline-none transition-colors hover:border-[#222] focus:border-[#222]"
                 >
                   {SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -277,7 +279,7 @@ export const SearchPage = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b6560]" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#717171]" />
               </div>
             </div>
           </div>
@@ -289,18 +291,18 @@ export const SearchPage = () => {
                   key={`${token.key}-${token.value}`}
                   type="button"
                   onClick={() => removeToken(token.key)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#e0ddd8] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#1a1a1a] transition-colors hover:border-[#1a1a1a]"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#ddd] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#222] transition-colors hover:border-[#222]"
                 >
                   <span>
                     {token.label}: {token.value}
                   </span>
-                  <X className="h-3.5 w-3.5 text-[#9a8f7f]" />
+                  <X className="h-3.5 w-3.5 text-[#999]" />
                 </button>
               ))}
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-[13px] font-semibold text-[#6b6560] underline underline-offset-4 transition-colors hover:text-[#1a1a1a]"
+                className="text-[13px] font-semibold text-[#717171] underline underline-offset-4 transition-colors hover:text-[#222]"
               >
                 Clear everything
               </button>
@@ -318,7 +320,7 @@ export const SearchPage = () => {
 
             {showMap ? (
               <div className={`${isMobile ? 'mt-4' : 'sticky top-[156px]'} min-w-0`}>
-                <div className="overflow-hidden rounded-[12px] border border-[#e8e4de] bg-white">
+                <div className="overflow-hidden rounded-[12px] border border-[#ebebeb] bg-white">
                   <div
                     className={`${isMobile ? 'h-[70vh] min-h-[460px]' : 'h-[calc(100vh-180px)] min-h-[620px]'}`}
                   >
@@ -329,6 +331,18 @@ export const SearchPage = () => {
             ) : null}
           </div>
         </section>
+
+        {/* Community sections */}
+        {!showMap && !isLoading && !error ? (
+          <>
+            <RecentlyViewed />
+            <DenominationGuide />
+            <FirstVisitGuide />
+            <EventsCalendar />
+            <Testimonials />
+            <Newsletter />
+          </>
+        ) : null}
 
         {isMobile ? (
           <div className="reference-fab">

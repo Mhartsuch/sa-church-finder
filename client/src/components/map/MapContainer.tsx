@@ -26,7 +26,7 @@ export const MapContainer = () => {
     <Suspense
       fallback={
         <div className="w-full h-full bg-[#f5f5f3] flex items-center justify-center">
-          <div className="animate-pulse text-[#6b6560] text-sm font-medium">Loading map...</div>
+          <div className="animate-pulse text-[#717171] text-sm font-medium">Loading map...</div>
         </div>
       }
     >
