@@ -12,6 +12,7 @@ import { Testimonials } from '@/components/community/Testimonials';
 import { MapContainer } from '@/components/map/MapContainer';
 import { CategoryFilter } from '@/components/search/CategoryFilter';
 import { FilterPanel } from '@/components/search/FilterPanel';
+import { SearchBar } from '@/components/search/SearchBar';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
 import { getActiveSearchTokens } from '@/lib/search-state';
@@ -173,6 +174,19 @@ export const SearchPage = () => {
       <div className="flex-1 bg-background">
         <div className="sticky top-[80px] z-40 border-b border-border bg-background/96 backdrop-blur-md">
           <div className="mx-auto max-w-[1760px]">
+            <div className="px-6 pt-3 lg:hidden">
+              <SearchBar
+                variant="compact"
+                onSubmit={() => {
+                  if (isMobile) {
+                    setShowMap(false);
+                  }
+                }}
+                onOpenFilters={() => {
+                  openFilterModal();
+                }}
+              />
+            </div>
             <CategoryFilter
               compareCount={compareCount}
               onCompare={() => {
