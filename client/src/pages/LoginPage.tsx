@@ -19,7 +19,7 @@ type LoginFormState = {
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 
 const inputClasses =
-  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
+  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-foreground outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
 
 const validateForm = ({ email, password }: LoginFormState): string | null => {
   if (!email.trim()) {
@@ -93,7 +93,7 @@ const LoginPage = () => {
           <Link
             to={registerHref}
             state={location.state}
-            className="font-semibold text-[#222] underline underline-offset-4"
+            className="font-semibold text-foreground underline underline-offset-4"
           >
             Create one
           </Link>
@@ -103,10 +103,10 @@ const LoginPage = () => {
     >
       <div className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">Sign in</p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#222]">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Pick up where you left off.
         </h1>
-        <p className="text-sm leading-6 text-[#5c5650]">
+        <p className="text-sm leading-6 text-muted-foreground">
           Email/password accounts, Google sign-in, password recovery, and email verification now all
           feed the same session-aware account area.
         </p>
@@ -121,15 +121,15 @@ const LoginPage = () => {
 
         <GoogleAuthButton href={googleAuthUrl} label="Continue with Google" />
 
-        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#999]">
-          <span className="h-px flex-1 bg-gray-200" />
+        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
           Or continue with email
-          <span className="h-px flex-1 bg-gray-200" />
+          <span className="h-px flex-1 bg-border" />
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <label className="block text-sm font-semibold text-[#222]">
+        <label className="block text-sm font-semibold text-foreground">
           Email
           <input
             type="email"
@@ -146,7 +146,7 @@ const LoginPage = () => {
           />
         </label>
 
-        <label className="block text-sm font-semibold text-[#222]">
+        <label className="block text-sm font-semibold text-foreground">
           Password
           <input
             type="password"
@@ -181,7 +181,7 @@ const LoginPage = () => {
         <button
           type="submit"
           disabled={loginMutation.isPending}
-          className="w-full rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loginMutation.isPending ? 'Signing you in...' : 'Sign in'}
         </button>

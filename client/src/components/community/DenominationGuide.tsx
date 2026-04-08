@@ -88,7 +88,7 @@ export const DenominationGuide = ({ onSelectDenomination }: DenominationGuidePro
   return (
     <section className="mx-auto max-w-[1760px] px-4 py-12 sm:px-6 lg:px-10">
       <h2 className="text-[22px] font-bold">Explore denominations</h2>
-      <p className="mt-1 text-[15px] text-[#717171]">
+      <p className="mt-1 text-[15px] text-muted-foreground">
         Learn about the different traditions represented in San Antonio
       </p>
       <div className="hide-scrollbar mt-6 flex gap-4 overflow-x-auto pb-2">
@@ -97,17 +97,19 @@ export const DenominationGuide = ({ onSelectDenomination }: DenominationGuidePro
             key={denom.name}
             type="button"
             onClick={() => handleSelect(denom.name)}
-            className="flex min-w-[220px] flex-shrink-0 flex-col rounded-2xl border border-[#ebebeb] p-5 text-left transition-all hover:-translate-y-1 hover:shadow-airbnb"
+            className="flex min-w-[220px] flex-shrink-0 flex-col rounded-2xl border border-border p-5 text-left transition-all hover:-translate-y-1 hover:shadow-airbnb"
           >
             <span className="text-3xl">{denom.icon}</span>
             <h3 className="mt-3 text-[16px] font-bold">{denom.name}</h3>
-            <p className="text-[13px] text-[#717171]">{denom.count}</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-[#484848]">{denom.description}</p>
+            <p className="text-[13px] text-muted-foreground">{denom.count}</p>
+            <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+              {denom.description}
+            </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {denom.traits.map((trait) => (
                 <span
                   key={trait}
-                  className="rounded-full bg-[#f7f7f7] px-2.5 py-1 text-[12px] font-medium text-[#717171]"
+                  className="rounded-full bg-muted px-2.5 py-1 text-[12px] font-medium text-muted-foreground"
                 >
                   {trait}
                 </span>

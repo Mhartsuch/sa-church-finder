@@ -20,7 +20,7 @@ import VerifyEmailPage from '@/pages/VerifyEmailPage';
 const App = () => {
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col bg-[#fff]">
+      <div className="flex min-h-screen flex-col bg-background">
         <ScrollToTop />
         <Header />
         <Routes>

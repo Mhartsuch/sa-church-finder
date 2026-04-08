@@ -254,11 +254,13 @@ export const ChurchProfilePage = () => {
   if (error || !church) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8">
-        <h2 className="mb-2 text-2xl font-bold text-[#222]">Church Not Found</h2>
-        <p className="mb-6 text-[#717171]">We couldn&apos;t find a church at this address.</p>
+        <h2 className="mb-2 text-2xl font-bold text-foreground">Church Not Found</h2>
+        <p className="mb-6 text-muted-foreground">
+          We couldn&apos;t find a church at this address.
+        </p>
         <button
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#222] px-6 py-3 font-semibold text-white transition-colors hover:bg-black"
+          className="inline-flex items-center gap-2 rounded-lg bg-foreground px-6 py-3 font-semibold text-white transition-colors hover:opacity-90"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Search
@@ -438,11 +440,11 @@ export const ChurchProfilePage = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#fff]">
+    <div className="flex-1 overflow-y-auto bg-background">
       <div className="mx-auto max-w-[1180px] px-6 pb-4 pt-6 lg:px-0">
         <Link
           to="/"
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#222] hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-medium text-foreground hover:underline"
         >
           <ChevronLeft className="h-4 w-4" />
           Back
@@ -454,45 +456,45 @@ export const ChurchProfilePage = () => {
       <div className="mx-auto max-w-[1180px] px-6 pb-16 lg:px-0">
         <div className="flex flex-col gap-12 lg:flex-row lg:gap-24">
           <div className="min-w-0 flex-1">
-            <div className="border-b border-gray-200 pb-6">
-              <h1 className="mb-1 text-[26px] font-bold text-[#222]">{church.name}</h1>
+            <div className="border-b border-border pb-6">
+              <h1 className="mb-1 text-[26px] font-bold text-foreground">{church.name}</h1>
 
               <div className="flex flex-wrap items-center gap-1.5 text-[14px]">
                 {church.avgRating > 0 && (
                   <>
                     <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-[#222] text-[#222]" />
+                      <Star className="h-4 w-4 fill-foreground text-foreground" />
                       <span className="font-semibold">{formatRating(church.avgRating)}</span>
                     </div>
-                    <span className="text-[#717171]">&middot;</span>
-                    <a href="#reviews" className="font-semibold text-[#222] underline">
+                    <span className="text-muted-foreground">&middot;</span>
+                    <a href="#reviews" className="font-semibold text-foreground underline">
                       {church.reviewCount} reviews
                     </a>
-                    <span className="text-[#717171]">&middot;</span>
+                    <span className="text-muted-foreground">&middot;</span>
                   </>
                 )}
                 {church.isClaimed && (
                   <>
-                    <span className="flex items-center gap-1 font-medium text-[#222]">
+                    <span className="flex items-center gap-1 font-medium text-foreground">
                       <CheckCircle className="h-4 w-4" />
                       Claimed
                     </span>
-                    <span className="text-[#717171]">&middot;</span>
+                    <span className="text-muted-foreground">&middot;</span>
                   </>
                 )}
                 {church.denomination && (
                   <>
-                    <span className="font-semibold text-[#222]">{church.denomination}</span>
-                    <span className="text-[#717171]">&middot;</span>
+                    <span className="font-semibold text-foreground">{church.denomination}</span>
+                    <span className="text-muted-foreground">&middot;</span>
                   </>
                 )}
-                <button className="font-semibold text-[#222] underline">
+                <button className="font-semibold text-foreground underline">
                   {church.neighborhood || church.city}, {church.state}
                 </button>
               </div>
 
               <div className="mt-4 flex items-center gap-4">
-                <button className="flex items-center gap-2 text-sm font-semibold text-[#222] underline hover:text-black">
+                <button className="flex items-center gap-2 text-sm font-semibold text-foreground underline hover:text-foreground">
                   <Share className="h-4 w-4" />
                   Share
                 </button>
@@ -502,7 +504,7 @@ export const ChurchProfilePage = () => {
                     void handleToggleSave();
                   }}
                   disabled={isSavePending}
-                  className="flex items-center gap-2 text-sm font-semibold text-[#222] underline hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex items-center gap-2 text-sm font-semibold text-foreground underline hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <Heart
                     className={`h-4 w-4 ${church.isSaved ? 'fill-[#FF385C] text-[#FF385C]' : ''}`}
@@ -525,11 +527,13 @@ export const ChurchProfilePage = () => {
             </div>
 
             {(church.description || church.pastorName || church.yearEstablished) && (
-              <div className="border-b border-gray-200 py-8">
-                <h2 className="mb-5 text-[22px] font-semibold text-[#222]">About this church</h2>
+              <div className="border-b border-border py-8">
+                <h2 className="mb-5 text-[22px] font-semibold text-foreground">
+                  About this church
+                </h2>
 
                 {church.description ? (
-                  <p className="mb-6 text-[16px] leading-relaxed text-[#222]">
+                  <p className="mb-6 text-[16px] leading-relaxed text-foreground">
                     {church.description}
                   </p>
                 ) : null}
@@ -537,19 +541,21 @@ export const ChurchProfilePage = () => {
                 <div className="flex flex-col gap-5">
                   {church.pastorName ? (
                     <div className="flex items-center gap-4">
-                      <Users className="h-6 w-6 text-[#222]" />
+                      <Users className="h-6 w-6 text-foreground" />
                       <div>
-                        <p className="text-[14px] font-semibold text-[#222]">Pastor</p>
-                        <p className="text-[14px] text-[#717171]">{church.pastorName}</p>
+                        <p className="text-[14px] font-semibold text-foreground">Pastor</p>
+                        <p className="text-[14px] text-muted-foreground">{church.pastorName}</p>
                       </div>
                     </div>
                   ) : null}
                   {church.yearEstablished ? (
                     <div className="flex items-center gap-4">
-                      <Calendar className="h-6 w-6 text-[#222]" />
+                      <Calendar className="h-6 w-6 text-foreground" />
                       <div>
-                        <p className="text-[14px] font-semibold text-[#222]">Established</p>
-                        <p className="text-[14px] text-[#717171]">{church.yearEstablished}</p>
+                        <p className="text-[14px] font-semibold text-foreground">Established</p>
+                        <p className="text-[14px] text-muted-foreground">
+                          {church.yearEstablished}
+                        </p>
                       </div>
                     </div>
                   ) : null}
@@ -558,20 +564,20 @@ export const ChurchProfilePage = () => {
             )}
 
             {groupedServices.length > 0 ? (
-              <div className="border-b border-gray-200 py-8">
-                <h2 className="mb-5 text-[22px] font-semibold text-[#222]">Service schedule</h2>
+              <div className="border-b border-border py-8">
+                <h2 className="mb-5 text-[22px] font-semibold text-foreground">Service schedule</h2>
                 <div className="space-y-5">
                   {groupedServices.map(({ day, dayName, services }) => (
                     <div key={day}>
-                      <h3 className="mb-2 text-[16px] font-semibold text-[#222]">{dayName}</h3>
+                      <h3 className="mb-2 text-[16px] font-semibold text-foreground">{dayName}</h3>
                       <div className="space-y-2">
                         {services.map((service) => (
                           <div
                             key={service.id}
-                            className="flex items-center gap-3 text-[14px] text-[#717171]"
+                            className="flex items-center gap-3 text-[14px] text-muted-foreground"
                           >
-                            <Clock className="h-4 w-4 flex-shrink-0 text-[#717171]" />
-                            <span className="font-medium text-[#222]">
+                            <Clock className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                            <span className="font-medium text-foreground">
                               {formatServiceTime(service.startTime)}
                               {service.endTime ? ` - ${formatServiceTime(service.endTime)}` : ''}
                             </span>
@@ -592,11 +598,13 @@ export const ChurchProfilePage = () => {
               </div>
             ) : null}
 
-            <div className="border-b border-gray-200 py-8">
+            <div className="border-b border-border py-8">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                  <h2 className="text-[22px] font-semibold text-[#222]">Events and community</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5c5650]">
+                  <h2 className="text-[22px] font-semibold text-foreground">
+                    Events and community
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                     See what is happening beyond Sunday morning, from studies and service days to
                     community nights that help you get a feel for the church.
                   </p>
@@ -604,7 +612,7 @@ export const ChurchProfilePage = () => {
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
                   <label>
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#999]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       Event type
                     </span>
                     <select
@@ -612,7 +620,7 @@ export const ChurchProfilePage = () => {
                       onChange={(event) => {
                         setEventTypeFilter(event.target.value as EventTypeFilter);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222] outline-none transition-colors focus:border-[#222]"
+                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-foreground"
                     >
                       {EVENT_TYPE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -623,7 +631,7 @@ export const ChurchProfilePage = () => {
                   </label>
 
                   <label>
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#999]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       Date range
                     </span>
                     <select
@@ -631,7 +639,7 @@ export const ChurchProfilePage = () => {
                       onChange={(event) => {
                         handleEventDateRangeChange(event.target.value as EventDateRange);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222] outline-none transition-colors focus:border-[#222]"
+                      className="mt-2 w-full rounded-2xl border border-gray-300 bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-foreground"
                     >
                       {EVENT_DATE_RANGE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -648,7 +656,7 @@ export const ChurchProfilePage = () => {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8c5b2e]">
                     Upcoming this week
                   </p>
-                  <p className="mt-3 text-4xl font-semibold text-[#222]">
+                  <p className="mt-3 text-4xl font-semibold text-foreground">
                     {isEventsLoading ? '...' : upcomingThisWeekCount}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[#6b5a46]">
@@ -660,31 +668,33 @@ export const ChurchProfilePage = () => {
                   </p>
                 </div>
 
-                <div className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#999]">
+                <div className="rounded-[28px] border border-border bg-card p-6 shadow-airbnb-subtle">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Next gathering
                   </p>
                   {isEventsLoading ? (
                     <div className="mt-4 space-y-3">
-                      <div className="h-5 w-40 animate-pulse rounded bg-gray-200" />
-                      <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+                      <div className="h-5 w-40 animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-32 animate-pulse rounded bg-muted" />
                     </div>
                   ) : nextUpcomingEvent ? (
                     <div className="mt-4">
-                      <p className="text-xl font-semibold text-[#222]">{nextUpcomingEvent.title}</p>
-                      <p className="mt-2 text-sm text-[#5c5650]">
+                      <p className="text-xl font-semibold text-foreground">
+                        {nextUpcomingEvent.title}
+                      </p>
+                      <p className="mt-2 text-sm text-muted-foreground">
                         {formatEventDate(nextUpcomingEvent.startTime)} at{' '}
                         {formatEventTimeRange(
                           nextUpcomingEvent.startTime,
                           nextUpcomingEvent.endTime,
                         )}
                       </p>
-                      <p className="mt-1 text-sm text-[#717171]">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {nextUpcomingEvent.locationOverride || church.address}
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm leading-6 text-[#5c5650]">
+                    <p className="mt-4 text-sm leading-6 text-muted-foreground">
                       No upcoming events match the current filters yet.
                     </p>
                   )}
@@ -700,12 +710,12 @@ export const ChurchProfilePage = () => {
                   {[0, 1].map((item) => (
                     <div
                       key={item}
-                      className="animate-pulse rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle"
+                      className="animate-pulse rounded-[28px] border border-border bg-card p-6 shadow-airbnb-subtle"
                     >
-                      <div className="h-4 w-24 rounded bg-gray-200" />
-                      <div className="mt-4 h-6 w-56 rounded bg-gray-200" />
-                      <div className="mt-3 h-4 w-full rounded bg-gray-200" />
-                      <div className="mt-2 h-4 w-4/5 rounded bg-gray-200" />
+                      <div className="h-4 w-24 rounded bg-muted" />
+                      <div className="mt-4 h-6 w-56 rounded bg-muted" />
+                      <div className="mt-3 h-4 w-full rounded bg-muted" />
+                      <div className="mt-2 h-4 w-4/5 rounded bg-muted" />
                     </div>
                   ))}
                 </div>
@@ -714,7 +724,7 @@ export const ChurchProfilePage = () => {
                   {churchEvents.map((event) => (
                     <article
                       key={event.id}
-                      className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle"
+                      className="rounded-[28px] border border-border bg-card p-6 shadow-airbnb-subtle"
                     >
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0 flex-1">
@@ -728,25 +738,27 @@ export const ChurchProfilePage = () => {
                               </span>
                             ) : null}
                           </div>
-                          <h3 className="mt-4 text-xl font-semibold text-[#222]">{event.title}</h3>
+                          <h3 className="mt-4 text-xl font-semibold text-foreground">
+                            {event.title}
+                          </h3>
                           {event.description ? (
-                            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5c5650]">
+                            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
                               {event.description}
                             </p>
                           ) : null}
                         </div>
 
-                        <div className="rounded-[24px] bg-[#fff] px-5 py-4 text-sm text-[#5c5650] lg:min-w-[250px]">
+                        <div className="rounded-[24px] bg-background px-5 py-4 text-sm text-muted-foreground lg:min-w-[250px]">
                           <div className="flex items-center gap-3">
-                            <Calendar className="h-4 w-4 text-[#222]" />
+                            <Calendar className="h-4 w-4 text-foreground" />
                             <span>{formatEventDate(event.startTime)}</span>
                           </div>
                           <div className="mt-3 flex items-center gap-3">
-                            <Clock className="h-4 w-4 text-[#222]" />
+                            <Clock className="h-4 w-4 text-foreground" />
                             <span>{formatEventTimeRange(event.startTime, event.endTime)}</span>
                           </div>
                           <div className="mt-3 flex items-center gap-3">
-                            <MapPin className="h-4 w-4 text-[#222]" />
+                            <MapPin className="h-4 w-4 text-foreground" />
                             <span>{event.locationOverride || church.address}</span>
                           </div>
                         </div>
@@ -755,7 +767,7 @@ export const ChurchProfilePage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-[#fff] px-6 py-8 text-sm leading-7 text-[#5c5650]">
+                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-background px-6 py-8 text-sm leading-7 text-muted-foreground">
                   No events match this filter combination yet. Try widening the date range or
                   switching back to all event types.
                 </div>
@@ -763,21 +775,21 @@ export const ChurchProfilePage = () => {
             </div>
 
             {church.amenities.length > 0 || church.languages.length > 0 ? (
-              <div className="border-b border-gray-200 py-8">
-                <h2 className="mb-5 text-[22px] font-semibold text-[#222]">
+              <div className="border-b border-border py-8">
+                <h2 className="mb-5 text-[22px] font-semibold text-foreground">
                   What this church offers
                 </h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {church.amenities.map((amenity) => (
                     <div key={amenity} className="flex items-center gap-4 py-2">
-                      <CheckCircle className="h-6 w-6 text-[#222]" />
-                      <span className="text-[16px] text-[#222]">{amenity}</span>
+                      <CheckCircle className="h-6 w-6 text-foreground" />
+                      <span className="text-[16px] text-foreground">{amenity}</span>
                     </div>
                   ))}
                   {church.languages.map((language) => (
                     <div key={language} className="flex items-center gap-4 py-2">
-                      <Globe className="h-6 w-6 text-[#222]" />
-                      <span className="text-[16px] text-[#222]">{language} services</span>
+                      <Globe className="h-6 w-6 text-foreground" />
+                      <span className="text-[16px] text-foreground">{language} services</span>
                     </div>
                   ))}
                 </div>
@@ -787,8 +799,8 @@ export const ChurchProfilePage = () => {
             <div id="reviews" className="py-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-[22px] font-semibold text-[#222]">Visitor reviews</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5c5650]">
+                  <h2 className="text-[22px] font-semibold text-foreground">Visitor reviews</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                     {writtenReviewCount > 0
                       ? `${writtenReviewCount} written ${writtenReviewCount === 1 ? 'review is' : 'reviews are'} currently published on SA Church Finder for this church.`
                       : church.reviewCount > 0
@@ -798,7 +810,7 @@ export const ChurchProfilePage = () => {
                 </div>
 
                 <label className="w-full sm:w-[220px]">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#999]">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                     Sort reviews
                   </span>
                   <select
@@ -807,7 +819,7 @@ export const ChurchProfilePage = () => {
                       setReviewSort(event.target.value as ReviewSort);
                       setReviewPage(1);
                     }}
-                    className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222] outline-none transition-colors focus:border-[#222]"
+                    className="mt-2 w-full rounded-2xl border border-gray-300 bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-foreground"
                   >
                     {REVIEW_SORT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -848,20 +860,20 @@ export const ChurchProfilePage = () => {
                   {[0, 1].map((item) => (
                     <div
                       key={item}
-                      className="animate-pulse rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle"
+                      className="animate-pulse rounded-[28px] border border-border bg-card p-6 shadow-airbnb-subtle"
                     >
-                      <div className="h-4 w-32 rounded bg-gray-200" />
-                      <div className="mt-3 h-3 w-24 rounded bg-gray-200" />
+                      <div className="h-4 w-32 rounded bg-muted" />
+                      <div className="mt-3 h-3 w-24 rounded bg-muted" />
                       <div className="mt-5 space-y-2">
-                        <div className="h-3 w-full rounded bg-gray-200" />
-                        <div className="h-3 w-5/6 rounded bg-gray-200" />
-                        <div className="h-3 w-3/4 rounded bg-gray-200" />
+                        <div className="h-3 w-full rounded bg-muted" />
+                        <div className="h-3 w-5/6 rounded bg-muted" />
+                        <div className="h-3 w-3/4 rounded bg-muted" />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : writtenReviews.length === 0 ? (
-                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-[#fff] px-5 py-6 text-sm leading-6 text-[#5c5650]">
+                <div className="mt-6 rounded-[28px] border border-dashed border-gray-300 bg-background px-5 py-6 text-sm leading-6 text-muted-foreground">
                   No written reviews are live on SA Church Finder for this church yet.
                 </div>
               ) : (
@@ -881,12 +893,12 @@ export const ChurchProfilePage = () => {
                     return (
                       <article
                         key={review.id}
-                        className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle"
+                        className="rounded-[28px] border border-border bg-card p-6 shadow-airbnb-subtle"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-base font-semibold text-[#222]">
+                              <h3 className="text-base font-semibold text-foreground">
                                 {review.user.name}
                               </h3>
                               {isOwnReview ? (
@@ -895,9 +907,9 @@ export const ChurchProfilePage = () => {
                                 </span>
                               ) : null}
                             </div>
-                            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#5c5650]">
-                              <span className="inline-flex items-center gap-1 font-semibold text-[#222]">
-                                <Star className="h-4 w-4 fill-[#222] text-[#222]" />
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                                <Star className="h-4 w-4 fill-foreground text-foreground" />
                                 {formatRating(review.rating)}
                               </span>
                               <span>&middot;</span>
@@ -912,7 +924,7 @@ export const ChurchProfilePage = () => {
                           </div>
                         </div>
 
-                        <p className="mt-4 whitespace-pre-line text-sm leading-7 text-[#222]">
+                        <p className="mt-4 whitespace-pre-line text-sm leading-7 text-foreground">
                           {review.body}
                         </p>
 
@@ -921,7 +933,7 @@ export const ChurchProfilePage = () => {
                             {subratings.map((item) => (
                               <span
                                 key={item.label}
-                                className="rounded-full bg-[#f7f7f7] px-3 py-1.5 text-xs font-medium text-[#5c5650]"
+                                className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground"
                               >
                                 {item.label}: {item.value}/5
                               </span>
@@ -930,7 +942,7 @@ export const ChurchProfilePage = () => {
                         ) : null}
 
                         <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#999]">
+                          <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                             {formatHelpfulCount(review.helpfulCount)}
                           </p>
 
@@ -942,7 +954,7 @@ export const ChurchProfilePage = () => {
                                   handleFlagReviewRequest(review);
                                 }}
                                 disabled={isFlaggingReview}
-                                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 <ShieldAlert className="h-4 w-4" />
                                 {isFlaggingReview ? 'Reporting...' : 'Report'}
@@ -957,7 +969,7 @@ export const ChurchProfilePage = () => {
                                 className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
                                   review.viewerHasVotedHelpful
                                     ? 'border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] hover:bg-[#dbeafe]'
-                                    : 'border-gray-300 bg-white text-[#222] hover:bg-gray-50'
+                                    : 'border-gray-300 bg-card text-foreground hover:bg-muted'
                                 }`}
                               >
                                 <ThumbsUp
@@ -979,18 +991,18 @@ export const ChurchProfilePage = () => {
               )}
 
               {reviewTotalPages > 1 ? (
-                <div className="mt-6 flex items-center justify-between gap-4 rounded-[28px] border border-gray-200 bg-[#fff] px-5 py-4">
+                <div className="mt-6 flex items-center justify-between gap-4 rounded-[28px] border border-border bg-background px-5 py-4">
                   <button
                     type="button"
                     onClick={() => {
                       setReviewPage((current) => Math.max(1, current - 1));
                     }}
                     disabled={reviewPage === 1}
-                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full border border-gray-300 bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Previous
                   </button>
-                  <p className="text-sm text-[#5c5650]">
+                  <p className="text-sm text-muted-foreground">
                     Page {reviewPage} of {reviewTotalPages}
                   </p>
                   <button
@@ -999,7 +1011,7 @@ export const ChurchProfilePage = () => {
                       setReviewPage((current) => Math.min(reviewTotalPages, current + 1));
                     }}
                     disabled={reviewPage >= reviewTotalPages}
-                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#222] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full border border-gray-300 bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Next
                   </button>
@@ -1009,16 +1021,16 @@ export const ChurchProfilePage = () => {
           </div>
 
           <div className="w-full flex-shrink-0 lg:w-[370px]">
-            <div className="sticky top-[120px] rounded-[32px] border border-[#e8dfd2] bg-white p-6 shadow-airbnb-subtle">
-              <h3 className="mb-1 text-[22px] font-semibold text-[#222]">
+            <div className="sticky top-[120px] rounded-[32px] border border-[#e8dfd2] bg-card p-6 shadow-airbnb-subtle">
+              <h3 className="mb-1 text-[22px] font-semibold text-foreground">
                 Visit {church.name.split(' ').slice(0, 3).join(' ')}
               </h3>
-              <p className="mb-6 text-[14px] text-[#717171]">
+              <p className="mb-6 text-[14px] text-muted-foreground">
                 Get directions or contact the church
               </p>
 
               <div className="mb-6">
-                <div className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+                <div className="mb-3 overflow-hidden rounded-xl border border-border bg-muted">
                   <iframe
                     title={`Map of ${church.name}`}
                     src={googleMapsEmbedUrl}
@@ -1028,10 +1040,10 @@ export const ChurchProfilePage = () => {
                   />
                 </div>
                 <div className="flex items-start gap-2">
-                  <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#222]" />
+                  <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-foreground" />
                   <div>
-                    <p className="text-[14px] font-medium text-[#222]">{church.address}</p>
-                    <p className="text-[14px] text-[#717171]">
+                    <p className="text-[14px] font-medium text-foreground">{church.address}</p>
+                    <p className="text-[14px] text-muted-foreground">
                       {church.city}, {church.state} {church.zipCode}
                     </p>
                   </div>
@@ -1047,11 +1059,11 @@ export const ChurchProfilePage = () => {
                 Get Directions
               </a>
 
-              <div className="space-y-3 border-t border-gray-200 pt-4">
+              <div className="space-y-3 border-t border-border pt-4">
                 {church.phone ? (
                   <a
                     href={`tel:${church.phone}`}
-                    className="flex items-center gap-3 text-[14px] text-[#222] transition-colors hover:underline"
+                    className="flex items-center gap-3 text-[14px] text-foreground transition-colors hover:underline"
                   >
                     <Phone className="h-5 w-5" />
                     <span>{church.phone}</span>
@@ -1060,7 +1072,7 @@ export const ChurchProfilePage = () => {
                 {church.email ? (
                   <a
                     href={`mailto:${church.email}`}
-                    className="flex items-center gap-3 text-[14px] text-[#222] transition-colors hover:underline"
+                    className="flex items-center gap-3 text-[14px] text-foreground transition-colors hover:underline"
                   >
                     <Mail className="h-5 w-5" />
                     <span>{church.email}</span>
@@ -1075,31 +1087,31 @@ export const ChurchProfilePage = () => {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-[14px] text-[#222] transition-colors hover:underline"
+                    className="flex items-center gap-3 text-[14px] text-foreground transition-colors hover:underline"
                   >
                     <Globe className="h-5 w-5" />
                     <span className="truncate">{church.website}</span>
-                    <ExternalLink className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-[#717171]" />
+                    <ExternalLink className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                   </a>
                 ) : null}
               </div>
 
               {showClaimCard ? (
-                <div className="mt-6 border-t border-gray-200 pt-6">
-                  <div className="rounded-[28px] border border-[#e8dfd2] bg-[#fff] p-5">
+                <div className="mt-6 border-t border-border pt-6">
+                  <div className="rounded-[28px] border border-[#e8dfd2] bg-background p-5">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#1f4d45] shadow-airbnb-subtle">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-card text-[#1f4d45] shadow-airbnb-subtle">
                         <CheckCircle className="h-5 w-5" />
                       </div>
                       <div>
-                        <h4 className="text-base font-semibold text-[#222]">
+                        <h4 className="text-base font-semibold text-foreground">
                           {viewerClaim?.status === 'approved'
                             ? 'You manage this listing'
                             : viewerClaim?.status === 'pending'
                               ? 'Claim request pending'
                               : 'Represent this church?'}
                         </h4>
-                        <p className="mt-1 text-sm leading-6 text-[#5c5650]">
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
                           {viewerClaim?.status === 'approved'
                             ? 'Your church claim was approved. Listing editing and event-management tools are the next Milestone 3 slice.'
                             : viewerClaim?.status === 'pending'
@@ -1110,7 +1122,7 @@ export const ChurchProfilePage = () => {
                     </div>
 
                     {claimNotice ? (
-                      <div className="mt-4 rounded-2xl border border-[#bfdbfe] bg-white px-4 py-3 text-sm text-[#1d4ed8]">
+                      <div className="mt-4 rounded-2xl border border-[#bfdbfe] bg-card px-4 py-3 text-sm text-[#1d4ed8]">
                         {claimNotice}
                       </div>
                     ) : null}
@@ -1122,8 +1134,8 @@ export const ChurchProfilePage = () => {
                     ) : null}
 
                     {viewerClaim ? (
-                      <div className="mt-4 rounded-2xl border border-[#e7ded1] bg-white px-4 py-4 text-sm text-[#5c5650]">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#999]">
+                      <div className="mt-4 rounded-2xl border border-[#e7ded1] bg-card px-4 py-4 text-sm text-muted-foreground">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                           {viewerClaim.status === 'approved'
                             ? 'Approved'
                             : viewerClaim.status === 'pending'
@@ -1132,14 +1144,16 @@ export const ChurchProfilePage = () => {
                         </p>
                         <p className="mt-2 leading-6">
                           Requested as{' '}
-                          <span className="font-semibold text-[#222]">{viewerClaim.roleTitle}</span>{' '}
+                          <span className="font-semibold text-foreground">
+                            {viewerClaim.roleTitle}
+                          </span>{' '}
                           with{' '}
-                          <span className="font-semibold text-[#222]">
+                          <span className="font-semibold text-foreground">
                             {viewerClaim.verificationEmail}
                           </span>
                           .
                         </p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#999]">
+                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                           Submitted {formatClaimDate(viewerClaim.createdAt)}
                           {viewerClaim.reviewedAt
                             ? ` · Reviewed ${formatClaimDate(viewerClaim.reviewedAt)}`
@@ -1152,7 +1166,7 @@ export const ChurchProfilePage = () => {
                       isClaimFormOpen ? (
                         <form className="mt-4 space-y-3" onSubmit={handleSubmitChurchClaim}>
                           <label className="block">
-                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#999]">
+                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                               Your role
                             </span>
                             <input
@@ -1161,12 +1175,12 @@ export const ChurchProfilePage = () => {
                                 setClaimRoleTitle(event.target.value);
                               }}
                               placeholder="Executive Pastor"
-                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222] outline-none transition-colors focus:border-[#222]"
+                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-foreground"
                             />
                           </label>
 
                           <label className="block">
-                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#999]">
+                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                               Church email
                             </span>
                             <input
@@ -1178,11 +1192,11 @@ export const ChurchProfilePage = () => {
                               placeholder={
                                 claimDomainHint ? `you@${claimDomainHint}` : 'you@church.org'
                               }
-                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#222] outline-none transition-colors focus:border-[#222]"
+                              className="mt-2 w-full rounded-2xl border border-gray-300 bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-foreground"
                             />
                           </label>
 
-                          <p className="text-xs leading-5 text-[#717171]">
+                          <p className="text-xs leading-5 text-muted-foreground">
                             Use a staff or ministry address that matches the church&apos;s public
                             website or contact email
                             {claimDomainHint ? `, like ${claimDomainHint}` : ''}.
@@ -1192,7 +1206,7 @@ export const ChurchProfilePage = () => {
                             <button
                               type="submit"
                               disabled={isSubmittingClaim}
-                              className="rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+                              className="rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               {isSubmittingClaim ? 'Submitting...' : 'Submit claim request'}
                             </button>
@@ -1201,7 +1215,7 @@ export const ChurchProfilePage = () => {
                               onClick={() => {
                                 setIsClaimFormOpen(false);
                               }}
-                              className="rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-[#222] transition-colors hover:bg-gray-50"
+                              className="rounded-full border border-gray-300 bg-card px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
                             >
                               Cancel
                             </button>
@@ -1212,7 +1226,7 @@ export const ChurchProfilePage = () => {
                           <button
                             type="button"
                             onClick={handleOpenClaimForm}
-                            className="rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+                            className="rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
                           >
                             {viewerClaim?.status === 'rejected'
                               ? 'Submit a new claim request'
@@ -1231,7 +1245,7 @@ export const ChurchProfilePage = () => {
 
       <footer className="border-t border-[#e8dfd2] bg-[#f8f4ec]">
         <div className="mx-auto max-w-[1180px] px-6 py-6 lg:px-0">
-          <p className="text-sm text-[#717171]">&copy; 2026 SA Church Finder</p>
+          <p className="text-sm text-muted-foreground">&copy; 2026 SA Church Finder</p>
         </div>
       </footer>
 
@@ -1252,34 +1266,34 @@ export const ChurchProfilePage = () => {
 };
 
 const ProfileSkeleton = () => (
-  <div className="flex-1 animate-pulse overflow-y-auto bg-white">
+  <div className="flex-1 animate-pulse overflow-y-auto bg-background">
     <div className="mx-auto max-w-[1120px] px-6 pb-4 pt-6 lg:px-0">
-      <div className="h-4 w-16 rounded bg-gray-200" />
+      <div className="h-4 w-16 rounded bg-muted" />
     </div>
 
     <div className="mx-auto mb-6 max-w-[1120px] px-6 lg:px-0">
       <div className="grid h-[400px] grid-cols-4 gap-2 overflow-hidden rounded-xl">
-        <div className="col-span-2 row-span-2 bg-gray-200" />
-        <div className="bg-gray-100" />
-        <div className="bg-gray-200" />
-        <div className="bg-gray-100" />
-        <div className="bg-gray-200" />
+        <div className="col-span-2 row-span-2 bg-muted" />
+        <div className="bg-muted" />
+        <div className="bg-muted" />
+        <div className="bg-muted" />
+        <div className="bg-muted" />
       </div>
     </div>
 
     <div className="mx-auto max-w-[1120px] px-6 pb-16 lg:px-0">
       <div className="flex flex-col gap-12 lg:flex-row lg:gap-24">
         <div className="flex-1">
-          <div className="mb-3 h-8 w-2/3 rounded bg-gray-200" />
-          <div className="mb-8 h-4 w-1/2 rounded bg-gray-200" />
-          <div className="space-y-3 border-t border-gray-200 pt-8">
-            <div className="h-4 w-full rounded bg-gray-200" />
-            <div className="h-4 w-5/6 rounded bg-gray-200" />
-            <div className="h-4 w-4/6 rounded bg-gray-200" />
+          <div className="mb-3 h-8 w-2/3 rounded bg-muted" />
+          <div className="mb-8 h-4 w-1/2 rounded bg-muted" />
+          <div className="space-y-3 border-t border-border pt-8">
+            <div className="h-4 w-full rounded bg-muted" />
+            <div className="h-4 w-5/6 rounded bg-muted" />
+            <div className="h-4 w-4/6 rounded bg-muted" />
           </div>
         </div>
         <div className="w-full lg:w-[370px]">
-          <div className="h-[400px] rounded-xl border border-gray-200 bg-gray-50 p-6" />
+          <div className="h-[400px] rounded-xl border border-border bg-gray-50 p-6" />
         </div>
       </div>
     </div>

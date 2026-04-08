@@ -46,7 +46,7 @@ const VerifyEmailPage = () => {
           Need another link?{' '}
           <Link
             to={fallbackPath}
-            className="font-semibold text-[#222] underline underline-offset-4"
+            className="font-semibold text-foreground underline underline-offset-4"
           >
             {fallbackLabel}
           </Link>
@@ -58,8 +58,10 @@ const VerifyEmailPage = () => {
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">
           Email verification
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#222]">Finalize verification.</h1>
-        <p className="text-sm leading-6 text-[#5c5650]">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Finalize verification.
+        </h1>
+        <p className="text-sm leading-6 text-muted-foreground">
           Once this succeeds, your account badge and future auth flows will reflect that the address
           has been confirmed.
         </p>
@@ -74,13 +76,13 @@ const VerifyEmailPage = () => {
 
           <Link
             to={fallbackPath}
-            className="inline-flex rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            className="inline-flex rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
           >
             {fallbackLabel}
           </Link>
         </div>
       ) : verifyEmailMutation.isPending ? (
-        <div className="mt-8 rounded-[28px] border border-gray-200 bg-[#fff] p-5 text-sm leading-6 text-[#5c5650]">
+        <div className="mt-8 rounded-[28px] border border-border bg-card p-5 text-sm leading-6 text-muted-foreground">
           Verifying your email now...
         </div>
       ) : verificationError ? (
@@ -91,7 +93,7 @@ const VerifyEmailPage = () => {
 
           <Link
             to={fallbackPath}
-            className="inline-flex rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            className="inline-flex rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
           >
             {user ? 'Back to account' : 'Back to sign in'}
           </Link>

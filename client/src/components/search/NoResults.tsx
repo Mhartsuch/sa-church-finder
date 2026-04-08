@@ -73,16 +73,16 @@ export const NoResults = () => {
 
   return (
     <div className="flex items-center justify-center py-14 sm:py-20">
-      <div className="w-full max-w-xl rounded-[32px] border border-dashed border-[#ddd] bg-[#fff] px-6 py-10 text-center sm:px-10">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#717171] shadow-airbnb-subtle">
+      <div className="w-full max-w-xl rounded-[32px] border border-dashed border-border bg-card px-6 py-10 text-center sm:px-10">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-card text-muted-foreground shadow-airbnb-subtle">
           <MapPin className="h-7 w-7" />
         </div>
 
-        <h3 className="mt-5 text-2xl font-semibold tracking-tight text-[#222]">
+        <h3 className="mt-5 text-2xl font-semibold tracking-tight text-foreground">
           No churches found
         </h3>
 
-        <p className="mx-auto mt-3 max-w-md text-[15px] leading-7 text-[#717171]">
+        <p className="mx-auto mt-3 max-w-md text-[15px] leading-7 text-muted-foreground">
           {hasQuery && hasFilters
             ? `Nothing matched "${query}" with your current filters. Try broadening the search a little.`
             : hasQuery
@@ -101,8 +101,8 @@ export const NoResults = () => {
                 onClick={suggestion.action}
                 className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-colors ${
                   index === 0
-                    ? 'bg-[#222] text-white hover:bg-black'
-                    : 'border border-[#ddd] bg-white text-[#222] hover:border-[#222] hover:bg-[#f7f7f7]'
+                    ? 'bg-foreground text-background hover:opacity-90'
+                    : 'border border-border bg-card text-foreground hover:border-foreground hover:bg-muted'
                 }`}
               >
                 {suggestion.icon}

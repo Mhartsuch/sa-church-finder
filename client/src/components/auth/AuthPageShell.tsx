@@ -41,7 +41,7 @@ export const AuthPageShell = ({
   footer,
 }: AuthPageShellProps) => {
   return (
-    <div className="flex flex-1 bg-[#fff]">
+    <div className="flex flex-1 bg-background">
       <div className="relative mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr,0.95fr] lg:px-10 lg:py-10">
         <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(160deg,#FF385C_0%,#e63e5c_55%,#ffd0c0_100%)] p-8 text-white shadow-airbnb sm:p-10">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-3xl" />
@@ -85,9 +85,11 @@ export const AuthPageShell = ({
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-airbnb-subtle sm:p-8">
+        <section className="rounded-[32px] border border-border bg-card p-6 shadow-airbnb-subtle sm:p-8">
           {children}
-          <div className="mt-6 border-t border-gray-200 pt-6 text-sm text-[#5c5650]">{footer}</div>
+          <div className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">
+            {footer}
+          </div>
         </section>
       </div>
     </div>

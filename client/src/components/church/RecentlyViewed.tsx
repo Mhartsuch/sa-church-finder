@@ -19,7 +19,7 @@ export const RecentlyViewed = () => {
             key={church.id}
             type="button"
             onClick={() => navigate(`/churches/${church.slug}`)}
-            className="flex min-w-[180px] flex-shrink-0 flex-col rounded-xl border border-[#ebebeb] transition-all hover:-translate-y-1 hover:shadow-airbnb"
+            className="flex min-w-[180px] flex-shrink-0 flex-col rounded-xl border border-border transition-all hover:-translate-y-1 hover:shadow-airbnb"
           >
             {church.coverImageUrl ? (
               <img
@@ -28,7 +28,7 @@ export const RecentlyViewed = () => {
                 className="h-28 w-full rounded-t-xl object-cover"
               />
             ) : (
-              <div className="flex h-28 w-full items-center justify-center rounded-t-xl bg-[#f0f0f0] text-3xl">
+              <div className="flex h-28 w-full items-center justify-center rounded-t-xl bg-muted text-3xl">
                 ⛪
               </div>
             )}
@@ -42,7 +42,7 @@ export const RecentlyViewed = () => {
                   </>
                 ) : null}
                 {church.denomination ? (
-                  <span className="text-[13px] text-[#717171]">
+                  <span className="text-[13px] text-muted-foreground">
                     {church.avgRating > 0 ? ' · ' : ''}
                     {church.denomination}
                   </span>

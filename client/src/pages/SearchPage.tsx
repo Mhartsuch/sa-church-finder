@@ -170,8 +170,8 @@ export const SearchPage = () => {
 
   return (
     <>
-      <div className="flex-1 bg-white">
-        <div className="sticky top-[80px] z-40 border-b border-[#ebebeb] bg-white/96 backdrop-blur-md">
+      <div className="flex-1 bg-background">
+        <div className="sticky top-[80px] z-40 border-b border-border bg-background/96 backdrop-blur-md">
           <div className="mx-auto max-w-[1760px]">
             <CategoryFilter
               compareCount={compareCount}
@@ -238,8 +238,8 @@ export const SearchPage = () => {
         <section className="reference-results-shell">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-[14px] font-semibold text-[#222]">{resultsHeading}</h2>
-              <p className="mt-1 text-[14px] text-[#717171]">
+              <h2 className="text-[14px] font-semibold text-foreground">{resultsHeading}</h2>
+              <p className="mt-1 text-[14px] text-muted-foreground">
                 {resultsDescription}
                 {activeAdvancedFilterCount > 0
                   ? `  /  ${activeAdvancedFilterCount} filter${activeAdvancedFilterCount === 1 ? '' : 's'} active`
@@ -257,8 +257,8 @@ export const SearchPage = () => {
                   }}
                   className={`rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
                     showMap
-                      ? 'border-[#222] bg-[#222] text-white'
-                      : 'border-[#ddd] bg-white text-[#222] hover:border-[#222]'
+                      ? 'border-foreground bg-foreground text-white'
+                      : 'border-border bg-card text-foreground hover:border-foreground'
                   }`}
                 >
                   {showMap ? 'Hide map' : 'Show map'}
@@ -271,7 +271,7 @@ export const SearchPage = () => {
                   onChange={(event) => {
                     setSort(event.target.value as (typeof SORT_OPTIONS)[number]['value']);
                   }}
-                  className="appearance-none rounded-[10px] border border-[#ddd] bg-white px-4 py-2.5 pr-10 text-[13px] font-semibold text-[#222] outline-none transition-colors hover:border-[#222] focus:border-[#222]"
+                  className="appearance-none rounded-[10px] border border-border bg-card px-4 py-2.5 pr-10 text-[13px] font-semibold text-foreground outline-none transition-colors hover:border-foreground focus:border-foreground"
                 >
                   {SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -279,7 +279,7 @@ export const SearchPage = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#717171]" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
             </div>
           </div>
@@ -291,18 +291,18 @@ export const SearchPage = () => {
                   key={`${token.key}-${token.value}`}
                   type="button"
                   onClick={() => removeToken(token.key)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#ddd] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#222] transition-colors hover:border-[#222]"
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground"
                 >
                   <span>
                     {token.label}: {token.value}
                   </span>
-                  <X className="h-3.5 w-3.5 text-[#999]" />
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
               ))}
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-[13px] font-semibold text-[#717171] underline underline-offset-4 transition-colors hover:text-[#222]"
+                className="text-[13px] font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
               >
                 Clear everything
               </button>
@@ -320,7 +320,7 @@ export const SearchPage = () => {
 
             {showMap ? (
               <div className={`${isMobile ? 'mt-4' : 'sticky top-[156px]'} min-w-0`}>
-                <div className="overflow-hidden rounded-[12px] border border-[#ebebeb] bg-white">
+                <div className="overflow-hidden rounded-[12px] border border-border bg-card">
                   <div
                     className={`${isMobile ? 'h-[70vh] min-h-[460px]' : 'h-[calc(100vh-180px)] min-h-[620px]'}`}
                   >
@@ -380,7 +380,7 @@ export const SearchPage = () => {
             role="dialog"
             aria-modal="true"
             aria-label="Filters"
-            className={`w-full max-w-[780px] overflow-hidden rounded-[24px] bg-white shadow-[0_20px_80px_rgba(0,0,0,0.25)] ${
+            className={`w-full max-w-[780px] overflow-hidden rounded-[24px] bg-card shadow-[0_20px_80px_rgba(0,0,0,0.25)] ${
               filterModalState === 'closing'
                 ? 'animate-[modal-slide-up_0.25s_ease-in_reverse_forwards]'
                 : 'animate-modal-slide-up'

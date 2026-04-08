@@ -51,12 +51,12 @@ export const MapPlaceholder = () => {
   };
 
   return (
-    <div className="w-full h-full bg-[#f5f5f3] flex flex-col relative overflow-hidden">
+    <div className="w-full h-full bg-muted flex flex-col relative overflow-hidden">
       {/* Info banner */}
       <div className="absolute top-4 left-4 right-4 z-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-airbnb text-sm">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-card rounded-xl shadow-airbnb text-sm">
           <AlertCircle className="w-4 h-4 text-sage-600 flex-shrink-0" />
-          <span className="text-[#222] font-medium">Lightweight map preview</span>
+          <span className="text-foreground font-medium">Lightweight map preview</span>
         </div>
       </div>
 
@@ -130,11 +130,11 @@ export const MapPlaceholder = () => {
 
         {/* Empty state */}
         {churches.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm">
             <div className="text-center">
-              <MapPin className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <h3 className="text-base font-semibold text-[#222] mb-1">No churches on map</h3>
-              <p className="text-sm text-[#717171]">Adjust your filters to see results</p>
+              <MapPin className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-base font-semibold text-foreground mb-1">No churches on map</h3>
+              <p className="text-sm text-muted-foreground">Adjust your filters to see results</p>
             </div>
           </div>
         )}

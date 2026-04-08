@@ -57,7 +57,7 @@ export const ConfirmDialog = ({
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-desc"
-        className="w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-modal-slide-up"
+        className="w-full max-w-md overflow-hidden rounded-2xl bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-modal-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
@@ -67,10 +67,13 @@ export const ConfirmDialog = ({
             </div>
           )}
           <div className="flex-1">
-            <h3 id="confirm-title" className="text-[16px] font-semibold text-[#222]">
+            <h3 id="confirm-title" className="text-[16px] font-semibold text-foreground">
               {title}
             </h3>
-            <p id="confirm-desc" className="mt-1.5 text-[14px] leading-relaxed text-[#717171]">
+            <p
+              id="confirm-desc"
+              className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground"
+            >
               {description}
             </p>
           </div>
@@ -81,7 +84,7 @@ export const ConfirmDialog = ({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-xl border border-[#ddd] px-5 py-2.5 text-[14px] font-semibold text-[#222] transition-colors hover:border-[#222] disabled:opacity-50"
+            className="rounded-xl border border-border px-5 py-2.5 text-[14px] font-semibold text-foreground transition-colors hover:border-foreground disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -91,7 +94,7 @@ export const ConfirmDialog = ({
             onClick={onConfirm}
             disabled={isPending}
             className={`rounded-xl px-5 py-2.5 text-[14px] font-semibold text-white transition-colors disabled:opacity-70 ${
-              isDestructive ? 'bg-brand hover:bg-brand-dark' : 'bg-[#222] hover:bg-black'
+              isDestructive ? 'bg-brand hover:bg-brand-dark' : 'bg-foreground hover:opacity-90'
             }`}
           >
             {isPending ? 'Please wait\u2026' : confirmLabel}

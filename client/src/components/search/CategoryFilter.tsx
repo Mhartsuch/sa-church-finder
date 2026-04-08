@@ -98,14 +98,14 @@ export const CategoryFilter = ({
               onClick={() => handleClick(item)}
               className={`flex flex-shrink-0 flex-col items-center gap-1 border-b-2 px-3 pb-3 pt-2 transition-all duration-200 ${
                 active
-                  ? 'border-[#222] opacity-100'
+                  ? 'border-foreground opacity-100'
                   : 'border-transparent opacity-[0.64] hover:border-[#b0b0b0] hover:opacity-100'
               }`}
             >
               <span className="text-2xl leading-none">{item.icon}</span>
               <span
                 className={`whitespace-nowrap text-[12px] font-semibold leading-none ${
-                  active ? 'text-[#222]' : 'text-[#717171]'
+                  active ? 'text-foreground' : 'text-muted-foreground'
                 }`}
               >
                 {item.label}
@@ -115,17 +115,17 @@ export const CategoryFilter = ({
         })}
       </div>
 
-      <div className="hidden items-center gap-3 border-l border-[#ebebeb] pl-4 lg:flex">
+      <div className="hidden items-center gap-3 border-l border-border pl-4 lg:flex">
         {onCompare ? (
           <button
             type="button"
             onClick={onCompare}
-            className="relative inline-flex items-center gap-2 rounded-xl border border-[#ddd] bg-white px-4 py-2.5 text-sm font-semibold text-[#222] transition-all hover:border-[#222]"
+            className="relative inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-foreground"
           >
             <Scale className="h-4 w-4" />
             Compare
             {compareCount > 0 ? (
-              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#222] px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-bold text-background">
                 {compareCount}
               </span>
             ) : null}
@@ -136,7 +136,7 @@ export const CategoryFilter = ({
           <button
             type="button"
             onClick={onOpenFilters}
-            className="relative inline-flex items-center gap-2 rounded-xl border border-[#ddd] bg-white px-4 py-2.5 text-sm font-semibold text-[#222] transition-all hover:border-[#222]"
+            className="relative inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-foreground"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters

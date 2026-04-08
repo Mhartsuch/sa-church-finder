@@ -13,9 +13,9 @@ export const Newsletter = () => {
   if (submitted) {
     return (
       <section className="mx-auto max-w-[1760px] px-4 py-12 sm:px-6 lg:px-10">
-        <div className="rounded-2xl bg-[#f7f7f7] p-8 text-center">
+        <div className="rounded-2xl bg-muted p-8 text-center">
           <h2 className="text-[22px] font-bold">You&apos;re on the list! 🎉</h2>
-          <p className="mt-2 text-[15px] text-[#717171]">
+          <p className="mt-2 text-[15px] text-muted-foreground">
             We&apos;ll send you updates about new churches, community events, and local stories.
           </p>
         </div>
@@ -25,9 +25,9 @@ export const Newsletter = () => {
 
   return (
     <section className="mx-auto max-w-[1760px] px-4 py-12 sm:px-6 lg:px-10">
-      <div className="rounded-2xl bg-[#f7f7f7] p-8 text-center sm:p-12">
+      <div className="rounded-2xl bg-muted p-8 text-center sm:p-12">
         <h2 className="text-[22px] font-bold">Stay connected with your community</h2>
-        <p className="mx-auto mt-2 max-w-lg text-[15px] text-[#717171]">
+        <p className="mx-auto mt-2 max-w-lg text-[15px] text-muted-foreground">
           Get weekly updates on church events, new listings, and stories from San Antonio&apos;s
           faith community.
         </p>
@@ -37,7 +37,7 @@ export const Newsletter = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
-            className="flex-1 rounded-xl border border-[#ddd] bg-white px-4 py-3 text-[14px] outline-none transition-colors focus:border-[#222]"
+            className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-[14px] outline-none transition-colors focus:border-foreground"
           />
           <button
             type="submit"

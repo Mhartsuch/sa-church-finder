@@ -12,7 +12,7 @@ type ForgotPasswordFormState = {
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 
 const inputClasses =
-  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
+  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-foreground outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
 
 const validateForm = ({ email }: ForgotPasswordFormState): string | null => {
   if (!email.trim()) {
@@ -73,7 +73,7 @@ const ForgotPasswordPage = () => {
       footer={
         <p>
           Remembered it after all?{' '}
-          <Link to="/login" className="font-semibold text-[#222] underline underline-offset-4">
+          <Link to="/login" className="font-semibold text-foreground underline underline-offset-4">
             Go back to sign in
           </Link>
           .
@@ -84,8 +84,8 @@ const ForgotPasswordPage = () => {
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">
           Forgot password
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#222]">Request a reset link.</h1>
-        <p className="text-sm leading-6 text-[#5c5650]">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Request a reset link.</h1>
+        <p className="text-sm leading-6 text-muted-foreground">
           Enter the email on your account and we&apos;ll start the reset flow. For security, the
           success message stays the same whether or not that email is registered.
         </p>
@@ -116,14 +116,14 @@ const ForgotPasswordPage = () => {
             onClick={() => {
               setSuccessState(null);
             }}
-            className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-[#222] transition-colors hover:bg-gray-50"
+            className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
             Send another link
           </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <label className="block text-sm font-semibold text-[#222]">
+          <label className="block text-sm font-semibold text-foreground">
             Email
             <input
               type="email"
@@ -148,7 +148,7 @@ const ForgotPasswordPage = () => {
           <button
             type="submit"
             disabled={requestPasswordResetMutation.isPending}
-            className="w-full rounded-full bg-[#222] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {requestPasswordResetMutation.isPending
               ? 'Sending reset instructions...'

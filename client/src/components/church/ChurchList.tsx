@@ -79,8 +79,8 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <h3 className="mb-2 text-lg font-semibold text-[#222]">Something went wrong</h3>
-          <p className="text-sm text-[#717171]">{error.message}</p>
+          <h3 className="mb-2 text-lg font-semibold text-foreground">Something went wrong</h3>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
         </div>
       </div>
     );
@@ -153,7 +153,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#222] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -177,7 +177,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
                   className={`h-8 w-8 rounded-full text-sm font-semibold transition-colors ${
-                    page === pageNum ? 'bg-[#222] text-white' : 'text-[#222] hover:bg-gray-100'
+                    page === pageNum ? 'bg-foreground text-white' : 'text-foreground hover:bg-muted'
                   }`}
                 >
                   {pageNum}
@@ -189,7 +189,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#222] transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />

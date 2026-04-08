@@ -104,10 +104,10 @@ export const ChurchCard = ({
         type="button"
         onClick={() => onClick(church.slug)}
         aria-label={profileLabel}
-        className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#222] focus-visible:ring-offset-4"
+        className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4"
       >
         {/* Image carousel */}
-        <div className="relative mb-3 aspect-[20/19] overflow-hidden rounded-[12px] bg-[#f0f0f0]">
+        <div className="relative mb-3 aspect-[20/19] overflow-hidden rounded-[12px] bg-muted">
           {hasValidImages ? (
             <div
               className="flex h-full transition-transform duration-[350ms] ease-[cubic-bezier(.4,0,.2,1)]"
@@ -126,20 +126,22 @@ export const ChurchCard = ({
               ))}
             </div>
           ) : (
-            <div className="relative h-full w-full bg-[#f0f0f0] text-[#999]">
+            <div className="relative h-full w-full bg-muted text-muted-foreground">
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-5">
                 <div className="relative h-28 w-44">
-                  <div className="absolute left-1/2 top-0 h-10 w-10 -translate-x-1/2 rounded-full bg-[#ccc]" />
-                  <div className="absolute bottom-0 left-4 h-0 w-0 border-b-[64px] border-l-[54px] border-r-[54px] border-b-[#ccc] border-l-transparent border-r-transparent" />
-                  <div className="absolute bottom-0 right-0 h-0 w-0 border-b-[76px] border-l-[60px] border-r-[60px] border-b-[#bbb] border-l-transparent border-r-transparent" />
+                  <div className="absolute left-1/2 top-0 h-10 w-10 -translate-x-1/2 rounded-full bg-muted-foreground/40" />
+                  <div className="absolute bottom-0 left-4 h-0 w-0 border-b-[64px] border-l-[54px] border-r-[54px] border-b-muted-foreground/40 border-l-transparent border-r-transparent" />
+                  <div className="absolute bottom-0 right-0 h-0 w-0 border-b-[76px] border-l-[60px] border-r-[60px] border-b-muted-foreground/30 border-l-transparent border-r-transparent" />
                 </div>
-                <p className="text-[15px] font-medium text-[#999]">Church photo unavailable</p>
+                <p className="text-[15px] font-medium text-muted-foreground">
+                  Church photo unavailable
+                </p>
               </div>
             </div>
           )}
 
           {/* Badge */}
-          <div className="absolute left-[10px] top-[10px] z-[3] rounded bg-white px-2 py-1 text-[12px] font-bold text-[#222] shadow-[0_2px_4px_rgba(0,0,0,0.08)]">
+          <div className="absolute left-[10px] top-[10px] z-[3] rounded bg-card px-2 py-1 text-[12px] font-bold text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.08)]">
             {badgeLabel}
           </div>
 
@@ -152,7 +154,7 @@ export const ChurchCard = ({
                 className="absolute left-2 top-1/2 z-[3] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,0.92)] opacity-0 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.08] hover:bg-white group-hover:opacity-100"
                 aria-label="Previous image"
               >
-                <ChevronLeft className="h-[10px] w-[10px] text-[#222]" strokeWidth={3} />
+                <ChevronLeft className="h-[10px] w-[10px] text-foreground" strokeWidth={3} />
               </button>
               <button
                 type="button"
@@ -160,7 +162,7 @@ export const ChurchCard = ({
                 className="absolute right-2 top-1/2 z-[3] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,0.92)] opacity-0 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.08] hover:bg-white group-hover:opacity-100"
                 aria-label="Next image"
               >
-                <ChevronRight className="h-[10px] w-[10px] text-[#222]" strokeWidth={3} />
+                <ChevronRight className="h-[10px] w-[10px] text-foreground" strokeWidth={3} />
               </button>
             </>
           )}
@@ -195,15 +197,17 @@ export const ChurchCard = ({
           </div>
 
           {church.denomination ? (
-            <p className="text-[15px] leading-[1.35] text-[#717171]">{church.denomination}</p>
+            <p className="text-[15px] leading-[1.35] text-muted-foreground">
+              {church.denomination}
+            </p>
           ) : null}
 
-          <p className="text-[15px] leading-[1.35] text-[#717171]">
+          <p className="text-[15px] leading-[1.35] text-muted-foreground">
             {locationLine || 'San Antonio'}
           </p>
 
           {nextService ? (
-            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[15px] text-[#717171]">
+            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[15px] text-muted-foreground">
               <span>{nextService}</span>
               <span className="rounded-full bg-[#dcfce7] px-2 py-0.5 text-[11px] font-semibold text-[#166534]">
                 Next service
@@ -228,8 +232,8 @@ export const ChurchCard = ({
           aria-label={compareLabel}
           className={`inline-flex w-full items-center justify-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-semibold transition-colors ${
             isCompared
-              ? 'border-[#222] bg-[#222] text-white'
-              : 'border-[#ddd] bg-white text-[#222] hover:border-[#222]'
+              ? 'border-foreground bg-foreground text-white'
+              : 'border-border bg-card text-foreground hover:border-foreground'
           }`}
         >
           <Scale className="h-4 w-4" />

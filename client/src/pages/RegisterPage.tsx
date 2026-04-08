@@ -20,7 +20,7 @@ type RegisterFormState = {
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 
 const inputClasses =
-  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-[#222] outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
+  'mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-foreground outline-none transition focus:border-[#FF385C] focus:ring-4 focus:ring-[#FF385C]/10';
 
 const validateForm = ({ name, email, password }: RegisterFormState): string | null => {
   if (!name.trim()) {
@@ -102,7 +102,7 @@ const RegisterPage = () => {
           <Link
             to={loginHref}
             state={location.state}
-            className="font-semibold text-[#222] underline underline-offset-4"
+            className="font-semibold text-foreground underline underline-offset-4"
           >
             Sign in instead
           </Link>
@@ -112,10 +112,10 @@ const RegisterPage = () => {
     >
       <div className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#FF385C]">Sign up</p>
-        <h1 className="text-3xl font-bold tracking-tight text-[#222]">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Create your account your way.
         </h1>
-        <p className="text-sm leading-6 text-[#5c5650]">
+        <p className="text-sm leading-6 text-muted-foreground">
           Email/password signup and Google sign-in both land in the same account area, so your
           shortlist and reviews stay tied to one session-backed identity.
         </p>
@@ -130,15 +130,15 @@ const RegisterPage = () => {
 
         <GoogleAuthButton href={googleAuthUrl} label="Continue with Google" />
 
-        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#999]">
-          <span className="h-px flex-1 bg-gray-200" />
+        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
           Or create an account with email
-          <span className="h-px flex-1 bg-gray-200" />
+          <span className="h-px flex-1 bg-border" />
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <label className="block text-sm font-semibold text-[#222]">
+        <label className="block text-sm font-semibold text-foreground">
           Name
           <input
             type="text"
@@ -155,7 +155,7 @@ const RegisterPage = () => {
           />
         </label>
 
-        <label className="block text-sm font-semibold text-[#222]">
+        <label className="block text-sm font-semibold text-foreground">
           Email
           <input
             type="email"
@@ -172,7 +172,7 @@ const RegisterPage = () => {
           />
         </label>
 
-        <label className="block text-sm font-semibold text-[#222]">
+        <label className="block text-sm font-semibold text-foreground">
           Password
           <input
             type="password"

@@ -46,14 +46,16 @@ export const FirstVisitGuide = () => {
         {STEPS.map((step) => (
           <div
             key={step.number}
-            className="relative rounded-2xl border border-[#ebebeb] p-6 transition-all hover:-translate-y-1 hover:shadow-airbnb"
+            className="relative rounded-2xl border border-border p-6 transition-all hover:-translate-y-1 hover:shadow-airbnb"
           >
             <div className="mb-4 text-3xl">{step.icon}</div>
-            <span className="absolute right-5 top-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#f0f0f0] text-[13px] font-bold text-[#717171]">
+            <span className="absolute right-5 top-5 flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[13px] font-bold text-muted-foreground">
               {step.number}
             </span>
             <h3 className="text-[16px] font-bold">{step.title}</h3>
-            <p className="mt-2 text-[14px] leading-relaxed text-[#717171]">{step.description}</p>
+            <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+              {step.description}
+            </p>
           </div>
         ))}
       </div>
@@ -62,9 +64,9 @@ export const FirstVisitGuide = () => {
         <h3 className="text-[16px] font-bold">Tips for your first visit</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {TIPS.map((tip) => (
-            <div key={tip.text} className="flex items-start gap-3 rounded-xl bg-[#f7f7f7] p-4">
+            <div key={tip.text} className="flex items-start gap-3 rounded-xl bg-muted p-4">
               <span className="text-xl">{tip.icon}</span>
-              <p className="text-[14px] leading-relaxed text-[#484848]">{tip.text}</p>
+              <p className="text-[14px] leading-relaxed text-muted-foreground">{tip.text}</p>
             </div>
           ))}
         </div>

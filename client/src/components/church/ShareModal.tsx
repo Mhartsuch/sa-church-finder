@@ -72,7 +72,7 @@ export const ShareModal = ({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md animate-modal-slide-up rounded-2xl bg-white p-6"
+        className="w-full max-w-md animate-modal-slide-up rounded-2xl bg-card p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
@@ -80,14 +80,14 @@ export const ShareModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[#f7f7f7]"
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Preview */}
-        <div className="mb-6 flex gap-4 rounded-xl border border-[#ebebeb] p-3">
+        <div className="mb-6 flex gap-4 rounded-xl border border-border p-3">
           {coverImageUrl ? (
             <img
               src={coverImageUrl}
@@ -95,13 +95,13 @@ export const ShareModal = ({
               className="h-16 w-16 rounded-lg object-cover"
             />
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-[#f0f0f0] text-2xl">
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted text-2xl">
               ⛪
             </div>
           )}
           <div>
             <h4 className="font-semibold">{churchName}</h4>
-            <p className="text-sm text-[#717171]">
+            <p className="text-sm text-muted-foreground">
               {[churchDenomination, churchAddress].filter(Boolean).join(' · ')}
             </p>
           </div>
@@ -114,7 +114,7 @@ export const ShareModal = ({
               key={option.label}
               type="button"
               onClick={() => handleShare(option.label)}
-              className="flex flex-col items-center gap-2 rounded-xl p-3 transition-colors hover:bg-[#f7f7f7]"
+              className="flex flex-col items-center gap-2 rounded-xl p-3 transition-colors hover:bg-muted"
             >
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-full text-xl"
@@ -122,7 +122,7 @@ export const ShareModal = ({
               >
                 {option.icon}
               </div>
-              <span className="text-[11px] font-medium text-[#717171]">
+              <span className="text-[11px] font-medium text-muted-foreground">
                 {option.label === 'Copy Link' && copied ? 'Copied!' : option.label}
               </span>
             </button>

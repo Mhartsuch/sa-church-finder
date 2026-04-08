@@ -92,14 +92,14 @@ export const EventsCalendar = () => {
   return (
     <section className="mx-auto max-w-[1760px] px-4 py-12 sm:px-6 lg:px-10">
       <h2 className="text-[22px] font-bold">Upcoming community events</h2>
-      <p className="mt-1 text-[15px] text-[#717171]">
+      <p className="mt-1 text-[15px] text-muted-foreground">
         Connect with local churches through events and gatherings
       </p>
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {EVENTS.map((event) => (
           <div
             key={event.id}
-            className="overflow-hidden rounded-2xl border border-[#ebebeb] transition-all hover:-translate-y-[3px] hover:shadow-airbnb"
+            className="overflow-hidden rounded-2xl border border-border transition-all hover:-translate-y-[3px] hover:shadow-airbnb"
           >
             <div
               className="px-5 py-3"
@@ -112,10 +112,10 @@ export const EventsCalendar = () => {
             </div>
             <div className="p-5">
               <h3 className="text-[16px] font-bold leading-tight">{event.title}</h3>
-              <p className="mt-1 flex items-center gap-1 text-[14px] text-[#717171]">
+              <p className="mt-1 flex items-center gap-1 text-[14px] text-muted-foreground">
                 ⛪ {event.church}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] text-[#717171]">
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
                 <span>🕐 {event.time}</span>
                 <span>📍 {event.location}</span>
               </div>

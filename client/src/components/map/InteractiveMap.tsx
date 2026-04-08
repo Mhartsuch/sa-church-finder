@@ -223,15 +223,17 @@ export const InteractiveMap = () => {
               onClick={() => navigate(`/churches/${popupChurch.slug}`)}
               aria-label={`View ${popupChurch.name} profile`}
             >
-              <h3 className="mb-1 text-[15px] font-semibold leading-tight text-[#222]">
+              <h3 className="mb-1 text-[15px] font-semibold leading-tight text-foreground">
                 {popupChurch.name}
               </h3>
               {popupChurch.denomination && (
-                <p className="mb-0.5 text-[13px] text-[#717171]">{popupChurch.denomination}</p>
+                <p className="mb-0.5 text-[13px] text-muted-foreground">
+                  {popupChurch.denomination}
+                </p>
               )}
-              <div className="flex items-center gap-2 text-[13px] text-[#717171]">
+              <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
                 {popupChurch.avgRating > 0 && (
-                  <span className="inline-flex items-center gap-1 font-semibold text-[#222]">
+                  <span className="inline-flex items-center gap-1 font-semibold text-foreground">
                     <Star className="h-3 w-3 fill-current" />
                     {formatRating(popupChurch.avgRating)}
                   </span>
@@ -241,7 +243,7 @@ export const InteractiveMap = () => {
               {(() => {
                 const nextService = getNextService(popupChurch.services);
                 return nextService ? (
-                  <p className="mt-1 text-[13px] font-semibold text-[#222]">{nextService}</p>
+                  <p className="mt-1 text-[13px] font-semibold text-foreground">{nextService}</p>
                 ) : null;
               })()}
               <span className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF385C]">

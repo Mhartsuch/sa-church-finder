@@ -35,7 +35,7 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-[#ebebeb] bg-white/95 px-2 py-2 backdrop-blur-md">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border bg-card/95 px-2 py-2 backdrop-blur-md">
       <button
         type="button"
         onClick={() => {
@@ -43,7 +43,7 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         className={`flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold ${
-          isHome && !showMap ? 'text-[#FF385C]' : 'text-[#717171]'
+          isHome && !showMap ? 'text-[#FF385C]' : 'text-muted-foreground'
         }`}
         aria-label="Explore"
       >
@@ -54,7 +54,7 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
       <button
         type="button"
         onClick={() => navigate('/account')}
-        className="flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold text-[#717171]"
+        className="flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold text-muted-foreground"
         aria-label="Wishlist"
       >
         <span className="text-xl">♥️</span>
@@ -66,7 +66,7 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
           type="button"
           onClick={onToggleMap}
           className={`flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold ${
-            showMap ? 'text-[#FF385C]' : 'text-[#717171]'
+            showMap ? 'text-[#FF385C]' : 'text-muted-foreground'
           }`}
           aria-label="Map"
         >
@@ -78,7 +78,7 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
       <button
         type="button"
         onClick={toggleTheme}
-        className="flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold text-[#717171]"
+        className="flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold text-muted-foreground"
         aria-label={theme === 'light' ? 'Dark mode' : 'Light mode'}
       >
         <span className="text-xl">{theme === 'light' ? '🌙' : '☀️'}</span>

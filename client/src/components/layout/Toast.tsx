@@ -12,17 +12,17 @@ const ICON_MAP = {
 
 const STYLE_MAP = {
   success: {
-    bg: 'bg-white',
+    bg: 'bg-card',
     icon: 'text-sage-600',
     border: 'border-sage-200',
   },
   error: {
-    bg: 'bg-white',
+    bg: 'bg-card',
     icon: 'text-brand',
     border: 'border-brand-light',
   },
   info: {
-    bg: 'bg-white',
+    bg: 'bg-card',
     icon: 'text-blue-600',
     border: 'border-blue-100',
   },
@@ -48,13 +48,13 @@ const ToastItem = ({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: str
       className={`flex w-[360px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border ${styles.border} ${styles.bg} px-4 py-3.5 shadow-airbnb ${isExiting ? 'animate-toast-out' : 'animate-toast-in'}`}
     >
       <Icon className={`h-5 w-5 flex-shrink-0 ${styles.icon}`} />
-      <p className="flex-1 pt-px text-[14px] font-medium leading-snug text-[#222]">
+      <p className="flex-1 pt-px text-[14px] font-medium leading-snug text-foreground">
         {toast.message}
       </p>
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="flex-shrink-0 rounded-full p-0.5 text-[#999] transition-colors hover:text-[#222]"
+        className="flex-shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
         aria-label="Dismiss notification"
       >
         <X className="h-4 w-4" />
