@@ -319,12 +319,12 @@ export const SearchPage = () => {
             )}
 
             {showMap ? (
-              <div className={`${isMobile ? 'mt-4' : 'sticky top-[156px]'} min-w-0`}>
+              <div className={`${isMobile ? 'mt-4' : 'sticky top-[156px] self-start'} min-w-0`}>
                 <div className="overflow-hidden rounded-[12px] border border-border bg-card">
                   <div
                     className={`${isMobile ? 'h-[70vh] min-h-[460px]' : 'h-[calc(100vh-180px)] min-h-[620px]'}`}
                   >
-                    <MapContainer />
+                    <MapContainer churches={churches} />
                   </div>
                 </div>
               </div>

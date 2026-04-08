@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
 import { ArrowRight, Star } from 'lucide-react';
 import MapGL, {
   GeolocateControl,
@@ -10,8 +10,6 @@ import MapGL, {
 } from 'react-map-gl';
 import { useNavigate } from 'react-router-dom';
 
-import { DEFAULT_RADIUS } from '@/constants';
-import { useChurches } from '@/hooks/useChurches';
 import { loadMapboxGl } from '@/lib/load-mapbox-gl';
 import { useSearchStore } from '@/stores/search-store';
 import { IChurchSummary } from '@/types/church';
@@ -30,19 +28,19 @@ const getShortLabel = (name: string) => {
   return words.slice(0, 2).join(' ');
 };
 
-export const InteractiveMap = () => {
+interface InteractiveMapProps {
+  churches: IChurchSummary[];
+}
+
+export const InteractiveMap = ({ churches }: InteractiveMapProps) => {
   const mapRef = useRef<MapRef>(null);
   const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
 
-  const query = useSearchStore((state) => state.query);
-  const filters = useSearchStore((state) => state.filters);
-  const sort = useSearchStore((state) => state.sort);
   const mapCenter = useSearchStore((state) => state.mapCenter);
   const mapZoom = useSearchStore((state) => state.mapZoom);
   const hoveredChurchId = useSearchStore((state) => state.hoveredChurchId);
   const selectedChurchId = useSearchStore((state) => state.selectedChurchId);
-  const mapBounds = useSearchStore((state) => state.mapBounds);
 
   const setMapCenter = useSearchStore((state) => state.setMapCenter);
   const setMapZoom = useSearchStore((state) => state.setMapZoom);
@@ -51,29 +49,6 @@ export const InteractiveMap = () => {
   const setSelectedChurch = useSearchStore((state) => state.setSelectedChurch);
 
   const [popupChurch, setPopupChurch] = useState<IChurchSummary | null>(null);
-
-  const boundsString = mapBounds
-    ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
-    : undefined;
-
-  const searchParams = {
-    lat: mapCenter.lat,
-    lng: mapCenter.lng,
-    radius: DEFAULT_RADIUS,
-    q: query || undefined,
-    denomination: filters.denomination,
-    day: filters.day,
-    time: filters.time,
-    language: filters.language,
-    amenities: filters.amenities,
-    sort,
-    page: 1,
-    pageSize: 200,
-    bounds: boundsString,
-  };
-
-  const { data } = useChurches(searchParams);
-  const churches = useMemo(() => data?.data || [], [data]);
 
   useEffect(() => {
     return () => {
@@ -93,14 +68,15 @@ export const InteractiveMap = () => {
   const handleMoveEnd = useCallback(
     (event: ViewStateChangeEvent) => {
       const { latitude, longitude, zoom } = event.viewState;
-      setMapCenter(latitude, longitude);
-      setMapZoom(zoom);
 
       if (moveTimeoutRef.current) {
         clearTimeout(moveTimeoutRef.current);
       }
 
       moveTimeoutRef.current = setTimeout(() => {
+        setMapCenter(latitude, longitude);
+        setMapZoom(zoom);
+
         const map = mapRef.current?.getMap();
         if (!map) {
           return;
@@ -117,7 +93,7 @@ export const InteractiveMap = () => {
           neLat: bounds.getNorthEast().lat,
           neLng: bounds.getNorthEast().lng,
         });
-      }, 300);
+      }, 400);
     },
     [setMapBounds, setMapCenter, setMapZoom],
   );

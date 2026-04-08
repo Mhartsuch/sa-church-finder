@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { IChurchSummary } from '@/types/church';
 import { MapPlaceholder } from './MapPlaceholder';
 
 // Lazy-load InteractiveMap so the React map UI and the runtime Mapbox loader
@@ -9,6 +10,10 @@ const InteractiveMap = lazy(() =>
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
+interface MapContainerProps {
+  churches: IChurchSummary[];
+}
+
 /**
  * Smart map container that renders:
  * - InteractiveMap (Mapbox GL JS) when VITE_MAPBOX_TOKEN is set
@@ -17,7 +22,7 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
  * Uses lazy loading so the map UI and CDN-hosted Mapbox runtime are only requested
  * when needed.
  */
-export const MapContainer = () => {
+export const MapContainer = ({ churches }: MapContainerProps) => {
   if (!MAPBOX_TOKEN) {
     return <MapPlaceholder />;
   }
@@ -32,7 +37,7 @@ export const MapContainer = () => {
         </div>
       }
     >
-      <InteractiveMap />
+      <InteractiveMap churches={churches} />
     </Suspense>
   );
 };
