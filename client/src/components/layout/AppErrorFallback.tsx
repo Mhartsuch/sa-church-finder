@@ -1,6 +1,6 @@
 export const AppErrorFallback = () => {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#fffdfb] px-6 py-16 text-stone-900">
+    <main className="flex min-h-screen items-center justify-center bg-[#faf8f5] px-6 py-16 text-stone-900">
       <div className="w-full max-w-lg rounded-[2rem] border border-stone-200 bg-white/95 p-8 shadow-[0_24px_80px_-48px_rgba(68,64,60,0.55)]">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
           Unexpected Error

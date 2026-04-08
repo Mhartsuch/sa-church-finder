@@ -116,8 +116,8 @@ export const CategoryFilter = ({
               onClick={() => handleClick(item)}
               className={`group flex min-w-[84px] flex-shrink-0 flex-col items-center gap-2 border-b-2 px-3 pb-3 pt-2 text-center transition-all duration-150 ${
                 active
-                  ? 'border-[#222222] text-[#222222]'
-                  : 'border-transparent text-[#8c8174] hover:border-[#b9b0a5] hover:text-[#222222]'
+                  ? 'border-[#1a1a1a] text-[#1a1a1a]'
+                  : 'border-transparent text-[#9a8f7f] hover:border-[#c4bdb0] hover:text-[#1a1a1a]'
               }`}
             >
               <span
@@ -133,17 +133,17 @@ export const CategoryFilter = ({
         })}
       </div>
 
-      <div className="hidden items-center gap-3 border-l border-[#ece4d7] pl-4 lg:flex">
+      <div className="hidden items-center gap-3 border-l border-[#e8e2d8] pl-4 lg:flex">
         {onCompare ? (
           <button
             type="button"
             onClick={onCompare}
-            className="relative inline-flex items-center gap-2 rounded-xl border border-[#dddddd] bg-white px-4 py-2.5 pr-10 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222]"
+            className="relative inline-flex items-center gap-2 rounded-xl border border-[#e0ddd8] bg-white px-4 py-2.5 pr-10 text-sm font-semibold text-[#1a1a1a] transition-colors hover:border-[#1a1a1a]"
           >
             <Scale className="h-4 w-4" />
             Compare
             {compareCount > 0 ? (
-              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#222222] px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#1a1a1a] px-1 text-[10px] font-bold text-white">
                 {compareCount}
               </span>
             ) : null}
@@ -154,12 +154,12 @@ export const CategoryFilter = ({
           <button
             type="button"
             onClick={onOpenFilters}
-            className="relative inline-flex items-center gap-2 rounded-xl border border-[#dddddd] bg-white px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222]"
+            className="relative inline-flex items-center gap-2 rounded-xl border border-[#e0ddd8] bg-white px-4 py-2.5 text-sm font-semibold text-[#1a1a1a] transition-colors hover:border-[#1a1a1a]"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
             {activeFilterCount > 0 ? (
-              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#ff385c] px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#d90b45] px-1 text-[10px] font-bold text-white">
                 {activeFilterCount}
               </span>
             ) : null}
@@ -170,12 +170,12 @@ export const CategoryFilter = ({
           <button
             type="button"
             onClick={clearFilters}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#dddddd] bg-white px-4 py-2.5 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#e0ddd8] bg-white px-4 py-2.5 text-sm font-semibold text-[#1a1a1a] transition-colors hover:border-[#1a1a1a]"
           >
             Reset
           </button>
         ) : (
-          <div className="rounded-xl border border-[#ece4d7] bg-white px-4 py-2.5 text-sm font-medium text-[#6f6a64]">
+          <div className="rounded-xl border border-[#e8e2d8] bg-white px-4 py-2.5 text-sm font-medium text-[#9a8f7f]">
             Browse by style or denomination
           </div>
         )}

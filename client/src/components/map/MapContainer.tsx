@@ -1,13 +1,13 @@
-import { lazy, Suspense } from 'react'
-import { MapPlaceholder } from './MapPlaceholder'
+import { lazy, Suspense } from 'react';
+import { MapPlaceholder } from './MapPlaceholder';
 
 // Lazy-load InteractiveMap so the React map UI and the runtime Mapbox loader
 // are only requested when the user actually opens the map.
 const InteractiveMap = lazy(() =>
-  import('./InteractiveMap').then((m) => ({ default: m.InteractiveMap }))
-)
+  import('./InteractiveMap').then((m) => ({ default: m.InteractiveMap })),
+);
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
 /**
  * Smart map container that renders:
@@ -19,20 +19,18 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
  */
 export const MapContainer = () => {
   if (!MAPBOX_TOKEN) {
-    return <MapPlaceholder />
+    return <MapPlaceholder />;
   }
 
   return (
     <Suspense
       fallback={
-        <div className='w-full h-full bg-[#f5f5f3] flex items-center justify-center'>
-          <div className='animate-pulse text-[#717171] text-sm font-medium'>
-            Loading map...
-          </div>
+        <div className="w-full h-full bg-[#f5f5f3] flex items-center justify-center">
+          <div className="animate-pulse text-[#6b6560] text-sm font-medium">Loading map...</div>
         </div>
       }
     >
       <InteractiveMap />
     </Suspense>
-  )
-}
+  );
+};

@@ -196,7 +196,7 @@ export const InteractiveMap = () => {
                 aria-label={`Open ${church.name} on the map`}
               >
                 {church.avgRating > 0 ? (
-                  <Star className="h-3 w-3 fill-[#ff385c] text-[#ff385c]" />
+                  <Star className="h-3 w-3 fill-[#d90b45] text-[#d90b45]" />
                 ) : null}
                 <span>{markerLabel}</span>
               </button>
@@ -219,19 +219,19 @@ export const InteractiveMap = () => {
           >
             <button
               type="button"
-              className="w-full cursor-pointer rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#222222] focus-visible:ring-offset-2"
+              className="w-full cursor-pointer rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a1a] focus-visible:ring-offset-2"
               onClick={() => navigate(`/churches/${popupChurch.slug}`)}
               aria-label={`View ${popupChurch.name} profile`}
             >
-              <h3 className="mb-1 text-[15px] font-semibold leading-tight text-[#222222]">
+              <h3 className="mb-1 text-[15px] font-semibold leading-tight text-[#1a1a1a]">
                 {popupChurch.name}
               </h3>
               {popupChurch.denomination && (
-                <p className="mb-0.5 text-[13px] text-[#717171]">{popupChurch.denomination}</p>
+                <p className="mb-0.5 text-[13px] text-[#6b6560]">{popupChurch.denomination}</p>
               )}
-              <div className="flex items-center gap-2 text-[13px] text-[#717171]">
+              <div className="flex items-center gap-2 text-[13px] text-[#6b6560]">
                 {popupChurch.avgRating > 0 && (
-                  <span className="inline-flex items-center gap-1 font-semibold text-[#222222]">
+                  <span className="inline-flex items-center gap-1 font-semibold text-[#1a1a1a]">
                     <Star className="h-3 w-3 fill-current" />
                     {formatRating(popupChurch.avgRating)}
                   </span>
@@ -241,10 +241,10 @@ export const InteractiveMap = () => {
               {(() => {
                 const nextService = getNextService(popupChurch.services);
                 return nextService ? (
-                  <p className="mt-1 text-[13px] font-semibold text-[#222222]">{nextService}</p>
+                  <p className="mt-1 text-[13px] font-semibold text-[#1a1a1a]">{nextService}</p>
                 ) : null;
               })()}
-              <span className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF385C]">
+              <span className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-[#d90b45]">
                 View profile
                 <ArrowRight className="h-3.5 w-3.5" />
               </span>

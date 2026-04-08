@@ -72,7 +72,7 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
             Search
           </label>
           <div className="mt-1 flex items-center gap-2">
-            <Search className="h-4 w-4 flex-shrink-0 text-[#717171]" />
+            <Search className="h-4 w-4 flex-shrink-0 text-[#6b6560]" />
             <input
               id={`search-input-${variant}`}
               type="text"
@@ -85,7 +85,7 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
               <button
                 type="button"
                 onClick={handleClear}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#8d8d8d] transition-colors hover:bg-[#f3f3f3] hover:text-[#222222]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#9a9590] transition-colors hover:bg-[#f3f3f3] hover:text-[#1a1a1a]"
                 aria-label="Clear search"
               >
                 <X className="h-3.5 w-3.5" />
@@ -102,7 +102,7 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
         >
           <span className="reference-search-label">When</span>
           <span className="reference-search-summary flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-[#717171]" />
+            <SlidersHorizontal className="h-4 w-4 text-[#6b6560]" />
             <span>{whenSummary}</span>
           </span>
         </button>
