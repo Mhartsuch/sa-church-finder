@@ -9,7 +9,13 @@
 import { Prisma } from '@prisma/client'
 import prisma from '../lib/prisma.js'
 import { getViewerClaimForChurch } from './church-claim.service.js'
-import { IBounds, IChurch, IChurchSummary, ISearchParams, ISearchResponse } from '../types/church.types.js'
+import {
+  IBounds,
+  IChurch,
+  IChurchSummary,
+  ISearchParams,
+  ISearchResponse,
+} from '../types/church.types.js'
 
 const DEFAULT_CENTER_LAT = 29.4241
 const DEFAULT_CENTER_LNG = -98.4936
@@ -108,8 +114,9 @@ function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
     languages: row.languages || [],
     amenities: row.amenities || [],
     coverImageUrl: row.coverImageUrl ?? undefined,
-    distance: row.distance_miles != null ? Math.round(toNumber(row.distance_miles) * 10) / 10 : undefined,
-    services: services.map(s => ({
+    distance:
+      row.distance_miles != null ? Math.round(toNumber(row.distance_miles) * 10) / 10 : undefined,
+    services: services.map((s) => ({
       id: s.id,
       churchId: s.churchId,
       dayOfWeek: s.dayOfWeek,
@@ -128,10 +135,14 @@ function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
 
 function getTimeCategoryFilter(time: string): [string, string] {
   switch (time.toLowerCase()) {
-    case 'morning': return ['00:00', '12:00']
-    case 'afternoon': return ['12:00', '17:00']
-    case 'evening': return ['17:00', '23:59']
-    default: return ['00:00', '23:59']
+    case 'morning':
+      return ['00:00', '12:00']
+    case 'afternoon':
+      return ['12:00', '17:00']
+    case 'evening':
+      return ['17:00', '23:59']
+    default:
+      return ['00:00', '23:59']
   }
 }
 
@@ -170,10 +181,22 @@ export async function searchChurches(
     )`)
   }
 
-  // Text search
+  // Text search — covers name, description, amenities, and service types
   if (params.q?.trim()) {
     const term = `%${params.q.trim().toLowerCase()}%`
-    conditions.push(Prisma.sql`(LOWER(c."name") LIKE ${term} OR LOWER(COALESCE(c."description", '')) LIKE ${term})`)
+    conditions.push(Prisma.sql`(
+      LOWER(c."name") LIKE ${term}
+      OR LOWER(COALESCE(c."description", '')) LIKE ${term}
+      OR EXISTS (
+        SELECT 1 FROM unnest(c."amenities") AS amenity
+        WHERE LOWER(amenity) LIKE ${term}
+      )
+      OR EXISTS (
+        SELECT 1 FROM "church_services" cs
+        WHERE cs."churchId" = c."id"
+          AND LOWER(cs."serviceType") LIKE ${term}
+      )
+    )`)
   }
 
   // Denomination
@@ -190,7 +213,10 @@ export async function searchChurches(
 
   // Amenities (all must match)
   if (params.amenities?.trim()) {
-    const amenityList = params.amenities.split(',').map(a => a.trim()).filter(Boolean)
+    const amenityList = params.amenities
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean)
     for (const amenity of amenityList) {
       conditions.push(Prisma.sql`${amenity} ILIKE ANY(c."amenities")`)
     }
@@ -278,7 +304,7 @@ export async function searchChurches(
   `)
 
   // ── Fetch services for the returned churches ──
-  const churchIds = churches.map(c => c.id)
+  const churchIds = churches.map((c) => c.id)
   let services: ServiceRow[] = []
 
   if (churchIds.length > 0) {
@@ -298,8 +324,8 @@ export async function searchChurches(
   }
 
   // ── Build response ──
-  const data: IChurchSummary[] = churches.map(row =>
-    rowToSummary(row, servicesByChurch.get(row.id) || [])
+  const data: IChurchSummary[] = churches.map((row) =>
+    rowToSummary(row, servicesByChurch.get(row.id) || []),
   )
 
   return {
@@ -316,10 +342,7 @@ export async function searchChurches(
 
 // ── Single church lookups ──
 
-export async function getChurchBySlug(
-  slug: string,
-  userId?: string,
-): Promise<IChurch | null> {
+export async function getChurchBySlug(slug: string, userId?: string): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { slug },
     include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
@@ -352,10 +375,7 @@ export async function getChurchBySlug(
   }
 }
 
-export async function getChurchById(
-  id: string,
-  userId?: string,
-): Promise<IChurch | null> {
+export async function getChurchById(id: string, userId?: string): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { id },
     include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
@@ -397,19 +417,19 @@ export async function getDenominationFamilies(): Promise<string[]> {
     distinct: ['denominationFamily'],
     orderBy: { denominationFamily: 'asc' },
   })
-  return result.map(r => r.denominationFamily!).filter(Boolean)
+  return result.map((r) => r.denominationFamily!).filter(Boolean)
 }
 
 export async function getAvailableLanguages(): Promise<string[]> {
   const rows = await prisma.$queryRaw<Array<{ lang: string }>>`
     SELECT DISTINCT unnest("languages") as lang FROM "churches" ORDER BY lang
   `
-  return rows.map(r => r.lang)
+  return rows.map((r) => r.lang)
 }
 
 export async function getAvailableAmenities(): Promise<string[]> {
   const rows = await prisma.$queryRaw<Array<{ amenity: string }>>`
     SELECT DISTINCT unnest("amenities") as amenity FROM "churches" ORDER BY amenity
   `
-  return rows.map(r => r.amenity)
+  return rows.map((r) => r.amenity)
 }

@@ -19,7 +19,7 @@ const CATEGORIES: CategoryItem[] = [
   { id: 'catholic', label: 'Catholic', icon: '✝️', denominationValue: 'Catholic' },
   { id: 'baptist', label: 'Baptist', icon: '💧', denominationValue: 'Baptist' },
   { id: 'methodist', label: 'Methodist', icon: '✨', denominationValue: 'Methodist' },
-  { id: 'episcopal', label: 'Episcopal', icon: '🌅', denominationValue: 'Episcopal' },
+  { id: 'episcopal', label: 'Episcopal', icon: '🌅', denominationValue: 'Anglican' },
   { id: 'lutheran', label: 'Lutheran', icon: '🌿', denominationValue: 'Lutheran' },
   { id: 'non-denom', label: 'Non-Denom', icon: '🌳', denominationValue: 'Non-denominational' },
   {
