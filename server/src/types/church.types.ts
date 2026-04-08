@@ -26,6 +26,13 @@ export interface IChurchService {
   updatedAt: Date
 }
 
+export interface IChurchPhoto {
+  id: string
+  url: string
+  altText?: string | null
+  displayOrder: number
+}
+
 export interface IChurch {
   id: string
   name: string
@@ -47,12 +54,15 @@ export interface IChurch {
   yearEstablished?: number | null
   avgRating: number
   reviewCount: number
+  googleRating?: number | null
+  googleReviewCount?: number | null
   isClaimed: boolean
   isSaved?: boolean
   claimedById?: string | null
   languages: string[]
   amenities: string[]
   coverImageUrl?: string | null
+  photos?: IChurchPhoto[]
   viewerClaim?: IViewerChurchClaim | null
   createdAt: Date
   updatedAt: Date
@@ -78,6 +88,8 @@ export interface IChurchSummary {
   website?: string | null
   avgRating: number
   reviewCount: number
+  googleRating?: number | null
+  googleReviewCount?: number | null
   isClaimed: boolean
   isSaved?: boolean
   languages: string[]

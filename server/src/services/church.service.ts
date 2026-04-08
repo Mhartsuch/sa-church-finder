@@ -12,6 +12,7 @@ import { getViewerClaimForChurch } from './church-claim.service.js'
 import {
   IBounds,
   IChurch,
+  IChurchPhoto,
   IChurchSummary,
   ISearchParams,
   ISearchResponse,
@@ -98,6 +99,8 @@ interface ChurchRow {
   email: string | null
   website: string | null
   pastorName: string | null
+  googleRating: number | string | null
+  googleReviewCount: number | null
   yearEstablished: number | null
   avgRating: number | string
   reviewCount: number
@@ -167,6 +170,8 @@ function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
     website: row.website ?? undefined,
     avgRating: toNumber(row.avgRating),
     reviewCount: row.reviewCount,
+    googleRating: row.googleRating != null ? toNumber(row.googleRating) : undefined,
+    googleReviewCount: row.googleReviewCount ?? undefined,
     isClaimed: row.isClaimed,
     isSaved: row.isSaved,
     languages: row.languages || [],
@@ -305,7 +310,7 @@ export async function searchChurches(
   let orderClause: Prisma.Sql
   switch (sortBy) {
     case 'rating':
-      orderClause = Prisma.sql`ORDER BY "avgRating" DESC, "reviewCount" DESC`
+      orderClause = Prisma.sql`ORDER BY CASE WHEN "reviewCount" > 0 THEN "avgRating" ELSE COALESCE("googleRating", 0) END DESC, GREATEST("reviewCount", COALESCE("googleReviewCount", 0)) DESC`
       break
     case 'name':
       orderClause = Prisma.sql`ORDER BY "name" ASC`
@@ -373,10 +378,11 @@ export async function searchChurches(
         ${RANK_WEIGHTS.SERVICE_MAX}::float
       )
 
-    -- ENGAGEMENT
-    + "avgRating"::float * ${RANK_WEIGHTS.RATING_MULTIPLIER}::float
+    -- ENGAGEMENT (use local avg when reviews exist, else fall back to Google rating)
+    + CASE WHEN "reviewCount" > 0 THEN "avgRating" ELSE COALESCE("googleRating", 0) END::float
+        * ${RANK_WEIGHTS.RATING_MULTIPLIER}::float
     + LEAST(
-        "reviewCount"::float * ${RANK_WEIGHTS.REVIEW_PER_ITEM}::float,
+        GREATEST("reviewCount", COALESCE("googleReviewCount", 0))::float * ${RANK_WEIGHTS.REVIEW_PER_ITEM}::float,
         ${RANK_WEIGHTS.REVIEW_MAX}::float
       )
 
@@ -424,7 +430,10 @@ export async function searchChurches(
         c."phone", c."email", c."website",
         c."pastorName", c."yearEstablished",
         c."avgRating"::float8 AS "avgRating",
-        c."reviewCount", c."isClaimed",
+        c."reviewCount",
+        c."googleRating"::float8 AS "googleRating",
+        c."googleReviewCount",
+        c."isClaimed",
         c."languages", c."amenities", c."coverImageUrl",
         c."updatedAt",
         ${isSavedSelect} AS "isSaved",
@@ -484,7 +493,10 @@ export async function searchChurches(
 export async function getChurchBySlug(slug: string, userId?: string): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { slug },
-    include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
+    include: {
+      services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+      photos: { orderBy: { displayOrder: 'asc' } },
+    },
   })
   if (!church) return null
 
@@ -503,21 +515,34 @@ export async function getChurchBySlug(slug: string, userId?: string): Promise<IC
     : null
   const viewerClaim = userId ? await getViewerClaimForChurch(church.id, userId) : null
 
+  const photos: IChurchPhoto[] = church.photos.map((p) => ({
+    id: p.id,
+    url: p.url,
+    altText: p.altText,
+    displayOrder: p.displayOrder,
+  }))
+
   return {
     ...church,
     latitude: toNumber(church.latitude),
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
+    googleRating: church.googleRating != null ? toNumber(church.googleRating) : null,
+    googleReviewCount: church.googleReviewCount ?? null,
     isSaved: Boolean(savedChurch),
     viewerClaim,
     services: church.services,
+    photos,
   }
 }
 
 export async function getChurchById(id: string, userId?: string): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { id },
-    include: { services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] } },
+    include: {
+      services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+      photos: { orderBy: { displayOrder: 'asc' } },
+    },
   })
   if (!church) return null
 
@@ -536,14 +561,24 @@ export async function getChurchById(id: string, userId?: string): Promise<IChurc
     : null
   const viewerClaim = userId ? await getViewerClaimForChurch(church.id, userId) : null
 
+  const photos: IChurchPhoto[] = church.photos.map((p) => ({
+    id: p.id,
+    url: p.url,
+    altText: p.altText,
+    displayOrder: p.displayOrder,
+  }))
+
   return {
     ...church,
     latitude: toNumber(church.latitude),
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
+    googleRating: church.googleRating != null ? toNumber(church.googleRating) : null,
+    googleReviewCount: church.googleReviewCount ?? null,
     isSaved: Boolean(savedChurch),
     viewerClaim,
     services: church.services,
+    photos,
   }
 }
 

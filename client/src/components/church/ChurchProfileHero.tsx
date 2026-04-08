@@ -53,6 +53,7 @@ export const ChurchProfileHero = ({ church, directionsUrl }: ChurchProfileHeroPr
   const serviceWindowCount = church.services.length;
   const serviceDayCount = groupedServices.length;
   const locationLabel = church.neighborhood || `${church.city}, ${church.state}`;
+  const effectiveRating = church.reviewCount > 0 ? church.avgRating : (church.googleRating ?? 0);
 
   return (
     <div className="mx-auto mb-6 max-w-[1180px] px-6 lg:px-0">
@@ -132,9 +133,9 @@ export const ChurchProfileHero = ({ church, directionsUrl }: ChurchProfileHeroPr
               <span className="rounded-full bg-[#efe2d3] px-3 py-1 text-xs font-medium text-[#5f4630]">
                 {church.denomination || 'Christian church'}
               </span>
-              {church.avgRating > 0 ? (
+              {effectiveRating > 0 ? (
                 <span className="rounded-full bg-[#efe2d3] px-3 py-1 text-xs font-medium text-[#5f4630]">
-                  {church.avgRating.toFixed(1)} rating
+                  {effectiveRating.toFixed(1)} rating
                 </span>
               ) : null}
             </div>

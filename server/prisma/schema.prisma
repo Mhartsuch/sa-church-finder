@@ -77,6 +77,8 @@ model Church {
   yearEstablished       Int?
   avgRating             Decimal                @default(0) @db.Decimal(3, 2)
   reviewCount           Int                    @default(0)
+  googleRating          Decimal?               @db.Decimal(3, 2)
+  googleReviewCount     Int?
   isClaimed             Boolean                @default(false)
   claimedById           String?
   languages             String[]               @default([])

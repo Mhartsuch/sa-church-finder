@@ -25,6 +25,8 @@ const church: IChurchSummary = {
   yearEstablished: null,
   avgRating: 4.8,
   reviewCount: 12,
+  googleRating: null,
+  googleReviewCount: null,
   isClaimed: false,
   isSaved: false,
   languages: ['English'],

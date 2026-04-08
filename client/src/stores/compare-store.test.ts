@@ -23,6 +23,8 @@ const churchA = {
   yearEstablished: 1980,
   avgRating: 4.9,
   reviewCount: 22,
+  googleRating: null,
+  googleReviewCount: null,
   isClaimed: true,
   isSaved: false,
   languages: ['English'],
@@ -45,9 +47,7 @@ describe('useCompareStore', () => {
     addChurch(churchA);
 
     expect(useCompareStore.getState().selectedChurches).toEqual([churchA]);
-    expect(JSON.parse(window.localStorage.getItem(COMPARE_STORAGE_KEY) ?? '[]')).toEqual([
-      churchA,
-    ]);
+    expect(JSON.parse(window.localStorage.getItem(COMPARE_STORAGE_KEY) ?? '[]')).toEqual([churchA]);
 
     toggleChurch(churchA);
 

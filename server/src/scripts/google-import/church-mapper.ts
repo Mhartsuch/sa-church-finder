@@ -19,6 +19,8 @@ export interface ChurchCreateData {
   website: string | null
   description: string | null
   googlePlaceId: string
+  googleRating: Prisma.Decimal | null
+  googleReviewCount: number | null
 }
 
 export interface ChurchUpdateData {
@@ -31,6 +33,8 @@ export interface ChurchUpdateData {
   phone: string | null
   website: string | null
   description: string | null
+  googleRating: Prisma.Decimal | null
+  googleReviewCount: number | null
 }
 
 function generateSlug(name: string): string {
@@ -117,6 +121,8 @@ export async function mapPlaceToCreateData(
     website: place.websiteUri ?? null,
     description: place.editorialSummary?.text ?? null,
     googlePlaceId: place.id,
+    googleRating: place.rating != null ? new Prisma.Decimal(place.rating.toFixed(2)) : null,
+    googleReviewCount: place.userRatingCount ?? null,
   }
 }
 
@@ -133,5 +139,7 @@ export function mapPlaceToUpdateData(place: GooglePlaceResult): ChurchUpdateData
     phone: place.nationalPhoneNumber ?? null,
     website: place.websiteUri ?? null,
     description: place.editorialSummary?.text ?? null,
+    googleRating: place.rating != null ? new Prisma.Decimal(place.rating.toFixed(2)) : null,
+    googleReviewCount: place.userRatingCount ?? null,
   }
 }

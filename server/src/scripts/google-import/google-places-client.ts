@@ -20,6 +20,22 @@ const NEARBY_FIELD_MASK = [
   'places.types',
   'places.editorialSummary',
   'places.photos',
+  'places.rating',
+  'places.userRatingCount',
+].join(',')
+
+const DETAIL_FIELD_MASK = [
+  'id',
+  'displayName',
+  'formattedAddress',
+  'location',
+  'addressComponents',
+  'nationalPhoneNumber',
+  'websiteUri',
+  'editorialSummary',
+  'photos',
+  'rating',
+  'userRatingCount',
 ].join(',')
 
 export class GooglePlacesClient {
@@ -84,6 +100,30 @@ export class GooglePlacesClient {
     } while (pageToken)
 
     return allResults
+  }
+
+  /**
+   * Fetch details for a single place by its Place ID.
+   * Used by the enrich script to update existing churches.
+   */
+  async getPlaceDetails(placeId: string): Promise<GooglePlaceResult | null> {
+    await this.rateLimiter.wait()
+
+    const response = await fetch(`${PLACES_API_BASE}/places/${placeId}`, {
+      headers: {
+        'X-Goog-Api-Key': this.apiKey,
+        'X-Goog-FieldMask': DETAIL_FIELD_MASK,
+      },
+    })
+
+    if (response.status === 404) return null
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Google Places API error (${response.status}): ${errorText}`)
+    }
+
+    return (await response.json()) as GooglePlaceResult
   }
 
   /**

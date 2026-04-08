@@ -460,19 +460,32 @@ export const ChurchProfilePage = () => {
               <h1 className="mb-1 text-[26px] font-bold text-foreground">{church.name}</h1>
 
               <div className="flex flex-wrap items-center gap-1.5 text-[14px]">
-                {church.avgRating > 0 && (
-                  <>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-foreground text-foreground" />
-                      <span className="font-semibold">{formatRating(church.avgRating)}</span>
-                    </div>
-                    <span className="text-muted-foreground">&middot;</span>
-                    <a href="#reviews" className="font-semibold text-foreground underline">
-                      {church.reviewCount} reviews
-                    </a>
-                    <span className="text-muted-foreground">&middot;</span>
-                  </>
-                )}
+                {(() => {
+                  const effectiveRating =
+                    church.reviewCount > 0 ? church.avgRating : (church.googleRating ?? 0);
+                  const effectiveReviewCount =
+                    church.reviewCount > 0 ? church.reviewCount : (church.googleReviewCount ?? 0);
+                  const isGoogleRating = church.reviewCount === 0 && (church.googleRating ?? 0) > 0;
+                  return effectiveRating > 0 ? (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 fill-foreground text-foreground" />
+                        <span className="font-semibold">{formatRating(effectiveRating)}</span>
+                      </div>
+                      <span className="text-muted-foreground">&middot;</span>
+                      {isGoogleRating ? (
+                        <span className="font-semibold text-muted-foreground">
+                          {effectiveReviewCount.toLocaleString()} Google reviews
+                        </span>
+                      ) : (
+                        <a href="#reviews" className="font-semibold text-foreground underline">
+                          {effectiveReviewCount} {effectiveReviewCount === 1 ? 'review' : 'reviews'}
+                        </a>
+                      )}
+                      <span className="text-muted-foreground">&middot;</span>
+                    </>
+                  ) : null;
+                })()}
                 {church.isClaimed && (
                   <>
                     <span className="flex items-center gap-1 font-medium text-foreground">
@@ -525,6 +538,28 @@ export const ChurchProfilePage = () => {
                 </div>
               ) : null}
             </div>
+
+            {church.photos && church.photos.length > 1 && (
+              <div className="border-b border-border py-8">
+                <h2 className="mb-5 text-[22px] font-semibold text-foreground">Photos</h2>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {church.photos.slice(0, 6).map((photo, i) => (
+                    <div
+                      key={photo.id}
+                      className={`overflow-hidden rounded-xl bg-muted ${i === 0 ? 'col-span-2 row-span-2 sm:col-span-1 sm:row-span-1' : ''}`}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.altText ?? `${church.name} photo ${i + 1}`}
+                        className="h-full w-full object-cover"
+                        style={{ aspectRatio: i === 0 ? '4/3' : '4/3' }}
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {(church.description || church.pastorName || church.yearEstablished) && (
               <div className="border-b border-border py-8">

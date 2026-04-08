@@ -65,6 +65,11 @@ export const ChurchCard = ({
     [totalSlides],
   );
 
+  // Effective rating: use local reviews when available, otherwise fall back to Google
+  const effectiveRating = church.reviewCount > 0 ? church.avgRating : (church.googleRating ?? 0);
+  const effectiveReviewCount =
+    church.reviewCount > 0 ? church.reviewCount : (church.googleReviewCount ?? 0);
+
   const nextService = getNextService(church.services);
   const hasValidImages = totalSlides > 0 && !imageErrors.has(0);
   const profileLabel = `View ${church.name} profile`;
@@ -75,11 +80,11 @@ export const ChurchCard = ({
     ? `Remove ${church.name} from comparison`
     : `Add ${church.name} to comparison`;
   const badgeLabel =
-    church.avgRating >= 4.8
+    effectiveRating >= 4.8
       ? 'Guest favorite'
       : church.yearEstablished && church.yearEstablished < 1950
         ? 'Historic Landmark'
-        : church.reviewCount >= 25
+        : effectiveReviewCount >= 25
           ? 'Popular'
           : church.neighborhood || 'San Antonio';
   const locationLine = [church.neighborhood, church.city].filter(Boolean).join(', ');
@@ -188,10 +193,10 @@ export const ChurchCard = ({
         <div className="space-y-0.5" style={{ padding: '10px 0 0' }}>
           <div className="flex items-start justify-between gap-2">
             <h3 className="line-clamp-1 text-[15px] font-semibold leading-[1.25]">{church.name}</h3>
-            {church.avgRating > 0 && (
+            {effectiveRating > 0 && (
               <div className="flex flex-shrink-0 items-center gap-[3px] text-[15px]">
                 <Star className="h-3 w-3 fill-[#fbbf24] text-[#fbbf24]" />
-                <span>{formatRating(church.avgRating)}</span>
+                <span>{formatRating(effectiveRating)}</span>
               </div>
             )}
           </div>

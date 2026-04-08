@@ -45,6 +45,8 @@ export interface GooglePlaceResult {
   types?: string[]
   editorialSummary?: GooglePlaceEditorialSummary
   photos?: GooglePlacePhoto[]
+  rating?: number
+  userRatingCount?: number
 }
 
 export interface GoogleNearbySearchResponse {

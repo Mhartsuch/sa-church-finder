@@ -27,6 +27,8 @@ const church: IChurch = {
   yearEstablished: 1988,
   avgRating: 4.6,
   reviewCount: 18,
+  googleRating: null,
+  googleReviewCount: null,
   isClaimed: false,
   isSaved: false,
   languages: ['English', 'Spanish'],

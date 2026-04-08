@@ -79,8 +79,10 @@
 | website             | TEXT             | NULLABLE                |                                                   |
 | pastor_name         | VARCHAR(150)     | NULLABLE                |                                                   |
 | year_established    | INTEGER          | NULLABLE                |                                                   |
-| avg_rating          | DECIMAL(2,1)     | default 0.0             | Cached aggregate                                  |
-| review_count        | INTEGER          | default 0               | Cached count                                      |
+| avg_rating          | DECIMAL(2,1)     | default 0.0             | Cached aggregate from local user reviews          |
+| review_count        | INTEGER          | default 0               | Cached count of local user reviews                |
+| google_rating       | DECIMAL(3,2)     | NULLABLE                | Rating from Google Places API                     |
+| google_review_count | INTEGER          | NULLABLE                | Review count from Google Places API               |
 | is_claimed          | BOOLEAN          | default false           | Whether a church admin has claimed it             |
 | claimed_by          | UUID             | FK → users.id, NULLABLE |                                                   |
 | languages           | TEXT[]           | default ['English']     | Array of languages                                |
