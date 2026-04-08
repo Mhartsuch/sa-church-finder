@@ -1,8 +1,8 @@
-import '@testing-library/jest-dom/vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-import { ChurchCard } from './ChurchCard'
-import { IChurchSummary } from '@/types/church'
+import '@testing-library/jest-dom/vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { ChurchCard } from './ChurchCard';
+import { IChurchSummary } from '@/types/church';
 
 const church: IChurchSummary = {
   id: 'church-1',
@@ -41,56 +41,60 @@ const church: IChurchSummary = {
     },
   ],
   distance: 2.4,
-}
+};
 
 describe('ChurchCard', () => {
   it('renders a keyboard-focusable control for opening the church profile', () => {
-    const onHover = vi.fn()
-    const onClick = vi.fn()
-    const onToggleSave = vi.fn()
+    const onHover = vi.fn();
+    const onClick = vi.fn();
+    const onToggleSave = vi.fn();
 
     render(
       <ChurchCard
         church={church}
         isHovered={false}
+        isCompared={false}
         onHover={onHover}
         onClick={onClick}
+        onToggleCompare={vi.fn()}
         onToggleSave={onToggleSave}
-      />
-    )
+      />,
+    );
 
     const profileButton = screen.getByRole('button', {
       name: /view grace fellowship profile/i,
-    })
+    });
 
-    profileButton.focus()
+    profileButton.focus();
 
-    expect(profileButton).toHaveFocus()
-    expect(onHover).toHaveBeenCalledWith('church-1')
+    expect(profileButton).toHaveFocus();
+    expect(onHover).toHaveBeenCalledWith('church-1');
 
-    fireEvent.click(profileButton)
+    fireEvent.click(profileButton);
 
-    expect(onClick).toHaveBeenCalledWith('grace-fellowship')
-  })
+    expect(onClick).toHaveBeenCalledWith('grace-fellowship');
+  });
 
   it('keeps the save button from triggering navigation', () => {
-    const onHover = vi.fn()
-    const onClick = vi.fn()
-    const onToggleSave = vi.fn()
+    const onHover = vi.fn();
+    const onClick = vi.fn();
+    const onToggleSave = vi.fn();
 
     render(
       <ChurchCard
         church={church}
         isHovered={false}
+        isCompared={false}
         onHover={onHover}
         onClick={onClick}
+        onToggleCompare={vi.fn()}
         onToggleSave={onToggleSave}
-      />
-    )
+      />,
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: /save grace fellowship/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save grace fellowship/i }));
 
-    expect(onClick).not.toHaveBeenCalled()
-    expect(onToggleSave).toHaveBeenCalledWith('church-1')
-  })
-})
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onToggleSave).toHaveBeenCalledWith('church-1');
+  });
+});
