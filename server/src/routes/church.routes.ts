@@ -38,7 +38,7 @@ router.get(
         time: q.time as 'morning' | 'afternoon' | 'evening' | undefined,
         language: q.language as string | undefined,
         amenities: q.amenities as string | undefined,
-        sort: q.sort as 'distance' | 'rating' | 'name' | undefined,
+        sort: q.sort as 'relevance' | 'distance' | 'rating' | 'name' | undefined,
         page: q.page as number | undefined,
         pageSize: q.pageSize as number | undefined,
         bounds: q.bounds as string | undefined,

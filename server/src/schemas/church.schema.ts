@@ -20,7 +20,7 @@ export const churchSearchSchema = z.object({
       time: z.enum(['morning', 'afternoon', 'evening']).optional(),
       language: z.string().optional(),
       amenities: z.string().optional(),
-      sort: z.enum(['distance', 'rating', 'name']).optional(),
+      sort: z.enum(['relevance', 'distance', 'rating', 'name']).optional(),
       page: z.coerce.number().int().positive().optional(),
       pageSize: z.coerce.number().int().positive().optional(),
       bounds: z.string().optional(),

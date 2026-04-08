@@ -24,6 +24,60 @@ const DEFAULT_PAGE = 1
 const DEFAULT_PAGE_SIZE = 20
 const METERS_PER_MILE = 1609.344
 
+// ── Relevance ranking weights ──
+//
+// Adjust these constants to tune ranking without touching logic.
+// All factor scores are additive; the final score determines DESC sort order.
+//
+// Score budget (approximate):
+//   Profile completeness  0 – 55 pts
+//   Photo bonus           0 – 10 pts
+//   Service variety       0 –  9 pts
+//   Engagement            0 – 25 pts
+//   Proximity             0 – 15 pts
+//   Freshness             0 –  5 pts
+//   ─────────────────────────────
+//   Best possible total     119 pts
+//
+// Churches with NO photos receive a -1000 penalty, ensuring they always
+// appear below any church that has at least one photo.
+const RANK_WEIGHTS = {
+  // Hard penalty for missing photos
+  NO_PHOTO_PENALTY: -1000,
+
+  // Profile completeness
+  DESCRIPTION: 15, // has a meaningful description (≥ 50 chars)
+  COVER_IMAGE: 10, // coverImageUrl is set
+  PHONE: 5, // phone listed
+  EMAIL: 5, // email listed
+  WEBSITE: 5, // website listed
+  IS_CLAIMED: 5, // church has been claimed/verified
+  AMENITY_PER_ITEM: 2, // per amenity in the amenities array
+  AMENITY_MAX: 10, // cap on amenity contribution
+
+  // Photo bonus (on top of the no-photo penalty gate)
+  PHOTO_PER_ITEM: 2, // per uploaded photo
+  PHOTO_MAX: 10, // cap on photo bonus
+
+  // Service variety
+  SERVICE_PER_ITEM: 3, // per service time entry
+  SERVICE_MAX: 9, // cap on service variety contribution
+
+  // Engagement
+  RATING_MULTIPLIER: 4, // avgRating (0–5) × this → 0–20 pts
+  REVIEW_PER_ITEM: 0.5, // per review
+  REVIEW_MAX: 5, // cap on review-count contribution
+
+  // Proximity — exponential decay: PROXIMITY_MAX / (1 + DECAY × miles)
+  PROXIMITY_MAX: 15, // score at 0 miles
+  PROXIMITY_DECAY: 0.3, // decay rate per mile (0.3 → ≈ 9 pts at 5 mi, 6 pts at 10 mi)
+
+  // Freshness
+  FRESHNESS_30D: 5, // updated within 30 days
+  FRESHNESS_90D: 3, // updated within 90 days
+  FRESHNESS_365D: 1, // updated within 1 year
+} as const
+
 // ── Raw SQL result types ──
 
 interface ChurchRow {
@@ -53,6 +107,10 @@ interface ChurchRow {
   amenities: string[]
   coverImageUrl: string | null
   distance_miles: number | null
+  // Computed by the ranking CTE — not exposed in IChurchSummary
+  photo_count: number
+  service_count: number
+  ranking_score: number
 }
 
 interface ServiceRow {
@@ -158,7 +216,7 @@ export async function searchChurches(
   const page = Math.max(1, params.page ?? DEFAULT_PAGE)
   const pageSize = Math.min(100, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
   const offset = (page - 1) * pageSize
-  const sortBy = params.sort ?? 'distance'
+  const sortBy = params.sort ?? 'relevance'
 
   // ── Build WHERE conditions ──
   const conditions: Prisma.Sql[] = [Prisma.sql`1=1`]
@@ -247,14 +305,17 @@ export async function searchChurches(
   let orderClause: Prisma.Sql
   switch (sortBy) {
     case 'rating':
-      orderClause = Prisma.sql`ORDER BY c."avgRating" DESC, c."reviewCount" DESC`
+      orderClause = Prisma.sql`ORDER BY "avgRating" DESC, "reviewCount" DESC`
       break
     case 'name':
-      orderClause = Prisma.sql`ORDER BY c."name" ASC`
+      orderClause = Prisma.sql`ORDER BY "name" ASC`
       break
     case 'distance':
-    default:
       orderClause = Prisma.sql`ORDER BY distance_miles ASC NULLS LAST`
+      break
+    case 'relevance':
+    default:
+      orderClause = Prisma.sql`ORDER BY ranking_score DESC`
       break
   }
 
@@ -267,6 +328,73 @@ export async function searchChurches(
       )`
     : Prisma.sql`FALSE`
 
+  // ── Distance expression (computed once in CTE, reused by ranking score) ──
+  const distanceExpr = Prisma.sql`
+    CASE
+      WHEN c."location" IS NOT NULL THEN
+        ST_Distance(
+          c."location",
+          ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326)::geography
+        ) / ${METERS_PER_MILE}
+      ELSE NULL
+    END
+  `
+
+  // ── Ranking score expression ──
+  // References CTE columns: photo_count, service_count, distance_miles.
+  // All weight values are parameterised — adjust RANK_WEIGHTS at the top of this
+  // file to tune ranking without touching this SQL.
+  const rankingScoreExpr = Prisma.sql`
+    -- PHOTO PENALTY: churches with no photos are always ranked below those that have them
+    CASE WHEN photo_count = 0 THEN ${RANK_WEIGHTS.NO_PHOTO_PENALTY}::float ELSE 0 END
+
+    -- PROFILE COMPLETENESS
+    + CASE WHEN "description" IS NOT NULL AND LENGTH("description") >= 50
+        THEN ${RANK_WEIGHTS.DESCRIPTION}::float ELSE 0 END
+    + CASE WHEN "coverImageUrl" IS NOT NULL THEN ${RANK_WEIGHTS.COVER_IMAGE}::float ELSE 0 END
+    + CASE WHEN "phone" IS NOT NULL THEN ${RANK_WEIGHTS.PHONE}::float ELSE 0 END
+    + CASE WHEN "email" IS NOT NULL THEN ${RANK_WEIGHTS.EMAIL}::float ELSE 0 END
+    + CASE WHEN "website" IS NOT NULL THEN ${RANK_WEIGHTS.WEBSITE}::float ELSE 0 END
+    + CASE WHEN "isClaimed" THEN ${RANK_WEIGHTS.IS_CLAIMED}::float ELSE 0 END
+    + LEAST(
+        COALESCE(array_length("amenities", 1), 0)::float * ${RANK_WEIGHTS.AMENITY_PER_ITEM}::float,
+        ${RANK_WEIGHTS.AMENITY_MAX}::float
+      )
+
+    -- PHOTO BONUS (additional credit for more photos)
+    + LEAST(
+        photo_count::float * ${RANK_WEIGHTS.PHOTO_PER_ITEM}::float,
+        ${RANK_WEIGHTS.PHOTO_MAX}::float
+      )
+
+    -- SERVICE VARIETY
+    + LEAST(
+        service_count::float * ${RANK_WEIGHTS.SERVICE_PER_ITEM}::float,
+        ${RANK_WEIGHTS.SERVICE_MAX}::float
+      )
+
+    -- ENGAGEMENT
+    + "avgRating"::float * ${RANK_WEIGHTS.RATING_MULTIPLIER}::float
+    + LEAST(
+        "reviewCount"::float * ${RANK_WEIGHTS.REVIEW_PER_ITEM}::float,
+        ${RANK_WEIGHTS.REVIEW_MAX}::float
+      )
+
+    -- PROXIMITY (exponential decay: max / (1 + decay × miles))
+    + CASE WHEN distance_miles IS NOT NULL
+        THEN ${RANK_WEIGHTS.PROXIMITY_MAX}::float / (1.0 + ${RANK_WEIGHTS.PROXIMITY_DECAY}::float * distance_miles)
+        ELSE 0
+      END
+
+    -- FRESHNESS
+    + CASE
+        WHEN "updatedAt" > NOW() - INTERVAL '30 days'  THEN ${RANK_WEIGHTS.FRESHNESS_30D}::float
+        WHEN "updatedAt" > NOW() - INTERVAL '90 days'  THEN ${RANK_WEIGHTS.FRESHNESS_90D}::float
+        WHEN "updatedAt" > NOW() - INTERVAL '365 days' THEN ${RANK_WEIGHTS.FRESHNESS_365D}::float
+        ELSE 0
+      END
+  `
+
   // ── Count query ──
   const countResult = await prisma.$queryRaw<CountRow[]>(Prisma.sql`
     SELECT COUNT(DISTINCT c."id") as count
@@ -275,30 +403,41 @@ export async function searchChurches(
   `)
   const total = Number(countResult[0]?.count ?? 0)
 
-  // ── Main query with distance ──
+  // ── Main query — CTE computes derived columns, outer SELECT adds ranking score ──
+  //
+  // Structure:
+  //   church_base CTE  → fetches all matching churches with distance, photo_count,
+  //                       service_count, and isSaved precomputed.
+  //   Outer SELECT     → adds ranking_score using the CTE columns, then orders and
+  //                       paginates.
+  //
+  // This single CTE pass means each subquery (photo count, service count) runs
+  // once per church rather than being duplicated in both SELECT and ORDER BY.
   const churches = await prisma.$queryRaw<ChurchRow[]>(Prisma.sql`
+    WITH church_base AS (
+      SELECT
+        c."id", c."name", c."slug",
+        c."denomination", c."denominationFamily", c."description",
+        c."address", c."city", c."state", c."zipCode", c."neighborhood",
+        c."latitude"::float8  AS "latitude",
+        c."longitude"::float8 AS "longitude",
+        c."phone", c."email", c."website",
+        c."pastorName", c."yearEstablished",
+        c."avgRating"::float8 AS "avgRating",
+        c."reviewCount", c."isClaimed",
+        c."languages", c."amenities", c."coverImageUrl",
+        c."updatedAt",
+        ${isSavedSelect} AS "isSaved",
+        ${distanceExpr} AS distance_miles,
+        (SELECT COUNT(*) FROM "church_photos"   WHERE "churchId" = c."id")::int AS photo_count,
+        (SELECT COUNT(*) FROM "church_services" WHERE "churchId" = c."id")::int AS service_count
+      FROM "churches" c
+      ${whereClause}
+    )
     SELECT
-      c."id", c."name", c."slug",
-      c."denomination", c."denominationFamily", c."description",
-      c."address", c."city", c."state", c."zipCode", c."neighborhood",
-      c."latitude"::float8 as "latitude",
-      c."longitude"::float8 as "longitude",
-      c."phone", c."email", c."website",
-      c."pastorName", c."yearEstablished",
-      c."avgRating"::float8 as "avgRating",
-      c."reviewCount", c."isClaimed",
-      ${isSavedSelect} as "isSaved",
-      c."languages", c."amenities", c."coverImageUrl",
-      CASE
-        WHEN c."location" IS NOT NULL THEN
-          ST_Distance(
-            c."location",
-            ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326)::geography
-          ) / ${METERS_PER_MILE}
-        ELSE NULL
-      END as "distance_miles"
-    FROM "churches" c
-    ${whereClause}
+      *,
+      (${rankingScoreExpr}) AS ranking_score
+    FROM church_base
     ${orderClause}
     LIMIT ${pageSize} OFFSET ${offset}
   `)
