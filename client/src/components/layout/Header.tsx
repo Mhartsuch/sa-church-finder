@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Church, Heart, Menu, Moon, Search, Sun, User } from 'lucide-react';
+import { Church, Heart, Menu, Moon, Scale, Search, Sun, User } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { SearchBar } from '@/components/search/SearchBar';
 import { useAuthSession } from '@/hooks/useAuth';
+import { useCompareStore } from '@/stores/compare-store';
 
 export const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoading, user } = useAuthSession();
+  const compareCount = useCompareStore((state) => state.selectedChurches.length);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window === 'undefined') {
       return 'light';
@@ -80,6 +82,23 @@ export const Header = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/compare"
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e0ddd8] text-[#1a1a1a] transition-colors hover:border-[#1a1a1a] hover:bg-[#f5f2ed]"
+              aria-label={
+                compareCount > 0
+                  ? `Open compare with ${compareCount} selected church${compareCount === 1 ? '' : 'es'}`
+                  : 'Open compare'
+              }
+            >
+              <Scale className="h-4 w-4" />
+              {compareCount > 0 ? (
+                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#1a1a1a] px-1 text-[10px] font-bold text-white">
+                  {compareCount}
+                </span>
+              ) : null}
+            </Link>
+
             <button
               type="button"
               onClick={() => navigate(user ? '/account' : '/register')}

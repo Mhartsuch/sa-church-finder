@@ -5,6 +5,7 @@ import HomePage from '@/pages/HomePage';
 import { SearchPage } from '@/pages/SearchPage';
 import { ChurchProfilePage } from '@/pages/ChurchProfilePage';
 import AccountPage from '@/pages/AccountPage';
+import ComparePage from '@/pages/ComparePage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
@@ -17,6 +18,7 @@ const App = () => {
       <Header />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/compare" element={<ComparePage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/churches/:slug" element={<ChurchProfilePage />} />
         <Route path="/login" element={<LoginPage />} />

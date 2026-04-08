@@ -9,6 +9,7 @@ import { FilterPanel } from '@/components/search/FilterPanel';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
 import { getActiveSearchTokens } from '@/lib/search-state';
+import { useCompareStore } from '@/stores/compare-store';
 import { SearchFilters, useSearchStore } from '@/stores/search-store';
 
 const MOBILE_BREAKPOINT = 1024;
@@ -64,6 +65,7 @@ export const SearchPage = () => {
   const setSort = useSearchStore((state) => state.setSort);
   const clearFilters = useSearchStore((state) => state.clearFilters);
   const locationState = getSearchPageLocationState(location.state);
+  const compareCount = useCompareStore((state) => state.selectedChurches.length);
 
   useURLSearchState();
 
@@ -152,9 +154,9 @@ export const SearchPage = () => {
         <div className="sticky top-[80px] z-40 border-b border-[#ebebeb] bg-white/96 backdrop-blur-md">
           <div className="mx-auto max-w-[1760px]">
             <CategoryFilter
-              compareActive={showMap && !isMobile}
+              compareCount={compareCount}
               onCompare={() => {
-                setShowMap((current) => !current);
+                navigate('/compare');
               }}
               onOpenFilters={() => {
                 setIsFiltersOpen(true);
@@ -230,6 +232,22 @@ export const SearchPage = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              {!isMobile ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMap((current) => !current);
+                  }}
+                  className={`rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
+                    showMap
+                      ? 'border-[#222222] bg-[#222222] text-white'
+                      : 'border-[#dddddd] bg-white text-[#222222] hover:border-[#222222]'
+                  }`}
+                >
+                  {showMap ? 'Hide map' : 'Show map'}
+                </button>
+              ) : null}
+
               <div className="relative">
                 <select
                   value={sort}

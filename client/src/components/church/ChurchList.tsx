@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuthSession } from '@/hooks/useAuth';
 import { useChurchSearchParams, useChurches, useToggleSavedChurch } from '@/hooks/useChurches';
+import { useCompareStore } from '@/stores/compare-store';
 import { useSearchStore } from '@/stores/search-store';
 import { NoResults } from '@/components/search/NoResults';
 import { ChurchCard } from './ChurchCard';
@@ -22,6 +23,8 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const hoveredChurchId = useSearchStore((state) => state.hoveredChurchId);
   const setHoveredChurch = useSearchStore((state) => state.setHoveredChurch);
   const setPage = useSearchStore((state) => state.setPage);
+  const selectedChurches = useCompareStore((state) => state.selectedChurches);
+  const toggleChurch = useCompareStore((state) => state.toggleChurch);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const searchParams = useChurchSearchParams();
@@ -103,8 +106,10 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
             key={church.id}
             church={church}
             isHovered={hoveredChurchId === church.id}
+            isCompared={selectedChurches.some((selectedChurch) => selectedChurch.id === church.id)}
             onHover={setHoveredChurch}
             onClick={(slug) => navigate(`/churches/${slug}`)}
+            onToggleCompare={toggleChurch}
             onToggleSave={(churchId) => {
               void handleToggleSave(churchId);
             }}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, Star } from 'lucide-react';
+import { Heart, Scale, Star } from 'lucide-react';
 
 import { IChurchSummary } from '@/types/church';
 import { formatDistance, formatRating, getNextService } from '@/utils/format';
@@ -7,8 +7,10 @@ import { formatDistance, formatRating, getNextService } from '@/utils/format';
 interface ChurchCardProps {
   church: IChurchSummary;
   isHovered: boolean;
+  isCompared: boolean;
   onHover: (id: string | null) => void;
   onClick: (slug: string) => void;
+  onToggleCompare: (church: IChurchSummary) => void;
   onToggleSave: (churchId: string) => void;
   isSavePending?: boolean;
 }
@@ -16,8 +18,10 @@ interface ChurchCardProps {
 export const ChurchCard = ({
   church,
   isHovered,
+  isCompared,
   onHover,
   onClick,
+  onToggleCompare,
   onToggleSave,
   isSavePending = false,
 }: ChurchCardProps) => {
@@ -28,6 +32,9 @@ export const ChurchCard = ({
   const saveLabel = church.isSaved
     ? `Remove ${church.name} from saved churches`
     : `Save ${church.name}`;
+  const compareLabel = isCompared
+    ? `Remove ${church.name} from comparison`
+    : `Add ${church.name} to comparison`;
   const badgeLabel =
     church.avgRating >= 4.8
       ? 'Guest favorite'
@@ -130,6 +137,23 @@ export const ChurchCard = ({
           </p>
         </div>
       </button>
+
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => onToggleCompare(church)}
+          aria-pressed={isCompared}
+          aria-label={compareLabel}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-semibold transition-colors ${
+            isCompared
+              ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
+              : 'border-[#e0ddd8] bg-white text-[#1a1a1a] hover:border-[#1a1a1a]'
+          }`}
+        >
+          <Scale className="h-4 w-4" />
+          {isCompared ? 'Selected for compare' : 'Compare'}
+        </button>
+      </div>
 
       <button
         type="button"

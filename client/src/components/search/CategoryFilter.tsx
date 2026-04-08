@@ -50,13 +50,13 @@ const CATEGORIES: CategoryItem[] = [
 ];
 
 interface CategoryFilterProps {
-  compareActive?: boolean;
+  compareCount?: number;
   onCompare?: () => void;
   onOpenFilters?: () => void;
 }
 
 export const CategoryFilter = ({
-  compareActive = false,
+  compareCount = 0,
   onCompare,
   onOpenFilters,
 }: CategoryFilterProps) => {
@@ -138,15 +138,15 @@ export const CategoryFilter = ({
           <button
             type="button"
             onClick={onCompare}
-            aria-pressed={compareActive}
-            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
-              compareActive
-                ? 'border-[#222222] bg-[#222222] text-white'
-                : 'border-[#dddddd] bg-white text-[#222222] hover:border-[#222222]'
-            }`}
+            className="relative inline-flex items-center gap-2 rounded-xl border border-[#dddddd] bg-white px-4 py-2.5 pr-10 text-sm font-semibold text-[#222222] transition-colors hover:border-[#222222]"
           >
             <Scale className="h-4 w-4" />
             Compare
+            {compareCount > 0 ? (
+              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#222222] px-1 text-[10px] font-bold text-white">
+                {compareCount}
+              </span>
+            ) : null}
           </button>
         ) : null}
 

@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_ZOOM, SA_CENTER } from '@/constants';
+import { useCompareStore } from '@/stores/compare-store';
 import { useSearchStore } from '@/stores/search-store';
 
 import { SearchPage } from './SearchPage';
@@ -18,14 +19,14 @@ vi.mock('@/components/map/MapContainer', () => ({
 
 vi.mock('@/components/search/CategoryFilter', () => ({
   CategoryFilter: ({
-    compareActive = false,
+    compareCount = 0,
     onCompare,
   }: {
-    compareActive?: boolean;
+    compareCount?: number;
     onCompare?: () => void;
   }) => (
-    <button type="button" aria-pressed={compareActive} onClick={onCompare}>
-      Compare
+    <button type="button" onClick={onCompare}>
+      Compare {compareCount}
     </button>
   ),
 }));
@@ -61,6 +62,9 @@ describe('SearchPage', () => {
       mapZoom: DEFAULT_ZOOM,
       mapBounds: null,
     });
+    useCompareStore.setState({
+      selectedChurches: [],
+    });
   });
 
   it('opens the filters dialog when navigation state requests it', async () => {
@@ -87,7 +91,7 @@ describe('SearchPage', () => {
     expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
   });
 
-  it('toggles compare mode from the toolbar button', () => {
+  it('toggles map mode from the desktop map button', () => {
     render(
       <MemoryRouter initialEntries={['/search']}>
         <Routes>
@@ -96,19 +100,18 @@ describe('SearchPage', () => {
       </MemoryRouter>,
     );
 
-    const compareButton = screen.getByRole('button', { name: 'Compare' });
+    const mapButton = screen.getByRole('button', { name: 'Show map' });
 
-    expect(compareButton).toHaveAttribute('aria-pressed', 'false');
     expect(screen.queryByText('Map container')).not.toBeInTheDocument();
 
-    fireEvent.click(compareButton);
+    fireEvent.click(mapButton);
 
-    expect(compareButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Hide map' })).toBeInTheDocument();
     expect(screen.getByText('Map container')).toBeInTheDocument();
 
-    fireEvent.click(compareButton);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide map' }));
 
-    expect(compareButton).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Show map' })).toBeInTheDocument();
     expect(screen.queryByText('Map container')).not.toBeInTheDocument();
   });
 });
