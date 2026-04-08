@@ -1,18 +1,24 @@
-# AI_CONTEXT
+# AI_CONTEXT (Legacy)
 
-## AGENT_RULES
-- Read this file first.
+> **DEPRECATED:** This file is retained for historical reference only.
+> New agent sessions should use `AGENTS.md` (shared repo brain) and `CLAUDE.md` (Claude-specific).
+
+## AGENT_RULES (legacy)
+
+- Read AGENTS.md instead of this file.
 - Ignore markdown sprawl unless the current task explicitly needs it.
 - Default to source/config over docs.
 - Ignore `.github`, `.husky`, `docs`, `node_modules`, and `server/dist` first.
 
 ## Stack And Framework
+
 - Repo shape: single repo with `client/` and `server/`.
 - Client: React 18, TypeScript, Vite, React Router 6, TanStack Query, Zustand, Tailwind CSS.
 - Server: Express 4, TypeScript, Prisma 5, PostgreSQL with PostGIS, express-session, Passport local + Google OAuth, Zod.
 - Observability/logging: Sentry packages present, Pino + `pino-http`.
 
 ## Dev Build Test Commands
+
 - Root dev: `npm run dev`
 - Root build: `npm run build`
 - Root test: `npm run test`
@@ -23,6 +29,7 @@
 ## Route Map
 
 ### Client routes
+
 - `/` -> `HomePage`
 - `/search` -> `SearchPage`
 - `/churches/:slug` -> `ChurchProfilePage`
@@ -35,6 +42,7 @@
 - No client catch-all route is defined in `client/src/App.tsx`.
 
 ### API surface
+
 - `GET /api/v1/health`
 - `GET /api/v1/churches`
 - `GET /api/v1/churches/:slug`
@@ -64,6 +72,7 @@
 - Admin APIs live under `/api/v1/admin/claims` and `/api/v1/admin/flagged-reviews`.
 
 ## Data Model Summary
+
 - Enums:
   - `Role`: `USER`, `CHURCH_ADMIN`, `SITE_ADMIN`
   - `ClaimStatus`: `PENDING`, `APPROVED`, `REJECTED`
@@ -79,6 +88,7 @@
 - `UserSavedChurch`: saved-church join table.
 
 ## Important Env Vars
+
 - `DATABASE_URL`: required for Prisma and server-backed sessions outside test mode.
 - `CLIENT_URL`: allowed browser origins for CORS; `server/src/lib/session.ts` supports comma-separated values or `*`.
 - `SESSION_SECRET`: session signing secret.
@@ -92,10 +102,12 @@
 - `LOG_LEVEL`: server logging level.
 
 ## Known Broken Or Incomplete User-Facing Flows
+
 - Unknown client URLs have no dedicated 404 route; the router only defines the paths listed above.
 - Church claim approval does not yet unlock listing editing or event-management UI. `ChurchProfilePage` explicitly says those tools are a future Milestone 3 slice.
 
 ## Ignore First
+
 - `docs/`
 - `.github/`
 - `.husky/`

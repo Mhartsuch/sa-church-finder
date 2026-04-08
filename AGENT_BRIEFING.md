@@ -1,6 +1,10 @@
-# Agent Briefing
+# Agent Briefing (Legacy)
 
-> Read this first. This file is written specifically for AI agent sessions picking up this project. It should give a fast, accurate picture of where the app stands right now.
+> **DEPRECATED:** This file is retained for historical context only.
+> New agent sessions should use `AGENTS.md` (shared repo brain) and `CLAUDE.md` (Claude-specific).
+> Path-scoped rules are in `.claude/rules/`. Feature specs go in `specs/`.
+
+> Original purpose: written specifically for AI agent sessions picking up this project.
 
 ## What You Need to Know Right Now
 
