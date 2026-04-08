@@ -1,4 +1,4 @@
-import { Globe } from 'lucide-react';
+import { Globe, Heart } from 'lucide-react';
 
 const FOOTER_COLUMNS = [
   {
@@ -42,6 +42,23 @@ export const Footer = () => {
             </div>
           ))}
         </div>
+
+        {import.meta.env.VITE_STRIPE_DONATION_URL && (
+          <div className="mt-8 flex flex-col items-center gap-3 border-t border-border pt-6 text-center">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Heart className="h-4 w-4 text-primary" />
+              <span>Help us keep SA Church Finder free for everyone</span>
+            </div>
+            <a
+              href={import.meta.env.VITE_STRIPE_DONATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            >
+              Support Us
+            </a>
+          </div>
+        )}
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
