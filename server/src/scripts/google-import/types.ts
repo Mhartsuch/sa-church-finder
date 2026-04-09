@@ -33,6 +33,29 @@ export interface GooglePlacePhoto {
   }>
 }
 
+export interface GooglePlaceOpeningHoursTime {
+  day: number
+  hour: number
+  minute: number
+}
+
+export interface GooglePlaceOpeningHoursPeriod {
+  open: GooglePlaceOpeningHoursTime
+  close?: GooglePlaceOpeningHoursTime
+}
+
+export interface GooglePlaceRegularOpeningHours {
+  periods?: GooglePlaceOpeningHoursPeriod[]
+  weekdayDescriptions?: string[]
+}
+
+export interface GooglePlaceAccessibilityOptions {
+  wheelchairAccessibleParking?: boolean
+  wheelchairAccessibleEntrance?: boolean
+  wheelchairAccessibleRestroom?: boolean
+  wheelchairAccessibleSeating?: boolean
+}
+
 export interface GooglePlaceResult {
   id: string
   displayName: GooglePlaceDisplayName
@@ -47,6 +70,13 @@ export interface GooglePlaceResult {
   photos?: GooglePlacePhoto[]
   rating?: number
   userRatingCount?: number
+  regularOpeningHours?: GooglePlaceRegularOpeningHours
+  businessStatus?: string
+  accessibilityOptions?: GooglePlaceAccessibilityOptions
+  goodForChildren?: boolean
+  goodForGroups?: boolean
+  primaryType?: string
+  primaryTypeDisplayName?: { text: string; languageCode: string }
 }
 
 export interface GoogleNearbySearchResponse {
@@ -66,6 +96,7 @@ export interface ImportStats {
   churchesCreated: number
   churchesUpdated: number
   churchesSkipped: number
+  servicesCreated: number
   photosUploaded: number
   photosSkipped: number
   errors: number
@@ -74,6 +105,7 @@ export interface ImportStats {
 export interface ImportOptions {
   dryRun: boolean
   skipPhotos: boolean
+  enrichOnly: boolean
   limit: number | null
   maxPhotosPerChurch: number
 }
@@ -86,6 +118,7 @@ export function createEmptyStats(): ImportStats {
     churchesCreated: 0,
     churchesUpdated: 0,
     churchesSkipped: 0,
+    servicesCreated: 0,
     photosUploaded: 0,
     photosSkipped: 0,
     errors: 0,

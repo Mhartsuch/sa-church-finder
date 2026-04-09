@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Heart, Scale, Star } from 'lucide-react';
+import { Accessibility, ChevronLeft, ChevronRight, Heart, Scale, Star } from 'lucide-react';
 
 import { IChurchSummary } from '@/types/church';
 import { formatRating, getNextService } from '@/utils/format';
@@ -79,14 +79,19 @@ export const ChurchCard = ({
   const compareLabel = isCompared
     ? `Remove ${church.name} from comparison`
     : `Add ${church.name} to comparison`;
-  const badgeLabel =
-    effectiveRating >= 4.8
+  const isTemporarilyClosed = church.businessStatus === 'CLOSED_TEMPORARILY';
+
+  const badgeLabel = isTemporarilyClosed
+    ? 'Temporarily Closed'
+    : effectiveRating >= 4.8
       ? 'Guest favorite'
-      : church.yearEstablished && church.yearEstablished < 1950
-        ? 'Historic Landmark'
-        : effectiveReviewCount >= 25
-          ? 'Popular'
-          : church.neighborhood || 'San Antonio';
+      : church.goodForChildren
+        ? 'Family Friendly'
+        : church.yearEstablished && church.yearEstablished < 1950
+          ? 'Historic Landmark'
+          : effectiveReviewCount >= 25
+            ? 'Popular'
+            : church.neighborhood || 'San Antonio';
   const locationLine = [church.neighborhood, church.city].filter(Boolean).join(', ');
 
   return (
@@ -146,7 +151,11 @@ export const ChurchCard = ({
           )}
 
           {/* Badge */}
-          <div className="absolute left-[10px] top-[10px] z-[3] rounded bg-card px-2 py-1 text-[12px] font-bold text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.08)]">
+          <div
+            className={`absolute left-[10px] top-[10px] z-[3] rounded px-2 py-1 text-[12px] font-bold shadow-[0_2px_4px_rgba(0,0,0,0.08)] ${
+              isTemporarilyClosed ? 'bg-amber-100 text-amber-800' : 'bg-card text-foreground'
+            }`}
+          >
             {badgeLabel}
           </div>
 
@@ -193,12 +202,23 @@ export const ChurchCard = ({
         <div className="space-y-0.5" style={{ padding: '10px 0 0' }}>
           <div className="flex items-start justify-between gap-2">
             <h3 className="line-clamp-1 text-[15px] font-semibold leading-[1.25]">{church.name}</h3>
-            {effectiveRating > 0 && (
-              <div className="flex flex-shrink-0 items-center gap-[3px] text-[15px]">
-                <Star className="h-3 w-3 fill-[#fbbf24] text-[#fbbf24]" />
-                <span>{formatRating(effectiveRating)}</span>
-              </div>
-            )}
+            <div className="flex flex-shrink-0 items-center gap-1.5">
+              {church.wheelchairAccessible && (
+                <Accessibility
+                  className="h-3.5 w-3.5 text-blue-600"
+                  aria-label="Wheelchair accessible"
+                />
+              )}
+              {effectiveRating > 0 && (
+                <div className="flex items-center gap-[3px] text-[15px]">
+                  <Star className="h-3 w-3 fill-[#fbbf24] text-[#fbbf24]" />
+                  <span>{formatRating(effectiveRating)}</span>
+                  {effectiveReviewCount > 0 && (
+                    <span className="text-muted-foreground">({effectiveReviewCount})</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {church.denomination ? (

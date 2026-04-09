@@ -58,39 +58,45 @@
 
 ### churches
 
-| Column              | Type             | Constraints             | Notes                                             |
-| ------------------- | ---------------- | ----------------------- | ------------------------------------------------- |
-| id                  | UUID             | PK, default gen         |                                                   |
-| name                | VARCHAR(200)     | NOT NULL                |                                                   |
-| slug                | VARCHAR(250)     | UNIQUE, NOT NULL        | URL-friendly identifier                           |
-| denomination        | VARCHAR(100)     | NULLABLE                | e.g., "Southern Baptist", "Catholic"              |
-| denomination_family | VARCHAR(50)      | NULLABLE                | e.g., "Baptist", "Catholic", "Non-denominational" |
-| description         | TEXT             | NULLABLE                | Rich text about the church                        |
-| address             | VARCHAR(300)     | NOT NULL                | Full street address                               |
-| city                | VARCHAR(100)     | default 'San Antonio'   |                                                   |
-| state               | VARCHAR(2)       | default 'TX'            |                                                   |
-| zip_code            | VARCHAR(10)      | NOT NULL                |                                                   |
-| neighborhood        | VARCHAR(100)     | NULLABLE                | e.g., "Alamo Heights", "Stone Oak"                |
-| latitude            | DECIMAL(10,7)    | NOT NULL                |                                                   |
-| longitude           | DECIMAL(10,7)    | NOT NULL                |                                                   |
-| location            | GEOGRAPHY(Point) | NOT NULL                | PostGIS point for spatial queries                 |
-| phone               | VARCHAR(20)      | NULLABLE                |                                                   |
-| email               | VARCHAR(255)     | NULLABLE                |                                                   |
-| website             | TEXT             | NULLABLE                |                                                   |
-| pastor_name         | VARCHAR(150)     | NULLABLE                |                                                   |
-| year_established    | INTEGER          | NULLABLE                |                                                   |
-| avg_rating          | DECIMAL(2,1)     | default 0.0             | Cached aggregate from local user reviews          |
-| review_count        | INTEGER          | default 0               | Cached count of local user reviews                |
-| google_rating       | DECIMAL(3,2)     | NULLABLE                | Rating from Google Places API                     |
-| google_review_count | INTEGER          | NULLABLE                | Review count from Google Places API               |
-| is_claimed          | BOOLEAN          | default false           | Whether a church admin has claimed it             |
-| claimed_by          | UUID             | FK → users.id, NULLABLE |                                                   |
-| languages           | TEXT[]           | default ['English']     | Array of languages                                |
-| amenities           | TEXT[]           | default []              | e.g., ['parking', 'wheelchair', 'childcare']      |
-| cover_image_url     | TEXT             | NULLABLE                | Primary listing photo                             |
-| google_place_id     | TEXT             | UNIQUE, NULLABLE        | Google Places API ID for import deduplication     |
-| created_at          | TIMESTAMP        | default now()           |                                                   |
-| updated_at          | TIMESTAMP        | auto-update             |                                                   |
+| Column                | Type             | Constraints             | Notes                                                     |
+| --------------------- | ---------------- | ----------------------- | --------------------------------------------------------- |
+| id                    | UUID             | PK, default gen         |                                                           |
+| name                  | VARCHAR(200)     | NOT NULL                |                                                           |
+| slug                  | VARCHAR(250)     | UNIQUE, NOT NULL        | URL-friendly identifier                                   |
+| denomination          | VARCHAR(100)     | NULLABLE                | e.g., "Southern Baptist", "Catholic"                      |
+| denomination_family   | VARCHAR(50)      | NULLABLE                | e.g., "Baptist", "Catholic", "Non-denominational"         |
+| description           | TEXT             | NULLABLE                | Rich text about the church                                |
+| address               | VARCHAR(300)     | NOT NULL                | Full street address                                       |
+| city                  | VARCHAR(100)     | default 'San Antonio'   |                                                           |
+| state                 | VARCHAR(2)       | default 'TX'            |                                                           |
+| zip_code              | VARCHAR(10)      | NOT NULL                |                                                           |
+| neighborhood          | VARCHAR(100)     | NULLABLE                | e.g., "Alamo Heights", "Stone Oak"                        |
+| latitude              | DECIMAL(10,7)    | NOT NULL                |                                                           |
+| longitude             | DECIMAL(10,7)    | NOT NULL                |                                                           |
+| location              | GEOGRAPHY(Point) | NOT NULL                | PostGIS point for spatial queries                         |
+| phone                 | VARCHAR(20)      | NULLABLE                |                                                           |
+| email                 | VARCHAR(255)     | NULLABLE                |                                                           |
+| website               | TEXT             | NULLABLE                |                                                           |
+| pastor_name           | VARCHAR(150)     | NULLABLE                |                                                           |
+| year_established      | INTEGER          | NULLABLE                |                                                           |
+| avg_rating            | DECIMAL(2,1)     | default 0.0             | Cached aggregate from local user reviews                  |
+| review_count          | INTEGER          | default 0               | Cached count of local user reviews                        |
+| google_rating         | DECIMAL(3,2)     | NULLABLE                | Rating from Google Places API                             |
+| google_review_count   | INTEGER          | NULLABLE                | Review count from Google Places API                       |
+| is_claimed            | BOOLEAN          | default false           | Whether a church admin has claimed it                     |
+| claimed_by            | UUID             | FK → users.id, NULLABLE |                                                           |
+| languages             | TEXT[]           | default ['English']     | Array of languages                                        |
+| amenities             | TEXT[]           | default []              | e.g., ['parking', 'wheelchair', 'childcare']              |
+| cover_image_url       | TEXT             | NULLABLE                | Primary listing photo                                     |
+| google_place_id       | TEXT             | UNIQUE, NULLABLE        | Google Places API ID for import deduplication             |
+| business_status       | VARCHAR(50)      | NULLABLE                | "OPERATIONAL", "CLOSED_TEMPORARILY", "CLOSED_PERMANENTLY" |
+| google_maps_url       | TEXT             | NULLABLE                | Direct link to Google Maps listing                        |
+| primary_type          | VARCHAR(50)      | NULLABLE                | Google place type, e.g. "church"                          |
+| good_for_children     | BOOLEAN          | NULLABLE                | From Google Places accessibility data                     |
+| good_for_groups       | BOOLEAN          | NULLABLE                | From Google Places accessibility data                     |
+| wheelchair_accessible | BOOLEAN          | NULLABLE                | From Google Places accessibility data                     |
+| created_at            | TIMESTAMP        | default now()           |                                                           |
+| updated_at            | TIMESTAMP        | auto-update             |                                                           |
 
 **Indexes:**
 
@@ -102,16 +108,17 @@
 
 ### church_services
 
-| Column       | Type         | Constraints                | Notes                                                        |
-| ------------ | ------------ | -------------------------- | ------------------------------------------------------------ |
-| id           | UUID         | PK, default gen            |                                                              |
-| church_id    | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                            |
-| day_of_week  | SMALLINT     | NOT NULL                   | 0=Sunday, 1=Monday, ... 6=Saturday                           |
-| start_time   | TIME         | NOT NULL                   | e.g., '09:00'                                                |
-| end_time     | TIME         | NULLABLE                   |                                                              |
-| service_type | VARCHAR(50)  | NOT NULL                   | 'traditional', 'contemporary', 'blended', 'youth', 'spanish' |
-| language     | VARCHAR(30)  | default 'English'          |                                                              |
-| description  | VARCHAR(200) | NULLABLE                   | Optional notes                                               |
+| Column           | Type         | Constraints                | Notes                                                        |
+| ---------------- | ------------ | -------------------------- | ------------------------------------------------------------ |
+| id               | UUID         | PK, default gen            |                                                              |
+| church_id        | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                            |
+| day_of_week      | SMALLINT     | NOT NULL                   | 0=Sunday, 1=Monday, ... 6=Saturday                           |
+| start_time       | TIME         | NOT NULL                   | e.g., '09:00'                                                |
+| end_time         | TIME         | NULLABLE                   |                                                              |
+| service_type     | VARCHAR(50)  | NOT NULL                   | 'traditional', 'contemporary', 'blended', 'youth', 'spanish' |
+| language         | VARCHAR(30)  | default 'English'          |                                                              |
+| description      | VARCHAR(200) | NULLABLE                   | Optional notes                                               |
+| is_auto_imported | BOOLEAN      | default false              | true if auto-generated from Google opening hours             |
 
 ### church_photos
 
@@ -226,4 +233,4 @@
 
 ---
 
-_Last updated: 2026-04-07_
+_Last updated: 2026-04-08_

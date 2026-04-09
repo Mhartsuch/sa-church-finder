@@ -35,6 +35,12 @@ export interface IChurch {
   languages: string[];
   amenities: string[];
   coverImageUrl: string | null;
+  businessStatus: string | null;
+  googleMapsUrl: string | null;
+  primaryType: string | null;
+  goodForChildren: boolean | null;
+  goodForGroups: boolean | null;
+  wheelchairAccessible: boolean | null;
   photos?: IChurchPhoto[];
   viewerClaim?: IViewerChurchClaim | null;
   services: IChurchService[];
@@ -47,6 +53,7 @@ export interface IChurchService {
   endTime: string | null;
   serviceType: string;
   language: string;
+  isAutoImported?: boolean;
 }
 
 export interface IChurchSummary extends IChurch {

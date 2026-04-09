@@ -22,6 +22,7 @@ export interface IChurchService {
   serviceType: string
   language: string
   description?: string | null
+  isAutoImported?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -62,6 +63,12 @@ export interface IChurch {
   languages: string[]
   amenities: string[]
   coverImageUrl?: string | null
+  businessStatus?: string | null
+  googleMapsUrl?: string | null
+  primaryType?: string | null
+  goodForChildren?: boolean | null
+  goodForGroups?: boolean | null
+  wheelchairAccessible?: boolean | null
   photos?: IChurchPhoto[]
   viewerClaim?: IViewerChurchClaim | null
   createdAt: Date
@@ -95,6 +102,10 @@ export interface IChurchSummary {
   languages: string[]
   amenities: string[]
   coverImageUrl?: string | null
+  businessStatus?: string | null
+  goodForChildren?: boolean | null
+  goodForGroups?: boolean | null
+  wheelchairAccessible?: boolean | null
   distance?: number
   services: IChurchService[]
 }

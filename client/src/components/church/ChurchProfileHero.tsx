@@ -80,6 +80,12 @@ export const ChurchProfileHero = ({ church, directionsUrl }: ChurchProfileHeroPr
             {churchMonogram}
           </div>
 
+          {church.businessStatus === 'CLOSED_TEMPORARILY' && (
+            <div className="absolute left-0 right-0 top-0 z-10 bg-amber-500/90 px-6 py-2.5 text-center text-sm font-semibold text-white backdrop-blur-sm">
+              This church is temporarily closed
+            </div>
+          )}
+
           <div className="absolute inset-x-0 bottom-0 p-6 text-white">
             <span
               className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm ${churchTheme.outlineClass}`}
@@ -112,6 +118,21 @@ export const ChurchProfileHero = ({ church, directionsUrl }: ChurchProfileHeroPr
               {serviceWindowCount > 0 ? (
                 <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/88 backdrop-blur-sm">
                   {serviceWindowCount} weekly service{serviceWindowCount === 1 ? '' : 's'}
+                </span>
+              ) : null}
+              {church.wheelchairAccessible ? (
+                <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/88 backdrop-blur-sm">
+                  Wheelchair Accessible
+                </span>
+              ) : null}
+              {church.goodForChildren ? (
+                <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/88 backdrop-blur-sm">
+                  Family Friendly
+                </span>
+              ) : null}
+              {church.goodForGroups ? (
+                <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/88 backdrop-blur-sm">
+                  Good for Groups
                 </span>
               ) : null}
             </div>

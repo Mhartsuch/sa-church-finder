@@ -30,6 +30,12 @@ const churchA = {
   languages: ['English'],
   amenities: ['Parking'],
   coverImageUrl: null,
+  businessStatus: null,
+  googleMapsUrl: null,
+  primaryType: null,
+  goodForChildren: null,
+  goodForGroups: null,
+  wheelchairAccessible: null,
   services: [],
   distance: 2.4,
 };

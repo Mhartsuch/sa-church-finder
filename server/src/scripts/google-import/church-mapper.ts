@@ -21,6 +21,13 @@ export interface ChurchCreateData {
   googlePlaceId: string
   googleRating: Prisma.Decimal | null
   googleReviewCount: number | null
+  businessStatus: string | null
+  googleMapsUrl: string | null
+  primaryType: string | null
+  goodForChildren: boolean | null
+  goodForGroups: boolean | null
+  wheelchairAccessible: boolean | null
+  amenities: string[]
 }
 
 export interface ChurchUpdateData {
@@ -32,9 +39,23 @@ export interface ChurchUpdateData {
   longitude: Prisma.Decimal
   phone: string | null
   website: string | null
-  description: string | null
   googleRating: Prisma.Decimal | null
   googleReviewCount: number | null
+  businessStatus: string | null
+  googleMapsUrl: string | null
+  primaryType: string | null
+  goodForChildren: boolean | null
+  goodForGroups: boolean | null
+  wheelchairAccessible: boolean | null
+}
+
+export interface DerivedServiceTime {
+  dayOfWeek: number
+  startTime: string
+  endTime: string | null
+  serviceType: string
+  language: string
+  isAutoImported: true
 }
 
 function generateSlug(name: string): string {
@@ -101,6 +122,79 @@ async function generateUniqueSlug(
   }
 }
 
+/**
+ * Derive amenities from Google accessibility and feature fields.
+ */
+export function deriveAmenities(place: GooglePlaceResult): string[] {
+  const amenities: string[] = []
+
+  if (place.accessibilityOptions?.wheelchairAccessibleEntrance) {
+    amenities.push('Wheelchair Accessible')
+  }
+  if (place.accessibilityOptions?.wheelchairAccessibleParking) {
+    amenities.push('Accessible Parking')
+  }
+  if (place.accessibilityOptions?.wheelchairAccessibleRestroom) {
+    amenities.push('Accessible Restroom')
+  }
+  if (place.accessibilityOptions?.wheelchairAccessibleSeating) {
+    amenities.push('Accessible Seating')
+  }
+  if (place.goodForChildren) {
+    amenities.push('Family Friendly')
+  }
+  if (place.goodForGroups) {
+    amenities.push('Good for Groups')
+  }
+
+  return amenities
+}
+
+/**
+ * Merge derived amenities with existing ones (union, no duplicates).
+ */
+export function mergeAmenities(existing: string[], derived: string[]): string[] {
+  const set = new Set(existing)
+  for (const a of derived) {
+    set.add(a)
+  }
+  return [...set]
+}
+
+/**
+ * Derive service times from Google opening hours.
+ */
+export function deriveServiceTimes(place: GooglePlaceResult): DerivedServiceTime[] {
+  const periods = place.regularOpeningHours?.periods
+  if (!periods || periods.length === 0) return []
+
+  const services: DerivedServiceTime[] = []
+
+  for (const period of periods) {
+    const startHour = String(period.open.hour).padStart(2, '0')
+    const startMin = String(period.open.minute).padStart(2, '0')
+    const startTime = `${startHour}:${startMin}`
+
+    let endTime: string | null = null
+    if (period.close) {
+      const endHour = String(period.close.hour).padStart(2, '0')
+      const endMin = String(period.close.minute).padStart(2, '0')
+      endTime = `${endHour}:${endMin}`
+    }
+
+    services.push({
+      dayOfWeek: period.open.day,
+      startTime,
+      endTime,
+      serviceType: 'Service',
+      language: 'English',
+      isAutoImported: true,
+    })
+  }
+
+  return services
+}
+
 export async function mapPlaceToCreateData(
   prisma: PrismaClient,
   place: GooglePlaceResult,
@@ -123,6 +217,13 @@ export async function mapPlaceToCreateData(
     googlePlaceId: place.id,
     googleRating: place.rating != null ? new Prisma.Decimal(place.rating.toFixed(2)) : null,
     googleReviewCount: place.userRatingCount ?? null,
+    businessStatus: place.businessStatus ?? null,
+    googleMapsUrl: place.googleMapsUri ?? null,
+    primaryType: place.primaryType ?? null,
+    goodForChildren: place.goodForChildren ?? null,
+    goodForGroups: place.goodForGroups ?? null,
+    wheelchairAccessible: place.accessibilityOptions?.wheelchairAccessibleEntrance ?? null,
+    amenities: deriveAmenities(place),
   }
 }
 
@@ -138,8 +239,13 @@ export function mapPlaceToUpdateData(place: GooglePlaceResult): ChurchUpdateData
     longitude: new Prisma.Decimal(place.location.longitude.toFixed(8)),
     phone: place.nationalPhoneNumber ?? null,
     website: place.websiteUri ?? null,
-    description: place.editorialSummary?.text ?? null,
     googleRating: place.rating != null ? new Prisma.Decimal(place.rating.toFixed(2)) : null,
     googleReviewCount: place.userRatingCount ?? null,
+    businessStatus: place.businessStatus ?? null,
+    googleMapsUrl: place.googleMapsUri ?? null,
+    primaryType: place.primaryType ?? null,
+    goodForChildren: place.goodForChildren ?? null,
+    goodForGroups: place.goodForGroups ?? null,
+    wheelchairAccessible: place.accessibilityOptions?.wheelchairAccessibleEntrance ?? null,
   }
 }

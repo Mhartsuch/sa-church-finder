@@ -32,6 +32,12 @@ const church: IChurchSummary = {
   languages: ['English'],
   amenities: [],
   coverImageUrl: null,
+  businessStatus: null,
+  googleMapsUrl: null,
+  primaryType: null,
+  goodForChildren: null,
+  goodForGroups: null,
+  wheelchairAccessible: null,
   services: [
     {
       id: 'service-1',

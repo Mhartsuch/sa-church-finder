@@ -85,6 +85,12 @@ model Church {
   amenities             String[]               @default([])
   coverImageUrl         String?
   googlePlaceId         String?                @unique
+  businessStatus        String?
+  googleMapsUrl         String?
+  primaryType           String?
+  goodForChildren       Boolean?
+  goodForGroups         Boolean?
+  wheelchairAccessible  Boolean?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   services              ChurchService[]
@@ -110,6 +116,7 @@ model ChurchService {
   serviceType           String
   language              String                 @default("English")
   description           String?
+  isAutoImported        Boolean                @default(false)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 

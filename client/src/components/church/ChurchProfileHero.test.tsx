@@ -34,6 +34,12 @@ const church: IChurch = {
   languages: ['English', 'Spanish'],
   amenities: ['Wheelchair Accessible', 'Nursery', 'Coffee Bar'],
   coverImageUrl: null,
+  businessStatus: null,
+  googleMapsUrl: null,
+  primaryType: null,
+  goodForChildren: null,
+  goodForGroups: null,
+  wheelchairAccessible: null,
   services: [
     {
       id: 'service-1',

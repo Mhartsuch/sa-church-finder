@@ -22,6 +22,13 @@ const NEARBY_FIELD_MASK = [
   'places.photos',
   'places.rating',
   'places.userRatingCount',
+  'places.regularOpeningHours',
+  'places.businessStatus',
+  'places.accessibilityOptions',
+  'places.goodForChildren',
+  'places.goodForGroups',
+  'places.primaryType',
+  'places.primaryTypeDisplayName',
 ].join(',')
 
 const DETAIL_FIELD_MASK = [
@@ -32,10 +39,18 @@ const DETAIL_FIELD_MASK = [
   'addressComponents',
   'nationalPhoneNumber',
   'websiteUri',
+  'googleMapsUri',
   'editorialSummary',
   'photos',
   'rating',
   'userRatingCount',
+  'regularOpeningHours',
+  'businessStatus',
+  'accessibilityOptions',
+  'goodForChildren',
+  'goodForGroups',
+  'primaryType',
+  'primaryTypeDisplayName',
 ].join(',')
 
 export class GooglePlacesClient {

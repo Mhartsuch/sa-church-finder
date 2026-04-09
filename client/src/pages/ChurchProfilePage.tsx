@@ -600,7 +600,14 @@ export const ChurchProfilePage = () => {
 
             {groupedServices.length > 0 ? (
               <div className="border-b border-border py-8">
-                <h2 className="mb-5 text-[22px] font-semibold text-foreground">Service schedule</h2>
+                <div className="mb-5 flex items-center gap-3">
+                  <h2 className="text-[22px] font-semibold text-foreground">Service schedule</h2>
+                  {church.services.length > 0 && church.services.every((s) => s.isAutoImported) && (
+                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      Hours from Google
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-5">
                   {groupedServices.map(({ day, dayName, services }) => (
                     <div key={day}>

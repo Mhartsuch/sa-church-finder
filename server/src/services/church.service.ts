@@ -33,12 +33,14 @@ const METERS_PER_MILE = 1609.344
 // Score budget (approximate):
 //   Profile completeness  0 – 55 pts
 //   Photo bonus           0 – 10 pts
-//   Service variety       0 –  9 pts
+//   Service variety       0 – 12 pts
 //   Engagement            0 – 25 pts
 //   Proximity             0 – 15 pts
 //   Freshness             0 –  5 pts
+//   Accessibility         0 –  3 pts
+//   Operational status    0 –  2 pts
 //   ─────────────────────────────
-//   Best possible total     119 pts
+//   Best possible total     127 pts
 //
 // Churches with NO photos receive a -1000 penalty, ensuring they always
 // appear below any church that has at least one photo.
@@ -62,7 +64,7 @@ const RANK_WEIGHTS = {
 
   // Service variety
   SERVICE_PER_ITEM: 3, // per service time entry
-  SERVICE_MAX: 9, // cap on service variety contribution
+  SERVICE_MAX: 12, // cap on service variety contribution
 
   // Engagement
   RATING_MULTIPLIER: 4, // avgRating (0–5) × this → 0–20 pts
@@ -77,6 +79,10 @@ const RANK_WEIGHTS = {
   FRESHNESS_30D: 5, // updated within 30 days
   FRESHNESS_90D: 3, // updated within 90 days
   FRESHNESS_365D: 1, // updated within 1 year
+
+  // Accessibility & status
+  WHEELCHAIR_ACCESSIBLE: 3, // confirmed wheelchair accessible
+  OPERATIONAL_STATUS: 2, // confirmed OPERATIONAL business status
 } as const
 
 // ── Raw SQL result types ──
@@ -109,6 +115,10 @@ interface ChurchRow {
   languages: string[]
   amenities: string[]
   coverImageUrl: string | null
+  businessStatus: string | null
+  goodForChildren: boolean | null
+  goodForGroups: boolean | null
+  wheelchairAccessible: boolean | null
   distance_miles: number | null
   // Computed by the ranking CTE — not exposed in IChurchSummary
   photo_count: number
@@ -177,6 +187,10 @@ function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
     languages: row.languages || [],
     amenities: row.amenities || [],
     coverImageUrl: row.coverImageUrl ?? undefined,
+    businessStatus: row.businessStatus ?? undefined,
+    goodForChildren: row.goodForChildren ?? undefined,
+    goodForGroups: row.goodForGroups ?? undefined,
+    wheelchairAccessible: row.wheelchairAccessible ?? undefined,
     distance:
       row.distance_miles != null ? Math.round(toNumber(row.distance_miles) * 10) / 10 : undefined,
     services: services.map((s) => ({
@@ -225,6 +239,11 @@ export async function searchChurches(
 
   // ── Build WHERE conditions ──
   const conditions: Prisma.Sql[] = [Prisma.sql`1=1`]
+
+  // Exclude permanently closed churches
+  conditions.push(
+    Prisma.sql`(c."businessStatus" IS NULL OR c."businessStatus" != 'CLOSED_PERMANENTLY')`,
+  )
 
   // Spatial filter: bounds or radius
   if (params.bounds) {
@@ -310,7 +329,19 @@ export async function searchChurches(
   let orderClause: Prisma.Sql
   switch (sortBy) {
     case 'rating':
-      orderClause = Prisma.sql`ORDER BY CASE WHEN "reviewCount" > 0 THEN "avgRating" ELSE COALESCE("googleRating", 0) END DESC, GREATEST("reviewCount", COALESCE("googleReviewCount", 0)) DESC`
+      // Bayesian weighted rating: (R × N + C × M) / (N + M)
+      // R = effective rating, N = effective review count, C = prior (3.5), M = weight (10)
+      // Churches with no rating data sort last; among rated churches,
+      // a 5.0 from 1 review scores ~3.65, while 4.8 from 200 scores ~4.74
+      orderClause = Prisma.sql`ORDER BY
+        CASE WHEN GREATEST("reviewCount", COALESCE("googleReviewCount", 0)) = 0
+             AND COALESCE("googleRating", 0) = 0
+          THEN 0 ELSE 1 END DESC,
+        (
+          (CASE WHEN "reviewCount" > 0 THEN "avgRating" ELSE COALESCE("googleRating", 0) END)
+          * GREATEST("reviewCount", COALESCE("googleReviewCount", 0))
+          + 3.5 * 10
+        ) / (GREATEST("reviewCount", COALESCE("googleReviewCount", 0)) + 10) DESC`
       break
     case 'name':
       orderClause = Prisma.sql`ORDER BY "name" ASC`
@@ -399,6 +430,12 @@ export async function searchChurches(
         WHEN "updatedAt" > NOW() - INTERVAL '365 days' THEN ${RANK_WEIGHTS.FRESHNESS_365D}::float
         ELSE 0
       END
+
+    -- ACCESSIBILITY
+    + CASE WHEN "wheelchairAccessible" = true THEN ${RANK_WEIGHTS.WHEELCHAIR_ACCESSIBLE}::float ELSE 0 END
+
+    -- OPERATIONAL STATUS
+    + CASE WHEN "businessStatus" = 'OPERATIONAL' THEN ${RANK_WEIGHTS.OPERATIONAL_STATUS}::float ELSE 0 END
   `
 
   // ── Count query ──
@@ -435,6 +472,7 @@ export async function searchChurches(
         c."googleReviewCount",
         c."isClaimed",
         c."languages", c."amenities", c."coverImageUrl",
+        c."businessStatus", c."goodForChildren", c."goodForGroups", c."wheelchairAccessible",
         c."updatedAt",
         ${isSavedSelect} AS "isSaved",
         ${distanceExpr} AS distance_miles,
