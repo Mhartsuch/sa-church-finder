@@ -2,6 +2,12 @@ import { Globe, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SUPPORT_LINKS } from '@/constants/support';
 
+const FOOTER_LEGAL_LINKS = [
+  { label: 'Privacy', to: '/privacy' },
+  { label: 'Terms', to: '/terms' },
+  { label: 'Sitemap', to: '/sitemap' },
+] as const;
+
 const FOOTER_COLUMNS = [
   {
     title: 'Support',
@@ -78,18 +84,14 @@ export const Footer = () => {
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>&copy; {new Date().getFullYear()} ChurchFinder, Inc.</span>
-            <span>&middot;</span>
-            <button type="button" className="hover:underline">
-              Privacy
-            </button>
-            <span>&middot;</span>
-            <button type="button" className="hover:underline">
-              Terms
-            </button>
-            <span>&middot;</span>
-            <button type="button" className="hover:underline">
-              Sitemap
-            </button>
+            {FOOTER_LEGAL_LINKS.map((link) => (
+              <div key={link.to} className="flex items-center gap-2">
+                <span>&middot;</span>
+                <Link to={link.to} className="hover:underline">
+                  {link.label}
+                </Link>
+              </div>
+            ))}
           </div>
           <div className="flex items-center gap-4">
             <button

@@ -30,4 +30,16 @@ describe('Footer', () => {
       '/report-a-concern',
     );
   });
+
+  it('renders the legal footer links as client routes', () => {
+    render(
+      <MemoryRouter>
+        <Footer />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: 'Sitemap' })).toHaveAttribute('href', '/sitemap');
+  });
 });

@@ -20,6 +20,9 @@ import HelpCenterPage from '@/pages/HelpCenterPage';
 import SafetyInformationPage from '@/pages/SafetyInformationPage';
 import AccessibilityPage from '@/pages/AccessibilityPage';
 import ReportConcernPage from '@/pages/ReportConcernPage';
+import PrivacyPage from '@/pages/PrivacyPage';
+import TermsPage from '@/pages/TermsPage';
+import SitemapPage from '@/pages/SitemapPage';
 
 const App = () => {
   return (
@@ -41,6 +44,9 @@ const App = () => {
           <Route path="/safety-information" element={<SafetyInformationPage />} />
           <Route path="/accessibility" element={<AccessibilityPage />} />
           <Route path="/report-a-concern" element={<ReportConcernPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/sitemap" element={<SitemapPage />} />
           <Route
             path="/account"
             element={
