@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 
+import { Lightbox } from '@/components/church/Lightbox';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import { useAuthSession } from '@/hooks/useAuth';
@@ -227,6 +228,7 @@ export const ChurchProfilePage = () => {
   const [helpfulVoteError, setHelpfulVoteError] = useState<string | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [flagDialogReviewId, setFlagDialogReviewId] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const eventWindow = buildEventDateWindow(eventWindowBaseIso, eventDateRange);
   const {
     data: churchEventsResponse,
@@ -544,20 +546,31 @@ export const ChurchProfilePage = () => {
                 <h2 className="mb-5 text-[22px] font-semibold text-foreground">Photos</h2>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {church.photos.slice(0, 6).map((photo, i) => (
-                    <div
+                    <button
                       key={photo.id}
-                      className={`overflow-hidden rounded-xl bg-muted ${i === 0 ? 'col-span-2 row-span-2 sm:col-span-1 sm:row-span-1' : ''}`}
+                      type="button"
+                      onClick={() => setLightboxIndex(i)}
+                      className={`overflow-hidden rounded-xl bg-muted transition-opacity hover:opacity-90 ${i === 0 ? 'col-span-2 row-span-2 sm:col-span-1 sm:row-span-1' : ''}`}
                     >
                       <img
                         src={photo.url}
                         alt={photo.altText ?? `${church.name} photo ${i + 1}`}
-                        className="h-full w-full object-cover"
-                        style={{ aspectRatio: i === 0 ? '4/3' : '4/3' }}
+                        className="h-full w-full cursor-zoom-in object-cover"
+                        style={{ aspectRatio: '4/3' }}
                         loading="lazy"
                       />
-                    </div>
+                    </button>
                   ))}
                 </div>
+                {church.photos.length > 6 && (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(0)}
+                    className="mt-3 text-sm font-semibold text-foreground underline underline-offset-2 hover:no-underline"
+                  >
+                    Show all {church.photos.length} photos
+                  </button>
+                )}
               </div>
             )}
 
@@ -1290,6 +1303,15 @@ export const ChurchProfilePage = () => {
           <p className="text-sm text-muted-foreground">&copy; 2026 SA Church Finder</p>
         </div>
       </footer>
+
+      {lightboxIndex !== null && church.photos && church.photos.length > 0 && (
+        <Lightbox
+          images={church.photos.map((p) => p.url)}
+          initialIndex={lightboxIndex}
+          alt={church.name}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={flagDialogReviewId !== null}

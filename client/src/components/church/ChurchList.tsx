@@ -11,6 +11,7 @@ import { IChurchSummary } from '@/types/church';
 import { NoResults } from '@/components/search/NoResults';
 import { ChurchCard } from './ChurchCard';
 import { ChurchCardSkeletonGrid } from './ChurchCardSkeleton';
+import { QuickViewModal } from './QuickViewModal';
 
 interface ChurchListProps {
   variant?: 'grid' | 'sidebar';
@@ -29,6 +30,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const toggleChurch = useCompareStore((state) => state.toggleChurch);
   const { addToast } = useToast();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
 
   const searchParams = useChurchSearchParams();
   const { data, error, isLoading } = useChurches(searchParams);
@@ -136,6 +138,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
                   variant: 'info',
                 });
               }}
+              onQuickView={(slug) => setQuickViewSlug(slug)}
               onToggleSave={(churchId) => {
                 void handleToggleSave(churchId);
               }}
@@ -195,6 +198,17 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
             <ChevronRight className="h-4 w-4" />
           </button>
         </nav>
+      )}
+
+      {quickViewSlug && (
+        <QuickViewModal
+          slug={quickViewSlug}
+          onClose={() => setQuickViewSlug(null)}
+          onNavigate={(slug) => {
+            setQuickViewSlug(null);
+            navigate(`/churches/${slug}`);
+          }}
+        />
       )}
     </div>
   );

@@ -139,6 +139,14 @@ interface ServiceRow {
   updatedAt: Date
 }
 
+interface PhotoRow {
+  id: string
+  churchId: string
+  url: string
+  altText: string | null
+  displayOrder: number
+}
+
 interface CountRow {
   count: bigint
 }
@@ -160,7 +168,11 @@ function toNumber(val: unknown): number {
   return Number(val) || 0
 }
 
-function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
+function rowToSummary(
+  row: ChurchRow,
+  services: ServiceRow[],
+  photos?: IChurchPhoto[],
+): IChurchSummary {
   return {
     id: row.id,
     name: row.name,
@@ -193,6 +205,7 @@ function rowToSummary(row: ChurchRow, services: ServiceRow[]): IChurchSummary {
     wheelchairAccessible: row.wheelchairAccessible ?? undefined,
     distance:
       row.distance_miles != null ? Math.round(toNumber(row.distance_miles) * 10) / 10 : undefined,
+    photos,
     services: services.map((s) => ({
       id: s.id,
       churchId: s.churchId,
@@ -509,9 +522,30 @@ export async function searchChurches(
     servicesByChurch.set(s.churchId, list)
   }
 
+  // ── Fetch photos for the returned churches (first 5 per church) ──
+  let photoRows: PhotoRow[] = []
+  if (churchIds.length > 0) {
+    photoRows = await prisma.$queryRaw<PhotoRow[]>(Prisma.sql`
+      SELECT "id", "churchId", "url", "altText", "displayOrder"
+      FROM "church_photos"
+      WHERE "churchId" IN (${Prisma.join(churchIds)})
+      ORDER BY "displayOrder" ASC
+    `)
+  }
+
+  const MAX_CARD_PHOTOS = 5
+  const photosByChurch = new Map<string, IChurchPhoto[]>()
+  for (const p of photoRows) {
+    const list = photosByChurch.get(p.churchId) || []
+    if (list.length < MAX_CARD_PHOTOS) {
+      list.push({ id: p.id, url: p.url, altText: p.altText, displayOrder: p.displayOrder })
+      photosByChurch.set(p.churchId, list)
+    }
+  }
+
   // ── Build response ──
   const data: IChurchSummary[] = churches.map((row) =>
-    rowToSummary(row, servicesByChurch.get(row.id) || []),
+    rowToSummary(row, servicesByChurch.get(row.id) || [], photosByChurch.get(row.id)),
   )
 
   return {

@@ -107,6 +107,7 @@ export interface IChurchSummary {
   goodForGroups?: boolean | null
   wheelchairAccessible?: boolean | null
   distance?: number
+  photos?: IChurchPhoto[]
   services: IChurchService[]
 }
 
