@@ -9,7 +9,12 @@ import {
   churchSearchSchema,
 } from '../schemas/church.schema.js'
 import { toggleSavedChurch } from '../services/saved-church.service.js'
-import { searchChurches } from '../services/church.service.js'
+import {
+  searchChurches,
+  getDenominationFamilies,
+  getAvailableLanguages,
+  getAvailableAmenities,
+} from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
 import { listChurchEventsBySlug } from '../services/event.service.js'
 import { ISearchParams } from '../types/church.types.js'
@@ -56,6 +61,28 @@ router.get(
     }
   },
 )
+
+/**
+ * GET /api/v1/churches/filter-options
+ * Returns available filter values derived from actual database content
+ */
+router.get('/filter-options', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [denominations, languages, amenities] = await Promise.all([
+      getDenominationFamilies(),
+      getAvailableLanguages(),
+      getAvailableAmenities(),
+    ])
+
+    res.json({
+      data: { denominations, languages, amenities },
+    })
+    return
+  } catch (error) {
+    next(error)
+    return
+  }
+})
 
 router.post(
   '/:id/save',

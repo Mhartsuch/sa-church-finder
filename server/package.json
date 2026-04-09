@@ -11,9 +11,9 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "refresh:curated-data": "tsx prisma/refresh-curated-church-data.ts",
     "import:google-churches": "tsx src/scripts/google-import/index.ts",
-    "enrich:google-ratings": "tsx src/scripts/google-enrich/index.ts"
+    "enrich:google-ratings": "tsx src/scripts/google-enrich/index.ts",
+    "db:cleanup-demo": "tsx src/scripts/cleanup-demo-churches.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

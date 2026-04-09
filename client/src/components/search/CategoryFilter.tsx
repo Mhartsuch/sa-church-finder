@@ -1,5 +1,6 @@
 import { Scale, SlidersHorizontal } from 'lucide-react';
 
+import { useFilterOptions } from '@/hooks/useChurches';
 import { useSearchStore } from '@/stores/search-store';
 
 interface CategoryItem {
@@ -10,7 +11,7 @@ interface CategoryItem {
   denominationValue?: string;
 }
 
-const CATEGORIES: CategoryItem[] = [
+const ALL_CATEGORIES: CategoryItem[] = [
   { id: 'all', label: 'All', icon: '⛪' },
   { id: 'historic', label: 'Historic', icon: '🏛️', queryValue: 'Historic' },
   { id: 'contemporary', label: 'Contemporary', icon: '🎵', queryValue: 'Contemporary' },
@@ -48,10 +49,20 @@ export const CategoryFilter = ({
   const setFilter = useSearchStore((state) => state.setFilter);
   const clearFilters = useSearchStore((state) => state.clearFilters);
   const setQuery = useSearchStore((state) => state.setQuery);
+  const { data: filterOptions } = useFilterOptions();
 
   const activeFilterCount = Object.values(filters).filter(
     (value) => value !== undefined && value !== '',
   ).length;
+
+  const availableDenominations = new Set(
+    (filterOptions?.denominations ?? []).map((d) => d.toLowerCase()),
+  );
+
+  const categories = ALL_CATEGORIES.filter((item) => {
+    if (!item.denominationValue) return true;
+    return availableDenominations.has(item.denominationValue.toLowerCase());
+  });
 
   const isActive = (item: CategoryItem) => {
     if (item.id === 'all') {
@@ -88,7 +99,7 @@ export const CategoryFilter = ({
   return (
     <div className="flex items-center gap-3 px-4 sm:px-6 lg:px-10 xl:px-12">
       <div className="hide-scrollbar flex flex-1 items-center gap-0.5 overflow-x-auto py-3">
-        {CATEGORIES.map((item) => {
+        {categories.map((item) => {
           const active = isActive(item);
 
           return (

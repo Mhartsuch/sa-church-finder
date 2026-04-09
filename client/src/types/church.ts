@@ -90,3 +90,9 @@ export interface ISearchResponse {
     totalPages: number;
   };
 }
+
+export interface IFilterOptions {
+  denominations: string[];
+  languages: string[];
+  amenities: string[];
+}

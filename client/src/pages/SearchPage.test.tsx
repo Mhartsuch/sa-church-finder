@@ -43,6 +43,10 @@ vi.mock('@/hooks/useChurches', () => ({
     error: null,
     isLoading: false,
   }),
+  useFilterOptions: () => ({
+    data: { denominations: [], languages: [], amenities: [] },
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@/hooks/useURLSearchState', () => ({

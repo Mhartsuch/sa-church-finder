@@ -1,12 +1,7 @@
 import { SlidersHorizontal, X } from 'lucide-react';
 
-import {
-  AMENITY_OPTIONS,
-  DAY_OPTIONS,
-  DENOMINATION_OPTIONS,
-  LANGUAGE_OPTIONS,
-  TIME_OPTIONS,
-} from '@/constants';
+import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
+import { useFilterOptions } from '@/hooks/useChurches';
 import { SearchFilters, useSearchStore } from '@/stores/search-store';
 
 interface FilterPanelProps {
@@ -53,6 +48,8 @@ const FilterSection = ({ label, description, filterKey, options }: FilterSection
   const filters = useSearchStore((state) => state.filters);
   const setFilter = useSearchStore((state) => state.setFilter);
 
+  if (options.length === 0) return null;
+
   return (
     <section className="rounded-[24px] border border-border bg-card p-5">
       <div className="flex flex-col gap-1">
@@ -83,10 +80,26 @@ const FilterSection = ({ label, description, filterKey, options }: FilterSection
 export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
   const filters = useSearchStore((state) => state.filters);
   const clearFilters = useSearchStore((state) => state.clearFilters);
+  const { data: filterOptions } = useFilterOptions();
 
   const activeFilterCount = Object.values(filters).filter(
     (value) => value !== undefined && value !== '',
   ).length;
+
+  const denominationOptions: FilterOption[] = (filterOptions?.denominations ?? []).map((d) => ({
+    label: d,
+    value: d,
+  }));
+
+  const languageOptions: FilterOption[] = (filterOptions?.languages ?? []).map((l) => ({
+    label: l,
+    value: l,
+  }));
+
+  const amenityOptions: FilterOption[] = (filterOptions?.amenities ?? []).map((a) => ({
+    label: a,
+    value: a,
+  }));
 
   return (
     <div className="flex max-h-[88vh] flex-col bg-background">
@@ -116,10 +129,7 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
           label="Tradition"
           description="Choose a denomination to narrow the directory quickly."
           filterKey="denomination"
-          options={DENOMINATION_OPTIONS.map((option) => ({
-            label: option,
-            value: option,
-          }))}
+          options={denominationOptions}
         />
 
         <FilterSection
@@ -140,20 +150,14 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
           label="Language"
           description="Surface churches that regularly hold services in a preferred language."
           filterKey="language"
-          options={LANGUAGE_OPTIONS.map((option) => ({
-            label: option,
-            value: option,
-          }))}
+          options={languageOptions}
         />
 
         <FilterSection
           label="Amenity"
           description="Look for one practical detail that helps the list feel more realistic."
           filterKey="amenities"
-          options={AMENITY_OPTIONS.map((option) => ({
-            label: option,
-            value: option,
-          }))}
+          options={amenityOptions}
         />
       </div>
 
