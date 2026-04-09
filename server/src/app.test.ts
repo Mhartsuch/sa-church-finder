@@ -1,10 +1,13 @@
 import request from 'supertest'
 
 import { createApp } from './app.js'
+import prisma from './lib/prisma.js'
 
 jest.mock('./lib/prisma.js', () => ({
   __esModule: true,
-  default: {},
+  default: {
+    $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
+  },
 }))
 
 const originalHealthEnv = {
@@ -56,6 +59,10 @@ describe('app health endpoint', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.status).toBe('ok')
+    expect(response.body.database).toEqual({
+      connected: true,
+      latencyMs: expect.any(Number),
+    })
     expect(response.body.integrations).toEqual({
       emailDelivery: {
         configured: false,
@@ -69,6 +76,19 @@ describe('app health endpoint', () => {
         configured: false,
         status: 'partial',
       },
+    })
+  })
+
+  it('returns 503 with degraded status when database is unreachable', async () => {
+    ;(prisma.$queryRaw as jest.Mock).mockRejectedValueOnce(new Error('Connection refused'))
+
+    const response = await request(createApp()).get('/api/v1/health')
+
+    expect(response.status).toBe(503)
+    expect(response.body.status).toBe('degraded')
+    expect(response.body.database).toEqual({
+      connected: false,
+      error: 'Connection refused',
     })
   })
 })

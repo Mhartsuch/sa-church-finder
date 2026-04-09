@@ -6,6 +6,7 @@ import { pinoHttp } from 'pino-http'
 
 import { getPublicServerIntegrationStatus } from './lib/integration-status.js'
 import logger from './lib/logger.js'
+import prisma from './lib/prisma.js'
 import { createSessionMiddleware, resolveClientUrls } from './lib/session.js'
 import { initializeServerSentry } from './lib/sentry.js'
 import { errorHandler } from './middleware/error-handler.js'
@@ -43,14 +44,32 @@ export const createApp = (): Express => {
   app.use(createSessionMiddleware())
   app.use(pinoHttp({ logger }))
 
-  app.get('/api/v1/health', (_req: Request, res: Response) => {
-    res.json({
-      status: 'ok',
+  app.get('/api/v1/health', async (_req: Request, res: Response) => {
+    let dbStatus: { connected: boolean; latencyMs?: number; error?: string } = {
+      connected: false,
+    }
+
+    try {
+      const start = Date.now()
+      await prisma.$queryRaw`SELECT 1`
+      dbStatus = { connected: true, latencyMs: Date.now() - start }
+    } catch (err) {
+      dbStatus = {
+        connected: false,
+        error: err instanceof Error ? err.message : 'Unknown database error',
+      }
+    }
+
+    const status = dbStatus.connected ? 'ok' : 'degraded'
+
+    res.status(dbStatus.connected ? 200 : 503).json({
+      status,
       version: process.env.APP_VERSION || 'dev',
       commit: process.env.GIT_COMMIT || 'unknown',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
+      database: dbStatus,
       integrations: getPublicServerIntegrationStatus(),
     })
   })
