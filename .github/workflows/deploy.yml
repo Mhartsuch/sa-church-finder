@@ -1,17 +1,15 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       rollback_to:
-        description: 'Commit SHA to rollback to (leave empty for normal deploy)'
+        description: "Commit SHA to rollback to (leave empty for normal deploy)"
         required: false
         type: string
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
 
 jobs:
   # ── Gate: CI must pass before deploy ──

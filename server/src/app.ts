@@ -30,7 +30,13 @@ export const createApp = (): Express => {
   app.use(express.urlencoded({ limit: '10mb', extended: true }))
   app.use(
     cors({
-      origin: clientUrls === '*' ? true : clientUrls,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true)
+        if (clientUrls === '*') return callback(null, true)
+        if (clientUrls.includes(origin)) return callback(null, true)
+        if (/\.vercel\.app$/.test(origin)) return callback(null, true)
+        callback(new Error(`CORS: origin ${origin} not allowed`))
+      },
       credentials: true,
     }),
   )

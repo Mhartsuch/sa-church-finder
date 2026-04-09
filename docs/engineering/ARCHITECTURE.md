@@ -121,10 +121,28 @@ SA Church Finder is a full-stack web application with a React SPA frontend commu
 
 ## Deployment
 
-- **Frontend:** Vercel (auto-deploy from `main` branch, preview deploys on PRs)
-- **Backend:** Railway or Render (Docker container, auto-deploy from `main`)
-- **Database:** Railway managed PostgreSQL (with PostGIS) or Render PostgreSQL
-- **CI/CD:** GitHub Actions — lint, typecheck, test on PRs; deploy on merge to `main`
+### Production
+
+- **Frontend:** Render static site (auto-deploy from `main` branch, custom domain sachurchfinder.com)
+- **Backend:** Render web service (`sa-church-finder-api`)
+- **Database:** Supabase PostgreSQL (with PostGIS)
+- **CI/CD:** GitHub Actions — lint, typecheck, test on PRs; manual deploy via `deploy.yml`
+
+### Staging / Preview
+
+- **Frontend previews:** Vercel deploys a unique preview URL for every PR to `main` (via `.github/workflows/preview.yml`). Each preview points to the staging API.
+- **Staging API:** Render web service (`sa-church-finder-staging-api`) auto-deploys from the `develop` branch.
+- **Staging DB:** Render free-tier PostgreSQL (`sa-church-finder-staging-db`).
+- **CORS:** The staging API accepts all `*.vercel.app` origins so any Vercel preview can connect.
+
+#### Setup (one-time)
+
+1. Run `npx vercel link` in `client/` to connect the Vercel project.
+2. Set Vercel environment variables: `VITE_API_URL=https://sa-church-finder-staging-api.onrender.com`, `VITE_MAPBOX_TOKEN`.
+3. Add GitHub secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+4. Deploy `render.yaml` to create the staging services.
+5. Run `prisma migrate deploy` against the staging DB to initialize the schema.
+6. Optionally seed the staging DB: `npx prisma db seed`.
 
 ---
 
