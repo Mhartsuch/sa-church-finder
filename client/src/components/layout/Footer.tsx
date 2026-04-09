@@ -23,6 +23,23 @@ export const Footer = () => {
   return (
     <footer className="border-t border-border bg-muted">
       <div className="mx-auto max-w-[1760px] px-10 py-12">
+        {import.meta.env.VITE_STRIPE_DONATION_URL && (
+          <div className="mb-8 flex flex-col items-center gap-3 border-b border-border pb-6 text-center">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Heart className="h-4 w-4 text-primary" />
+              <span>Help us keep SA Church Finder free for everyone</span>
+            </div>
+            <a
+              href={import.meta.env.VITE_STRIPE_DONATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            >
+              Support Us
+            </a>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {FOOTER_COLUMNS.map((column) => (
             <div key={column.title}>
@@ -42,23 +59,6 @@ export const Footer = () => {
             </div>
           ))}
         </div>
-
-        {import.meta.env.VITE_STRIPE_DONATION_URL && (
-          <div className="mt-8 flex flex-col items-center gap-3 border-t border-border pt-6 text-center">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Heart className="h-4 w-4 text-primary" />
-              <span>Help us keep SA Church Finder free for everyone</span>
-            </div>
-            <a
-              href={import.meta.env.VITE_STRIPE_DONATION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-            >
-              Support Us
-            </a>
-          </div>
-        )}
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
