@@ -1,4 +1,6 @@
 import { Globe, Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { SUPPORT_LINKS } from '@/constants/support';
 
 const FOOTER_COLUMNS = [
   {
@@ -20,6 +22,10 @@ const FOOTER_COLUMNS = [
 ];
 
 export const Footer = () => {
+  const supportLinksByLabel = new Map<string, string>(
+    SUPPORT_LINKS.map((link) => [link.label, link.to]),
+  );
+
   return (
     <footer className="border-t border-border bg-muted">
       <div className="mx-auto max-w-[1760px] px-10 py-12">
@@ -47,12 +53,21 @@ export const Footer = () => {
               <ul className="space-y-3">
                 {column.links.map((link) => (
                   <li key={link}>
-                    <button
-                      type="button"
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                    >
-                      {link}
-                    </button>
+                    {supportLinksByLabel.has(link) ? (
+                      <Link
+                        to={supportLinksByLabel.get(link) ?? '/'}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                      >
+                        {link}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                      >
+                        {link}
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

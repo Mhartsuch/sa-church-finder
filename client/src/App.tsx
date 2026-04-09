@@ -16,6 +16,10 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import HelpCenterPage from '@/pages/HelpCenterPage';
+import SafetyInformationPage from '@/pages/SafetyInformationPage';
+import AccessibilityPage from '@/pages/AccessibilityPage';
+import ReportConcernPage from '@/pages/ReportConcernPage';
 
 const App = () => {
   return (
@@ -33,6 +37,10 @@ const App = () => {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/help-center" element={<HelpCenterPage />} />
+          <Route path="/safety-information" element={<SafetyInformationPage />} />
+          <Route path="/accessibility" element={<AccessibilityPage />} />
+          <Route path="/report-a-concern" element={<ReportConcernPage />} />
           <Route
             path="/account"
             element={
