@@ -158,6 +158,7 @@ const AccountPage = () => {
   const savedChurchCount = savedChurches.length;
   const writtenReviewCount = userReviews.length;
   const claimCount = churchClaims?.meta.total ?? 0;
+  const hasLeaderPortalEntry = user.role === 'church_admin' || claimCount > 0;
   const roleLabel = formatRoleLabel(user.role);
   const isAccountActivityLoading = isSavedChurchesLoading || isUserReviewsLoading;
   const dashboardSummary = isAccountActivityLoading
@@ -197,7 +198,7 @@ const AccountPage = () => {
 
   if (user.role === 'church_admin') {
     nextSteps.push(
-      'Your church-admin access is ready; listing and event editing tools are the next Milestone 3 slice.',
+      'Open the leaders portal to review your claimed church listings and upcoming event visibility.',
     );
   }
 
@@ -740,7 +741,7 @@ const AccountPage = () => {
 
                       <p className="mt-3 text-sm leading-6 text-muted-foreground">
                         {claim.status === 'approved'
-                          ? 'This listing is now connected to your account, and the next church-admin tools will build on that access.'
+                          ? 'This listing is now connected to your account. Open the leaders portal for a live readiness and event overview.'
                           : claim.status === 'pending'
                             ? 'A site admin still needs to review this request before the listing becomes church-managed.'
                             : 'This request was not approved. If the listing is still unclaimed, you can submit a fresh request from the church page.'}
@@ -750,6 +751,37 @@ const AccountPage = () => {
                 </div>
               )}
             </div>
+
+            {hasLeaderPortalEntry ? (
+              <div className="mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f5faf7] p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-card text-[#1f4d45] shadow-airbnb-subtle">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Church leaders portal</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Review claimed listings, public-facing gaps, and upcoming event visibility
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-4 rounded-[24px] border border-[#d7e6dc] bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
+                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                    Use the leaders portal as your church-side home base. It pulls approved claims
+                    into one place so you can quickly see what visitors can already view and what
+                    still needs attention.
+                  </p>
+                  <Link
+                    to="/leaders"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1f4d45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                  >
+                    Open leaders portal
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            ) : null}
 
             {user.role === 'site_admin' ? (
               <div className="mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f5faf7] p-5">

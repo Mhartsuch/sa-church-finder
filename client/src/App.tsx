@@ -23,6 +23,7 @@ import ReportConcernPage from '@/pages/ReportConcernPage';
 import PrivacyPage from '@/pages/PrivacyPage';
 import TermsPage from '@/pages/TermsPage';
 import SitemapPage from '@/pages/SitemapPage';
+import LeadersPortalPage from '@/pages/LeadersPortalPage';
 
 const App = () => {
   return (
@@ -47,6 +48,14 @@ const App = () => {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/sitemap" element={<SitemapPage />} />
+          <Route
+            path="/leaders"
+            element={
+              <RequireAuth>
+                <LeadersPortalPage />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/account"
             element={

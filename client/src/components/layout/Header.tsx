@@ -61,6 +61,7 @@ export const Header = () => {
 
   const wishlistHref = user ? '/account' : '/login';
   const menuHref = user ? '/account' : '/login';
+  const leadersHref = user ? '/leaders' : '/register';
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md">
@@ -101,10 +102,10 @@ export const Header = () => {
 
             <button
               type="button"
-              onClick={() => navigate(user ? '/account' : '/register')}
+              onClick={() => navigate(leadersHref)}
               className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted xl:inline-flex"
             >
-              List your church
+              {user ? 'Leaders portal' : 'List your church'}
             </button>
 
             <Link
