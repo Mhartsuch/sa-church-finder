@@ -66,15 +66,41 @@ export const getActiveSearchTokens = (
     });
   }
 
-  if (filters.amenities) {
-    tokens.push({
-      key: 'amenities',
-      label: 'Amenity',
-      value: filters.amenities,
-    });
+  if (filters.amenities && filters.amenities.length > 0) {
+    for (const amenity of filters.amenities) {
+      tokens.push({
+        key: 'amenities',
+        label: 'Amenity',
+        value: amenity,
+      });
+    }
   }
 
   return tokens;
+};
+
+/**
+ * Counts how many filters the user has actually selected. Each entry in the
+ * amenities array counts separately so the chip in the header reads naturally
+ * ("3 filters active" for parking + nursery + wifi), not "1 filter active".
+ */
+export const countActiveFilters = (filters: SearchFilters): number => {
+  let count = 0;
+
+  for (const [key, value] of Object.entries(filters) as [keyof SearchFilters, unknown][]) {
+    if (value === undefined || value === '' || value === false) {
+      continue;
+    }
+
+    if (key === 'amenities' && Array.isArray(value)) {
+      count += value.length;
+      continue;
+    }
+
+    count += 1;
+  }
+
+  return count;
 };
 
 export const getWhenSummary = (filters: SearchFilters): string => {

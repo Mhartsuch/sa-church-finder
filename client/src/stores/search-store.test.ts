@@ -43,6 +43,59 @@ describe('search-store', () => {
     });
   });
 
+  describe('toggleAmenity', () => {
+    it('adds a new amenity to an empty selection', () => {
+      useSearchStore.getState().toggleAmenity('Parking');
+
+      expect(useSearchStore.getState().filters.amenities).toEqual(['Parking']);
+    });
+
+    it('appends additional amenities without dropping earlier choices', () => {
+      useSearchStore.getState().toggleAmenity('Parking');
+      useSearchStore.getState().toggleAmenity('Nursery');
+      useSearchStore.getState().toggleAmenity('Wifi');
+
+      expect(useSearchStore.getState().filters.amenities).toEqual(['Parking', 'Nursery', 'Wifi']);
+    });
+
+    it('removes an amenity when toggled a second time', () => {
+      useSearchStore.getState().toggleAmenity('Parking');
+      useSearchStore.getState().toggleAmenity('Nursery');
+      useSearchStore.getState().toggleAmenity('Parking');
+
+      expect(useSearchStore.getState().filters.amenities).toEqual(['Nursery']);
+    });
+
+    it('collapses an empty selection back to undefined so the filter count stays clean', () => {
+      useSearchStore.getState().toggleAmenity('Parking');
+      useSearchStore.getState().toggleAmenity('Parking');
+
+      expect(useSearchStore.getState().filters.amenities).toBeUndefined();
+    });
+
+    it('resets pagination when toggling an amenity', () => {
+      useSearchStore.setState({ page: 4 });
+
+      useSearchStore.getState().toggleAmenity('Parking');
+
+      expect(useSearchStore.getState().page).toBe(1);
+    });
+  });
+
+  describe('setFilter — amenities array coercion', () => {
+    it('treats an empty amenities array as no filter', () => {
+      useSearchStore.getState().setFilter('amenities', []);
+
+      expect(useSearchStore.getState().filters.amenities).toBeUndefined();
+    });
+
+    it('stores a non-empty amenities array verbatim', () => {
+      useSearchStore.getState().setFilter('amenities', ['Parking', 'Nursery']);
+
+      expect(useSearchStore.getState().filters.amenities).toEqual(['Parking', 'Nursery']);
+    });
+  });
+
   describe('setFilter — accessibility & community booleans', () => {
     it('stores wheelchairAccessible as a boolean and resets pagination', () => {
       useSearchStore.setState({ page: 3 });

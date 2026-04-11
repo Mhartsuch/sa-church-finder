@@ -6,7 +6,11 @@ export interface SearchFilters {
   day?: number;
   time?: string;
   language?: string;
-  amenities?: string;
+  // Amenities are multi-select — selections AND together on the backend so a
+  // user can ask for "parking AND nursery" in a single search. An empty array
+  // is treated as "no filter"; `toggleAmenity` collapses to `undefined` once
+  // the last entry is removed so the active filter count stays accurate.
+  amenities?: string[];
   // Boolean community/accessibility filters — only ever stored as `true` or
   // `undefined`. Setting to `false` would show up in activeFilterCount even
   // though the user has nothing selected, so toggling these off clears them.
@@ -14,6 +18,8 @@ export interface SearchFilters {
   goodForChildren?: boolean;
   goodForGroups?: boolean;
 }
+
+export type SearchFilterValue = string | number | boolean | string[] | undefined;
 
 export interface MapState {
   lat: number;
@@ -49,7 +55,8 @@ interface SearchStore {
 
   // Actions
   setQuery: (query: string) => void;
-  setFilter: (key: keyof SearchFilters, value: string | number | boolean | undefined) => void;
+  setFilter: (key: keyof SearchFilters, value: SearchFilterValue) => void;
+  toggleAmenity: (amenity: string) => void;
   clearFilters: () => void;
   setSort: (sort: SearchSort) => void;
   setPage: (page: number) => void;
@@ -79,14 +86,31 @@ export const useSearchStore = create<SearchStore>((set) => ({
 
   setQuery: (query: string) => set({ query, page: 1 }),
 
-  setFilter: (key: keyof SearchFilters, value: string | number | boolean | undefined) =>
+  setFilter: (key: keyof SearchFilters, value: SearchFilterValue) =>
     set((state) => ({
       filters: {
         ...state.filters,
-        [key]: value,
+        // An empty amenities array is semantically "no filter" — collapse it
+        // to `undefined` so the active filter count and URL sync stay clean.
+        [key]: key === 'amenities' && Array.isArray(value) && value.length === 0 ? undefined : value,
       },
       page: 1,
     })),
+
+  toggleAmenity: (amenity: string) =>
+    set((state) => {
+      const current = state.filters.amenities ?? [];
+      const isActive = current.includes(amenity);
+      const next = isActive ? current.filter((item) => item !== amenity) : [...current, amenity];
+
+      return {
+        filters: {
+          ...state.filters,
+          amenities: next.length > 0 ? next : undefined,
+        },
+        page: 1,
+      };
+    }),
 
   clearFilters: () =>
     set({

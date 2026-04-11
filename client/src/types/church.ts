@@ -74,7 +74,7 @@ export interface ISearchParams {
   day?: number;
   time?: string;
   language?: string;
-  amenities?: string;
+  amenities?: string[];
   wheelchairAccessible?: boolean;
   goodForChildren?: boolean;
   goodForGroups?: boolean;
