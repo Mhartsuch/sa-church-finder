@@ -1,7 +1,15 @@
-import { Accessibility, Baby, SlidersHorizontal, Users, X } from 'lucide-react';
+import {
+  Accessibility,
+  Baby,
+  BadgeCheck,
+  ImageIcon,
+  SlidersHorizontal,
+  Users,
+  X,
+} from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 
-import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
+import { DAY_OPTIONS, DISTANCE_OPTIONS, MIN_RATING_OPTIONS, TIME_OPTIONS } from '@/constants';
 import { useFilterOptions } from '@/hooks/useChurches';
 import { countActiveFilters } from '@/lib/search-state';
 import { SearchFilters, useSearchStore } from '@/stores/search-store';
@@ -25,7 +33,12 @@ interface FilterSectionProps {
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
-type BooleanFilterKey = 'wheelchairAccessible' | 'goodForChildren' | 'goodForGroups';
+type BooleanFilterKey =
+  | 'wheelchairAccessible'
+  | 'goodForChildren'
+  | 'goodForGroups'
+  | 'hasPhotos'
+  | 'isClaimed';
 
 interface BooleanFilterOption {
   key: BooleanFilterKey;
@@ -128,6 +141,44 @@ const AmenityFilterSection = ({ options }: AmenityFilterSectionProps) => {
   );
 };
 
+interface LanguageFilterSectionProps {
+  options: FilterOption[];
+}
+
+const LanguageFilterSection = ({ options }: LanguageFilterSectionProps) => {
+  const selected = useSearchStore((state) => state.filters.languages) ?? [];
+  const toggleLanguage = useSearchStore((state) => state.toggleLanguage);
+
+  if (options.length === 0) return null;
+
+  return (
+    <section className="rounded-[24px] border border-border bg-card p-5">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-base font-semibold text-foreground">Language</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Multi-select — a church matches if it offers services in any of the languages you pick.
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const value = String(option.value);
+          const active = selected.includes(value);
+
+          return (
+            <FilterOptionButton
+              key={`languages-${value}`}
+              active={active}
+              label={option.label}
+              onClick={() => toggleLanguage(value)}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
 const BOOLEAN_FILTER_OPTIONS: BooleanFilterOption[] = [
   {
     key: 'wheelchairAccessible',
@@ -147,6 +198,18 @@ const BOOLEAN_FILTER_OPTIONS: BooleanFilterOption[] = [
     description: 'Room for small groups, visitors, or larger parties.',
     icon: Users,
   },
+  {
+    key: 'hasPhotos',
+    label: 'Has photos',
+    description: 'Only show churches with uploaded photos on their profile.',
+    icon: ImageIcon,
+  },
+  {
+    key: 'isClaimed',
+    label: 'Verified church',
+    description: 'Only show churches claimed by a leader and verified by our team.',
+    icon: BadgeCheck,
+  },
 ];
 
 const BooleanFilterSection = () => {
@@ -156,9 +219,11 @@ const BooleanFilterSection = () => {
   return (
     <section className="rounded-[24px] border border-border bg-card p-5">
       <div className="flex flex-col gap-1">
-        <h3 className="text-base font-semibold text-foreground">Accessibility & community</h3>
+        <h3 className="text-base font-semibold text-foreground">
+          Accessibility, community & trust
+        </h3>
         <p className="text-sm leading-6 text-muted-foreground">
-          Only show churches confirmed to meet these needs.
+          Only show churches confirmed to meet these needs or hold a verified profile.
         </p>
       </div>
 
@@ -234,6 +299,16 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
     value: a,
   }));
 
+  const neighborhoodOptions: FilterOption[] = (filterOptions?.neighborhoods ?? []).map((n) => ({
+    label: n,
+    value: n,
+  }));
+
+  const serviceTypeOptions: FilterOption[] = (filterOptions?.serviceTypes ?? []).map((s) => ({
+    label: s,
+    value: s,
+  }));
+
   return (
     // Use dynamic viewport units on mobile so the sheet doesn't get
     // clipped when the mobile browser URL bar collapses/expands. Fall
@@ -262,10 +337,31 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
 
       <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
         <FilterSection
+          label="Distance"
+          description="How far from your current search center should we look?"
+          filterKey="radius"
+          options={DISTANCE_OPTIONS}
+        />
+
+        <FilterSection
+          label="Minimum rating"
+          description="Hide lower-rated churches. Uses their effective rating (community reviews, then Google)."
+          filterKey="minRating"
+          options={MIN_RATING_OPTIONS}
+        />
+
+        <FilterSection
           label="Tradition"
           description="Choose a denomination to narrow the directory quickly."
           filterKey="denomination"
           options={denominationOptions}
+        />
+
+        <FilterSection
+          label="Neighborhood"
+          description="Focus on one part of San Antonio — great for narrowing by commute."
+          filterKey="neighborhood"
+          options={neighborhoodOptions}
         />
 
         <FilterSection
@@ -283,11 +379,13 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
         />
 
         <FilterSection
-          label="Language"
-          description="Surface churches that regularly hold services in a preferred language."
-          filterKey="language"
-          options={languageOptions}
+          label="Service style"
+          description="Match a worship style — traditional, contemporary, bilingual, and more."
+          filterKey="serviceType"
+          options={serviceTypeOptions}
         />
+
+        <LanguageFilterSection options={languageOptions} />
 
         <AmenityFilterSection options={amenityOptions} />
 

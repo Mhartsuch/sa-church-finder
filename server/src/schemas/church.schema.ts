@@ -22,19 +22,31 @@ export const churchSearchSchema = z.object({
     .object({
       lat: z.coerce.number().optional(),
       lng: z.coerce.number().optional(),
-      radius: z.coerce.number().positive().optional(),
+      // Capped at 25 miles to match the documented API contract. Sending
+      // `radius=50` now surfaces a clear 400 rather than silently running an
+      // expensive PostGIS query over a huge bounding circle.
+      radius: z.coerce.number().positive().max(25).optional(),
       q: z.string().optional(),
       denomination: z.string().optional(),
       day: z.coerce.number().int().min(0).max(6).optional(),
       time: z.enum(['morning', 'afternoon', 'evening']).optional(),
+      // Accepts single value or comma-separated list; the service splits on
+      // `,` for OR-combined language matching.
       language: z.string().optional(),
       amenities: z.string().optional(),
       wheelchairAccessible: searchBooleanFlag.optional(),
       goodForChildren: searchBooleanFlag.optional(),
       goodForGroups: searchBooleanFlag.optional(),
+      minRating: z.coerce.number().min(0).max(5).optional(),
+      neighborhood: z.string().optional(),
+      serviceType: z.string().optional(),
+      hasPhotos: searchBooleanFlag.optional(),
+      isClaimed: searchBooleanFlag.optional(),
       sort: z.enum(['relevance', 'distance', 'rating', 'name']).optional(),
       page: z.coerce.number().int().positive().optional(),
-      pageSize: z.coerce.number().int().positive().optional(),
+      // Capped at 50 per API_SPEC; prior behaviour allowed up to 100 which let
+      // callers materialise ~5× the rows they should fetch in one round-trip.
+      pageSize: z.coerce.number().int().positive().max(50).optional(),
       bounds: z.string().optional(),
     })
     .passthrough(),

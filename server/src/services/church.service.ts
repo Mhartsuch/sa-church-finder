@@ -246,7 +246,11 @@ export async function searchChurches(
   const centerLng = params.lng ?? DEFAULT_CENTER_LNG
   const radius = params.radius ?? DEFAULT_RADIUS
   const page = Math.max(1, params.page ?? DEFAULT_PAGE)
-  const pageSize = Math.min(100, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
+  // pageSize is clamped to 50 to match the documented API contract. Callers
+  // that used to request up to 100 rows per page will quietly receive 50 —
+  // the Zod schema also rejects values > 50 at the edge so this is a
+  // belt-and-braces safeguard.
+  const pageSize = Math.min(50, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
   const offset = (page - 1) * pageSize
   const sortBy = params.sort ?? 'relevance'
 
@@ -300,20 +304,35 @@ export async function searchChurches(
     conditions.push(Prisma.sql`LOWER(c."denominationFamily") = ${denom}`)
   }
 
-  // Language
+  // Language — accepts a single value or a comma-separated list. Multiple
+  // values are OR-combined so "English,Spanish" matches any church that holds
+  // services in at least one of them. Matching is case-insensitive.
   if (params.language?.trim()) {
-    const lang = params.language
-    conditions.push(Prisma.sql`${lang} = ANY(c."languages")`)
+    const languageList = params.language
+      .split(',')
+      .map((l) => l.trim().toLowerCase())
+      .filter(Boolean)
+    if (languageList.length > 0) {
+      conditions.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM unnest(c."languages") AS lang
+        WHERE LOWER(lang) = ANY(${languageList}::text[])
+      )`)
+    }
   }
 
-  // Amenities (all must match)
+  // Amenities (all must match). Matching is case-insensitive and exact —
+  // earlier code used `ILIKE ANY(c."amenities")` which treats array elements
+  // as LIKE patterns and allowed spurious wildcard behaviour.
   if (params.amenities?.trim()) {
     const amenityList = params.amenities
       .split(',')
-      .map((a) => a.trim())
+      .map((a) => a.trim().toLowerCase())
       .filter(Boolean)
     for (const amenity of amenityList) {
-      conditions.push(Prisma.sql`${amenity} ILIKE ANY(c."amenities")`)
+      conditions.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM unnest(c."amenities") AS amenity
+        WHERE LOWER(amenity) = ${amenity}
+      )`)
     }
   }
 
@@ -328,6 +347,42 @@ export async function searchChurches(
   }
   if (params.goodForGroups === true) {
     conditions.push(Prisma.sql`c."goodForGroups" = true`)
+  }
+
+  // Quality / trust filters
+  if (params.hasPhotos === true) {
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_photos" cp WHERE cp."churchId" = c."id"
+    )`)
+  }
+  if (params.isClaimed === true) {
+    conditions.push(Prisma.sql`c."isClaimed" = true`)
+  }
+
+  // Minimum effective rating. "Effective" means local avgRating when the
+  // church has any reviews, otherwise the Google-imported rating. Churches
+  // with no reviews on either side are excluded by the floor, which matches
+  // how the ranking score treats them.
+  if (typeof params.minRating === 'number' && params.minRating > 0) {
+    conditions.push(Prisma.sql`(
+      CASE WHEN c."reviewCount" > 0 THEN c."avgRating" ELSE COALESCE(c."googleRating", 0) END
+    ) >= ${params.minRating}`)
+  }
+
+  // Neighborhood — case-insensitive exact match
+  if (params.neighborhood?.trim()) {
+    const neighborhood = params.neighborhood.trim().toLowerCase()
+    conditions.push(Prisma.sql`LOWER(c."neighborhood") = ${neighborhood}`)
+  }
+
+  // Service type — any service on this church matches (case-insensitive)
+  if (params.serviceType?.trim()) {
+    const serviceType = params.serviceType.trim().toLowerCase()
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_services" cs
+      WHERE cs."churchId" = c."id"
+        AND LOWER(cs."serviceType") = ${serviceType}
+    )`)
   }
 
   // Service day filter — requires a subquery
@@ -691,4 +746,33 @@ export async function getAvailableAmenities(): Promise<string[]> {
     SELECT DISTINCT unnest("amenities") as amenity FROM "churches" ORDER BY amenity
   `
   return rows.map((r) => r.amenity)
+}
+
+export async function getAvailableNeighborhoods(): Promise<string[]> {
+  const result = await prisma.church.findMany({
+    where: {
+      neighborhood: { not: null },
+      businessStatus: { not: 'CLOSED_PERMANENTLY' },
+    },
+    select: { neighborhood: true },
+    distinct: ['neighborhood'],
+    orderBy: { neighborhood: 'asc' },
+  })
+  return result
+    .map((r) => r.neighborhood!)
+    .filter((n): n is string => typeof n === 'string' && n.trim().length > 0)
+}
+
+export async function getAvailableServiceTypes(): Promise<string[]> {
+  // Service types come from the denormalised `church_services` table, so use
+  // a raw DISTINCT query rather than Prisma's distinct-on (which would need a
+  // compound key). Results are deduped case-insensitively so "Traditional"
+  // and "traditional" collapse to a single option.
+  const rows = await prisma.$queryRaw<Array<{ service_type: string }>>`
+    SELECT DISTINCT ON (LOWER("serviceType")) "serviceType" AS service_type
+    FROM "church_services"
+    WHERE "serviceType" IS NOT NULL AND "serviceType" <> ''
+    ORDER BY LOWER("serviceType") ASC
+  `
+  return rows.map((r) => r.service_type)
 }

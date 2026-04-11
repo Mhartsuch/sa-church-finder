@@ -61,7 +61,7 @@ describe('churches api — query string', () => {
   it('preserves other filters alongside boolean filters', async () => {
     await fetchChurches({
       denomination: 'Catholic',
-      language: 'Spanish',
+      languages: ['Spanish'],
       wheelchairAccessible: true,
     });
 

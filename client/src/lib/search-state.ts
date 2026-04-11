@@ -58,12 +58,14 @@ export const getActiveSearchTokens = (
     });
   }
 
-  if (filters.language) {
-    tokens.push({
-      key: 'language',
-      label: 'Language',
-      value: filters.language,
-    });
+  if (filters.languages && filters.languages.length > 0) {
+    for (const language of filters.languages) {
+      tokens.push({
+        key: 'languages',
+        label: 'Language',
+        value: language,
+      });
+    }
   }
 
   if (filters.amenities && filters.amenities.length > 0) {
@@ -74,6 +76,79 @@ export const getActiveSearchTokens = (
         value: amenity,
       });
     }
+  }
+
+  if (filters.neighborhood) {
+    tokens.push({
+      key: 'neighborhood',
+      label: 'Neighborhood',
+      value: filters.neighborhood,
+    });
+  }
+
+  if (filters.serviceType) {
+    tokens.push({
+      key: 'serviceType',
+      label: 'Service type',
+      value: filters.serviceType,
+    });
+  }
+
+  if (filters.radius !== undefined) {
+    tokens.push({
+      key: 'radius',
+      label: 'Within',
+      value: `${filters.radius} mi`,
+    });
+  }
+
+  if (filters.minRating !== undefined && filters.minRating > 0) {
+    tokens.push({
+      key: 'minRating',
+      label: 'Rating',
+      // Use a cleaner label: 4 → "4+ stars", 4.5 → "4.5+ stars"
+      value: `${filters.minRating}+ stars`,
+    });
+  }
+
+  if (filters.wheelchairAccessible) {
+    tokens.push({
+      key: 'wheelchairAccessible',
+      label: 'Access',
+      value: 'Wheelchair',
+    });
+  }
+
+  if (filters.goodForChildren) {
+    tokens.push({
+      key: 'goodForChildren',
+      label: 'Community',
+      value: 'Family friendly',
+    });
+  }
+
+  if (filters.goodForGroups) {
+    tokens.push({
+      key: 'goodForGroups',
+      label: 'Community',
+      value: 'Good for groups',
+    });
+  }
+
+  if (filters.hasPhotos) {
+    tokens.push({
+      key: 'hasPhotos',
+      label: 'Quality',
+      value: 'Has photos',
+    });
+  }
+
+  if (filters.isClaimed) {
+    tokens.push({
+      key: 'isClaimed',
+      label: 'Quality',
+      value: 'Verified',
+    });
   }
 
   return tokens;

@@ -65,16 +65,25 @@ export const useChurchSearchParams = () => {
   return {
     lat: searchLat,
     lng: searchLng,
-    radius: DEFAULT_RADIUS,
+    // Explicit user-selected radius wins over the hard-coded default, so the
+    // "Distance" filter chip actually changes the query key and triggers a
+    // refetch. Falling back to DEFAULT_RADIUS keeps the legacy behaviour for
+    // everyone who never opens the filter panel.
+    radius: filters.radius ?? DEFAULT_RADIUS,
     q: query || undefined,
     denomination: filters.denomination,
     day: filters.day,
     time: filters.time,
-    language: filters.language,
+    languages: filters.languages,
     amenities: filters.amenities,
     wheelchairAccessible: filters.wheelchairAccessible,
     goodForChildren: filters.goodForChildren,
     goodForGroups: filters.goodForGroups,
+    hasPhotos: filters.hasPhotos,
+    isClaimed: filters.isClaimed,
+    minRating: filters.minRating,
+    neighborhood: filters.neighborhood,
+    serviceType: filters.serviceType,
     sort,
     page,
     pageSize: PAGE_SIZE,
