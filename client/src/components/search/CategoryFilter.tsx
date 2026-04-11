@@ -1,6 +1,7 @@
 import { Scale, SlidersHorizontal } from 'lucide-react';
 
 import { useFilterOptions } from '@/hooks/useChurches';
+import { countActiveFilters } from '@/lib/search-state';
 import { useSearchStore } from '@/stores/search-store';
 
 interface CategoryItem {
@@ -52,9 +53,13 @@ export const CategoryFilter = ({
   const setQuery = useSearchStore((state) => state.setQuery);
   const { data: filterOptions } = useFilterOptions();
 
-  const activeFilterCount = Object.values(filters).filter(
-    (value) => value !== undefined && value !== '',
-  ).length;
+  // Delegate to the shared helper so this badge agrees with the "N filters
+  // active" summary on the results header and the footer of the FilterPanel.
+  // The naive `Object.values(filters).filter(...)` variant this replaced
+  // counted empty multi-select arrays as active and collapsed a 3-item
+  // denomination selection down to a single filter, which left the header
+  // and the badge telling different stories.
+  const activeFilterCount = countActiveFilters(filters);
 
   const availableDenominations = new Set(
     (filterOptions?.denominations ?? []).map((d) => d.toLowerCase()),
