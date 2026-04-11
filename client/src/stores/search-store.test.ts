@@ -43,6 +43,48 @@ describe('search-store', () => {
     });
   });
 
+  describe('setFilter — accessibility & community booleans', () => {
+    it('stores wheelchairAccessible as a boolean and resets pagination', () => {
+      useSearchStore.setState({ page: 3 });
+
+      useSearchStore.getState().setFilter('wheelchairAccessible', true);
+
+      const state = useSearchStore.getState();
+      expect(state.filters.wheelchairAccessible).toBe(true);
+      expect(state.page).toBe(1);
+    });
+
+    it('clears a boolean filter by setting it back to undefined', () => {
+      useSearchStore.getState().setFilter('goodForChildren', true);
+      useSearchStore.getState().setFilter('goodForChildren', undefined);
+
+      expect(useSearchStore.getState().filters.goodForChildren).toBeUndefined();
+    });
+
+    it('lets multiple boolean filters coexist with other filter types', () => {
+      useSearchStore.getState().setFilter('denomination', 'Catholic');
+      useSearchStore.getState().setFilter('wheelchairAccessible', true);
+      useSearchStore.getState().setFilter('goodForGroups', true);
+
+      const filters = useSearchStore.getState().filters;
+      expect(filters).toMatchObject({
+        denomination: 'Catholic',
+        wheelchairAccessible: true,
+        goodForGroups: true,
+      });
+    });
+
+    it('wipes all boolean filters via clearFilters', () => {
+      useSearchStore.getState().setFilter('wheelchairAccessible', true);
+      useSearchStore.getState().setFilter('goodForChildren', true);
+      useSearchStore.getState().setFilter('goodForGroups', true);
+
+      useSearchStore.getState().clearFilters();
+
+      expect(useSearchStore.getState().filters).toEqual({});
+    });
+  });
+
   describe('setUserLocation', () => {
     it('stores the user location and resets pagination', () => {
       useSearchStore.setState({ page: 4 });

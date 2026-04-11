@@ -7,6 +7,12 @@ export interface SearchFilters {
   time?: string;
   language?: string;
   amenities?: string;
+  // Boolean community/accessibility filters — only ever stored as `true` or
+  // `undefined`. Setting to `false` would show up in activeFilterCount even
+  // though the user has nothing selected, so toggling these off clears them.
+  wheelchairAccessible?: boolean;
+  goodForChildren?: boolean;
+  goodForGroups?: boolean;
 }
 
 export interface MapState {
@@ -43,7 +49,7 @@ interface SearchStore {
 
   // Actions
   setQuery: (query: string) => void;
-  setFilter: (key: keyof SearchFilters, value: string | number | undefined) => void;
+  setFilter: (key: keyof SearchFilters, value: string | number | boolean | undefined) => void;
   clearFilters: () => void;
   setSort: (sort: SearchSort) => void;
   setPage: (page: number) => void;
@@ -73,7 +79,7 @@ export const useSearchStore = create<SearchStore>((set) => ({
 
   setQuery: (query: string) => set({ query, page: 1 }),
 
-  setFilter: (key: keyof SearchFilters, value: string | number | undefined) =>
+  setFilter: (key: keyof SearchFilters, value: string | number | boolean | undefined) =>
     set((state) => ({
       filters: {
         ...state.filters,

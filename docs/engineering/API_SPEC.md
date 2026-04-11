@@ -37,21 +37,28 @@
 
 Search and list churches.
 
-| Param        | Type   | Required | Notes                                                          |
-| ------------ | ------ | -------- | -------------------------------------------------------------- |
-| lat          | number | No       | Center latitude (default: 29.4241)                             |
-| lng          | number | No       | Center longitude (default: -98.4936)                           |
-| radius       | number | No       | Search radius in miles (default: 10, max: 25)                  |
-| q            | string | No       | Text search query (name, description)                          |
-| denomination | string | No       | Filter by denomination_family                                  |
-| day          | number | No       | Filter by service day (0=Sun–6=Sat)                            |
-| time         | string | No       | Filter by service time range ('morning','afternoon','evening') |
-| language     | string | No       | Filter by service language                                     |
-| amenities    | string | No       | Comma-separated amenity codes                                  |
-| sort         | string | No       | 'distance' (default), 'rating', 'name'                         |
-| page         | number | No       | Page number (default: 1)                                       |
-| pageSize     | number | No       | Results per page (default: 20, max: 50)                        |
-| bounds       | string | No       | Viewport bounding box 'sw_lat,sw_lng,ne_lat,ne_lng'            |
+| Param                | Type    | Required | Notes                                                                                        |
+| -------------------- | ------- | -------- | -------------------------------------------------------------------------------------------- |
+| lat                  | number  | No       | Center latitude (default: 29.4241)                                                           |
+| lng                  | number  | No       | Center longitude (default: -98.4936)                                                         |
+| radius               | number  | No       | Search radius in miles (default: 10, max: 25)                                                |
+| q                    | string  | No       | Text search query (name, description)                                                        |
+| denomination         | string  | No       | Filter by denomination_family                                                                |
+| day                  | number  | No       | Filter by service day (0=Sun–6=Sat)                                                          |
+| time                 | string  | No       | Filter by service time range ('morning','afternoon','evening')                               |
+| language             | string  | No       | Filter by service language                                                                   |
+| amenities            | string  | No       | Comma-separated amenity codes                                                                |
+| wheelchairAccessible | boolean | No       | When `true`, only return churches confirmed wheelchair accessible. Omit or `false` disables. |
+| goodForChildren      | boolean | No       | When `true`, only return churches confirmed family-friendly. Omit or `false` disables.       |
+| goodForGroups        | boolean | No       | When `true`, only return churches confirmed suitable for groups. Omit or `false` disables.   |
+| sort                 | string  | No       | 'relevance' (default), 'distance', 'rating', 'name'                                          |
+| page                 | number  | No       | Page number (default: 1)                                                                     |
+| pageSize             | number  | No       | Results per page (default: 20, max: 50)                                                      |
+| bounds               | string  | No       | Viewport bounding box 'sw_lat,sw_lng,ne_lat,ne_lng'                                          |
+
+> Boolean flags accept `'true'`, `'false'`, `'1'`, or `'0'`. They are intentionally restrictive —
+> a NULL value on the church row means "unknown" and will NOT satisfy a `true` filter, so only
+> churches with confirmed accessibility/community data are returned when the flag is on.
 
 **Response:** Array of church summary objects with distance.
 
@@ -214,14 +221,14 @@ by `startTime` ascending and paginated. Recurring events are expanded server-sid
 occurrences that intersect the requested window; each occurrence is returned as a separate item
 with a unique `occurrenceId` while `id` still points back to the stored series row.
 
-| Param    | Type    | Required | Notes                                                            |
-| -------- | ------- | -------- | ---------------------------------------------------------------- |
-| type     | string  | No       | Filter by event_type                                             |
-| from     | string  | No       | ISO 8601 datetime (default: now — only future events)            |
+| Param    | Type    | Required | Notes                                                                                     |
+| -------- | ------- | -------- | ----------------------------------------------------------------------------------------- |
+| type     | string  | No       | Filter by event_type                                                                      |
+| from     | string  | No       | ISO 8601 datetime (default: now — only future events)                                     |
 | to       | string  | No       | ISO 8601 datetime; must be on or after `from` (defaults to `from + 90 days` when omitted) |
-| q        | string  | No       | Case-insensitive search over title, description, and church name |
-| page     | integer | No       | 1-indexed (default: 1)                                           |
-| pageSize | integer | No       | Default 20, maximum 50                                           |
+| q        | string  | No       | Case-insensitive search over title, description, and church name                          |
+| page     | integer | No       | 1-indexed (default: 1)                                                                    |
+| pageSize | integer | No       | Default 20, maximum 50                                                                    |
 
 **Response:**
 
@@ -310,12 +317,12 @@ Publish a new event. The authenticated user must either be a site admin or a chu
 form (dropping `INTERVAL=1`, sorting `BYDAY` into week order), and expands it into occurrences
 on read. Only the following subset is supported:
 
-| Part       | Notes                                                         |
-| ---------- | ------------------------------------------------------------- |
-| `FREQ`     | `DAILY`, `WEEKLY`, or `MONTHLY`                               |
-| `INTERVAL` | Positive integer; default `1`                                 |
-| `BYDAY`    | Weekday codes (`SU`, `MO`, … `SA`); only with `FREQ=WEEKLY`   |
-| `COUNT`    | Positive integer; mutually exclusive with `UNTIL`             |
+| Part       | Notes                                                           |
+| ---------- | --------------------------------------------------------------- |
+| `FREQ`     | `DAILY`, `WEEKLY`, or `MONTHLY`                                 |
+| `INTERVAL` | Positive integer; default `1`                                   |
+| `BYDAY`    | Weekday codes (`SU`, `MO`, … `SA`); only with `FREQ=WEEKLY`     |
+| `COUNT`    | Positive integer; mutually exclusive with `UNTIL`               |
 | `UNTIL`    | `YYYYMMDDTHHMMSSZ` or ISO 8601; mutually exclusive with `COUNT` |
 
 Invalid rules return `400 VALIDATION_ERROR` with a descriptive message.

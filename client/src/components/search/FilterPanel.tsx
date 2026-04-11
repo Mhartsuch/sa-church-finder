@@ -1,4 +1,5 @@
-import { SlidersHorizontal, X } from 'lucide-react';
+import { Accessibility, Baby, SlidersHorizontal, Users, X } from 'lucide-react';
+import type { ComponentType, SVGProps } from 'react';
 
 import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
 import { useFilterOptions } from '@/hooks/useChurches';
@@ -19,6 +20,17 @@ interface FilterSectionProps {
   description: string;
   filterKey: keyof SearchFilters;
   options: FilterOption[];
+}
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+
+type BooleanFilterKey = 'wheelchairAccessible' | 'goodForChildren' | 'goodForGroups';
+
+interface BooleanFilterOption {
+  key: BooleanFilterKey;
+  label: string;
+  description: string;
+  icon: IconComponent;
 }
 
 const FilterOptionButton = ({
@@ -77,13 +89,97 @@ const FilterSection = ({ label, description, filterKey, options }: FilterSection
   );
 };
 
+const BOOLEAN_FILTER_OPTIONS: BooleanFilterOption[] = [
+  {
+    key: 'wheelchairAccessible',
+    label: 'Wheelchair accessible',
+    description: 'Step-free entry and accessible seating confirmed.',
+    icon: Accessibility,
+  },
+  {
+    key: 'goodForChildren',
+    label: 'Family friendly',
+    description: 'Welcoming for kids — nursery, kid-friendly spaces, or programming.',
+    icon: Baby,
+  },
+  {
+    key: 'goodForGroups',
+    label: 'Good for groups',
+    description: 'Room for small groups, visitors, or larger parties.',
+    icon: Users,
+  },
+];
+
+const BooleanFilterSection = () => {
+  const filters = useSearchStore((state) => state.filters);
+  const setFilter = useSearchStore((state) => state.setFilter);
+
+  return (
+    <section className="rounded-[24px] border border-border bg-card p-5">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-base font-semibold text-foreground">Accessibility & community</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Only show churches confirmed to meet these needs.
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2">
+        {BOOLEAN_FILTER_OPTIONS.map(({ key, label, description, icon: Icon }) => {
+          const active = filters[key] === true;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              role="switch"
+              aria-checked={active}
+              aria-label={label}
+              onClick={() => setFilter(key, active ? undefined : true)}
+              className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                active
+                  ? 'border-foreground bg-foreground/5'
+                  : 'border-border bg-card hover:border-foreground hover:bg-muted'
+              }`}
+            >
+              <span
+                className={`mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${
+                  active ? 'bg-foreground text-white' : 'bg-muted text-muted-foreground'
+                }`}
+                aria-hidden="true"
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="flex flex-1 flex-col gap-0.5">
+                <span className="text-sm font-semibold text-foreground">{label}</span>
+                <span className="text-xs leading-5 text-muted-foreground">{description}</span>
+              </span>
+              <span
+                className={`mt-1 inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full p-0.5 transition-colors ${
+                  active ? 'bg-foreground' : 'bg-muted'
+                }`}
+                aria-hidden="true"
+              >
+                <span
+                  className={`block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    active ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
 export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
   const filters = useSearchStore((state) => state.filters);
   const clearFilters = useSearchStore((state) => state.clearFilters);
   const { data: filterOptions } = useFilterOptions();
 
   const activeFilterCount = Object.values(filters).filter(
-    (value) => value !== undefined && value !== '',
+    (value) => value !== undefined && value !== '' && value !== false,
   ).length;
 
   const denominationOptions: FilterOption[] = (filterOptions?.denominations ?? []).map((d) => ({
@@ -159,6 +255,8 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
           filterKey="amenities"
           options={amenityOptions}
         />
+
+        <BooleanFilterSection />
       </div>
 
       <div className="border-t border-border bg-card px-6 py-5 sm:px-8 sm:py-6">

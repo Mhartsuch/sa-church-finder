@@ -317,6 +317,19 @@ export async function searchChurches(
     }
   }
 
+  // Accessibility & community boolean flags — only applied when the caller
+  // explicitly passes `true`. A NULL value on the church row means "unknown"
+  // and should NOT satisfy the filter, so we compare to `true` directly.
+  if (params.wheelchairAccessible === true) {
+    conditions.push(Prisma.sql`c."wheelchairAccessible" = true`)
+  }
+  if (params.goodForChildren === true) {
+    conditions.push(Prisma.sql`c."goodForChildren" = true`)
+  }
+  if (params.goodForGroups === true) {
+    conditions.push(Prisma.sql`c."goodForGroups" = true`)
+  }
+
   // Service day filter — requires a subquery
   if (typeof params.day === 'number' && params.day >= 0 && params.day <= 6) {
     conditions.push(Prisma.sql`EXISTS (
