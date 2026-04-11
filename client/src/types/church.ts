@@ -75,7 +75,7 @@ export interface ISearchParams {
   time?: string;
   language?: string;
   amenities?: string;
-  sort?: 'distance' | 'rating' | 'name';
+  sort?: 'relevance' | 'distance' | 'rating' | 'name';
   page?: number;
   pageSize?: number;
   bounds?: string;

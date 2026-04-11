@@ -22,7 +22,8 @@ import { SearchFilters, useSearchStore } from '@/stores/search-store';
 const MOBILE_BREAKPOINT = 1024;
 
 const SORT_OPTIONS = [
-  { value: 'distance', label: 'Recommended' },
+  { value: 'relevance', label: 'Best match' },
+  { value: 'distance', label: 'Nearest' },
   { value: 'rating', label: 'Highest rated' },
   { value: 'name', label: 'Name (A-Z)' },
 ] as const;

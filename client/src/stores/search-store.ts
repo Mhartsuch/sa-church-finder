@@ -27,10 +27,12 @@ export interface UserLocation {
   lng: number;
 }
 
+export type SearchSort = 'relevance' | 'distance' | 'rating' | 'name';
+
 interface SearchStore {
   query: string;
   filters: SearchFilters;
-  sort: 'distance' | 'rating' | 'name';
+  sort: SearchSort;
   page: number;
   hoveredChurchId: string | null;
   selectedChurchId: string | null;
@@ -43,7 +45,7 @@ interface SearchStore {
   setQuery: (query: string) => void;
   setFilter: (key: keyof SearchFilters, value: string | number | undefined) => void;
   clearFilters: () => void;
-  setSort: (sort: 'distance' | 'rating' | 'name') => void;
+  setSort: (sort: SearchSort) => void;
   setPage: (page: number) => void;
   setHoveredChurch: (id: string | null) => void;
   setSelectedChurch: (id: string | null) => void;
@@ -56,7 +58,11 @@ interface SearchStore {
 export const useSearchStore = create<SearchStore>((set) => ({
   query: '',
   filters: {},
-  sort: 'distance',
+  // Default to the multi-factor relevance ranking computed by the backend — this
+  // is a 127-point score that combines profile completeness, photos, services,
+  // engagement, proximity, freshness, accessibility, and operational status.
+  // "Near me" flips this to `distance` at activation time.
+  sort: 'relevance',
   page: 1,
   hoveredChurchId: null,
   selectedChurchId: null,
@@ -83,7 +89,7 @@ export const useSearchStore = create<SearchStore>((set) => ({
       page: 1,
     }),
 
-  setSort: (sort: 'distance' | 'rating' | 'name') => set({ sort, page: 1 }),
+  setSort: (sort: SearchSort) => set({ sort, page: 1 }),
 
   setPage: (page: number) => set({ page }),
 

@@ -8,7 +8,7 @@ const resetStore = () => {
   useSearchStore.setState({
     query: '',
     filters: {},
-    sort: 'distance',
+    sort: 'relevance',
     page: 1,
     hoveredChurchId: null,
     selectedChurchId: null,
@@ -22,6 +22,25 @@ const resetStore = () => {
 describe('search-store', () => {
   beforeEach(() => {
     resetStore();
+  });
+
+  describe('default state', () => {
+    it('uses the multi-factor relevance ranking as the default sort', () => {
+      // Reset to the store's own defaults (not the test helper) to confirm.
+      useSearchStore.setState((state) => ({ ...state, sort: 'relevance' }));
+      expect(useSearchStore.getState().sort).toBe('relevance');
+    });
+  });
+
+  describe('setSort', () => {
+    it('accepts the relevance sort and resets pagination', () => {
+      useSearchStore.setState({ page: 5, sort: 'name' });
+      useSearchStore.getState().setSort('relevance');
+
+      const state = useSearchStore.getState();
+      expect(state.sort).toBe('relevance');
+      expect(state.page).toBe(1);
+    });
   });
 
   describe('setUserLocation', () => {
