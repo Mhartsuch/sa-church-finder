@@ -1,16 +1,47 @@
-import { Event, Role } from '@prisma/client'
+import { Event, Prisma, Role } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
 import { AppError, NotFoundError } from '../middleware/error-handler.js'
 import {
   ChurchEventType,
+  IAggregatedEvent,
   ICreateChurchEventInput,
   IChurchEvent,
   IChurchEventFilters,
   IChurchEventResponse,
   IDeleteChurchEventResult,
+  IEventsFeedFilters,
+  IEventsFeedResponse,
   IUpdateChurchEventInput,
 } from '../types/event.types.js'
+
+const DEFAULT_FEED_PAGE_SIZE = 20
+const MAX_FEED_PAGE_SIZE = 50
+
+type EventWithChurch = Event & {
+  church: {
+    id: string
+    slug: string
+    name: string
+    city: string
+    denomination: string | null
+    coverImageUrl: string | null
+  }
+}
+
+function mapEventWithChurch(event: EventWithChurch): IAggregatedEvent {
+  return {
+    ...mapEvent(event),
+    church: {
+      id: event.church.id,
+      slug: event.church.slug,
+      name: event.church.name,
+      city: event.church.city,
+      denomination: event.church.denomination,
+      coverImageUrl: event.church.coverImageUrl,
+    },
+  }
+}
 
 function mapEvent(event: Event): IChurchEvent {
   return {
@@ -65,6 +96,74 @@ export async function listChurchEventsBySlug(
         type: filters.type,
         from,
         to: filters.to,
+      },
+    },
+  }
+}
+
+export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEventsFeedResponse> {
+  const from = filters.from ?? new Date()
+  const requestedPageSize = filters.pageSize ?? DEFAULT_FEED_PAGE_SIZE
+  const pageSize = Math.min(Math.max(requestedPageSize, 1), MAX_FEED_PAGE_SIZE)
+  const page = filters.page && filters.page > 0 ? filters.page : 1
+  const skip = (page - 1) * pageSize
+
+  const trimmedQuery = filters.q?.trim()
+  const hasQuery = Boolean(trimmedQuery)
+
+  const where: Prisma.EventWhereInput = {
+    ...(filters.type ? { eventType: filters.type } : {}),
+    startTime: {
+      gte: from,
+      ...(filters.to ? { lte: filters.to } : {}),
+    },
+    ...(hasQuery
+      ? {
+          OR: [
+            { title: { contains: trimmedQuery!, mode: Prisma.QueryMode.insensitive } },
+            { description: { contains: trimmedQuery!, mode: Prisma.QueryMode.insensitive } },
+            { church: { name: { contains: trimmedQuery!, mode: Prisma.QueryMode.insensitive } } },
+          ],
+        }
+      : {}),
+  }
+
+  const [total, events] = await Promise.all([
+    prisma.event.count({ where }),
+    prisma.event.findMany({
+      where,
+      include: {
+        church: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            city: true,
+            denomination: true,
+            coverImageUrl: true,
+          },
+        },
+      },
+      orderBy: [{ startTime: 'asc' }, { title: 'asc' }],
+      skip,
+      take: pageSize,
+    }),
+  ])
+
+  const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize)
+
+  return {
+    data: events.map(mapEventWithChurch),
+    meta: {
+      total,
+      page,
+      pageSize,
+      totalPages,
+      filters: {
+        type: filters.type,
+        from,
+        to: filters.to,
+        q: hasQuery ? trimmedQuery : undefined,
       },
     },
   }

@@ -8,16 +8,51 @@ import {
   UpdateChurchEventBody,
   createChurchEventSchema,
   eventIdSchema,
+  eventsFeedSchema,
   updateChurchEventSchema,
 } from '../schemas/event.schema.js'
 import {
   createChurchEvent,
   deleteChurchEvent,
+  listEventsFeed,
   updateChurchEvent,
 } from '../services/event.service.js'
-import { ICreateChurchEventInput, IUpdateChurchEventInput } from '../types/event.types.js'
+import {
+  ChurchEventType,
+  ICreateChurchEventInput,
+  IEventsFeedFilters,
+  IUpdateChurchEventInput,
+} from '../types/event.types.js'
 
 const router = Router()
+
+router.get(
+  '/events',
+  validate(eventsFeedSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const q = req.query as Record<string, unknown>
+      const filters: IEventsFeedFilters = {
+        type: typeof q.type === 'string' ? (q.type as ChurchEventType) : undefined,
+        from: typeof q.from === 'string' ? new Date(q.from) : undefined,
+        to: typeof q.to === 'string' ? new Date(q.to) : undefined,
+        q: typeof q.q === 'string' && q.q.trim().length > 0 ? q.q.trim() : undefined,
+        page: typeof q.page === 'number' ? q.page : undefined,
+        pageSize: typeof q.pageSize === 'number' ? q.pageSize : undefined,
+      }
+
+      logger.info({ filters }, 'Fetching aggregated events feed')
+
+      const response = await listEventsFeed(filters)
+
+      res.json(response)
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
 
 const toOptionalDate = (value: string | null | undefined): Date | null | undefined => {
   if (value === undefined) {

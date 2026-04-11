@@ -27,6 +27,8 @@ const FOOTER_COLUMNS = [
   },
 ];
 
+const COMMUNITY_ROUTED_LINKS = new Map<string, string>([['Community events', '/events']]);
+
 export const Footer = () => {
   const supportLinksByLabel = new Map<string, string>(
     SUPPORT_LINKS.map((link) => [link.label, link.to]),
@@ -57,25 +59,29 @@ export const Footer = () => {
             <div key={column.title}>
               <h4 className="mb-4 text-sm font-bold">{column.title}</h4>
               <ul className="space-y-3">
-                {column.links.map((link) => (
-                  <li key={link}>
-                    {supportLinksByLabel.has(link) ? (
-                      <Link
-                        to={supportLinksByLabel.get(link) ?? '/'}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                      >
-                        {link}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                      >
-                        {link}
-                      </button>
-                    )}
-                  </li>
-                ))}
+                {column.links.map((link) => {
+                  const routedTo =
+                    supportLinksByLabel.get(link) ?? COMMUNITY_ROUTED_LINKS.get(link);
+                  return (
+                    <li key={link}>
+                      {routedTo ? (
+                        <Link
+                          to={routedTo}
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                        >
+                          {link}
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                        >
+                          {link}
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

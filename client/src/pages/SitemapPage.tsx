@@ -13,6 +13,7 @@ const sitemapSections = [
       { label: 'Home', to: '/' },
       { label: 'Search churches', to: '/search' },
       { label: 'Compare churches', to: '/compare' },
+      { label: 'Upcoming events', to: '/events' },
     ],
   },
   {

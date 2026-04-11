@@ -30,7 +30,7 @@
 ### P1 - High
 
 - [x] Build church-admin event creation/edit tools now that approved claims can establish church-admin ownership - church admins and site admins can now create, update, and delete events for churches they manage via the Leaders Portal, backed by new `/api/v1/churches/:churchId/events` POST and `/api/v1/events/:id` PATCH/DELETE endpoints (2026-04-11)
-- [ ] Add aggregated events discovery/feed page after church-admin event tools are live
+- [x] Add aggregated events discovery/feed page after church-admin event tools are live - added `GET /api/v1/events` aggregated feed with type/date/keyword filters, pagination, and church info joins, plus a public `/events` discovery page with URL-synced filters, empty/loading/error states, pagination, and new Header + Footer + Sitemap nav entries (2026-04-11)
 - [x] Build Milestone 3 church claim request flow - added member-facing claim submission on unclaimed church profiles, account-page claim history, a site-admin approval queue, and server/client coverage (2026-03-31)
 - [ ] Smoke test the current live flows end to end on the deployed app (search, profile, auth, saves, reviews, events)
 - [x] Curate a gold set of 12 real San Antonio churches for the polished MVP dataset - the seed now uses a curated 12-church hero set with real cover images and only high-confidence profiles (2026-03-30)
@@ -75,6 +75,7 @@
 
 ### Completed
 
+- [x] Aggregated events discovery feed - added `GET /api/v1/events` with type/date/keyword filters, pagination, and church join data; a public `/events` page with URL-synced filters, pagination, event cards linking to church profiles, empty/loading/error states, new Header + Footer + Sitemap entry points, and Jest/Vitest coverage (2026-04-11)
 - [x] Milestone 3 church-admin event tools - added `POST /api/v1/churches/:churchId/events`, `PATCH /api/v1/events/:id`, `DELETE /api/v1/events/:id` with church-admin/site-admin authorization, an EventManager component on the Leaders Portal, new React Query mutations + toasts, Jest/Vitest coverage, and updated API spec (2026-04-11)
 - [x] Milestone 3 church claim request flow - added `POST /api/v1/churches/:id/claim`, `GET /api/v1/users/:id/claims`, `GET/PATCH /api/v1/admin/claims`, church-profile claim UI, account-page claim history, site-admin approval actions, and focused server/client test coverage (2026-03-31)
 - [x] MVP dataset narrowed to a 12-church gold set - replaced the broad shortlist with 12 high-confidence San Antonio churches, seeded real cover images for every profile, and stopped seeding synthetic reviews/events so the demo data stays trustworthy (2026-03-30)
@@ -160,4 +161,4 @@
 
 ---
 
-_Last updated: 2026-04-11 (Milestone 3 church-admin event tools are now live; aggregated events feed is the next Milestone 3 deliverable; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_
+_Last updated: 2026-04-11 (Milestone 3 church-admin event tools and the aggregated public events discovery feed are both live; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_

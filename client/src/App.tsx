@@ -11,6 +11,7 @@ import { SearchPage } from '@/pages/SearchPage';
 import { ChurchProfilePage } from '@/pages/ChurchProfilePage';
 import AccountPage from '@/pages/AccountPage';
 import ComparePage from '@/pages/ComparePage';
+import EventsDiscoveryPage from '@/pages/EventsDiscoveryPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
@@ -34,6 +35,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/compare" element={<ComparePage />} />
+          <Route path="/events" element={<EventsDiscoveryPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/churches/:slug" element={<ChurchProfilePage />} />
           <Route path="/login" element={<LoginPage />} />

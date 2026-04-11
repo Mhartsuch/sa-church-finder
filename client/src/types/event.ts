@@ -72,3 +72,41 @@ export interface IDeleteChurchEventResult {
   churchId: string;
   deleted: true;
 }
+
+export interface IEventChurchSummary {
+  id: string;
+  slug: string;
+  name: string;
+  city: string;
+  denomination: string | null;
+  coverImageUrl: string | null;
+}
+
+export interface IAggregatedEvent extends IChurchEvent {
+  church: IEventChurchSummary;
+}
+
+export interface IEventsFeedFilters {
+  type?: ChurchEventType;
+  from?: string;
+  to?: string;
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface IEventsFeedResponse {
+  data: IAggregatedEvent[];
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    filters: {
+      type?: ChurchEventType;
+      from: string;
+      to?: string;
+      q?: string;
+    };
+  };
+}

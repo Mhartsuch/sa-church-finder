@@ -207,6 +207,62 @@ Flag a review for moderation.
 
 ### Events
 
+#### `GET /events`
+
+Aggregated upcoming events across all churches for the public discovery feed. Results are ordered
+by `startTime` ascending and paginated.
+
+| Param    | Type    | Required | Notes                                                           |
+| -------- | ------- | -------- | --------------------------------------------------------------- |
+| type     | string  | No       | Filter by event_type                                            |
+| from     | string  | No       | ISO 8601 datetime (default: now — only future events)           |
+| to       | string  | No       | ISO 8601 datetime; must be on or after `from`                   |
+| q        | string  | No       | Case-insensitive search over title, description, and church name |
+| page     | integer | No       | 1-indexed (default: 1)                                          |
+| pageSize | integer | No       | Default 20, maximum 50                                          |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "...",
+      "churchId": "...",
+      "title": "...",
+      "description": "...",
+      "eventType": "service",
+      "startTime": "2026-05-01T14:00:00.000Z",
+      "endTime": "2026-05-01T15:30:00.000Z",
+      "locationOverride": null,
+      "isRecurring": false,
+      "recurrenceRule": null,
+      "church": {
+        "id": "...",
+        "slug": "grace-church",
+        "name": "Grace Church",
+        "city": "San Antonio",
+        "denomination": "Non-denominational",
+        "coverImageUrl": "https://..."
+      }
+    }
+  ],
+  "meta": {
+    "total": 42,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 3,
+    "filters": { "type": "service", "from": "...", "to": "...", "q": "..." }
+  }
+}
+```
+
+**Errors:**
+
+- `400 VALIDATION_ERROR` — invalid `type`, malformed ISO dates, or `to` before `from`.
+
+---
+
 #### `GET /churches/:slug/events`
 
 List upcoming events for a church by slug.

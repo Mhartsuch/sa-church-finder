@@ -4,6 +4,7 @@ import {
   createChurchEvent,
   deleteChurchEvent,
   fetchChurchEvents,
+  fetchEventsFeed,
   updateChurchEvent,
 } from '@/api/events';
 import {
@@ -12,12 +13,15 @@ import {
   IChurchEventsResponse,
   ICreateChurchEventInput,
   IDeleteChurchEventResult,
+  IEventsFeedFilters,
+  IEventsFeedResponse,
   IUpdateChurchEventInput,
 } from '@/types/event';
 
 const STALE_TIME = 60000;
 
 export const CHURCH_EVENTS_QUERY_KEY = ['church-events'] as const;
+export const EVENTS_FEED_QUERY_KEY = ['events-feed'] as const;
 export const LEADERS_PORTAL_EVENTS_KEY = ['leaders-portal', 'events'] as const;
 
 export const useChurchEvents = (slug: string, params: IChurchEventFilters) => {
@@ -29,8 +33,18 @@ export const useChurchEvents = (slug: string, params: IChurchEventFilters) => {
   });
 };
 
+export const useEventsFeed = (params: IEventsFeedFilters) => {
+  return useQuery<IEventsFeedResponse, Error>({
+    queryKey: [...EVENTS_FEED_QUERY_KEY, params],
+    queryFn: () => fetchEventsFeed(params),
+    staleTime: STALE_TIME,
+    placeholderData: (previous) => previous,
+  });
+};
+
 const invalidateEventQueries = (queryClient: ReturnType<typeof useQueryClient>): void => {
   queryClient.invalidateQueries({ queryKey: CHURCH_EVENTS_QUERY_KEY });
+  queryClient.invalidateQueries({ queryKey: EVENTS_FEED_QUERY_KEY });
   queryClient.invalidateQueries({ queryKey: LEADERS_PORTAL_EVENTS_KEY });
 };
 

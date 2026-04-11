@@ -14,6 +14,8 @@ jest.mock('../lib/prisma.js', () => ({
     },
     event: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -30,6 +32,8 @@ type MockedPrisma = {
   }
   event: {
     findUnique: jest.Mock
+    findMany: jest.Mock
+    count: jest.Mock
     create: jest.Mock
     update: jest.Mock
     delete: jest.Mock
@@ -304,5 +308,137 @@ describe('event routes', () => {
 
     expect(response.status).toBe(201)
     expect(response.body.data.churchId).toBe('church-7')
+  })
+})
+
+describe('GET /api/v1/events (aggregated feed)', () => {
+  const churchSummary = {
+    id: 'church-1',
+    slug: 'grace-church',
+    name: 'Grace Church',
+    city: 'San Antonio',
+    denomination: 'Non-denominational',
+    coverImageUrl: 'https://example.com/grace.jpg',
+  }
+
+  const feedEventRecord = {
+    ...baseEventRecord,
+    church: churchSummary,
+  }
+
+  beforeEach(() => {
+    jest.resetAllMocks()
+  })
+
+  it('returns aggregated events with church info, pagination, and filters', async () => {
+    mockedPrisma.event.count.mockResolvedValueOnce(1)
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await request(createApp()).get('/api/v1/events').query({
+      type: 'service',
+      q: 'spring',
+      page: '1',
+      pageSize: '10',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toHaveLength(1)
+    expect(response.body.data[0]).toMatchObject({
+      id: 'event-1',
+      title: 'Spring Service',
+      church: {
+        id: 'church-1',
+        slug: 'grace-church',
+        name: 'Grace Church',
+        city: 'San Antonio',
+      },
+    })
+    expect(response.body.meta).toMatchObject({
+      total: 1,
+      page: 1,
+      pageSize: 10,
+      totalPages: 1,
+    })
+    expect(response.body.meta.filters.type).toBe('service')
+    expect(response.body.meta.filters.q).toBe('spring')
+
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          eventType: 'service',
+          OR: expect.any(Array),
+          startTime: expect.objectContaining({ gte: expect.any(Date) }),
+        }),
+        include: expect.objectContaining({
+          church: expect.objectContaining({
+            select: expect.objectContaining({ slug: true, name: true }),
+          }),
+        }),
+        skip: 0,
+        take: 10,
+      }),
+    )
+  })
+
+  it('defaults to page 1 with 20 results per page when no pagination params are provided', async () => {
+    mockedPrisma.event.count.mockResolvedValueOnce(0)
+    mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+    const response = await request(createApp()).get('/api/v1/events')
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toEqual([])
+    expect(response.body.meta).toMatchObject({
+      total: 0,
+      page: 1,
+      pageSize: 20,
+      totalPages: 0,
+    })
+
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, take: 20 }),
+    )
+  })
+
+  it('skips correctly when page > 1', async () => {
+    mockedPrisma.event.count.mockResolvedValueOnce(35)
+    mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+    const response = await request(createApp()).get('/api/v1/events').query({
+      page: '3',
+      pageSize: '10',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta).toMatchObject({
+      total: 35,
+      page: 3,
+      pageSize: 10,
+      totalPages: 4,
+    })
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 20, take: 10 }),
+    )
+  })
+
+  it('rejects requests where "to" is before "from"', async () => {
+    const response = await request(createApp()).get('/api/v1/events').query({
+      from: '2026-06-01T00:00:00.000Z',
+      to: '2026-05-01T00:00:00.000Z',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid event type values', async () => {
+    const response = await request(createApp())
+      .get('/api/v1/events')
+      .query({ type: 'not-a-type' })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
   })
 })

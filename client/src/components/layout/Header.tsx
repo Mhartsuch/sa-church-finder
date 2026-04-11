@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Church, Heart, Menu, Moon, Scale, Search, Sun, User } from 'lucide-react';
+import { CalendarDays, Church, Heart, Menu, Moon, Scale, Search, Sun, User } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { SearchBar } from '@/components/search/SearchBar';
@@ -83,6 +83,14 @@ export const Header = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/events"
+              className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Events
+            </Link>
+
             <Link
               to="/compare"
               className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-foreground hover:bg-muted"

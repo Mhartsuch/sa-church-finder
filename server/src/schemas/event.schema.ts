@@ -82,5 +82,28 @@ export const eventIdSchema = z.object({
   body: z.object({}).passthrough(),
 })
 
+export const eventsFeedSchema = z.object({
+  params: z.object({}).passthrough(),
+  query: z
+    .object({
+      type: z.enum(EVENT_TYPES).optional(),
+      from: dateTimeSchema.optional(),
+      to: dateTimeSchema.optional(),
+      q: z.string().trim().max(200).optional(),
+      page: z.coerce.number().int().positive().optional(),
+      pageSize: z.coerce.number().int().positive().max(50).optional(),
+    })
+    .passthrough()
+    .refine(
+      (value) =>
+        !value.from || !value.to || new Date(value.to).getTime() >= new Date(value.from).getTime(),
+      {
+        message: '"to" must be on or after "from"',
+        path: ['to'],
+      },
+    ),
+  body: z.object({}).passthrough(),
+})
+
 export type CreateChurchEventBody = z.infer<typeof createChurchEventSchema>['body']
 export type UpdateChurchEventBody = z.infer<typeof updateChurchEventSchema>['body']
