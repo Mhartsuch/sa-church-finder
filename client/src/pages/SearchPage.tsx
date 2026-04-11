@@ -12,6 +12,7 @@ import { Testimonials } from '@/components/community/Testimonials';
 import { MapContainer } from '@/components/map/MapContainer';
 import { CategoryFilter } from '@/components/search/CategoryFilter';
 import { FilterPanel } from '@/components/search/FilterPanel';
+import { NearMeButton } from '@/components/search/NearMeButton';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
 import { getActiveSearchTokens } from '@/lib/search-state';
@@ -74,6 +75,7 @@ export const SearchPage = () => {
   const filters = useSearchStore((state) => state.filters);
   const sort = useSearchStore((state) => state.sort);
   const mapBounds = useSearchStore((state) => state.mapBounds);
+  const userLocation = useSearchStore((state) => state.userLocation);
   const setFilter = useSearchStore((state) => state.setFilter);
   const setQuery = useSearchStore((state) => state.setQuery);
   const setSort = useSearchStore((state) => state.setSort);
@@ -156,13 +158,14 @@ export const SearchPage = () => {
   const denominationCount = new Set(churches.map((church) => church.denomination).filter(Boolean))
     .size;
 
+  const locationLabel = userLocation ? 'near you' : 'in San Antonio';
   const resultsHeading = isLoading
-    ? 'Finding churches in San Antonio'
+    ? `Finding churches ${locationLabel}`
     : error
       ? 'Search results are temporarily unavailable'
       : totalResults === 1
-        ? '1 church in San Antonio'
-        : `${totalResults} churches in San Antonio`;
+        ? `1 church ${locationLabel}`
+        : `${totalResults} churches ${locationLabel}`;
 
   const resultsDescription = error
     ? 'The list is unavailable right now, but your search state is still preserved.'
@@ -262,6 +265,8 @@ export const SearchPage = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              <NearMeButton />
+
               {!isMobile ? (
                 <button
                   type="button"

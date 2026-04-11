@@ -31,6 +31,10 @@ vi.mock('@/components/search/CategoryFilter', () => ({
   ),
 }));
 
+vi.mock('@/components/search/NearMeButton', () => ({
+  NearMeButton: () => <button type="button">Near me</button>,
+}));
+
 vi.mock('@/hooks/useChurches', () => ({
   useChurchSearchParams: () => ({}),
   useChurches: () => ({
@@ -65,6 +69,7 @@ describe('SearchPage', () => {
       mapCenter: SA_CENTER,
       mapZoom: DEFAULT_ZOOM,
       mapBounds: null,
+      userLocation: null,
     });
     useCompareStore.setState({
       selectedChurches: [],

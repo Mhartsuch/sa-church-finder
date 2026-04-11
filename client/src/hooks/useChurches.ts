@@ -40,16 +40,27 @@ export const useChurchSearchParams = () => {
   const sort = useSearchStore((state) => state.sort);
   const page = useSearchStore((state) => state.page);
   const mapBounds = useSearchStore((state) => state.mapBounds);
+  const userLocation = useSearchStore((state) => state.userLocation);
 
   const boundsString = mapBounds
     ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
     : undefined;
 
-  // When bounds are active, derive the search center from the bounds themselves.
-  // This keeps the query key stable while the user pans the map without applying —
-  // only clicking "Search this area" (which updates mapBounds) triggers a refetch.
-  const searchLat = mapBounds ? (mapBounds.swLat + mapBounds.neLat) / 2 : SA_CENTER.lat;
-  const searchLng = mapBounds ? (mapBounds.swLng + mapBounds.neLng) / 2 : SA_CENTER.lng;
+  // Resolve the search center in priority order:
+  //   1. Map bounds — the user is actively exploring a specific area on the map.
+  //      Using the bounds midpoint keeps the query key stable while the user
+  //      pans without applying; only "Search this area" triggers a refetch.
+  //   2. User location — the user opted in to "find near me".
+  //   3. San Antonio default — cold start / anonymous browse.
+  let searchLat = SA_CENTER.lat;
+  let searchLng = SA_CENTER.lng;
+  if (mapBounds) {
+    searchLat = (mapBounds.swLat + mapBounds.neLat) / 2;
+    searchLng = (mapBounds.swLng + mapBounds.neLng) / 2;
+  } else if (userLocation) {
+    searchLat = userLocation.lat;
+    searchLng = userLocation.lng;
+  }
 
   return {
     lat: searchLat,
