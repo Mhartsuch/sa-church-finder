@@ -37,7 +37,12 @@ const buildQueryString = (params: ISearchParams): string => {
   if (params.day !== undefined) qs.append('day', params.day.toString());
   if (params.time) qs.append('time', params.time);
   if (params.language) qs.append('language', params.language);
-  if (params.amenities) qs.append('amenities', params.amenities);
+  // Amenities are multi-select — the backend splits on comma and AND-combines
+  // them, so a single `amenities=parking,nursery` request matches the UI's
+  // expectation. Empty arrays and undefined both mean "no filter".
+  if (params.amenities && params.amenities.length > 0) {
+    qs.append('amenities', params.amenities.join(','));
+  }
   // Boolean toggles — only serialize when `true`. Omitting them entirely when
   // unset keeps the query key (and shared URL) free of `...=false` noise.
   if (params.wheelchairAccessible) qs.append('wheelchairAccessible', 'true');

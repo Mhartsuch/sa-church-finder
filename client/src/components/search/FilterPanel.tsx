@@ -3,6 +3,7 @@ import type { ComponentType, SVGProps } from 'react';
 
 import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
 import { useFilterOptions } from '@/hooks/useChurches';
+import { countActiveFilters } from '@/lib/search-state';
 import { SearchFilters, useSearchStore } from '@/stores/search-store';
 
 interface FilterPanelProps {
@@ -81,6 +82,44 @@ const FilterSection = ({ label, description, filterKey, options }: FilterSection
               onClick={() => {
                 setFilter(filterKey, active ? undefined : option.value);
               }}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+interface AmenityFilterSectionProps {
+  options: FilterOption[];
+}
+
+const AmenityFilterSection = ({ options }: AmenityFilterSectionProps) => {
+  const selected = useSearchStore((state) => state.filters.amenities) ?? [];
+  const toggleAmenity = useSearchStore((state) => state.toggleAmenity);
+
+  if (options.length === 0) return null;
+
+  return (
+    <section className="rounded-[24px] border border-border bg-card p-5">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-base font-semibold text-foreground">Amenities</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Pick every detail that matters — churches must offer all of the amenities you select.
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const value = String(option.value);
+          const active = selected.includes(value);
+
+          return (
+            <FilterOptionButton
+              key={`amenities-${value}`}
+              active={active}
+              label={option.label}
+              onClick={() => toggleAmenity(value)}
             />
           );
         })}
@@ -178,9 +217,7 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
   const clearFilters = useSearchStore((state) => state.clearFilters);
   const { data: filterOptions } = useFilterOptions();
 
-  const activeFilterCount = Object.values(filters).filter(
-    (value) => value !== undefined && value !== '' && value !== false,
-  ).length;
+  const activeFilterCount = countActiveFilters(filters);
 
   const denominationOptions: FilterOption[] = (filterOptions?.denominations ?? []).map((d) => ({
     label: d,
@@ -249,12 +286,7 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
           options={languageOptions}
         />
 
-        <FilterSection
-          label="Amenity"
-          description="Look for one practical detail that helps the list feel more realistic."
-          filterKey="amenities"
-          options={amenityOptions}
-        />
+        <AmenityFilterSection options={amenityOptions} />
 
         <BooleanFilterSection />
       </div>

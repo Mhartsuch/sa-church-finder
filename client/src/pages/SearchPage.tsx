@@ -15,7 +15,7 @@ import { FilterPanel } from '@/components/search/FilterPanel';
 import { NearMeButton } from '@/components/search/NearMeButton';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
-import { getActiveSearchTokens } from '@/lib/search-state';
+import { countActiveFilters, getActiveSearchTokens } from '@/lib/search-state';
 import { useCompareStore } from '@/stores/compare-store';
 import { SearchFilters, useSearchStore } from '@/stores/search-store';
 
@@ -153,9 +153,8 @@ export const SearchPage = () => {
   const activeTokens = useMemo(() => getActiveSearchTokens(query, filters), [filters, query]);
   const totalResults = data?.meta.total ?? 0;
   const churches = data?.data ?? [];
-  const activeAdvancedFilterCount = Object.values(filters).filter(
-    (value) => value !== undefined && value !== '',
-  ).length;
+  const activeAdvancedFilterCount = countActiveFilters(filters);
+  const toggleAmenity = useSearchStore((state) => state.toggleAmenity);
   const denominationCount = new Set(churches.map((church) => church.denomination).filter(Boolean))
     .size;
 
@@ -176,9 +175,16 @@ export const SearchPage = () => {
         ? `Matching "${query.trim()}"`
         : 'All denominations';
 
-  const removeToken = (tokenKey: 'query' | keyof SearchFilters) => {
+  const removeToken = (tokenKey: 'query' | keyof SearchFilters, tokenValue: string) => {
     if (tokenKey === 'query') {
       setQuery('');
+      return;
+    }
+
+    // Amenities are multi-select — remove only the one chip the user clicked
+    // so the remaining selections stay active.
+    if (tokenKey === 'amenities') {
+      toggleAmenity(tokenValue);
       return;
     }
 
@@ -307,7 +313,7 @@ export const SearchPage = () => {
                 <button
                   key={`${token.key}-${token.value}`}
                   type="button"
-                  onClick={() => removeToken(token.key)}
+                  onClick={() => removeToken(token.key, token.value)}
                   className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground"
                 >
                   <span>

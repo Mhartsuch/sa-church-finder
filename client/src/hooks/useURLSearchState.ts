@@ -55,7 +55,15 @@ export const useURLSearchState = () => {
     if (urlDay) setFilter('day', parseInt(urlDay));
     if (urlTime) setFilter('time', urlTime);
     if (urlLanguage) setFilter('language', urlLanguage);
-    if (urlAmenities) setFilter('amenities', urlAmenities);
+    if (urlAmenities) {
+      const parsedAmenities = urlAmenities
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (parsedAmenities.length > 0) {
+        setFilter('amenities', parsedAmenities);
+      }
+    }
     // Booleans are only written to the URL when `true`, so any presence of the
     // param means the filter is active.
     if (urlWheelchair === 'true') setFilter('wheelchairAccessible', true);
@@ -93,7 +101,9 @@ export const useURLSearchState = () => {
     if (filters.day !== undefined) params.set('day', String(filters.day));
     if (filters.time) params.set('time', filters.time);
     if (filters.language) params.set('language', filters.language);
-    if (filters.amenities) params.set('amenities', filters.amenities);
+    if (filters.amenities && filters.amenities.length > 0) {
+      params.set('amenities', filters.amenities.join(','));
+    }
     if (filters.wheelchairAccessible) params.set('wheelchairAccessible', 'true');
     if (filters.goodForChildren) params.set('goodForChildren', 'true');
     if (filters.goodForGroups) params.set('goodForGroups', 'true');
