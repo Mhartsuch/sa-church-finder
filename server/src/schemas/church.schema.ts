@@ -47,6 +47,10 @@ const dateTimeQuerySchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid datetime value')
 
+const booleanQueryFlag = z
+  .union([z.enum(['true', 'false', '1', '0']), z.boolean()])
+  .transform((value) => value === true || value === 'true' || value === '1')
+
 export const churchEventsSchema = z.object({
   params: z
     .object({
@@ -58,6 +62,7 @@ export const churchEventsSchema = z.object({
       type: z.enum(EVENT_TYPES).optional(),
       from: dateTimeQuerySchema.optional(),
       to: dateTimeQuerySchema.optional(),
+      expand: booleanQueryFlag.optional(),
     })
     .passthrough()
     .refine(

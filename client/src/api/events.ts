@@ -24,6 +24,7 @@ const buildQueryString = (params: IChurchEventFilters): string => {
   if (params.type) qs.append('type', params.type);
   if (params.from) qs.append('from', params.from);
   if (params.to) qs.append('to', params.to);
+  if (params.expand === false) qs.append('expand', 'false');
 
   const queryStr = qs.toString();
   return queryStr ? `?${queryStr}` : '';

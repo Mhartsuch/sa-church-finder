@@ -17,15 +17,18 @@ vi.mock('@/hooks/useEvents', () => ({
 
 const makeEvent = (overrides: Partial<IAggregatedEvent> = {}): IAggregatedEvent => ({
   id: 'event-1',
+  occurrenceId: 'event-1',
   churchId: 'church-1',
   title: 'Easter Sunrise Service',
   description: 'Outdoor service at dawn',
   eventType: 'service',
   startTime: '2026-04-12T11:30:00.000Z',
   endTime: '2026-04-12T13:00:00.000Z',
+  seriesStartTime: '2026-04-12T11:30:00.000Z',
   locationOverride: null,
   isRecurring: false,
   recurrenceRule: null,
+  isOccurrence: false,
   createdById: 'user-1',
   createdAt: '2026-04-01T00:00:00.000Z',
   updatedAt: '2026-04-01T00:00:00.000Z',
@@ -50,7 +53,7 @@ const buildResponse = (
     page: 1,
     pageSize: 12,
     totalPages: events.length > 0 ? 1 : 0,
-    filters: { from: new Date().toISOString() },
+    filters: { from: new Date().toISOString(), to: new Date().toISOString() },
     ...meta,
   },
 });

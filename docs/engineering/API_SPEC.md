@@ -210,16 +210,18 @@ Flag a review for moderation.
 #### `GET /events`
 
 Aggregated upcoming events across all churches for the public discovery feed. Results are ordered
-by `startTime` ascending and paginated.
+by `startTime` ascending and paginated. Recurring events are expanded server-side into concrete
+occurrences that intersect the requested window; each occurrence is returned as a separate item
+with a unique `occurrenceId` while `id` still points back to the stored series row.
 
-| Param    | Type    | Required | Notes                                                           |
-| -------- | ------- | -------- | --------------------------------------------------------------- |
-| type     | string  | No       | Filter by event_type                                            |
-| from     | string  | No       | ISO 8601 datetime (default: now — only future events)           |
-| to       | string  | No       | ISO 8601 datetime; must be on or after `from`                   |
+| Param    | Type    | Required | Notes                                                            |
+| -------- | ------- | -------- | ---------------------------------------------------------------- |
+| type     | string  | No       | Filter by event_type                                             |
+| from     | string  | No       | ISO 8601 datetime (default: now — only future events)            |
+| to       | string  | No       | ISO 8601 datetime; must be on or after `from` (defaults to `from + 90 days` when omitted) |
 | q        | string  | No       | Case-insensitive search over title, description, and church name |
-| page     | integer | No       | 1-indexed (default: 1)                                          |
-| pageSize | integer | No       | Default 20, maximum 50                                          |
+| page     | integer | No       | 1-indexed (default: 1)                                           |
+| pageSize | integer | No       | Default 20, maximum 50                                           |
 
 **Response:**
 
@@ -228,15 +230,18 @@ by `startTime` ascending and paginated.
   "data": [
     {
       "id": "...",
+      "occurrenceId": "...::2026-05-03T14:00:00.000Z",
       "churchId": "...",
-      "title": "...",
-      "description": "...",
+      "title": "Sunday Worship",
+      "description": "Weekly gathering",
       "eventType": "service",
-      "startTime": "2026-05-01T14:00:00.000Z",
-      "endTime": "2026-05-01T15:30:00.000Z",
+      "startTime": "2026-05-03T14:00:00.000Z",
+      "endTime": "2026-05-03T15:30:00.000Z",
+      "seriesStartTime": "2026-05-03T14:00:00.000Z",
       "locationOverride": null,
-      "isRecurring": false,
-      "recurrenceRule": null,
+      "isRecurring": true,
+      "recurrenceRule": "FREQ=WEEKLY",
+      "isOccurrence": true,
       "church": {
         "id": "...",
         "slug": "grace-church",
@@ -257,6 +262,9 @@ by `startTime` ascending and paginated.
 }
 ```
 
+`total` reflects the count of expanded occurrences inside the window, not the number of stored
+event rows, so pagination operates on the post-expansion list.
+
 **Errors:**
 
 - `400 VALIDATION_ERROR` — invalid `type`, malformed ISO dates, or `to` before `from`.
@@ -265,15 +273,20 @@ by `startTime` ascending and paginated.
 
 #### `GET /churches/:slug/events`
 
-List upcoming events for a church by slug.
+List upcoming events for a church by slug. Recurring events are expanded into occurrences by
+default; pass `expand=false` to receive the raw stored series rows instead (used by the church
+admin leaders portal where administrators manage the series template, not individual dates).
 
-| Param | Type   | Required | Notes                                |
-| ----- | ------ | -------- | ------------------------------------ |
-| type  | string | No       | Filter by event_type                 |
-| from  | string | No       | Start date ISO 8601 (default: today) |
-| to    | string | No       | End date ISO 8601                    |
+| Param  | Type    | Required | Notes                                                                  |
+| ------ | ------- | -------- | ---------------------------------------------------------------------- |
+| type   | string  | No       | Filter by event_type                                                   |
+| from   | string  | No       | Start date ISO 8601 (default: today)                                   |
+| to     | string  | No       | End date ISO 8601 (defaults to `from + 90 days` when `expand` is true) |
+| expand | boolean | No       | `false` to skip RRULE expansion; defaults to `true`                    |
 
-**Response:** `{ data, meta: { total, filters } }` where `data` is an array of church events ordered by `startTime`.
+**Response:** `{ data, meta: { total, filters: { ..., expand } } }` where `data` is an array of
+church events (or occurrences) ordered by `startTime`. Each item is an `IChurchEvent` payload
+with the same occurrence-aware shape as the aggregated feed above.
 
 ---
 
@@ -290,7 +303,22 @@ Publish a new event. The authenticated user must either be a site admin or a chu
 | description      | string  | No       | Max 5000 characters                                                   |
 | locationOverride | string  | No       | Max 200 characters; leave empty to use the church address             |
 | isRecurring      | boolean | No       | Defaults to `false`                                                   |
-| recurrenceRule   | string  | No       | RRULE string when `isRecurring` is `true`                             |
+| recurrenceRule   | string  | No       | RRULE string when `isRecurring` is `true` (see below)                 |
+
+**Recurrence rules.** `recurrenceRule` must be a valid iCal RRULE body when `isRecurring=true`
+(and must be empty otherwise). The server parses the rule on write, stores it in canonical
+form (dropping `INTERVAL=1`, sorting `BYDAY` into week order), and expands it into occurrences
+on read. Only the following subset is supported:
+
+| Part       | Notes                                                         |
+| ---------- | ------------------------------------------------------------- |
+| `FREQ`     | `DAILY`, `WEEKLY`, or `MONTHLY`                               |
+| `INTERVAL` | Positive integer; default `1`                                 |
+| `BYDAY`    | Weekday codes (`SU`, `MO`, … `SA`); only with `FREQ=WEEKLY`   |
+| `COUNT`    | Positive integer; mutually exclusive with `UNTIL`             |
+| `UNTIL`    | `YYYYMMDDTHHMMSSZ` or ISO 8601; mutually exclusive with `COUNT` |
+
+Invalid rules return `400 VALIDATION_ERROR` with a descriptive message.
 
 **Errors:**
 

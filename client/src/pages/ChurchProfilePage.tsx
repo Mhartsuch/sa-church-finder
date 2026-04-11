@@ -778,7 +778,7 @@ export const ChurchProfilePage = () => {
                 <div className="mt-6 space-y-4">
                   {churchEvents.map((event) => (
                     <article
-                      key={event.id}
+                      key={event.occurrenceId}
                       className="rounded-[28px] border border-border bg-card p-6 shadow-airbnb-subtle"
                     >
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">

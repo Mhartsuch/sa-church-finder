@@ -180,7 +180,7 @@
 | end_time          | TIMESTAMP    | NULLABLE                   |                                                                |
 | location_override | VARCHAR(300) | NULLABLE                   | If different from church address                               |
 | is_recurring      | BOOLEAN      | default false              |                                                                |
-| recurrence_rule   | VARCHAR(255) | NULLABLE                   | iCal RRULE format                                              |
+| recurrence_rule   | VARCHAR(255) | NULLABLE                   | iCal RRULE body — supports `FREQ=DAILY\|WEEKLY\|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`. Parsed and canonicalized on write; expanded into occurrences on read (see `server/src/lib/recurrence.ts`). |
 | created_by        | UUID         | FK → users.id, NULLABLE    |                                                                |
 | created_at        | TIMESTAMP    | default now()              |                                                                |
 | updated_at        | TIMESTAMP    | auto-update                |                                                                |

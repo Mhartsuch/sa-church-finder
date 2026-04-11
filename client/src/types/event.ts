@@ -10,16 +10,38 @@ export const EVENT_TYPES = [
 export type ChurchEventType = (typeof EVENT_TYPES)[number];
 
 export interface IChurchEvent {
+  /**
+   * The stored series (template) id. For non-recurring events this uniquely
+   * identifies the event; for recurring events every expanded occurrence
+   * shares the same `id` so admin edit/delete operations target the series.
+   */
   id: string;
+  /**
+   * Stable key unique per occurrence. Use this as the React key when a
+   * recurring series may appear multiple times in one list.
+   */
+  occurrenceId: string;
   churchId: string;
   title: string;
   description: string | null;
   eventType: ChurchEventType;
+  /**
+   * Start of this particular occurrence. For non-recurring events this is
+   * equal to `seriesStartTime`.
+   */
   startTime: string;
   endTime: string | null;
+  /**
+   * Original DTSTART of the stored series — always identical to `startTime`
+   * for non-recurring events, but the anchor for the rule on expanded
+   * occurrences.
+   */
+  seriesStartTime: string;
   locationOverride: string | null;
   isRecurring: boolean;
   recurrenceRule: string | null;
+  /** True when this record is an expanded occurrence of a recurring series. */
+  isOccurrence: boolean;
   createdById: string | null;
   createdAt: string;
   updatedAt: string;
@@ -29,6 +51,11 @@ export interface IChurchEventFilters {
   type?: ChurchEventType;
   from?: string;
   to?: string;
+  /**
+   * When false, the server returns the raw stored series rows rather than
+   * expanding recurring events into occurrences. Defaults to true.
+   */
+  expand?: boolean;
 }
 
 export interface IChurchEventsResponse {
@@ -39,6 +66,7 @@ export interface IChurchEventsResponse {
       type?: ChurchEventType;
       from: string;
       to?: string;
+      expand: boolean;
     };
   };
 }

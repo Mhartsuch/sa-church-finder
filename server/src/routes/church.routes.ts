@@ -120,6 +120,7 @@ router.get(
         type: q.type as ChurchEventType | undefined,
         from: typeof q.from === 'string' ? new Date(q.from) : undefined,
         to: typeof q.to === 'string' ? new Date(q.to) : undefined,
+        expand: typeof q.expand === 'boolean' ? q.expand : undefined,
       }
 
       logger.info({ slug, filters }, 'Fetching church events')

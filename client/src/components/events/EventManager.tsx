@@ -133,7 +133,10 @@ export const EventManager = ({
       ) : (
         <ul className="mt-4 space-y-3">
           {events.map((event) => (
-            <li key={event.id} className="rounded-2xl border border-border bg-background p-4">
+            <li
+              key={event.occurrenceId}
+              className="rounded-2xl border border-border bg-background p-4"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -141,6 +144,11 @@ export const EventManager = ({
                     <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       {formatEventTypeLabel(event.eventType)}
                     </span>
+                    {event.isRecurring ? (
+                      <span className="rounded-full bg-[#eef5ff] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">
+                        Recurring
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                     <span className="inline-flex items-center gap-1">

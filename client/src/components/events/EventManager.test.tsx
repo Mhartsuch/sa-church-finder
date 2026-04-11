@@ -13,15 +13,18 @@ const fetchMock = vi.fn();
 
 const sampleEvent: IChurchEvent = {
   id: 'event-1',
+  occurrenceId: 'event-1',
   churchId: 'church-1',
   title: 'Neighborhood Prayer Night',
   description: 'Prayer and dinner with the neighborhood.',
   eventType: 'community',
   startTime: '2026-05-10T18:30:00.000Z',
   endTime: '2026-05-10T20:00:00.000Z',
+  seriesStartTime: '2026-05-10T18:30:00.000Z',
   locationOverride: null,
   isRecurring: false,
   recurrenceRule: null,
+  isOccurrence: false,
   createdById: 'user-1',
   createdAt: '2026-04-01T00:00:00.000Z',
   updatedAt: '2026-04-01T00:00:00.000Z',
@@ -189,6 +192,66 @@ describe('EventManager', () => {
     expect(url).toBe('/api/v1/events/event-1');
     expect(options.method).toBe('DELETE');
   });
+
+  it('submits a weekly recurrence rule with the selected weekdays', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 201,
+      statusText: 'Created',
+      text: async () =>
+        JSON.stringify({
+          data: {
+            ...sampleEvent,
+            id: 'event-new',
+            title: 'Sunday Worship',
+            eventType: 'service',
+            isRecurring: true,
+            recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU,WE',
+          },
+        }),
+    } as Response);
+
+    renderWithProviders(
+      <EventManager
+        churchId="church-1"
+        churchName="Grace Community Church"
+        events={[]}
+        isLoading={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add event' }));
+
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Sunday Worship' },
+    });
+    fireEvent.change(screen.getByLabelText('Event type'), {
+      target: { value: 'service' },
+    });
+    fireEvent.change(screen.getByLabelText('Start'), {
+      target: { value: '2026-05-03T10:00' },
+    });
+
+    fireEvent.change(screen.getByLabelText('Pattern'), {
+      target: { value: 'weekly' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Sunday' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Wednesday' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Publish event/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      title: 'Sunday Worship',
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU,WE',
+    });
+  })
 
   it('shows a validation error when end time is not after start time', () => {
     renderWithProviders(

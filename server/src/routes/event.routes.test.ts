@@ -278,6 +278,97 @@ describe('event routes', () => {
     })
   })
 
+  it('rejects an invalid recurrence rule with a 400', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'Broken Series',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=YEARLY',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(response.body.error.message).toMatch(/recurrence/i)
+    expect(mockedPrisma.event.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects a recurrence rule that is missing when isRecurring=true', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'No Rule',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+      isRecurring: true,
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(mockedPrisma.event.create).not.toHaveBeenCalled()
+  })
+
+  it('creates a recurring event and persists a normalized RRULE', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+    mockedPrisma.event.create.mockResolvedValueOnce({
+      ...baseEventRecord,
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU,WE',
+    })
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'Spring Service',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=WE,SU',
+    })
+
+    expect(response.status).toBe(201)
+    expect(mockedPrisma.event.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          isRecurring: true,
+          // INTERVAL=1 is default so it's stripped; BYDAY is reordered into
+          // week order.
+          recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU,WE',
+        }),
+      }),
+    )
+  })
+
   it('allows a site admin to manage events for any church', async () => {
     const agent = await buildLoginAgent({
       id: 'admin-2',
@@ -326,17 +417,21 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     church: churchSummary,
   }
 
+  const windowFrom = '2026-05-01T00:00:00.000Z'
+  const windowTo = '2026-06-30T00:00:00.000Z'
+
   beforeEach(() => {
     jest.resetAllMocks()
   })
 
   it('returns aggregated events with church info, pagination, and filters', async () => {
-    mockedPrisma.event.count.mockResolvedValueOnce(1)
     mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
 
     const response = await request(createApp()).get('/api/v1/events').query({
       type: 'service',
       q: 'spring',
+      from: windowFrom,
+      to: windowTo,
       page: '1',
       pageSize: '10',
     })
@@ -345,7 +440,10 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     expect(response.body.data).toHaveLength(1)
     expect(response.body.data[0]).toMatchObject({
       id: 'event-1',
+      occurrenceId: 'event-1',
       title: 'Spring Service',
+      isOccurrence: false,
+      seriesStartTime: startTime.toISOString(),
       church: {
         id: 'church-1',
         slug: 'grace-church',
@@ -365,23 +463,19 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          eventType: 'service',
-          OR: expect.any(Array),
-          startTime: expect.objectContaining({ gte: expect.any(Date) }),
+          AND: expect.any(Array),
         }),
         include: expect.objectContaining({
           church: expect.objectContaining({
             select: expect.objectContaining({ slug: true, name: true }),
           }),
         }),
-        skip: 0,
-        take: 10,
+        orderBy: [{ startTime: 'asc' }, { title: 'asc' }],
       }),
     )
   })
 
   it('defaults to page 1 with 20 results per page when no pagination params are provided', async () => {
-    mockedPrisma.event.count.mockResolvedValueOnce(0)
     mockedPrisma.event.findMany.mockResolvedValueOnce([])
 
     const response = await request(createApp()).get('/api/v1/events')
@@ -395,16 +489,27 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       totalPages: 0,
     })
 
-    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 0, take: 20 }),
-    )
+    expect(mockedPrisma.event.findMany).toHaveBeenCalled()
   })
 
-  it('skips correctly when page > 1', async () => {
-    mockedPrisma.event.count.mockResolvedValueOnce(35)
-    mockedPrisma.event.findMany.mockResolvedValueOnce([])
+  it('paginates the expanded result set when page > 1', async () => {
+    const seriesStart = new Date('2026-05-03T15:00:00.000Z')
+    const recurringRecord = {
+      ...baseEventRecord,
+      id: 'event-recurring',
+      title: 'Weekly Service',
+      startTime: seriesStart,
+      endTime: new Date('2026-05-03T16:30:00.000Z'),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;COUNT=35',
+      church: churchSummary,
+    }
+
+    mockedPrisma.event.findMany.mockResolvedValueOnce([recurringRecord])
 
     const response = await request(createApp()).get('/api/v1/events').query({
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2027-05-01T00:00:00.000Z',
       page: '3',
       pageSize: '10',
     })
@@ -416,9 +521,51 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       pageSize: 10,
       totalPages: 4,
     })
-    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 20, take: 10 }),
-    )
+    // The 3rd page of 10 weekly occurrences is occurrences 21..30 from dtstart.
+    expect(response.body.data).toHaveLength(10)
+    expect(response.body.data[0]).toMatchObject({
+      id: 'event-recurring',
+      isOccurrence: true,
+      seriesStartTime: seriesStart.toISOString(),
+      startTime: '2026-09-20T15:00:00.000Z', // dtstart + 20 weeks
+    })
+  })
+
+  it('expands a weekly recurring event into multiple occurrences in the window', async () => {
+    const seriesStart = new Date('2026-05-03T15:00:00.000Z')
+    const recurringRecord = {
+      ...baseEventRecord,
+      id: 'event-recurring',
+      title: 'Sunday Worship',
+      startTime: seriesStart,
+      endTime: new Date('2026-05-03T16:30:00.000Z'),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY',
+      church: churchSummary,
+    }
+
+    mockedPrisma.event.findMany.mockResolvedValueOnce([recurringRecord])
+
+    const response = await request(createApp()).get('/api/v1/events').query({
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2026-06-01T00:00:00.000Z',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toHaveLength(5)
+
+    const occurrenceIds = response.body.data.map((event: { occurrenceId: string }) => event.occurrenceId)
+    expect(new Set(occurrenceIds).size).toBe(5)
+    expect(occurrenceIds[0]).toBe('event-recurring::2026-05-03T15:00:00.000Z')
+
+    expect(response.body.data[1]).toMatchObject({
+      id: 'event-recurring',
+      isOccurrence: true,
+      startTime: '2026-05-10T15:00:00.000Z',
+      endTime: '2026-05-10T16:30:00.000Z',
+      seriesStartTime: seriesStart.toISOString(),
+      recurrenceRule: 'FREQ=WEEKLY',
+    })
   })
 
   it('rejects requests where "to" is before "from"', async () => {

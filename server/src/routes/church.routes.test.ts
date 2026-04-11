@@ -69,8 +69,10 @@ describe('church routes', () => {
     expect(response.body.data).toHaveLength(1)
     expect(response.body.data[0]).toMatchObject({
       id: 'event-1',
+      occurrenceId: 'event-1',
       title: 'Neighborhood Dinner',
       eventType: 'community',
+      isOccurrence: false,
     })
     expect(response.body.meta).toMatchObject({
       total: 1,
@@ -78,19 +80,129 @@ describe('church routes', () => {
         type: 'community',
         from: '2026-03-30T00:00:00.000Z',
         to: '2026-04-30T00:00:00.000Z',
+        expand: true,
       },
     })
-    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith({
-      where: {
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          churchId: 'church-1',
+          eventType: 'community',
+          OR: [
+            {
+              isRecurring: false,
+              startTime: {
+                gte: new Date('2026-03-30T00:00:00.000Z'),
+                lte: new Date('2026-04-30T00:00:00.000Z'),
+              },
+            },
+            {
+              isRecurring: true,
+              startTime: {
+                lte: new Date('2026-04-30T00:00:00.000Z'),
+              },
+            },
+          ],
+        }),
+        orderBy: [{ startTime: 'asc' }, { title: 'asc' }],
+      }),
+    )
+  })
+
+  it('expands recurring events into occurrences that intersect the window', async () => {
+    mockedPrisma.church.findUnique.mockResolvedValue({ id: 'church-1' })
+    mockedPrisma.event.findMany.mockResolvedValue([
+      {
+        id: 'event-series',
         churchId: 'church-1',
-        eventType: 'community',
-        startTime: {
-          gte: new Date('2026-03-30T00:00:00.000Z'),
-          lte: new Date('2026-04-30T00:00:00.000Z'),
-        },
+        title: 'Sunday Worship',
+        description: 'Weekly gathering',
+        eventType: 'service',
+        startTime: new Date('2026-04-05T15:00:00.000Z'),
+        endTime: new Date('2026-04-05T16:30:00.000Z'),
+        locationOverride: null,
+        isRecurring: true,
+        recurrenceRule: 'FREQ=WEEKLY',
+        createdById: 'user-1',
+        createdAt: new Date('2026-03-30T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-30T00:00:00.000Z'),
       },
-      orderBy: [{ startTime: 'asc' }, { title: 'asc' }],
+    ])
+
+    const response = await request(createApp())
+      .get('/api/v1/churches/grace-fellowship/events')
+      .query({
+        from: '2026-04-01T00:00:00.000Z',
+        to: '2026-04-30T00:00:00.000Z',
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toHaveLength(4)
+    expect(response.body.data.map((event: { startTime: string }) => event.startTime)).toEqual([
+      '2026-04-05T15:00:00.000Z',
+      '2026-04-12T15:00:00.000Z',
+      '2026-04-19T15:00:00.000Z',
+      '2026-04-26T15:00:00.000Z',
+    ])
+    // The endTime for each occurrence preserves the original duration.
+    expect(response.body.data[1].endTime).toBe('2026-04-12T16:30:00.000Z')
+    expect(response.body.data[1]).toMatchObject({
+      id: 'event-series',
+      occurrenceId: 'event-series::2026-04-12T15:00:00.000Z',
+      isOccurrence: true,
+      isRecurring: true,
+      seriesStartTime: '2026-04-05T15:00:00.000Z',
     })
+  })
+
+  it('returns raw series rows when expand=false', async () => {
+    mockedPrisma.church.findUnique.mockResolvedValue({ id: 'church-1' })
+    mockedPrisma.event.findMany.mockResolvedValue([
+      {
+        id: 'event-series',
+        churchId: 'church-1',
+        title: 'Sunday Worship',
+        description: 'Weekly gathering',
+        eventType: 'service',
+        startTime: new Date('2026-04-05T15:00:00.000Z'),
+        endTime: new Date('2026-04-05T16:30:00.000Z'),
+        locationOverride: null,
+        isRecurring: true,
+        recurrenceRule: 'FREQ=WEEKLY',
+        createdById: 'user-1',
+        createdAt: new Date('2026-03-30T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-30T00:00:00.000Z'),
+      },
+    ])
+
+    const response = await request(createApp())
+      .get('/api/v1/churches/grace-fellowship/events')
+      .query({
+        from: '2026-04-01T00:00:00.000Z',
+        to: '2026-04-30T00:00:00.000Z',
+        expand: 'false',
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toHaveLength(1)
+    expect(response.body.data[0]).toMatchObject({
+      id: 'event-series',
+      occurrenceId: 'event-series',
+      isOccurrence: false,
+      isRecurring: true,
+    })
+    expect(response.body.meta.filters.expand).toBe(false)
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          churchId: 'church-1',
+          startTime: {
+            gte: new Date('2026-04-01T00:00:00.000Z'),
+            lte: new Date('2026-04-30T00:00:00.000Z'),
+          },
+        }),
+      }),
+    )
   })
 
   it('returns 404 when fetching events for an unknown church slug', async () => {

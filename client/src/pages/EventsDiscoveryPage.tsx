@@ -437,7 +437,7 @@ const EventsDiscoveryPage = () => {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {events.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard key={event.occurrenceId} event={event} />
               ))}
             </div>
           )}
