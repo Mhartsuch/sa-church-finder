@@ -73,11 +73,21 @@ export interface ISearchParams {
   denomination?: string;
   day?: number;
   time?: string;
-  language?: string;
+  /**
+   * Service language filter. Multi-select: an array is OR-combined on the
+   * backend ("English OR Spanish"). A single-element array is equivalent to
+   * the legacy single-value filter.
+   */
+  languages?: string[];
   amenities?: string[];
   wheelchairAccessible?: boolean;
   goodForChildren?: boolean;
   goodForGroups?: boolean;
+  minRating?: number;
+  neighborhood?: string;
+  serviceType?: string;
+  hasPhotos?: boolean;
+  isClaimed?: boolean;
   sort?: 'relevance' | 'distance' | 'rating' | 'name';
   page?: number;
   pageSize?: number;
@@ -98,4 +108,6 @@ export interface IFilterOptions {
   denominations: string[];
   languages: string[];
   amenities: string[];
+  neighborhoods: string[];
+  serviceTypes: string[];
 }

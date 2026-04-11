@@ -14,6 +14,8 @@ import {
   getDenominationFamilies,
   getAvailableLanguages,
   getAvailableAmenities,
+  getAvailableNeighborhoods,
+  getAvailableServiceTypes,
 } from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
 import { listChurchEventsBySlug } from '../services/event.service.js'
@@ -46,6 +48,11 @@ router.get(
         wheelchairAccessible: q.wheelchairAccessible as boolean | undefined,
         goodForChildren: q.goodForChildren as boolean | undefined,
         goodForGroups: q.goodForGroups as boolean | undefined,
+        minRating: q.minRating as number | undefined,
+        neighborhood: q.neighborhood as string | undefined,
+        serviceType: q.serviceType as string | undefined,
+        hasPhotos: q.hasPhotos as boolean | undefined,
+        isClaimed: q.isClaimed as boolean | undefined,
         sort: q.sort as 'relevance' | 'distance' | 'rating' | 'name' | undefined,
         page: q.page as number | undefined,
         pageSize: q.pageSize as number | undefined,
@@ -71,14 +78,16 @@ router.get(
  */
 router.get('/filter-options', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [denominations, languages, amenities] = await Promise.all([
+    const [denominations, languages, amenities, neighborhoods, serviceTypes] = await Promise.all([
       getDenominationFamilies(),
       getAvailableLanguages(),
       getAvailableAmenities(),
+      getAvailableNeighborhoods(),
+      getAvailableServiceTypes(),
     ])
 
     res.json({
-      data: { denominations, languages, amenities },
+      data: { denominations, languages, amenities, neighborhoods, serviceTypes },
     })
     return
   } catch (error) {

@@ -36,7 +36,12 @@ const buildQueryString = (params: ISearchParams): string => {
   if (params.denomination) qs.append('denomination', params.denomination);
   if (params.day !== undefined) qs.append('day', params.day.toString());
   if (params.time) qs.append('time', params.time);
-  if (params.language) qs.append('language', params.language);
+  // Languages are multi-select and OR-combined on the backend. Serialize as a
+  // single comma-separated string on the `language` param so the same wire
+  // format works for both single and multi-select callers.
+  if (params.languages && params.languages.length > 0) {
+    qs.append('language', params.languages.join(','));
+  }
   // Amenities are multi-select — the backend splits on comma and AND-combines
   // them, so a single `amenities=parking,nursery` request matches the UI's
   // expectation. Empty arrays and undefined both mean "no filter".
@@ -48,6 +53,13 @@ const buildQueryString = (params: ISearchParams): string => {
   if (params.wheelchairAccessible) qs.append('wheelchairAccessible', 'true');
   if (params.goodForChildren) qs.append('goodForChildren', 'true');
   if (params.goodForGroups) qs.append('goodForGroups', 'true');
+  if (params.hasPhotos) qs.append('hasPhotos', 'true');
+  if (params.isClaimed) qs.append('isClaimed', 'true');
+  if (params.minRating !== undefined && params.minRating > 0) {
+    qs.append('minRating', params.minRating.toString());
+  }
+  if (params.neighborhood) qs.append('neighborhood', params.neighborhood);
+  if (params.serviceType) qs.append('serviceType', params.serviceType);
   if (params.sort) qs.append('sort', params.sort);
   if (params.page !== undefined) qs.append('page', params.page.toString());
   if (params.pageSize !== undefined) qs.append('pageSize', params.pageSize.toString());

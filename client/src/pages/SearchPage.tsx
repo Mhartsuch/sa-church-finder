@@ -155,6 +155,7 @@ export const SearchPage = () => {
   const churches = data?.data ?? [];
   const activeAdvancedFilterCount = countActiveFilters(filters);
   const toggleAmenity = useSearchStore((state) => state.toggleAmenity);
+  const toggleLanguage = useSearchStore((state) => state.toggleLanguage);
   const denominationCount = new Set(churches.map((church) => church.denomination).filter(Boolean))
     .size;
 
@@ -181,10 +182,14 @@ export const SearchPage = () => {
       return;
     }
 
-    // Amenities are multi-select — remove only the one chip the user clicked
-    // so the remaining selections stay active.
+    // Multi-select filters — remove only the one chip the user clicked so the
+    // remaining selections stay active.
     if (tokenKey === 'amenities') {
       toggleAmenity(tokenValue);
+      return;
+    }
+    if (tokenKey === 'languages') {
+      toggleLanguage(tokenValue);
       return;
     }
 
@@ -368,11 +373,7 @@ export const SearchPage = () => {
         ) : null}
 
         {isMobile ? (
-          <div
-            role="group"
-            aria-label="Toggle between list and map"
-            className="mobile-map-toggle"
-          >
+          <div role="group" aria-label="Toggle between list and map" className="mobile-map-toggle">
             <button
               type="button"
               onClick={() => {

@@ -130,11 +130,27 @@ export interface ISearchParams {
   denomination?: string
   day?: number
   time?: string
+  /**
+   * Service language filter. Accepts a single value or a comma-separated list;
+   * multiple values are OR-combined ("English OR Spanish"). The backend splits
+   * on `,` and trims whitespace, so `"English, Spanish"` and `"English,Spanish"`
+   * behave identically.
+   */
   language?: string
   amenities?: string
   wheelchairAccessible?: boolean
   goodForChildren?: boolean
   goodForGroups?: boolean
+  /** Minimum effective rating (local avgRating, else googleRating). 0–5. */
+  minRating?: number
+  /** Case-insensitive exact match on `churches.neighborhood`. */
+  neighborhood?: string
+  /** Case-insensitive match on `church_services.serviceType` (EXISTS subquery). */
+  serviceType?: string
+  /** When `true`, only return churches that have at least one uploaded photo. */
+  hasPhotos?: boolean
+  /** When `true`, only return churches marked as claimed/verified. */
+  isClaimed?: boolean
   sort?: 'relevance' | 'distance' | 'rating' | 'name'
   page?: number
   pageSize?: number

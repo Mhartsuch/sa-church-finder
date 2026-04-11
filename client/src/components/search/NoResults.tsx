@@ -54,11 +54,15 @@ export const NoResults = () => {
         action: () => setFilter('day', undefined),
       });
     }
-    if (filters.language) {
+    if (filters.languages && filters.languages.length > 0) {
+      const languageSummary =
+        filters.languages.length === 1
+          ? filters.languages[0]
+          : `${filters.languages.length} languages`;
       suggestions.push({
-        label: `Remove "${filters.language}"`,
+        label: `Remove "${languageSummary}"`,
         icon: <RotateCcw className="h-4 w-4" />,
-        action: () => setFilter('language', undefined),
+        action: () => setFilter('languages', undefined),
       });
     }
   }

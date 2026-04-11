@@ -37,30 +37,57 @@
 
 Search and list churches.
 
-| Param                | Type    | Required | Notes                                                                                        |
-| -------------------- | ------- | -------- | -------------------------------------------------------------------------------------------- |
-| lat                  | number  | No       | Center latitude (default: 29.4241)                                                           |
-| lng                  | number  | No       | Center longitude (default: -98.4936)                                                         |
-| radius               | number  | No       | Search radius in miles (default: 10, max: 25)                                                |
-| q                    | string  | No       | Text search query (name, description)                                                        |
-| denomination         | string  | No       | Filter by denomination_family                                                                |
-| day                  | number  | No       | Filter by service day (0=Sun–6=Sat)                                                          |
-| time                 | string  | No       | Filter by service time range ('morning','afternoon','evening')                               |
-| language             | string  | No       | Filter by service language                                                                   |
-| amenities            | string  | No       | Comma-separated amenity codes                                                                |
-| wheelchairAccessible | boolean | No       | When `true`, only return churches confirmed wheelchair accessible. Omit or `false` disables. |
-| goodForChildren      | boolean | No       | When `true`, only return churches confirmed family-friendly. Omit or `false` disables.       |
-| goodForGroups        | boolean | No       | When `true`, only return churches confirmed suitable for groups. Omit or `false` disables.   |
-| sort                 | string  | No       | 'relevance' (default), 'distance', 'rating', 'name'                                          |
-| page                 | number  | No       | Page number (default: 1)                                                                     |
-| pageSize             | number  | No       | Results per page (default: 20, max: 50)                                                      |
-| bounds               | string  | No       | Viewport bounding box 'sw_lat,sw_lng,ne_lat,ne_lng'                                          |
+| Param                | Type    | Required | Notes                                                                                                   |
+| -------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| lat                  | number  | No       | Center latitude (default: 29.4241)                                                                      |
+| lng                  | number  | No       | Center longitude (default: -98.4936)                                                                    |
+| radius               | number  | No       | Search radius in miles (default: 10, max: 25)                                                           |
+| q                    | string  | No       | Text search query (name, description, amenities, service types)                                         |
+| denomination         | string  | No       | Filter by denomination_family                                                                           |
+| neighborhood         | string  | No       | Case-insensitive exact match on the `neighborhood` column                                               |
+| day                  | number  | No       | Filter by service day (0=Sun–6=Sat)                                                                     |
+| time                 | string  | No       | Filter by service time range ('morning','afternoon','evening')                                          |
+| serviceType          | string  | No       | Case-insensitive match on `church_services.serviceType` (e.g. 'traditional', 'contemporary')            |
+| language             | string  | No       | Service language filter. Accepts a single value or a comma-separated list — multiple values OR-combine. |
+| amenities            | string  | No       | Comma-separated amenity names. Matching is case-insensitive and AND-combined (church must offer all).   |
+| minRating            | number  | No       | 0–5. Floor on effective rating (local `avgRating` if the church has reviews, else `googleRating`).      |
+| wheelchairAccessible | boolean | No       | When `true`, only return churches confirmed wheelchair accessible. Omit or `false` disables.            |
+| goodForChildren      | boolean | No       | When `true`, only return churches confirmed family-friendly. Omit or `false` disables.                  |
+| goodForGroups        | boolean | No       | When `true`, only return churches confirmed suitable for groups. Omit or `false` disables.              |
+| hasPhotos            | boolean | No       | When `true`, only return churches with at least one uploaded photo.                                     |
+| isClaimed            | boolean | No       | When `true`, only return churches that have been claimed/verified by a church leader.                   |
+| sort                 | string  | No       | 'relevance' (default), 'distance', 'rating', 'name'                                                     |
+| page                 | number  | No       | Page number (default: 1)                                                                                |
+| pageSize             | number  | No       | Results per page (default: 20, max: 50). Values above 50 are rejected with 400.                         |
+| bounds               | string  | No       | Viewport bounding box 'sw_lat,sw_lng,ne_lat,ne_lng'                                                     |
 
 > Boolean flags accept `'true'`, `'false'`, `'1'`, or `'0'`. They are intentionally restrictive —
 > a NULL value on the church row means "unknown" and will NOT satisfy a `true` filter, so only
 > churches with confirmed accessibility/community data are returned when the flag is on.
 
 **Response:** Array of church summary objects with distance.
+
+---
+
+#### `GET /churches/filter-options`
+
+Returns the distinct values that populate the client's filter panel. Data is
+derived from real database content so the options always match what can be
+found via the search endpoint. Cached for 5 minutes.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "denominations": ["Baptist", "Catholic", "Methodist", ...],
+    "languages":     ["English", "Spanish", ...],
+    "amenities":     ["Parking", "Nursery", "WiFi", ...],
+    "neighborhoods": ["Alamo Heights", "Stone Oak", "Downtown", ...],
+    "serviceTypes":  ["Traditional", "Contemporary", "Bilingual", ...]
+  }
+}
+```
 
 ---
 

@@ -48,7 +48,13 @@ vi.mock('@/hooks/useChurches', () => ({
     isLoading: false,
   }),
   useFilterOptions: () => ({
-    data: { denominations: [], languages: [], amenities: [] },
+    data: {
+      denominations: [],
+      languages: [],
+      amenities: [],
+      neighborhoods: [],
+      serviceTypes: [],
+    },
     isLoading: false,
   }),
 }));

@@ -5,7 +5,10 @@ export interface SearchFilters {
   denomination?: string;
   day?: number;
   time?: string;
-  language?: string;
+  // Languages are multi-select — selections OR together on the backend so a
+  // bilingual family can ask for "English OR Spanish" in a single search.
+  // Empty array collapses to `undefined` via `toggleLanguage`.
+  languages?: string[];
   // Amenities are multi-select — selections AND together on the backend so a
   // user can ask for "parking AND nursery" in a single search. An empty array
   // is treated as "no filter"; `toggleAmenity` collapses to `undefined` once
@@ -17,6 +20,16 @@ export interface SearchFilters {
   wheelchairAccessible?: boolean;
   goodForChildren?: boolean;
   goodForGroups?: boolean;
+  hasPhotos?: boolean;
+  isClaimed?: boolean;
+  // Numeric / single-string filters added alongside the core set.
+  minRating?: number;
+  neighborhood?: string;
+  serviceType?: string;
+  // Explicit search radius in miles. `undefined` means "use the backend
+  // default" (10 mi); a value of 2/5/10/25 corresponds to the chips in the
+  // filter panel distance section.
+  radius?: number;
 }
 
 export type SearchFilterValue = string | number | boolean | string[] | undefined;
@@ -57,6 +70,7 @@ interface SearchStore {
   setQuery: (query: string) => void;
   setFilter: (key: keyof SearchFilters, value: SearchFilterValue) => void;
   toggleAmenity: (amenity: string) => void;
+  toggleLanguage: (language: string) => void;
   clearFilters: () => void;
   setSort: (sort: SearchSort) => void;
   setPage: (page: number) => void;
@@ -87,15 +101,20 @@ export const useSearchStore = create<SearchStore>((set) => ({
   setQuery: (query: string) => set({ query, page: 1 }),
 
   setFilter: (key: keyof SearchFilters, value: SearchFilterValue) =>
-    set((state) => ({
-      filters: {
-        ...state.filters,
-        // An empty amenities array is semantically "no filter" — collapse it
-        // to `undefined` so the active filter count and URL sync stay clean.
-        [key]: key === 'amenities' && Array.isArray(value) && value.length === 0 ? undefined : value,
-      },
-      page: 1,
-    })),
+    set((state) => {
+      // An empty multi-select array is semantically "no filter" — collapse it
+      // to `undefined` so the active filter count and URL sync stay clean.
+      const isEmptyMultiSelect =
+        (key === 'amenities' || key === 'languages') && Array.isArray(value) && value.length === 0;
+
+      return {
+        filters: {
+          ...state.filters,
+          [key]: isEmptyMultiSelect ? undefined : value,
+        },
+        page: 1,
+      };
+    }),
 
   toggleAmenity: (amenity: string) =>
     set((state) => {
@@ -107,6 +126,21 @@ export const useSearchStore = create<SearchStore>((set) => ({
         filters: {
           ...state.filters,
           amenities: next.length > 0 ? next : undefined,
+        },
+        page: 1,
+      };
+    }),
+
+  toggleLanguage: (language: string) =>
+    set((state) => {
+      const current = state.filters.languages ?? [];
+      const isActive = current.includes(language);
+      const next = isActive ? current.filter((item) => item !== language) : [...current, language];
+
+      return {
+        filters: {
+          ...state.filters,
+          languages: next.length > 0 ? next : undefined,
         },
         page: 1,
       };

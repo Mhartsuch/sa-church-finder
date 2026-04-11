@@ -45,6 +45,12 @@ export const useURLSearchState = () => {
     const urlWheelchair = searchParams.get('wheelchairAccessible');
     const urlGoodForChildren = searchParams.get('goodForChildren');
     const urlGoodForGroups = searchParams.get('goodForGroups');
+    const urlHasPhotos = searchParams.get('hasPhotos');
+    const urlIsClaimed = searchParams.get('isClaimed');
+    const urlMinRating = searchParams.get('minRating');
+    const urlNeighborhood = searchParams.get('neighborhood');
+    const urlServiceType = searchParams.get('serviceType');
+    const urlRadius = searchParams.get('radius');
     const urlSort = searchParams.get('sort');
     const urlPage = searchParams.get('page');
     const urlNearLat = searchParams.get('nearLat');
@@ -54,7 +60,17 @@ export const useURLSearchState = () => {
     if (urlDenomination) setFilter('denomination', urlDenomination);
     if (urlDay) setFilter('day', parseInt(urlDay));
     if (urlTime) setFilter('time', urlTime);
-    if (urlLanguage) setFilter('language', urlLanguage);
+    if (urlLanguage) {
+      // Comma-separated for multi-select; a single value still works because
+      // split(',') returns a one-element array.
+      const parsedLanguages = urlLanguage
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (parsedLanguages.length > 0) {
+        setFilter('languages', parsedLanguages);
+      }
+    }
     if (urlAmenities) {
       const parsedAmenities = urlAmenities
         .split(',')
@@ -69,6 +85,22 @@ export const useURLSearchState = () => {
     if (urlWheelchair === 'true') setFilter('wheelchairAccessible', true);
     if (urlGoodForChildren === 'true') setFilter('goodForChildren', true);
     if (urlGoodForGroups === 'true') setFilter('goodForGroups', true);
+    if (urlHasPhotos === 'true') setFilter('hasPhotos', true);
+    if (urlIsClaimed === 'true') setFilter('isClaimed', true);
+    if (urlMinRating) {
+      const parsed = parseFloat(urlMinRating);
+      if (Number.isFinite(parsed) && parsed > 0 && parsed <= 5) {
+        setFilter('minRating', parsed);
+      }
+    }
+    if (urlNeighborhood) setFilter('neighborhood', urlNeighborhood);
+    if (urlServiceType) setFilter('serviceType', urlServiceType);
+    if (urlRadius) {
+      const parsed = parseFloat(urlRadius);
+      if (Number.isFinite(parsed) && parsed > 0 && parsed <= 25) {
+        setFilter('radius', parsed);
+      }
+    }
     if (urlSort && isValidSort(urlSort)) {
       setSort(urlSort);
     }
@@ -100,13 +132,23 @@ export const useURLSearchState = () => {
     if (filters.denomination) params.set('denomination', filters.denomination);
     if (filters.day !== undefined) params.set('day', String(filters.day));
     if (filters.time) params.set('time', filters.time);
-    if (filters.language) params.set('language', filters.language);
+    if (filters.languages && filters.languages.length > 0) {
+      params.set('language', filters.languages.join(','));
+    }
     if (filters.amenities && filters.amenities.length > 0) {
       params.set('amenities', filters.amenities.join(','));
     }
     if (filters.wheelchairAccessible) params.set('wheelchairAccessible', 'true');
     if (filters.goodForChildren) params.set('goodForChildren', 'true');
     if (filters.goodForGroups) params.set('goodForGroups', 'true');
+    if (filters.hasPhotos) params.set('hasPhotos', 'true');
+    if (filters.isClaimed) params.set('isClaimed', 'true');
+    if (filters.minRating !== undefined && filters.minRating > 0) {
+      params.set('minRating', String(filters.minRating));
+    }
+    if (filters.neighborhood) params.set('neighborhood', filters.neighborhood);
+    if (filters.serviceType) params.set('serviceType', filters.serviceType);
+    if (filters.radius !== undefined) params.set('radius', String(filters.radius));
     // `relevance` is the default, so omit it from the URL to keep shared links
     // clean. Any other sort is explicit and worth preserving.
     if (sort !== 'relevance') params.set('sort', sort);
