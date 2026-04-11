@@ -298,10 +298,19 @@ export async function searchChurches(
     )`)
   }
 
-  // Denomination
+  // Denomination — accepts a single value or a comma-separated list. Multiple
+  // values are OR-combined so "Baptist,Methodist" matches any church in
+  // either family. Matching is case-insensitive. Single-value callers
+  // (`?denomination=Baptist`) go through the same path as a one-element list,
+  // so legacy behaviour is preserved.
   if (params.denomination?.trim()) {
-    const denom = params.denomination.toLowerCase()
-    conditions.push(Prisma.sql`LOWER(c."denominationFamily") = ${denom}`)
+    const denominationList = params.denomination
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+    if (denominationList.length > 0) {
+      conditions.push(Prisma.sql`LOWER(c."denominationFamily") = ANY(${denominationList}::text[])`)
+    }
   }
 
   // Language — accepts a single value or a comma-separated list. Multiple

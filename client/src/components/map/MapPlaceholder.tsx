@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSearchStore } from '@/stores/search-store';
 import { useChurches } from '@/hooks/useChurches';
 import { SA_CENTER, DEFAULT_RADIUS, PAGE_SIZE } from '@/constants';
+import { ISearchParams } from '@/types/church';
 
 export const MapPlaceholder = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export const MapPlaceholder = () => {
   const selectedChurchId = useSearchStore((state) => state.selectedChurchId);
   const setHoveredChurch = useSearchStore((state) => state.setHoveredChurch);
 
-  const searchParams = {
+  const searchParams: ISearchParams = {
     lat: SA_CENTER.lat,
     lng: SA_CENTER.lng,
     radius: filters.radius ?? DEFAULT_RADIUS,

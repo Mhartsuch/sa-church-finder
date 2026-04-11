@@ -70,7 +70,14 @@ export interface ISearchParams {
   lng?: number;
   radius?: number;
   q?: string;
-  denomination?: string;
+  /**
+   * Denomination filter. Multi-select: an array is OR-combined on the
+   * backend ("Baptist OR Methodist"). Serialised to the `denomination` wire
+   * param as a comma-separated list, which the backend splits and ORs —
+   * a one-element array behaves identically to the legacy single-value
+   * filter, so old callers keep working.
+   */
+  denomination?: string[];
   day?: number;
   time?: string;
   /**

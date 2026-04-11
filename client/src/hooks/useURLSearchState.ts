@@ -57,7 +57,17 @@ export const useURLSearchState = () => {
     const urlNearLng = searchParams.get('nearLng');
 
     if (urlQuery) setQuery(urlQuery);
-    if (urlDenomination) setFilter('denomination', urlDenomination);
+    if (urlDenomination) {
+      // Comma-separated for multi-select; a single value still works because
+      // split(',') returns a one-element array. Mirrors the language parse.
+      const parsedDenominations = urlDenomination
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (parsedDenominations.length > 0) {
+        setFilter('denomination', parsedDenominations);
+      }
+    }
     if (urlDay) setFilter('day', parseInt(urlDay));
     if (urlTime) setFilter('time', urlTime);
     if (urlLanguage) {
@@ -113,6 +123,15 @@ export const useURLSearchState = () => {
       const lng = parseFloat(urlNearLng);
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
         setUserLocation({ lat, lng });
+        // Match the NearMeButton activation path: when the user location is
+        // set, the top results should be ordered by distance from it. If the
+        // URL did not specify an explicit sort, flip the default `relevance`
+        // to `distance` so a shared or reloaded "near me" link behaves the
+        // same as clicking the button fresh. An explicit `sort` in the URL
+        // still wins — it was hydrated just above this block.
+        if (!urlSort) {
+          setSort('distance');
+        }
       }
     }
 
@@ -129,7 +148,9 @@ export const useURLSearchState = () => {
     const params = new URLSearchParams();
 
     if (query) params.set('q', query);
-    if (filters.denomination) params.set('denomination', filters.denomination);
+    if (filters.denomination && filters.denomination.length > 0) {
+      params.set('denomination', filters.denomination.join(','));
+    }
     if (filters.day !== undefined) params.set('day', String(filters.day));
     if (filters.time) params.set('time', filters.time);
     if (filters.languages && filters.languages.length > 0) {

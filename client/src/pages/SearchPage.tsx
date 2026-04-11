@@ -15,9 +15,13 @@ import { FilterPanel } from '@/components/search/FilterPanel';
 import { NearMeButton } from '@/components/search/NearMeButton';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
-import { countActiveFilters, getActiveSearchTokens } from '@/lib/search-state';
+import {
+  ActiveSearchTokenKey,
+  countActiveFilters,
+  getActiveSearchTokens,
+} from '@/lib/search-state';
 import { useCompareStore } from '@/stores/compare-store';
-import { SearchFilters, useSearchStore } from '@/stores/search-store';
+import { useSearchStore } from '@/stores/search-store';
 
 const MOBILE_BREAKPOINT = 1024;
 
@@ -150,12 +154,24 @@ export const SearchPage = () => {
 
   const searchParams = useChurchSearchParams();
   const { data, error, isLoading } = useChurches(searchParams);
-  const activeTokens = useMemo(() => getActiveSearchTokens(query, filters), [filters, query]);
+  const activeTokens = useMemo(() => {
+    const tokens = getActiveSearchTokens(query, filters);
+    // `mapBounds` lives outside SearchFilters, so it can't flow through the
+    // generic token helper. Prepend a synthetic "Map area" chip whenever the
+    // map-bounds filter is set so users have a consistent, dismissable
+    // control — previously the only way out of a lingering bounds filter was
+    // to hide the map entirely, which was discoverable by accident at best.
+    if (mapBounds) {
+      return [{ key: 'mapBounds' as const, label: 'Map area', value: 'visible area' }, ...tokens];
+    }
+    return tokens;
+  }, [filters, mapBounds, query]);
   const totalResults = data?.meta.total ?? 0;
   const churches = data?.data ?? [];
   const activeAdvancedFilterCount = countActiveFilters(filters);
   const toggleAmenity = useSearchStore((state) => state.toggleAmenity);
   const toggleLanguage = useSearchStore((state) => state.toggleLanguage);
+  const toggleDenomination = useSearchStore((state) => state.toggleDenomination);
   const denominationCount = new Set(churches.map((church) => church.denomination).filter(Boolean))
     .size;
 
@@ -168,17 +184,28 @@ export const SearchPage = () => {
         ? `1 church ${locationLabel}`
         : `${totalResults} churches ${locationLabel}`;
 
+  // When exactly one tradition is selected we keep the legacy "<Name> churches"
+  // subtitle; anything else falls back to "All denominations" and lets the chip
+  // row carry the specifics. Keeps the subtitle short even with 4+ selections.
+  const singleDenominationLabel =
+    filters.denomination && filters.denomination.length === 1 ? filters.denomination[0] : null;
+
   const resultsDescription = error
     ? 'The list is unavailable right now, but your search state is still preserved.'
-    : filters.denomination
-      ? `${filters.denomination} churches`
+    : singleDenominationLabel
+      ? `${singleDenominationLabel} churches`
       : query.trim()
         ? `Matching "${query.trim()}"`
         : 'All denominations';
 
-  const removeToken = (tokenKey: 'query' | keyof SearchFilters, tokenValue: string) => {
+  const removeToken = (tokenKey: ActiveSearchTokenKey, tokenValue: string) => {
     if (tokenKey === 'query') {
       setQuery('');
+      return;
+    }
+
+    if (tokenKey === 'mapBounds') {
+      setMapBounds(null);
       return;
     }
 
@@ -190,6 +217,10 @@ export const SearchPage = () => {
     }
     if (tokenKey === 'languages') {
       toggleLanguage(tokenValue);
+      return;
+    }
+    if (tokenKey === 'denomination') {
+      toggleDenomination(tokenValue);
       return;
     }
 
@@ -272,7 +303,6 @@ export const SearchPage = () => {
                 {activeAdvancedFilterCount > 0
                   ? `  /  ${activeAdvancedFilterCount} filter${activeAdvancedFilterCount === 1 ? '' : 's'} active`
                   : ''}
-                {mapBounds ? '  /  Following the visible map area' : ''}
               </p>
             </div>
 

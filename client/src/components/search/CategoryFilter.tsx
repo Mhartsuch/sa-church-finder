@@ -47,6 +47,7 @@ export const CategoryFilter = ({
   const query = useSearchStore((state) => state.query);
   const filters = useSearchStore((state) => state.filters);
   const setFilter = useSearchStore((state) => state.setFilter);
+  const toggleDenomination = useSearchStore((state) => state.toggleDenomination);
   const clearFilters = useSearchStore((state) => state.clearFilters);
   const setQuery = useSearchStore((state) => state.setQuery);
   const { data: filterOptions } = useFilterOptions();
@@ -64,13 +65,18 @@ export const CategoryFilter = ({
     return availableDenominations.has(item.denominationValue.toLowerCase());
   });
 
+  // A denomination category chip is considered "on" when its value is in the
+  // multi-select array. The "All" chip stays on only when nothing is active.
+  const hasAnyDenomination = !!filters.denomination && filters.denomination.length > 0;
+  const isDenominationSelected = (value: string) => !!filters.denomination?.includes(value);
+
   const isActive = (item: CategoryItem) => {
     if (item.id === 'all') {
-      return !query.trim() && !filters.denomination;
+      return !query.trim() && !hasAnyDenomination;
     }
 
     if (item.denominationValue) {
-      return filters.denomination === item.denominationValue;
+      return isDenominationSelected(item.denominationValue);
     }
 
     return query.trim().toLowerCase() === item.queryValue?.toLowerCase();
@@ -83,9 +89,14 @@ export const CategoryFilter = ({
     }
 
     if (item.denominationValue) {
-      const isSame = filters.denomination === item.denominationValue;
-      setFilter('denomination', isSame ? undefined : item.denominationValue);
-      if (!isSame) {
+      // Tapping a denomination category toggles its membership in the
+      // multi-select array. When activating a brand-new one while a text
+      // query is present, clear the query the same way the single-select
+      // version did — the user is clearly pivoting from text search to
+      // filter search.
+      const wasAlreadyOn = isDenominationSelected(item.denominationValue);
+      toggleDenomination(item.denominationValue);
+      if (!wasAlreadyOn) {
         setQuery('');
       }
       return;

@@ -94,6 +94,55 @@ describe('search-store', () => {
 
       expect(useSearchStore.getState().filters.amenities).toEqual(['Parking', 'Nursery']);
     });
+
+    it('treats an empty denomination array as no filter', () => {
+      useSearchStore.getState().setFilter('denomination', []);
+
+      expect(useSearchStore.getState().filters.denomination).toBeUndefined();
+    });
+  });
+
+  describe('toggleDenomination', () => {
+    it('adds a new denomination to an empty selection', () => {
+      useSearchStore.getState().toggleDenomination('Baptist');
+
+      expect(useSearchStore.getState().filters.denomination).toEqual(['Baptist']);
+    });
+
+    it('appends additional denominations without dropping earlier choices', () => {
+      useSearchStore.getState().toggleDenomination('Baptist');
+      useSearchStore.getState().toggleDenomination('Methodist');
+      useSearchStore.getState().toggleDenomination('Non-denominational');
+
+      expect(useSearchStore.getState().filters.denomination).toEqual([
+        'Baptist',
+        'Methodist',
+        'Non-denominational',
+      ]);
+    });
+
+    it('removes a denomination when toggled a second time', () => {
+      useSearchStore.getState().toggleDenomination('Baptist');
+      useSearchStore.getState().toggleDenomination('Methodist');
+      useSearchStore.getState().toggleDenomination('Baptist');
+
+      expect(useSearchStore.getState().filters.denomination).toEqual(['Methodist']);
+    });
+
+    it('collapses an empty selection back to undefined', () => {
+      useSearchStore.getState().toggleDenomination('Baptist');
+      useSearchStore.getState().toggleDenomination('Baptist');
+
+      expect(useSearchStore.getState().filters.denomination).toBeUndefined();
+    });
+
+    it('resets pagination when toggling a denomination', () => {
+      useSearchStore.setState({ page: 4 });
+
+      useSearchStore.getState().toggleDenomination('Baptist');
+
+      expect(useSearchStore.getState().page).toBe(1);
+    });
   });
 
   describe('setFilter — accessibility & community booleans', () => {
@@ -115,13 +164,13 @@ describe('search-store', () => {
     });
 
     it('lets multiple boolean filters coexist with other filter types', () => {
-      useSearchStore.getState().setFilter('denomination', 'Catholic');
+      useSearchStore.getState().setFilter('denomination', ['Catholic']);
       useSearchStore.getState().setFilter('wheelchairAccessible', true);
       useSearchStore.getState().setFilter('goodForGroups', true);
 
       const filters = useSearchStore.getState().filters;
       expect(filters).toMatchObject({
-        denomination: 'Catholic',
+        denomination: ['Catholic'],
         wheelchairAccessible: true,
         goodForGroups: true,
       });

@@ -33,7 +33,13 @@ const buildQueryString = (params: ISearchParams): string => {
   if (params.lng !== undefined) qs.append('lng', params.lng.toString());
   if (params.radius !== undefined) qs.append('radius', params.radius.toString());
   if (params.q) qs.append('q', params.q);
-  if (params.denomination) qs.append('denomination', params.denomination);
+  // Denominations are multi-select and OR-combined on the backend. Serialize
+  // as a single comma-separated string on the existing `denomination` wire
+  // param, matching the language convention. A one-element array produces
+  // `denomination=Baptist`, so legacy single-value callers stay compatible.
+  if (params.denomination && params.denomination.length > 0) {
+    qs.append('denomination', params.denomination.join(','));
+  }
   if (params.day !== undefined) qs.append('day', params.day.toString());
   if (params.time) qs.append('time', params.time);
   // Languages are multi-select and OR-combined on the backend. Serialize as a

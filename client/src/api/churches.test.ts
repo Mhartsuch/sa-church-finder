@@ -60,7 +60,7 @@ describe('churches api — query string', () => {
 
   it('preserves other filters alongside boolean filters', async () => {
     await fetchChurches({
-      denomination: 'Catholic',
+      denomination: ['Catholic'],
       languages: ['Spanish'],
       wheelchairAccessible: true,
     });
@@ -69,5 +69,22 @@ describe('churches api — query string', () => {
     expect(url).toContain('denomination=Catholic');
     expect(url).toContain('language=Spanish');
     expect(url).toContain('wheelchairAccessible=true');
+  });
+
+  it('serializes multi-select denomination as a comma-separated list', async () => {
+    await fetchChurches({
+      denomination: ['Baptist', 'Methodist', 'Non-denominational'],
+    });
+
+    const url = getRequestUrl();
+    // URLSearchParams encodes commas as %2C, so decode before asserting.
+    expect(decodeURIComponent(url)).toContain('denomination=Baptist,Methodist,Non-denominational');
+  });
+
+  it('omits denomination when the array is empty', async () => {
+    await fetchChurches({ denomination: [] });
+
+    const url = getRequestUrl();
+    expect(url).not.toContain('denomination=');
   });
 });
