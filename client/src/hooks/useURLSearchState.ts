@@ -42,6 +42,9 @@ export const useURLSearchState = () => {
     const urlTime = searchParams.get('time');
     const urlLanguage = searchParams.get('language');
     const urlAmenities = searchParams.get('amenities');
+    const urlWheelchair = searchParams.get('wheelchairAccessible');
+    const urlGoodForChildren = searchParams.get('goodForChildren');
+    const urlGoodForGroups = searchParams.get('goodForGroups');
     const urlSort = searchParams.get('sort');
     const urlPage = searchParams.get('page');
     const urlNearLat = searchParams.get('nearLat');
@@ -53,6 +56,11 @@ export const useURLSearchState = () => {
     if (urlTime) setFilter('time', urlTime);
     if (urlLanguage) setFilter('language', urlLanguage);
     if (urlAmenities) setFilter('amenities', urlAmenities);
+    // Booleans are only written to the URL when `true`, so any presence of the
+    // param means the filter is active.
+    if (urlWheelchair === 'true') setFilter('wheelchairAccessible', true);
+    if (urlGoodForChildren === 'true') setFilter('goodForChildren', true);
+    if (urlGoodForGroups === 'true') setFilter('goodForGroups', true);
     if (urlSort && isValidSort(urlSort)) {
       setSort(urlSort);
     }
@@ -86,6 +94,9 @@ export const useURLSearchState = () => {
     if (filters.time) params.set('time', filters.time);
     if (filters.language) params.set('language', filters.language);
     if (filters.amenities) params.set('amenities', filters.amenities);
+    if (filters.wheelchairAccessible) params.set('wheelchairAccessible', 'true');
+    if (filters.goodForChildren) params.set('goodForChildren', 'true');
+    if (filters.goodForGroups) params.set('goodForGroups', 'true');
     // `relevance` is the default, so omit it from the URL to keep shared links
     // clean. Any other sort is explicit and worth preserving.
     if (sort !== 'relevance') params.set('sort', sort);

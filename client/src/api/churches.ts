@@ -38,6 +38,11 @@ const buildQueryString = (params: ISearchParams): string => {
   if (params.time) qs.append('time', params.time);
   if (params.language) qs.append('language', params.language);
   if (params.amenities) qs.append('amenities', params.amenities);
+  // Boolean toggles — only serialize when `true`. Omitting them entirely when
+  // unset keeps the query key (and shared URL) free of `...=false` noise.
+  if (params.wheelchairAccessible) qs.append('wheelchairAccessible', 'true');
+  if (params.goodForChildren) qs.append('goodForChildren', 'true');
+  if (params.goodForGroups) qs.append('goodForGroups', 'true');
   if (params.sort) qs.append('sort', params.sort);
   if (params.page !== undefined) qs.append('page', params.page.toString());
   if (params.pageSize !== undefined) qs.append('pageSize', params.pageSize.toString());

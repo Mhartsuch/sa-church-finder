@@ -6,6 +6,15 @@ import { z } from 'zod'
 import { EVENT_TYPES } from '../types/event.types.js'
 
 /**
+ * Query-string boolean flag: accepts 'true'/'false'/'1'/'0' and the native
+ * boolean that's already been coerced. Missing values stay `undefined` so the
+ * search service can distinguish "not filtered" from "explicitly false".
+ */
+const searchBooleanFlag = z
+  .union([z.enum(['true', 'false', '1', '0']), z.boolean()])
+  .transform((value) => value === true || value === 'true' || value === '1')
+
+/**
  * Schema for church search query parameters
  */
 export const churchSearchSchema = z.object({
@@ -20,6 +29,9 @@ export const churchSearchSchema = z.object({
       time: z.enum(['morning', 'afternoon', 'evening']).optional(),
       language: z.string().optional(),
       amenities: z.string().optional(),
+      wheelchairAccessible: searchBooleanFlag.optional(),
+      goodForChildren: searchBooleanFlag.optional(),
+      goodForGroups: searchBooleanFlag.optional(),
       sort: z.enum(['relevance', 'distance', 'rating', 'name']).optional(),
       page: z.coerce.number().int().positive().optional(),
       pageSize: z.coerce.number().int().positive().optional(),
