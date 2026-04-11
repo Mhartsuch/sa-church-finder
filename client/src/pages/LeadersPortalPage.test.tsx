@@ -1,7 +1,11 @@
 import '@testing-library/jest-dom/vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+
+import { ToastProvider } from '@/hooks/useToast';
 
 import LeadersPortalPage from './LeadersPortalPage';
 
@@ -15,6 +19,22 @@ vi.mock('@/hooks/useAuth', () => ({
 vi.mock('@/hooks/useLeaderPortal', () => ({
   useLeaderPortal: (userId: string | null) => useLeaderPortalMock(userId),
 }));
+
+const renderLeadersPortal = (): ReturnType<typeof render> => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <MemoryRouter>{children}</MemoryRouter>
+      </ToastProvider>
+    </QueryClientProvider>
+  );
+
+  return render(<LeadersPortalPage />, { wrapper });
+};
 
 describe('LeadersPortalPage', () => {
   it('renders managed churches with listing readiness and calendar context', () => {
@@ -81,16 +101,17 @@ describe('LeadersPortalPage', () => {
       ],
     });
 
-    render(
-      <MemoryRouter>
-        <LeadersPortalPage />
-      </MemoryRouter>,
-    );
+    renderLeadersPortal();
 
     expect(screen.getByText('Church leaders portal')).toBeInTheDocument();
-    expect(screen.getByText('Grace Community Church')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Grace Community Church' })).toBeInTheDocument();
     expect(screen.getByText('Listing readiness')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Upcoming events' })).toBeInTheDocument();
     expect(screen.getByText('Neighborhood Prayer Night')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add event' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Edit Neighborhood Prayer Night/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Review public listing' })).toHaveAttribute(
       'href',
       '/churches/grace-community-church',
@@ -132,11 +153,7 @@ describe('LeadersPortalPage', () => {
       managedChurches: [],
     });
 
-    render(
-      <MemoryRouter>
-        <LeadersPortalPage />
-      </MemoryRouter>,
-    );
+    renderLeadersPortal();
 
     expect(screen.getByText('No approved church access yet')).toBeInTheDocument();
     expect(screen.getByText('Hope Fellowship')).toBeInTheDocument();

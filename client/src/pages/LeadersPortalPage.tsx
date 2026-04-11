@@ -4,7 +4,6 @@ import {
   CalendarRange,
   CheckCircle2,
   CircleAlert,
-  Clock3,
   ExternalLink,
   Globe,
   Mail,
@@ -14,10 +13,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { EventManager } from '@/components/events/EventManager';
 import { useAuthSession } from '@/hooks/useAuth';
 import { IManagedChurchPortal, useLeaderPortal } from '@/hooks/useLeaderPortal';
 import { IChurchClaim } from '@/types/church-claim';
-import { ChurchEventType } from '@/types/event';
 
 const formatShortDate = (date: string): string =>
   new Intl.DateTimeFormat('en-US', {
@@ -32,37 +31,6 @@ const formatEventDate = (date: string): string =>
     month: 'short',
     day: 'numeric',
   }).format(new Date(date));
-
-const formatEventTimeRange = (startTime: string, endTime?: string | null): string => {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  const startLabel = formatter.format(new Date(startTime));
-  if (!endTime) {
-    return startLabel;
-  }
-
-  return `${startLabel} - ${formatter.format(new Date(endTime))}`;
-};
-
-const formatEventTypeLabel = (eventType: ChurchEventType): string => {
-  switch (eventType) {
-    case 'service':
-      return 'Service';
-    case 'community':
-      return 'Community';
-    case 'volunteer':
-      return 'Volunteer';
-    case 'study':
-      return 'Study';
-    case 'youth':
-      return 'Youth';
-    default:
-      return 'Other';
-  }
-};
 
 const getListingChecks = (
   portalChurch: IManagedChurchPortal,
@@ -387,71 +355,13 @@ const LeadersPortalPage = () => {
                             </div>
                           </div>
 
-                          <div className="rounded-[24px] border border-border bg-card p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <h3 className="text-base font-semibold text-foreground">
-                                  Calendar snapshot
-                                </h3>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                  Next 30 days of public-facing events.
-                                </p>
-                              </div>
-                              <span className="rounded-full bg-[#fff5f0] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#FF385C]">
-                                {portalChurch.upcomingEvents.length} planned
-                              </span>
-                            </div>
-
-                            {portalChurch.isEventsLoading || isManagedChurchesLoading ? (
-                              <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                                Loading upcoming events...
-                              </p>
-                            ) : portalChurch.eventsError ? (
-                              <p className="mt-4 text-sm leading-6 text-[#a8083a]">
-                                {portalChurch.eventsError.message}
-                              </p>
-                            ) : portalChurch.upcomingEvents.length === 0 ? (
-                              <div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-background p-4">
-                                <p className="text-sm leading-6 text-muted-foreground">
-                                  No public events are scheduled yet in the next 30 days. Once event
-                                  publishing tools land, this is where gaps will be easiest to spot.
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="mt-4 space-y-3">
-                                {portalChurch.upcomingEvents.slice(0, 3).map((event) => (
-                                  <div
-                                    key={event.id}
-                                    className="rounded-2xl border border-border bg-background p-4"
-                                  >
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="text-sm font-semibold text-foreground">
-                                        {event.title}
-                                      </p>
-                                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                                        {formatEventTypeLabel(event.eventType)}
-                                      </span>
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                      <span className="inline-flex items-center gap-1">
-                                        <CalendarRange className="h-4 w-4" />
-                                        {formatEventDate(event.startTime)}
-                                      </span>
-                                      <span className="inline-flex items-center gap-1">
-                                        <Clock3 className="h-4 w-4" />
-                                        {formatEventTimeRange(event.startTime, event.endTime)}
-                                      </span>
-                                    </div>
-                                    {event.description ? (
-                                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                                        {event.description}
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          <EventManager
+                            churchId={church.id}
+                            churchName={church.name}
+                            events={portalChurch.upcomingEvents}
+                            isLoading={portalChurch.isEventsLoading || isManagedChurchesLoading}
+                            errorMessage={portalChurch.eventsError?.message ?? null}
+                          />
                         </div>
 
                         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -583,10 +493,13 @@ const LeadersPortalPage = () => {
                 What comes next
               </p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-white/90">
-                <p>Listing-edit and event-publishing controls are still the next backend slice.</p>
                 <p>
-                  Until then, use this page to audit gaps before a visitor or site admin spots them
-                  first.
+                  Use the Upcoming events panel to publish, update, or retire gatherings right from
+                  this portal.
+                </p>
+                <p>
+                  Listing content edits (description, hours, photos) are the next slice and will
+                  land beside event tools.
                 </p>
                 <p>Claim approvals and moderation tools still live on your member dashboard.</p>
               </div>

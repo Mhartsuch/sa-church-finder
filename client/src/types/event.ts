@@ -42,3 +42,33 @@ export interface IChurchEventsResponse {
     };
   };
 }
+
+export interface ICreateChurchEventInput {
+  churchId: string;
+  title: string;
+  description?: string | null;
+  eventType: ChurchEventType;
+  startTime: string;
+  endTime?: string | null;
+  locationOverride?: string | null;
+  isRecurring?: boolean;
+  recurrenceRule?: string | null;
+}
+
+export interface IUpdateChurchEventInput {
+  eventId: string;
+  title?: string;
+  description?: string | null;
+  eventType?: ChurchEventType;
+  startTime?: string;
+  endTime?: string | null;
+  locationOverride?: string | null;
+  isRecurring?: boolean;
+  recurrenceRule?: string | null;
+}
+
+export interface IDeleteChurchEventResult {
+  id: string;
+  churchId: string;
+  deleted: true;
+}

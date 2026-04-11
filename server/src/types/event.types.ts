@@ -35,3 +35,31 @@ export interface IChurchEventResponse {
     }
   }
 }
+
+export interface ICreateChurchEventInput {
+  title: string
+  description?: string | null
+  eventType: ChurchEventType
+  startTime: Date
+  endTime?: Date | null
+  locationOverride?: string | null
+  isRecurring?: boolean
+  recurrenceRule?: string | null
+}
+
+export interface IUpdateChurchEventInput {
+  title?: string
+  description?: string | null
+  eventType?: ChurchEventType
+  startTime?: Date
+  endTime?: Date | null
+  locationOverride?: string | null
+  isRecurring?: boolean
+  recurrenceRule?: string | null
+}
+
+export interface IDeleteChurchEventResult {
+  id: string
+  churchId: string
+  deleted: true
+}

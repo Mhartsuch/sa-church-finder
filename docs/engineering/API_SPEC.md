@@ -207,48 +207,53 @@ Flag a review for moderation.
 
 ### Events
 
-#### `GET /churches/:churchId/events`
+#### `GET /churches/:slug/events`
 
-List upcoming events for a church.
+List upcoming events for a church by slug.
 
-| Param | Type   | Required | Notes                                 |
-| ----- | ------ | -------- | ------------------------------------- |
-| type  | string | No       | Filter by event_type                  |
-| from  | string | No       | Start date ISO 8601 (default: today)  |
-| to    | string | No       | End date ISO 8601 (default: +30 days) |
+| Param | Type   | Required | Notes                                |
+| ----- | ------ | -------- | ------------------------------------ |
+| type  | string | No       | Filter by event_type                 |
+| from  | string | No       | Start date ISO 8601 (default: today) |
+| to    | string | No       | End date ISO 8601                    |
 
----
-
-#### `POST /churches/:churchId/events` _(church_admin)_
-
-Create an event.
+**Response:** `{ data, meta: { total, filters } }` where `data` is an array of church events ordered by `startTime`.
 
 ---
 
-#### `PATCH /events/:id` _(church_admin)_
+#### `POST /churches/:churchId/events` _(church_admin or site_admin)_
 
-Update an event.
+Publish a new event. The authenticated user must either be a site admin or a church admin whose `claimedById` matches the church being targeted.
+
+| Field            | Type    | Required | Notes                                                                 |
+| ---------------- | ------- | -------- | --------------------------------------------------------------------- |
+| title            | string  | Yes      | 2–200 characters                                                      |
+| eventType        | string  | Yes      | One of `service`, `community`, `volunteer`, `study`, `youth`, `other` |
+| startTime        | string  | Yes      | ISO 8601 datetime                                                     |
+| endTime          | string  | No       | ISO 8601 datetime; must be strictly after `startTime` when provided   |
+| description      | string  | No       | Max 5000 characters                                                   |
+| locationOverride | string  | No       | Max 200 characters; leave empty to use the church address             |
+| isRecurring      | boolean | No       | Defaults to `false`                                                   |
+| recurrenceRule   | string  | No       | RRULE string when `isRecurring` is `true`                             |
+
+**Errors:**
+
+- `400 VALIDATION_ERROR` — invalid body shape or `endTime` ≤ `startTime`.
+- `401 AUTH_ERROR` — missing session.
+- `403 FORBIDDEN` — the user does not manage the church.
+- `404 NOT_FOUND` — the church does not exist.
+
+---
+
+#### `PATCH /events/:id` _(church_admin or site_admin)_
+
+Update an existing event. Same authorization and validation rules as `POST /churches/:churchId/events`. At least one field must be provided.
 
 ---
 
 #### `DELETE /events/:id` _(church_admin or site_admin)_
 
-Delete an event.
-
----
-
-#### `GET /events`
-
-Aggregate events feed across all churches.
-
-| Param  | Type   | Required | Notes                             |
-| ------ | ------ | -------- | --------------------------------- |
-| lat    | number | No       | Center latitude for nearby events |
-| lng    | number | No       | Center longitude                  |
-| radius | number | No       | Miles (default: 10)               |
-| type   | string | No       | Filter by event_type              |
-| from   | string | No       | Start date                        |
-| to     | string | No       | End date                          |
+Delete an event. Authorization matches the create/update endpoints.
 
 ---
 
@@ -410,4 +415,4 @@ Submit a claim request for a church.
 
 ---
 
-_Last updated: 2026-03-31_
+_Last updated: 2026-04-11 — documented church-admin event create/update/delete endpoints._
