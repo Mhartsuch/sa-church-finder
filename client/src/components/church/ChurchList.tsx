@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -31,9 +31,36 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const { addToast } = useToast();
   const [actionError, setActionError] = useState<string | null>(null);
   const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const previousPageRef = useRef(page);
 
   const searchParams = useChurchSearchParams();
   const { data, error, isLoading } = useChurches(searchParams);
+
+  // Scroll the results list into view when the user paginates. Without this,
+  // clicking "next" renders the new page off-screen below the viewport and
+  // users think nothing happened. Skip the initial mount and any navigation
+  // that doesn't actually change the page number.
+  useEffect(() => {
+    if (previousPageRef.current === page) {
+      return;
+    }
+    previousPageRef.current = page;
+
+    const container = resultsRef.current;
+    if (!container) {
+      return;
+    }
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    container.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }, [page]);
 
   const churches = data?.data || [];
   const meta = data?.meta;
@@ -93,7 +120,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   }
 
   return (
-    <div>
+    <div ref={resultsRef} className="scroll-mt-[176px]">
       {actionError ? (
         <div className="mb-5 rounded-2xl border border-[#ffc2cc] bg-[#fff0f3] px-4 py-3 text-sm text-[#a8083a]">
           {actionError}

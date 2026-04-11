@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useSearchStore } from '@/stores/search-store';
+import { SearchSort, useSearchStore } from '@/stores/search-store';
+
+const ALLOWED_SORTS: readonly SearchSort[] = ['relevance', 'distance', 'rating', 'name'];
+
+const isValidSort = (value: string): value is SearchSort =>
+  (ALLOWED_SORTS as readonly string[]).includes(value);
 
 /**
  * Syncs the Zustand search store with URL search parameters.
@@ -48,8 +53,8 @@ export const useURLSearchState = () => {
     if (urlTime) setFilter('time', urlTime);
     if (urlLanguage) setFilter('language', urlLanguage);
     if (urlAmenities) setFilter('amenities', urlAmenities);
-    if (urlSort && ['distance', 'rating', 'name'].includes(urlSort)) {
-      setSort(urlSort as 'distance' | 'rating' | 'name');
+    if (urlSort && isValidSort(urlSort)) {
+      setSort(urlSort);
     }
     if (urlPage) {
       const parsed = parseInt(urlPage);
@@ -81,7 +86,9 @@ export const useURLSearchState = () => {
     if (filters.time) params.set('time', filters.time);
     if (filters.language) params.set('language', filters.language);
     if (filters.amenities) params.set('amenities', filters.amenities);
-    if (sort !== 'distance') params.set('sort', sort);
+    // `relevance` is the default, so omit it from the URL to keep shared links
+    // clean. Any other sort is explicit and worth preserving.
+    if (sort !== 'relevance') params.set('sort', sort);
     if (page > 1) params.set('page', String(page));
     if (userLocation) {
       // Round to 4 decimals (~11 m) — plenty of precision for a search center

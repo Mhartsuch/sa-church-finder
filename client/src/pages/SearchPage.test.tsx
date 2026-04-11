@@ -62,7 +62,7 @@ describe('SearchPage', () => {
     useSearchStore.setState({
       query: '',
       filters: {},
-      sort: 'distance',
+      sort: 'relevance',
       page: 1,
       hoveredChurchId: null,
       selectedChurchId: null,
@@ -98,6 +98,42 @@ describe('SearchPage', () => {
     );
 
     expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+  });
+
+  it('exposes "Best match" as the first sort option and defaults to it', () => {
+    render(
+      <MemoryRouter initialEntries={['/search']}>
+        <Routes>
+          <Route path="/search" element={<SearchPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const sortSelect = screen.getByRole('combobox') as HTMLSelectElement;
+
+    // Best match is the first option and the selected one on a cold start so
+    // users land on the multi-factor relevance ranking instead of raw distance.
+    expect(sortSelect.value).toBe('relevance');
+    expect(sortSelect.options[0]?.value).toBe('relevance');
+    expect(sortSelect.options[0]?.textContent).toBe('Best match');
+    // Distance sort is still available, now labeled truthfully as "Nearest".
+    const distanceOption = Array.from(sortSelect.options).find((opt) => opt.value === 'distance');
+    expect(distanceOption?.textContent).toBe('Nearest');
+  });
+
+  it('updates the store when the user picks a different sort option', () => {
+    render(
+      <MemoryRouter initialEntries={['/search']}>
+        <Routes>
+          <Route path="/search" element={<SearchPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const sortSelect = screen.getByRole('combobox');
+    fireEvent.change(sortSelect, { target: { value: 'rating' } });
+
+    expect(useSearchStore.getState().sort).toBe('rating');
   });
 
   it('toggles map mode from the desktop map button', () => {
