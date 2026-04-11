@@ -2,7 +2,11 @@ import { create } from 'zustand';
 import { SA_CENTER, DEFAULT_ZOOM } from '@/constants';
 
 export interface SearchFilters {
-  denomination?: string;
+  // Denominations are multi-select — selections OR together on the backend so
+  // a user can ask for "Baptist OR Non-denominational OR Methodist" in a
+  // single search. Empty array collapses to `undefined` via
+  // `toggleDenomination` / the array-coercion branch in `setFilter`.
+  denomination?: string[];
   day?: number;
   time?: string;
   // Languages are multi-select — selections OR together on the backend so a
@@ -71,6 +75,7 @@ interface SearchStore {
   setFilter: (key: keyof SearchFilters, value: SearchFilterValue) => void;
   toggleAmenity: (amenity: string) => void;
   toggleLanguage: (language: string) => void;
+  toggleDenomination: (denomination: string) => void;
   clearFilters: () => void;
   setSort: (sort: SearchSort) => void;
   setPage: (page: number) => void;
@@ -105,7 +110,9 @@ export const useSearchStore = create<SearchStore>((set) => ({
       // An empty multi-select array is semantically "no filter" — collapse it
       // to `undefined` so the active filter count and URL sync stay clean.
       const isEmptyMultiSelect =
-        (key === 'amenities' || key === 'languages') && Array.isArray(value) && value.length === 0;
+        (key === 'amenities' || key === 'languages' || key === 'denomination') &&
+        Array.isArray(value) &&
+        value.length === 0;
 
       return {
         filters: {
@@ -141,6 +148,23 @@ export const useSearchStore = create<SearchStore>((set) => ({
         filters: {
           ...state.filters,
           languages: next.length > 0 ? next : undefined,
+        },
+        page: 1,
+      };
+    }),
+
+  toggleDenomination: (denomination: string) =>
+    set((state) => {
+      const current = state.filters.denomination ?? [];
+      const isActive = current.includes(denomination);
+      const next = isActive
+        ? current.filter((item) => item !== denomination)
+        : [...current, denomination];
+
+      return {
+        filters: {
+          ...state.filters,
+          denomination: next.length > 0 ? next : undefined,
         },
         page: 1,
       };

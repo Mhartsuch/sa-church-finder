@@ -1,7 +1,11 @@
 import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
 import { SearchFilters } from '@/stores/search-store';
 
-export type ActiveSearchTokenKey = 'query' | keyof SearchFilters;
+// `mapBounds` is not part of SearchFilters — it lives at the store root —
+// but the SearchPage wants to render it as a chip alongside the real
+// filters, so include it in the token-key union. The rest of the module
+// only emits `'query'` and `keyof SearchFilters` keys.
+export type ActiveSearchTokenKey = 'query' | 'mapBounds' | keyof SearchFilters;
 
 export interface ActiveSearchToken {
   key: ActiveSearchTokenKey;
@@ -32,12 +36,14 @@ export const getActiveSearchTokens = (
     });
   }
 
-  if (filters.denomination) {
-    tokens.push({
-      key: 'denomination',
-      label: 'Tradition',
-      value: filters.denomination,
-    });
+  if (filters.denomination && filters.denomination.length > 0) {
+    for (const denomination of filters.denomination) {
+      tokens.push({
+        key: 'denomination',
+        label: 'Tradition',
+        value: denomination,
+      });
+    }
   }
 
   if (filters.day !== undefined) {
@@ -155,19 +161,21 @@ export const getActiveSearchTokens = (
 };
 
 /**
- * Counts how many filters the user has actually selected. Each entry in the
- * amenities array counts separately so the chip in the header reads naturally
- * ("3 filters active" for parking + nursery + wifi), not "1 filter active".
+ * Counts how many filters the user has actually selected. Each entry in a
+ * multi-select array (amenities, languages, denomination) counts separately
+ * so the chip in the header reads naturally — "3 filters active" for a user
+ * who picked parking + nursery + wifi, or English + Spanish + Vietnamese,
+ * not "1 filter active".
  */
 export const countActiveFilters = (filters: SearchFilters): number => {
   let count = 0;
 
-  for (const [key, value] of Object.entries(filters) as [keyof SearchFilters, unknown][]) {
+  for (const [, value] of Object.entries(filters) as [keyof SearchFilters, unknown][]) {
     if (value === undefined || value === '' || value === false) {
       continue;
     }
 
-    if (key === 'amenities' && Array.isArray(value)) {
+    if (Array.isArray(value)) {
       count += value.length;
       continue;
     }

@@ -20,7 +20,7 @@ describe('search-state helpers', () => {
 
     it('combines amenity count with other active filters', () => {
       const filters: SearchFilters = {
-        denomination: 'Catholic',
+        denomination: ['Catholic'],
         amenities: ['Parking', 'Nursery'],
         wheelchairAccessible: true,
       };
@@ -29,10 +29,29 @@ describe('search-state helpers', () => {
       expect(countActiveFilters(filters)).toBe(4);
     });
 
+    it('counts each selected language separately like amenities', () => {
+      // Regression guard for the PR-#9 follow-up — previously languages were
+      // treated as a single filter because only amenities had the array
+      // special case.
+      const filters: SearchFilters = {
+        languages: ['English', 'Spanish', 'Vietnamese'],
+      };
+
+      expect(countActiveFilters(filters)).toBe(3);
+    });
+
+    it('counts each selected denomination separately', () => {
+      const filters: SearchFilters = {
+        denomination: ['Baptist', 'Methodist'],
+      };
+
+      expect(countActiveFilters(filters)).toBe(2);
+    });
+
     it('ignores an empty amenities array', () => {
       const filters: SearchFilters = {
         amenities: [],
-        denomination: 'Baptist',
+        denomination: ['Baptist'],
       };
 
       expect(countActiveFilters(filters)).toBe(1);
@@ -71,7 +90,7 @@ describe('search-state helpers', () => {
 
     it('includes query, denomination, and amenity tokens together', () => {
       const filters: SearchFilters = {
-        denomination: 'Methodist',
+        denomination: ['Methodist'],
         amenities: ['Wifi'],
       };
 
@@ -81,6 +100,20 @@ describe('search-state helpers', () => {
         { key: 'query', label: 'Search', value: 'community' },
         { key: 'denomination', label: 'Tradition', value: 'Methodist' },
         { key: 'amenities', label: 'Amenity', value: 'Wifi' },
+      ]);
+    });
+
+    it('emits one denomination token per selected value for per-chip removal', () => {
+      const filters: SearchFilters = {
+        denomination: ['Baptist', 'Methodist', 'Non-denominational'],
+      };
+
+      const tokens = getActiveSearchTokens('', filters);
+
+      expect(tokens).toEqual([
+        { key: 'denomination', label: 'Tradition', value: 'Baptist' },
+        { key: 'denomination', label: 'Tradition', value: 'Methodist' },
+        { key: 'denomination', label: 'Tradition', value: 'Non-denominational' },
       ]);
     });
   });

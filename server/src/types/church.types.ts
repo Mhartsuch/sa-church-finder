@@ -127,6 +127,12 @@ export interface ISearchParams {
   lng?: number
   radius?: number
   q?: string
+  /**
+   * Denomination family filter. Accepts a single value or a comma-separated
+   * list; multiple values are OR-combined so "Baptist,Methodist" matches any
+   * church in either family. The backend splits on `,` and trims whitespace,
+   * so `"Baptist, Methodist"` and `"Baptist,Methodist"` behave identically.
+   */
   denomination?: string
   day?: number
   time?: string

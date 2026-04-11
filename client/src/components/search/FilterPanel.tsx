@@ -179,6 +179,44 @@ const LanguageFilterSection = ({ options }: LanguageFilterSectionProps) => {
   );
 };
 
+interface DenominationFilterSectionProps {
+  options: FilterOption[];
+}
+
+const DenominationFilterSection = ({ options }: DenominationFilterSectionProps) => {
+  const selected = useSearchStore((state) => state.filters.denomination) ?? [];
+  const toggleDenomination = useSearchStore((state) => state.toggleDenomination);
+
+  if (options.length === 0) return null;
+
+  return (
+    <section className="rounded-[24px] border border-border bg-card p-5">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-base font-semibold text-foreground">Tradition</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Pick one or more traditions — we will match churches from any of them.
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const value = String(option.value);
+          const active = selected.includes(value);
+
+          return (
+            <FilterOptionButton
+              key={`denomination-${value}`}
+              active={active}
+              label={option.label}
+              onClick={() => toggleDenomination(value)}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
 const BOOLEAN_FILTER_OPTIONS: BooleanFilterOption[] = [
   {
     key: 'wheelchairAccessible',
@@ -350,12 +388,7 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
           options={MIN_RATING_OPTIONS}
         />
 
-        <FilterSection
-          label="Tradition"
-          description="Choose a denomination to narrow the directory quickly."
-          filterKey="denomination"
-          options={denominationOptions}
-        />
+        <DenominationFilterSection options={denominationOptions} />
 
         <FilterSection
           label="Neighborhood"
