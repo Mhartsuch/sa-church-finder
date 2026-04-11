@@ -151,10 +151,10 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-8 md:w-8"
                   aria-label="Clear search"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               ) : null}
             </div>

@@ -1240,6 +1240,10 @@ export const ChurchProfilePage = () => {
                             </span>
                             <input
                               type="email"
+                              inputMode="email"
+                              autoComplete="email"
+                              autoCapitalize="none"
+                              spellCheck={false}
                               value={claimVerificationEmail}
                               onChange={(event) => {
                                 setClaimVerificationEmail(event.target.value);

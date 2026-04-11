@@ -29,7 +29,7 @@ import LeadersPortalPage from '@/pages/LeadersPortalPage';
 const App = () => {
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="mobile-nav-spacer flex min-h-screen flex-col bg-background">
         <ScrollToTop />
         <Header />
         <Routes>

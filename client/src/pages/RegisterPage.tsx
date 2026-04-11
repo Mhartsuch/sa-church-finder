@@ -159,7 +159,10 @@ const RegisterPage = () => {
           Email
           <input
             type="email"
+            inputMode="email"
             autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
             value={formState.email}
             onChange={(event) => {
               setFormState((current) => ({

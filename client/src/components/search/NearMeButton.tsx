@@ -56,7 +56,7 @@ export const NearMeButton = ({ className }: NearMeButtonProps) => {
   if (userLocation) {
     return (
       <div
-        className={`inline-flex items-center gap-1 rounded-[10px] border border-foreground bg-foreground py-0.5 pl-3 pr-1 text-[13px] font-semibold text-white ${className ?? ''}`}
+        className={`inline-flex min-h-[44px] items-center gap-1 rounded-[10px] border border-foreground bg-foreground py-0.5 pl-3 pr-1 text-[13px] font-semibold text-white ${className ?? ''}`}
       >
         <span className="inline-flex items-center gap-1.5">
           <Navigation className="h-3.5 w-3.5" />
@@ -66,7 +66,7 @@ export const NearMeButton = ({ className }: NearMeButtonProps) => {
           type="button"
           onClick={handleClear}
           aria-label="Clear 'near you' location"
-          className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
         >
           <X className="h-3.5 w-3.5" />
         </button>

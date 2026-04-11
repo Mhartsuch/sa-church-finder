@@ -179,17 +179,20 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
       </div>
 
       {totalPages > 1 && (
-        <nav className="flex items-center justify-center gap-2 pb-4 pt-12">
+        <nav
+          className="flex items-center justify-center gap-1 pb-4 pt-12"
+          aria-label="Search results pagination"
+        >
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {Array.from({ length: Math.min(totalPages, 7) }, (_, index) => {
               let pageNum: number;
               if (totalPages <= 7) {
@@ -202,12 +205,16 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
                 pageNum = page - 3 + index;
               }
 
+              const isCurrent = page === pageNum;
+
               return (
                 <button
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`h-8 w-8 rounded-full text-sm font-semibold transition-colors ${
-                    page === pageNum ? 'bg-foreground text-white' : 'text-foreground hover:bg-muted'
+                  aria-label={`Go to page ${pageNum}`}
+                  aria-current={isCurrent ? 'page' : undefined}
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                    isCurrent ? 'bg-foreground text-white' : 'text-foreground hover:bg-muted'
                   }`}
                 >
                   {pageNum}
@@ -219,7 +226,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />

@@ -55,7 +55,7 @@ export const SearchSuggestions = ({
       <div
         role="listbox"
         aria-label="Church search suggestions"
-        className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-[18px] border border-border bg-card p-3 shadow-[0_16px_48px_rgba(0,0,0,0.18)]"
+        className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[min(60vh,420px)] overflow-y-auto overscroll-contain rounded-[18px] border border-border bg-card p-3 shadow-[0_16px_48px_rgba(0,0,0,0.18)]"
       >
         <button
           type="button"
@@ -81,7 +81,7 @@ export const SearchSuggestions = ({
     <div
       role="listbox"
       aria-label="Church search suggestions"
-      className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-[18px] border border-border bg-card shadow-[0_16px_48px_rgba(0,0,0,0.18)]"
+      className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[min(60vh,520px)] overflow-y-auto overscroll-contain rounded-[18px] border border-border bg-card shadow-[0_16px_48px_rgba(0,0,0,0.18)]"
     >
       {hasTerm ? (
         <div className="border-b border-border/60 px-2 pb-2 pt-2">
@@ -186,10 +186,10 @@ export const SearchSuggestions = ({
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => onRemoveRecent(recentTerm)}
-                  className="mr-2 inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="mr-2 inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-8 md:w-8"
                   aria-label={`Remove recent search ${recentTerm}`}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </li>
             ))}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, List, Map, X } from 'lucide-react';
+import { ChevronDown, LayoutGrid, Map as MapIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ChurchList } from '@/components/church/ChurchList';
@@ -368,19 +368,36 @@ export const SearchPage = () => {
         ) : null}
 
         {isMobile ? (
-          <div className="reference-fab">
-            <button type="button" onClick={toggleMap} className="reference-fab-button">
-              {showMap ? (
-                <>
-                  Show list
-                  <List className="h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  Show map
-                  <Map className="h-4 w-4" />
-                </>
-              )}
+          <div
+            role="group"
+            aria-label="Toggle between list and map"
+            className="mobile-map-toggle"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                if (showMap) {
+                  toggleMap();
+                }
+              }}
+              aria-pressed={!showMap}
+              className="mobile-map-toggle-option"
+            >
+              <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!showMap) {
+                  toggleMap();
+                }
+              }}
+              aria-pressed={showMap}
+              className="mobile-map-toggle-option"
+            >
+              <MapIcon className="h-4 w-4" aria-hidden="true" />
+              Map
             </button>
           </div>
         ) : null}
