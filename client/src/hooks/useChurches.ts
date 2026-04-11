@@ -40,15 +40,20 @@ export const useChurchSearchParams = () => {
   const sort = useSearchStore((state) => state.sort);
   const page = useSearchStore((state) => state.page);
   const mapBounds = useSearchStore((state) => state.mapBounds);
-  const mapCenter = useSearchStore((state) => state.mapCenter);
 
   const boundsString = mapBounds
     ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
     : undefined;
 
+  // When bounds are active, derive the search center from the bounds themselves.
+  // This keeps the query key stable while the user pans the map without applying —
+  // only clicking "Search this area" (which updates mapBounds) triggers a refetch.
+  const searchLat = mapBounds ? (mapBounds.swLat + mapBounds.neLat) / 2 : SA_CENTER.lat;
+  const searchLng = mapBounds ? (mapBounds.swLng + mapBounds.neLng) / 2 : SA_CENTER.lng;
+
   return {
-    lat: mapBounds ? mapCenter.lat : SA_CENTER.lat,
-    lng: mapBounds ? mapCenter.lng : SA_CENTER.lng,
+    lat: searchLat,
+    lng: searchLng,
     radius: DEFAULT_RADIUS,
     q: query || undefined,
     denomination: filters.denomination,

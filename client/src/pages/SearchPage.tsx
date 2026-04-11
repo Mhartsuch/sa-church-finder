@@ -77,7 +77,20 @@ export const SearchPage = () => {
   const setFilter = useSearchStore((state) => state.setFilter);
   const setQuery = useSearchStore((state) => state.setQuery);
   const setSort = useSearchStore((state) => state.setSort);
+  const setMapBounds = useSearchStore((state) => state.setMapBounds);
   const clearFilters = useSearchStore((state) => state.clearFilters);
+
+  const toggleMap = useCallback(() => {
+    setShowMap((current) => {
+      // Hiding the map should also drop the "visible map area" filter so the
+      // list reverts to the city-wide search — otherwise a stale bounds filter
+      // silently constrains results even though the map is gone.
+      if (current) {
+        setMapBounds(null);
+      }
+      return !current;
+    });
+  }, [setMapBounds]);
   const locationState = getSearchPageLocationState(location.state);
   const compareCount = useCompareStore((state) => state.selectedChurches.length);
 
@@ -252,9 +265,7 @@ export const SearchPage = () => {
               {!isMobile ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowMap((current) => !current);
-                  }}
+                  onClick={toggleMap}
                   className={`rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
                     showMap
                       ? 'border-foreground bg-foreground text-white'
@@ -346,11 +357,7 @@ export const SearchPage = () => {
 
         {isMobile ? (
           <div className="reference-fab">
-            <button
-              type="button"
-              onClick={() => setShowMap((current) => !current)}
-              className="reference-fab-button"
-            >
+            <button type="button" onClick={toggleMap} className="reference-fab-button">
               {showMap ? (
                 <>
                   Show list
