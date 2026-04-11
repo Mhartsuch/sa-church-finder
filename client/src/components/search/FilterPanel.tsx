@@ -235,7 +235,10 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
   }));
 
   return (
-    <div className="flex max-h-[88vh] flex-col bg-background">
+    // Use dynamic viewport units on mobile so the sheet doesn't get
+    // clipped when the mobile browser URL bar collapses/expands. Fall
+    // back to vh in the rare browser that doesn't support dvh.
+    <div className="flex max-h-[88vh] max-h-[88dvh] flex-col bg-background">
       <div className="border-b border-border bg-card px-6 py-5 sm:px-8">
         <div className="flex items-center justify-between gap-4">
           {onClose ? (
@@ -291,9 +294,15 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
         <BooleanFilterSection />
       </div>
 
-      <div className="border-t border-border bg-card px-6 py-5 sm:px-8 sm:py-6">
+      <div
+        className="border-t border-border bg-card px-6 pt-5 sm:px-8 sm:py-6"
+        // On mobile the filter modal pins to the bottom of the viewport as a
+        // bottom sheet, so the footer sits directly on top of the iOS home
+        // indicator. Reserve safe-area space so the primary CTAs stay tappable.
+        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))' }}
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-semibold text-muted-foreground">
+          <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-semibold text-muted-foreground">
             <SlidersHorizontal className="h-4 w-4" />
             {activeFilterCount === 0
               ? 'No filters selected'
@@ -304,14 +313,14 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
             <button
               type="button"
               onClick={clearFilters}
-              className="rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:border-foreground hover:bg-muted"
+              className="min-h-[44px] rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:border-foreground hover:bg-muted"
             >
               Clear all
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
+              className="min-h-[44px] rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
             >
               {resultCount === 1 ? 'Show 1 church' : `Show ${resultCount} churches`}
             </button>

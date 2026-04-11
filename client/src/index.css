@@ -325,35 +325,64 @@
     padding: 24px 16px 96px;
   }
 
-  .reference-fab {
+  /* Bottom padding reservation so fixed MobileNav and map toggle don't
+     clip the end of scrolled content (footer, community sections, etc.).
+     The height covers the 64px nav + the iOS safe-area inset. */
+  .mobile-nav-spacer {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-nav-spacer {
+      padding-bottom: 0;
+    }
+  }
+
+  /* Fixed bottom nav — respects the iOS home indicator safe area so the
+     bottom row of buttons never collides with the physical gesture bar. */
+  .mobile-nav-bar {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 6px);
+  }
+
+  /* Persistent map/list segmented toggle on mobile. Floats above the
+     MobileNav (64px + safe area) so it's always reachable without having
+     to hunt for a FAB or drag the map. */
+  .mobile-map-toggle {
     position: fixed;
     left: 50%;
-    bottom: 24px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 16px);
     z-index: 60;
     transform: translateX(-50%);
-  }
-
-  .reference-fab-button {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border-radius: 24px;
-    background: hsl(var(--foreground));
-    padding: 14px 24px;
-    font-size: 14px;
-    font-weight: 600;
-    color: hsl(var(--background));
+    padding: 4px;
+    border-radius: 9999px;
+    background: hsl(var(--card) / 0.97);
+    border: 1px solid hsl(var(--border));
     box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.3),
+      0 8px 24px rgba(0, 0, 0, 0.18),
       0 0 0 1px rgba(0, 0, 0, 0.04);
-    transition:
-      background-color 0.2s ease,
-      transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(8px);
   }
 
-  .reference-fab-button:hover {
-    filter: brightness(0.85);
-    transform: scale(1.04);
+  .mobile-map-toggle-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .mobile-map-toggle-option[aria-pressed='true'] {
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
   }
 
   .church-popup .mapboxgl-popup-content {

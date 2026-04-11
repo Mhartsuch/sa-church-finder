@@ -85,7 +85,7 @@ export const Header = () => {
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <Link
               to="/events"
-              className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
+              className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
             >
               <CalendarDays className="h-3.5 w-3.5" />
               Events
@@ -118,7 +118,7 @@ export const Header = () => {
 
             <Link
               to={wishlistHref}
-              className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
+              className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
             >
               <Heart className="h-3.5 w-3.5 fill-current" />
               Wishlist

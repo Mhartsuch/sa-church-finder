@@ -165,24 +165,25 @@ export const ChurchCard = ({
           {badgeLabel}
         </div>
 
-        {/* Carousel arrows - shown on hover */}
+        {/* Carousel arrows — larger tap targets on touch devices, kept
+            hover-revealed on desktop so they don't clutter the card. */}
         {totalSlides > 1 && (
           <>
             <button
               type="button"
               onClick={(e) => goToSlide('prev', e)}
-              className="absolute left-2 top-1/2 z-[3] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,0.92)] opacity-0 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.08] hover:bg-white group-hover:opacity-100"
+              className="absolute left-2 top-1/2 z-[3] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,0.92)] opacity-100 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.08] hover:bg-white md:h-7 md:w-7 md:opacity-0 md:group-hover:opacity-100"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-[10px] w-[10px] text-foreground" strokeWidth={3} />
+              <ChevronLeft className="h-3 w-3 text-foreground md:h-[10px] md:w-[10px]" strokeWidth={3} />
             </button>
             <button
               type="button"
               onClick={(e) => goToSlide('next', e)}
-              className="absolute right-2 top-1/2 z-[3] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,0.92)] opacity-0 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.08] hover:bg-white group-hover:opacity-100"
+              className="absolute right-2 top-1/2 z-[3] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(255,255,255,0.92)] opacity-100 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.08] hover:bg-white md:h-7 md:w-7 md:opacity-0 md:group-hover:opacity-100"
               aria-label="Next image"
             >
-              <ChevronRight className="h-[10px] w-[10px] text-foreground" strokeWidth={3} />
+              <ChevronRight className="h-3 w-3 text-foreground md:h-[10px] md:w-[10px]" strokeWidth={3} />
             </button>
           </>
         )}
