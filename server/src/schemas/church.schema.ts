@@ -112,3 +112,40 @@ export const churchIdSchema = z.object({
   query: z.object({}).passthrough(),
   body: z.object({}).passthrough(),
 })
+
+/**
+ * Schema for PATCH /churches/:id — update editable church listing fields.
+ * All body fields are optional (PATCH semantics). String fields accept `null`
+ * to clear the value.
+ */
+export const churchUpdateSchema = z.object({
+  params: z
+    .object({
+      id: z.string().uuid(),
+    })
+    .passthrough(),
+  query: z.object({}).passthrough(),
+  body: z
+    .object({
+      description: z.string().max(5000).nullable().optional(),
+      phone: z.string().max(30).nullable().optional(),
+      email: z.string().email().max(255).nullable().optional(),
+      website: z.string().max(500).nullable().optional(),
+      pastorName: z.string().max(255).nullable().optional(),
+      yearEstablished: z
+        .number()
+        .int()
+        .min(1500)
+        .max(new Date().getFullYear())
+        .nullable()
+        .optional(),
+      languages: z.array(z.string().min(1).max(100)).max(20).optional(),
+      amenities: z.array(z.string().min(1).max(100)).max(50).optional(),
+      goodForChildren: z.boolean().nullable().optional(),
+      goodForGroups: z.boolean().nullable().optional(),
+      wheelchairAccessible: z.boolean().nullable().optional(),
+    })
+    .strict(),
+})
+
+export type ChurchUpdateBody = z.infer<typeof churchUpdateSchema>['body']

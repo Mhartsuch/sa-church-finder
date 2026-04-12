@@ -7,6 +7,7 @@ import {
   fetchFilterOptions,
   fetchSavedChurches,
   toggleSavedChurch,
+  updateChurch,
 } from '@/api/churches';
 import { useSearchStore } from '@/stores/search-store';
 import {
@@ -15,6 +16,7 @@ import {
   ISavedChurch,
   ISearchParams,
   ISearchResponse,
+  IUpdateChurchInput,
 } from '@/types/church';
 
 const STALE_TIME = 60000; // 60 seconds
@@ -145,6 +147,42 @@ export const useToggleSavedChurch = () => {
 
       void queryClient.invalidateQueries({
         queryKey: SAVED_CHURCHES_QUERY_KEY,
+      });
+    },
+  });
+};
+
+export const useUpdateChurch = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<IChurch, Error, { churchId: string; input: IUpdateChurchInput }>({
+    mutationFn: ({ churchId, input }) => updateChurch(churchId, input),
+    onSuccess: (updatedChurch) => {
+      // Update the church detail cache
+      queryClient.setQueriesData<IChurch>({ queryKey: CHURCH_QUERY_KEY }, (current) =>
+        current && current.id === updatedChurch.id ? updatedChurch : current,
+      );
+
+      // Update the search results cache with changed fields
+      queryClient.setQueriesData<ISearchResponse>({ queryKey: CHURCHES_QUERY_KEY }, (current) =>
+        current
+          ? {
+              ...current,
+              data: current.data.map((church) =>
+                church.id === updatedChurch.id ? { ...church, ...updatedChurch } : church,
+              ),
+            }
+          : current,
+      );
+
+      // Invalidate leader portal church queries so the portal refreshes
+      void queryClient.invalidateQueries({
+        queryKey: ['leaders-portal', 'church'],
+      });
+
+      // Invalidate filter options in case languages/amenities changed
+      void queryClient.invalidateQueries({
+        queryKey: FILTER_OPTIONS_QUERY_KEY,
       });
     },
   });

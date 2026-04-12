@@ -6,8 +6,9 @@
  * bounding box filtering).
  */
 
-import { Prisma } from '@prisma/client'
+import { Prisma, Role } from '@prisma/client'
 import prisma from '../lib/prisma.js'
+import { AppError, NotFoundError } from '../middleware/error-handler.js'
 import { getViewerClaimForChurch } from './church-claim.service.js'
 import {
   IBounds,
@@ -880,4 +881,150 @@ export async function getFilterOptions(): Promise<IFilterOptionsPayload> {
  */
 export function invalidateFilterOptionsCache(): void {
   filterOptionsCache = null
+}
+
+// ── Church update ──
+
+export interface IUpdateChurchInput {
+  description?: string | null
+  phone?: string | null
+  email?: string | null
+  website?: string | null
+  pastorName?: string | null
+  yearEstablished?: number | null
+  languages?: string[]
+  amenities?: string[]
+  goodForChildren?: boolean | null
+  goodForGroups?: boolean | null
+  wheelchairAccessible?: boolean | null
+}
+
+/**
+ * Authorizes that the given user can manage the given church. Site admins
+ * can manage any church; church admins can manage churches they claimed.
+ */
+const authorizeChurchManager = async (userId: string, churchId: string): Promise<void> => {
+  const [user, church] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    }),
+    prisma.church.findUnique({
+      where: { id: churchId },
+      select: { id: true, claimedById: true, isClaimed: true },
+    }),
+  ])
+
+  if (!user) {
+    throw new AppError(401, 'AUTH_ERROR', 'Not authenticated')
+  }
+
+  if (!church) {
+    throw new NotFoundError('Church not found')
+  }
+
+  if (user.role === Role.SITE_ADMIN) {
+    return
+  }
+
+  if (user.role === Role.CHURCH_ADMIN && church.isClaimed && church.claimedById === user.id) {
+    return
+  }
+
+  throw new AppError(403, 'FORBIDDEN', 'You do not have permission to edit this church')
+}
+
+/**
+ * Update editable fields on a church listing. Only the fields present in the
+ * input are changed — omitted keys are left untouched (PATCH semantics).
+ *
+ * After a successful update the filter-options cache is invalidated so the
+ * search page picks up any new languages, amenities, etc.
+ */
+export async function updateChurch(
+  userId: string,
+  churchId: string,
+  input: IUpdateChurchInput,
+): Promise<IChurch> {
+  await authorizeChurchManager(userId, churchId)
+
+  const data: Prisma.ChurchUpdateInput = {}
+
+  if (input.description !== undefined) {
+    data.description = input.description?.trim() || null
+  }
+  if (input.phone !== undefined) {
+    data.phone = input.phone?.trim() || null
+  }
+  if (input.email !== undefined) {
+    data.email = input.email?.trim() || null
+  }
+  if (input.website !== undefined) {
+    data.website = input.website?.trim() || null
+  }
+  if (input.pastorName !== undefined) {
+    data.pastorName = input.pastorName?.trim() || null
+  }
+  if (input.yearEstablished !== undefined) {
+    data.yearEstablished = input.yearEstablished
+  }
+  if (input.languages !== undefined) {
+    data.languages = input.languages
+  }
+  if (input.amenities !== undefined) {
+    data.amenities = input.amenities
+  }
+  if (input.goodForChildren !== undefined) {
+    data.goodForChildren = input.goodForChildren
+  }
+  if (input.goodForGroups !== undefined) {
+    data.goodForGroups = input.goodForGroups
+  }
+  if (input.wheelchairAccessible !== undefined) {
+    data.wheelchairAccessible = input.wheelchairAccessible
+  }
+
+  const church = await prisma.church.update({
+    where: { id: churchId },
+    data,
+    include: {
+      services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+      photos: { orderBy: { displayOrder: 'asc' } },
+    },
+  })
+
+  // Invalidate filter-options cache so new languages/amenities show up
+  invalidateFilterOptionsCache()
+
+  const savedChurch = await prisma.userSavedChurch.findUnique({
+    where: {
+      userId_churchId: {
+        userId,
+        churchId: church.id,
+      },
+    },
+    select: { churchId: true },
+  })
+
+  const viewerClaim = await getViewerClaimForChurch(church.id, userId)
+
+  const photos: IChurchPhoto[] = church.photos.map((p) => ({
+    id: p.id,
+    url: p.url,
+    altText: p.altText,
+    displayOrder: p.displayOrder,
+  }))
+
+  return {
+    ...church,
+    latitude: toNumber(church.latitude),
+    longitude: toNumber(church.longitude),
+    avgRating: toNumber(church.avgRating),
+    googleRating: church.googleRating != null ? toNumber(church.googleRating) : null,
+    googleReviewCount: church.googleReviewCount ?? null,
+    isSaved: Boolean(savedChurch),
+    viewerClaim,
+    services: church.services,
+    photos,
+  }
 }

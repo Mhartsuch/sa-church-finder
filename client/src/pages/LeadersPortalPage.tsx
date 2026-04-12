@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ArrowRight,
   Building2,
@@ -8,14 +9,17 @@ import {
   Globe,
   Mail,
   MapPin,
+  Pencil,
   Phone,
   Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { ChurchEditor } from '@/components/church/ChurchEditor';
 import { EventManager } from '@/components/events/EventManager';
 import { useAuthSession } from '@/hooks/useAuth';
 import { IManagedChurchPortal, useLeaderPortal } from '@/hooks/useLeaderPortal';
+import { IChurch } from '@/types/church';
 import { IChurchClaim } from '@/types/church-claim';
 
 const formatShortDate = (date: string): string =>
@@ -118,6 +122,7 @@ const LeadersPortalPage = () => {
     rejectedClaims,
     isManagedChurchesLoading,
   } = useLeaderPortal(user?.id ?? null);
+  const [editingChurch, setEditingChurch] = useState<IChurch | null>(null);
 
   if (!user) {
     return null;
@@ -295,6 +300,14 @@ const LeadersPortalPage = () => {
                           </div>
 
                           <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingChurch(church)}
+                              className="inline-flex items-center gap-2 rounded-full bg-[#FF385C] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#b00838]"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit listing
+                            </button>
                             <Link
                               to={`/churches/${church.slug}`}
                               className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
@@ -490,16 +503,16 @@ const LeadersPortalPage = () => {
 
             <div className="mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
-                What comes next
+                What you can do here
               </p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-white/90">
                 <p>
-                  Use the Upcoming events panel to publish, update, or retire gatherings right from
-                  this portal.
+                  Use <strong>Edit listing</strong> to update your description, contact info,
+                  languages, amenities, and accessibility details.
                 </p>
                 <p>
-                  Listing content edits (description, hours, photos) are the next slice and will
-                  land beside event tools.
+                  Use the <strong>Upcoming events</strong> panel to publish, update, or retire
+                  gatherings right from this portal.
                 </p>
                 <p>Claim approvals and moderation tools still live on your member dashboard.</p>
               </div>
@@ -521,6 +534,10 @@ const LeadersPortalPage = () => {
             </div>
           </aside>
         </div>
+
+        {editingChurch ? (
+          <ChurchEditor church={editingChurch} onClose={() => setEditingChurch(null)} />
+        ) : null}
       </div>
     </div>
   );

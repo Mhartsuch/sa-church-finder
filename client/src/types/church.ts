@@ -65,6 +65,20 @@ export interface ISavedChurch extends Omit<IChurchSummary, 'distance'> {
   savedAt: string;
 }
 
+export interface IUpdateChurchInput {
+  description?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  pastorName?: string | null;
+  yearEstablished?: number | null;
+  languages?: string[];
+  amenities?: string[];
+  goodForChildren?: boolean | null;
+  goodForGroups?: boolean | null;
+  wheelchairAccessible?: boolean | null;
+}
+
 export interface ISearchParams {
   lat?: number;
   lng?: number;

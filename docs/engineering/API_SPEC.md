@@ -118,7 +118,27 @@ Create a new church listing.
 
 #### `PATCH /churches/:id` _(church_admin or site_admin)_
 
-Update church details.
+Update editable church listing fields. Only included fields are changed (PATCH semantics). String fields accept `null` to clear the value.
+
+**Request body** (all fields optional):
+
+| Field                  | Type              | Constraints                    |
+| ---------------------- | ----------------- | ------------------------------ |
+| `description`          | `string \| null`  | Max 5,000 chars                |
+| `phone`                | `string \| null`  | Max 30 chars                   |
+| `email`                | `string \| null`  | Valid email, max 255 chars     |
+| `website`              | `string \| null`  | Max 500 chars                  |
+| `pastorName`           | `string \| null`  | Max 255 chars                  |
+| `yearEstablished`      | `number \| null`  | Integer, 1500–current year     |
+| `languages`            | `string[]`        | Max 20 items, each 1–100 chars |
+| `amenities`            | `string[]`        | Max 50 items, each 1–100 chars |
+| `goodForChildren`      | `boolean \| null` |                                |
+| `goodForGroups`        | `boolean \| null` |                                |
+| `wheelchairAccessible` | `boolean \| null` |                                |
+
+**Response:** `{ data: Church, message: "Church updated successfully" }`
+
+**Errors:** `401` not authenticated, `403` not authorized, `404` church not found, `400` validation failed.
 
 ---
 

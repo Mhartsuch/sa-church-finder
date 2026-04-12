@@ -3,16 +3,19 @@ import logger from '../lib/logger.js'
 import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
+  ChurchUpdateBody,
   churchDetailSchema,
   churchEventsSchema,
   churchIdSchema,
   churchSearchSchema,
+  churchUpdateSchema,
 } from '../schemas/church.schema.js'
 import { toggleSavedChurch } from '../services/saved-church.service.js'
-import { searchChurches, getFilterOptions } from '../services/church.service.js'
+import { searchChurches, getFilterOptions, updateChurch } from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
 import { listChurchEventsBySlug } from '../services/event.service.js'
 import { ISearchParams } from '../types/church.types.js'
+import { IUpdateChurchInput } from '../services/church.service.js'
 import { ChurchEventType, IChurchEventFilters } from '../types/event.types.js'
 
 const router = Router()
@@ -99,6 +102,52 @@ router.post(
       res.json({
         data: result,
         message: result.saved ? 'Church saved successfully' : 'Church removed from saved list',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+/**
+ * PATCH /api/v1/churches/:id
+ * Update editable church listing fields (church_admin or site_admin)
+ */
+router.patch(
+  '/:id',
+  validate(churchUpdateSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+      const body = req.body as ChurchUpdateBody
+
+      logger.info({ churchId: id, userId }, 'Updating church listing')
+
+      const input: IUpdateChurchInput = {
+        ...(body.description !== undefined ? { description: body.description } : {}),
+        ...(body.phone !== undefined ? { phone: body.phone } : {}),
+        ...(body.email !== undefined ? { email: body.email } : {}),
+        ...(body.website !== undefined ? { website: body.website } : {}),
+        ...(body.pastorName !== undefined ? { pastorName: body.pastorName } : {}),
+        ...(body.yearEstablished !== undefined ? { yearEstablished: body.yearEstablished } : {}),
+        ...(body.languages !== undefined ? { languages: body.languages } : {}),
+        ...(body.amenities !== undefined ? { amenities: body.amenities } : {}),
+        ...(body.goodForChildren !== undefined ? { goodForChildren: body.goodForChildren } : {}),
+        ...(body.goodForGroups !== undefined ? { goodForGroups: body.goodForGroups } : {}),
+        ...(body.wheelchairAccessible !== undefined
+          ? { wheelchairAccessible: body.wheelchairAccessible }
+          : {}),
+      }
+
+      const church = await updateChurch(userId, id, input)
+
+      res.json({
+        data: church,
+        message: 'Church updated successfully',
       })
       return
     } catch (error) {

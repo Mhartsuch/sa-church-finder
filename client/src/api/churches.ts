@@ -5,6 +5,7 @@ import {
   ISavedChurch,
   ISearchParams,
   ISearchResponse,
+  IUpdateChurchInput,
 } from '@/types/church';
 
 type ChurchEnvelope = {
@@ -99,6 +100,17 @@ export const toggleSavedChurch = async (
 
 export const fetchFilterOptions = async (): Promise<IFilterOptions> => {
   const envelope = await apiRequest<FilterOptionsEnvelope>('/churches/filter-options');
+  return envelope.data;
+};
+
+export const updateChurch = async (
+  churchId: string,
+  input: IUpdateChurchInput,
+): Promise<IChurch> => {
+  const envelope = await apiRequest<ChurchEnvelope>(`/churches/${encodeURIComponent(churchId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
   return envelope.data;
 };
 
