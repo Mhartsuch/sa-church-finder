@@ -1,7 +1,10 @@
 import { Prisma, Role } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
+import { isEmailDeliveryConfigured } from '../lib/email.js'
+import logger from '../lib/logger.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
+import { sendReviewRemovedEmail, sendReviewRestoredEmail } from './notification-email.service.js'
 import {
   ICreateReviewInput,
   IFlaggedReview,
@@ -113,9 +116,7 @@ const mapFlaggedReview = (review: ReviewWithChurchRecord): IFlaggedReview => ({
   flaggedAt: review.updatedAt,
 })
 
-const getReviewOrderBy = (
-  sort: ReviewSort,
-): Prisma.ReviewOrderByWithRelationInput[] => {
+const getReviewOrderBy = (sort: ReviewSort): Prisma.ReviewOrderByWithRelationInput[] => {
   switch (sort) {
     case 'highest':
       return [{ rating: 'desc' }, { createdAt: 'desc' }]
@@ -135,7 +136,7 @@ const computeCreateAggregate = (
   newRating: number,
 ): { avgRating: number; reviewCount: number } => {
   const reviewCount = currentCount + 1
-  const avgRating = ((currentAverage * currentCount) + newRating) / reviewCount
+  const avgRating = (currentAverage * currentCount + newRating) / reviewCount
 
   return {
     avgRating,
@@ -156,7 +157,7 @@ const computeUpdateAggregate = (
     }
   }
 
-  const avgRating = ((currentAverage * currentCount) - oldRating + newRating) / currentCount
+  const avgRating = (currentAverage * currentCount - oldRating + newRating) / currentCount
 
   return {
     avgRating,
@@ -178,7 +179,7 @@ const computeDeleteAggregate = (
     }
   }
 
-  const avgRating = ((currentAverage * currentCount) - deletedRating) / reviewCount
+  const avgRating = (currentAverage * currentCount - deletedRating) / reviewCount
 
   return {
     avgRating,
@@ -215,10 +216,7 @@ export async function getChurchReviews(
 
   const sort = params.sort ?? 'recent'
   const page = Math.max(DEFAULT_PAGE, params.page ?? DEFAULT_PAGE)
-  const pageSize = Math.min(
-    MAX_PAGE_SIZE,
-    Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE),
-  )
+  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
   const skip = (page - 1) * pageSize
 
   const where = {
@@ -266,9 +264,7 @@ export async function getChurchReviews(
     : null
 
   return {
-    data: reviews.map((review) =>
-      mapReviewWithViewerVote(review, votedReviewIds.has(review.id)),
-    ),
+    data: reviews.map((review) => mapReviewWithViewerVote(review, votedReviewIds.has(review.id))),
     meta: {
       page,
       pageSize,
@@ -276,9 +272,7 @@ export async function getChurchReviews(
       totalPages: Math.ceil(total / pageSize),
       sort,
     },
-    currentUserReview: currentUserReview
-      ? mapReviewWithViewerVote(currentUserReview, false)
-      : null,
+    currentUserReview: currentUserReview ? mapReviewWithViewerVote(currentUserReview, false) : null,
   }
 }
 
@@ -330,11 +324,7 @@ export async function createReview(
 
   await updateChurchAggregates(
     church.id,
-    computeCreateAggregate(
-      toNumber(church.avgRating),
-      church.reviewCount,
-      input.rating,
-    ),
+    computeCreateAggregate(toNumber(church.avgRating), church.reviewCount, input.rating),
   )
 
   return mapReview(review)
@@ -377,18 +367,10 @@ export async function updateReview(
     data: {
       ...(input.rating !== undefined ? { rating: toDecimal(input.rating) } : {}),
       ...(input.body !== undefined ? { body: input.body } : {}),
-      ...(input.welcomeRating !== undefined
-        ? { welcomeRating: input.welcomeRating }
-        : {}),
-      ...(input.worshipRating !== undefined
-        ? { worshipRating: input.worshipRating }
-        : {}),
-      ...(input.sermonRating !== undefined
-        ? { sermonRating: input.sermonRating }
-        : {}),
-      ...(input.facilitiesRating !== undefined
-        ? { facilitiesRating: input.facilitiesRating }
-        : {}),
+      ...(input.welcomeRating !== undefined ? { welcomeRating: input.welcomeRating } : {}),
+      ...(input.worshipRating !== undefined ? { worshipRating: input.worshipRating } : {}),
+      ...(input.sermonRating !== undefined ? { sermonRating: input.sermonRating } : {}),
+      ...(input.facilitiesRating !== undefined ? { facilitiesRating: input.facilitiesRating } : {}),
     },
     include: reviewInclude,
   })
@@ -472,9 +454,7 @@ export async function deleteReview(
   }
 }
 
-export async function getUserReviewHistory(
-  userId: string,
-): Promise<IUserReviewHistoryResponse> {
+export async function getUserReviewHistory(userId: string): Promise<IUserReviewHistoryResponse> {
   const reviews = await prisma.review.findMany({
     where: {
       userId,
@@ -509,11 +489,7 @@ export async function addHelpfulVote(
   }
 
   if (review.userId === userId) {
-    throw new AppError(
-      400,
-      'OWN_REVIEW_HELPFUL_VOTE',
-      'You cannot mark your own review as helpful',
-    )
+    throw new AppError(400, 'OWN_REVIEW_HELPFUL_VOTE', 'You cannot mark your own review as helpful')
   }
 
   const existingVote = await prisma.reviewVote.findUnique({
@@ -559,10 +535,7 @@ export async function addHelpfulVote(
   }
 }
 
-export async function flagReview(
-  reviewId: string,
-  userId: string,
-): Promise<IReviewFlagResult> {
+export async function flagReview(reviewId: string, userId: string): Promise<IReviewFlagResult> {
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
     select: {
@@ -577,11 +550,7 @@ export async function flagReview(
   }
 
   if (review.userId === userId) {
-    throw new AppError(
-      400,
-      'OWN_REVIEW_FLAG',
-      'You cannot flag your own review',
-    )
+    throw new AppError(400, 'OWN_REVIEW_FLAG', 'You cannot flag your own review')
   }
 
   if (review.isFlagged) {
@@ -689,6 +658,17 @@ export async function resolveFlaggedReview(
     select: {
       id: true,
       isFlagged: true,
+      user: {
+        select: {
+          email: true,
+          name: true,
+        },
+      },
+      church: {
+        select: {
+          name: true,
+        },
+      },
     },
   })
 
@@ -698,6 +678,16 @@ export async function resolveFlaggedReview(
 
   if (input.status === 'removed') {
     await deleteReview(reviewId, moderatorUserId)
+
+    if (isEmailDeliveryConfigured()) {
+      sendReviewRemovedEmail({
+        email: review.user.email,
+        name: review.user.name,
+        churchName: review.church.name,
+      }).catch((error) => {
+        logger.error({ err: error, reviewId }, 'Failed to send review removed email')
+      })
+    }
 
     return {
       reviewId,
@@ -711,6 +701,16 @@ export async function resolveFlaggedReview(
       isFlagged: false,
     },
   })
+
+  if (isEmailDeliveryConfigured()) {
+    sendReviewRestoredEmail({
+      email: review.user.email,
+      name: review.user.name,
+      churchName: review.church.name,
+    }).catch((error) => {
+      logger.error({ err: error, reviewId }, 'Failed to send review restored email')
+    })
+  }
 
   return {
     reviewId,

@@ -1,7 +1,10 @@
 import { ClaimStatus, Prisma, Role } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
+import { isEmailDeliveryConfigured } from '../lib/email.js'
+import logger from '../lib/logger.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
+import { sendClaimApprovedEmail, sendClaimRejectedEmail } from './notification-email.service.js'
 import {
   IAdminChurchClaim,
   IAdminChurchClaimsResponse,
@@ -145,9 +148,7 @@ const normalizeWebsiteDomain = (website: string | null | undefined): string | nu
 
 const domainsMatch = (candidate: string, allowed: string): boolean => {
   return (
-    candidate === allowed ||
-    candidate.endsWith(`.${allowed}`) ||
-    allowed.endsWith(`.${candidate}`)
+    candidate === allowed || candidate.endsWith(`.${allowed}`) || allowed.endsWith(`.${candidate}`)
   )
 }
 
@@ -188,7 +189,9 @@ const ensureVerificationDomainMatchesChurch = (
     )
   }
 
-  if (![...allowedDomains].some((allowedDomain) => domainsMatch(verificationDomain, allowedDomain))) {
+  if (
+    ![...allowedDomains].some((allowedDomain) => domainsMatch(verificationDomain, allowedDomain))
+  ) {
     throw new AppError(
       400,
       'CLAIM_EMAIL_DOMAIN_MISMATCH',
@@ -284,9 +287,7 @@ export async function createChurchClaim(
   return mapClaimResult(claim)
 }
 
-export async function getUserChurchClaims(
-  userId: string,
-): Promise<IUserChurchClaimsResponse> {
+export async function getUserChurchClaims(userId: string): Promise<IUserChurchClaimsResponse> {
   const claims = await prisma.churchClaim.findMany({
     where: {
       userId,
@@ -334,6 +335,8 @@ export async function resolveChurchClaim(
       church: {
         select: {
           id: true,
+          name: true,
+          slug: true,
           isClaimed: true,
           claimedById: true,
         },
@@ -341,6 +344,8 @@ export async function resolveChurchClaim(
       user: {
         select: {
           id: true,
+          email: true,
+          name: true,
           role: true,
         },
       },
@@ -364,6 +369,16 @@ export async function resolveChurchClaim(
         reviewedAt: new Date(),
       },
     })
+
+    if (isEmailDeliveryConfigured()) {
+      sendClaimRejectedEmail({
+        email: claim.user.email,
+        name: claim.user.name,
+        churchName: claim.church.name,
+      }).catch((error) => {
+        logger.error({ err: error, claimId }, 'Failed to send claim rejected email')
+      })
+    }
 
     return {
       claimId,
@@ -404,6 +419,17 @@ export async function resolveChurchClaim(
   }
 
   await prisma.$transaction(operations)
+
+  if (isEmailDeliveryConfigured()) {
+    sendClaimApprovedEmail({
+      email: claim.user.email,
+      name: claim.user.name,
+      churchName: claim.church.name,
+      churchSlug: claim.church.slug,
+    }).catch((error) => {
+      logger.error({ err: error, claimId }, 'Failed to send claim approved email')
+    })
+  }
 
   return {
     claimId,

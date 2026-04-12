@@ -47,6 +47,12 @@ function shouldUseDatabaseSessionStore(): boolean {
 export const createSessionMiddleware = (): RequestHandler => {
   const isProduction = process.env.NODE_ENV === 'production'
   const sessionSecret = process.env.SESSION_SECRET || 'dev-session-secret'
+
+  if (isProduction && sessionSecret === 'dev-session-secret') {
+    throw new Error(
+      'SESSION_SECRET must be set in production — sessions are insecure with the default value',
+    )
+  }
   const sameSite = resolveSessionCookieSameSite()
   const config: session.SessionOptions = {
     name: SESSION_COOKIE_NAME,

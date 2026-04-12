@@ -17,6 +17,7 @@ import {
   AuthVerifyEmailBody,
 } from '../schemas/auth.schema.js'
 import { sendEmailVerificationEmail, sendPasswordResetEmail } from './auth-email.service.js'
+import { sendWelcomeEmail } from './notification-email.service.js'
 import { AppRole, AuthUser } from '../types/auth.types.js'
 
 const authUserSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -527,6 +528,12 @@ export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
       { err: error, userId: user.id },
       'Failed to prepare email verification instructions after registration',
     )
+  }
+
+  if (isEmailDeliveryConfigured()) {
+    sendWelcomeEmail({ email: user.email, name: user.name }).catch((error) => {
+      logger.error({ err: error, userId: user.id }, 'Failed to send welcome email')
+    })
   }
 
   return toAuthUser(user)

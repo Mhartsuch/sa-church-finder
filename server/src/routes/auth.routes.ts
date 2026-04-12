@@ -4,6 +4,7 @@ import { NextFunction, Request, Response, Router } from 'express'
 import { resolveClientUrls, SESSION_COOKIE_NAME } from '../lib/session.js'
 import logger from '../lib/logger.js'
 import { AuthError } from '../middleware/error-handler.js'
+import { authRateLimit } from '../middleware/rate-limit.js'
 import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
@@ -140,10 +141,7 @@ function resolveGoogleCallbackUrl(req: Request): string {
     return configuredCallbackUrl
   }
 
-  return new URL(
-    '/api/v1/auth/google/callback',
-    `${req.protocol}://${req.get('host')}`,
-  ).toString()
+  return new URL('/api/v1/auth/google/callback', `${req.protocol}://${req.get('host')}`).toString()
 }
 
 function buildGoogleAuthorizationUrl(req: Request, state: string): string {
@@ -195,11 +193,7 @@ async function consumeGoogleOAuthRequest(req: Request): Promise<{
   }
 }
 
-function redirectToLoginWithGoogleError(
-  res: Response,
-  authError: string,
-  returnTo: string,
-): void {
+function redirectToLoginWithGoogleError(res: Response, authError: string, returnTo: string): void {
   res.redirect(
     buildClientRedirectUrl('/login', {
       authError,
@@ -235,8 +229,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
   try {
     const storedOAuthRequest = await consumeGoogleOAuthRequest(req)
-    const googleError =
-      typeof req.query.error === 'string' ? req.query.error : null
+    const googleError = typeof req.query.error === 'string' ? req.query.error : null
     const state = typeof req.query.state === 'string' ? req.query.state : null
     const code = typeof req.query.code === 'string' ? req.query.code : null
 
@@ -281,6 +274,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
 router.post(
   '/register',
+  authRateLimit,
   validate(authRegisterSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -355,6 +349,7 @@ router.post(
 
 router.post(
   '/forgot-password',
+  authRateLimit,
   validate(authForgotPasswordSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -377,6 +372,7 @@ router.post(
 
 router.post(
   '/reset-password',
+  authRateLimit,
   validate(authResetPasswordSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -399,6 +395,7 @@ router.post(
 
 router.post(
   '/login',
+  authRateLimit,
   validate(authLoginSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
