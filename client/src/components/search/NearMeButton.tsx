@@ -81,7 +81,7 @@ export const NearMeButton = ({ className }: NearMeButtonProps) => {
         void handleActivate();
       }}
       disabled={isLoading}
-      className={`inline-flex items-center gap-2 rounded-[10px] border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground disabled:cursor-progress disabled:opacity-70 ${className ?? ''}`}
+      className={`inline-flex min-h-[44px] items-center gap-2 rounded-[10px] border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground disabled:cursor-progress disabled:opacity-70 ${className ?? ''}`}
       aria-label="Find churches near me"
     >
       <LocateFixed className={`h-4 w-4 ${isLoading ? 'animate-pulse' : ''}`} />

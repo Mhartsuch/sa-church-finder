@@ -37,21 +37,21 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
     };
   }, []);
 
-  // Close the suggestions popover when the user clicks outside the search
-  // shell. We use `mousedown` so the click still gets to any suggestion button
-  // the user might have been aiming for (those use `onMouseDown` to preserve
-  // focus before the click event fires).
+  // Close the suggestions popover when the user taps/clicks outside the search
+  // shell. We use `pointerdown` (instead of the previous `mousedown`) because
+  // it fires for both mouse and touch input on all modern browsers, fixing
+  // Android devices where `mousedown` was sometimes not dispatched for taps.
   useEffect(() => {
     if (!isFocused) return;
 
-    const handlePointerDown = (event: MouseEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       if (!containerRef.current) return;
       if (containerRef.current.contains(event.target as Node)) return;
       setIsFocused(false);
     };
 
-    window.addEventListener('mousedown', handlePointerDown);
-    return () => window.removeEventListener('mousedown', handlePointerDown);
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
   }, [isFocused]);
 
   const commitQuery = useCallback(

@@ -61,7 +61,7 @@ export const SearchSuggestions = ({
           type="button"
           role="option"
           aria-selected="false"
-          onMouseDown={(event) => event.preventDefault()}
+          onPointerDown={(event) => event.preventDefault()}
           onClick={() => onApplyTerm(trimmedTerm)}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground transition-colors hover:bg-muted"
         >
@@ -89,7 +89,7 @@ export const SearchSuggestions = ({
             type="button"
             role="option"
             aria-selected="false"
-            onMouseDown={(event) => event.preventDefault()}
+            onPointerDown={(event) => event.preventDefault()}
             onClick={() => onApplyTerm(trimmedTerm)}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
@@ -115,7 +115,7 @@ export const SearchSuggestions = ({
                     type="button"
                     role="option"
                     aria-selected="false"
-                    onMouseDown={(event) => event.preventDefault()}
+                    onPointerDown={(event) => event.preventDefault()}
                     onClick={() => onNavigateToChurch(church.slug)}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted"
                   >
@@ -157,7 +157,7 @@ export const SearchSuggestions = ({
             </p>
             <button
               type="button"
-              onMouseDown={(event) => event.preventDefault()}
+              onPointerDown={(event) => event.preventDefault()}
               onClick={onClearRecent}
               className="text-[11px] font-semibold text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
             >
@@ -171,7 +171,7 @@ export const SearchSuggestions = ({
                   type="button"
                   role="option"
                   aria-selected="false"
-                  onMouseDown={(event) => event.preventDefault()}
+                  onPointerDown={(event) => event.preventDefault()}
                   onClick={() => onApplyTerm(recentTerm)}
                   className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted"
                 >
@@ -184,7 +184,7 @@ export const SearchSuggestions = ({
                 </button>
                 <button
                   type="button"
-                  onMouseDown={(event) => event.preventDefault()}
+                  onPointerDown={(event) => event.preventDefault()}
                   onClick={() => onRemoveRecent(recentTerm)}
                   className="mr-2 inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-8 md:w-8"
                   aria-label={`Remove recent search ${recentTerm}`}
