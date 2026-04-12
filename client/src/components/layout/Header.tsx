@@ -25,13 +25,13 @@ export const Header = () => {
   }, [theme]);
 
   const handleSearchSubmit = () => {
-    if (location.pathname !== '/' && location.pathname !== '/search') {
+    if (location.pathname !== '/search') {
       navigate('/search');
     }
   };
 
   const handleOpenFilters = () => {
-    if (location.pathname === '/' || location.pathname === '/search') {
+    if (location.pathname === '/search') {
       navigate(
         {
           pathname: location.pathname,
