@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { COMPARE_STORAGE_KEY, useCompareStore } from './compare-store';
+import { COMPARE_STORAGE_KEY, MAX_COMPARE, useCompareStore } from './compare-store';
 
 const churchA = {
   id: 'church-a',
@@ -59,5 +59,28 @@ describe('useCompareStore', () => {
 
     expect(useCompareStore.getState().selectedChurches).toEqual([]);
     expect(JSON.parse(window.localStorage.getItem(COMPARE_STORAGE_KEY) ?? '[]')).toEqual([]);
+  });
+
+  it(`enforces a maximum of ${MAX_COMPARE} churches`, () => {
+    const { addChurch, toggleChurch } = useCompareStore.getState();
+
+    // Fill to the limit
+    for (let i = 0; i < MAX_COMPARE; i++) {
+      addChurch({ ...churchA, id: `church-${i}`, slug: `church-${i}` });
+    }
+
+    expect(useCompareStore.getState().selectedChurches).toHaveLength(MAX_COMPARE);
+
+    // Adding one more via addChurch should be a no-op
+    addChurch({ ...churchA, id: 'overflow', slug: 'overflow' });
+    expect(useCompareStore.getState().selectedChurches).toHaveLength(MAX_COMPARE);
+
+    // Toggling on a new one should also be a no-op
+    toggleChurch({ ...churchA, id: 'overflow-toggle', slug: 'overflow-toggle' });
+    expect(useCompareStore.getState().selectedChurches).toHaveLength(MAX_COMPARE);
+
+    // But toggling OFF an existing one should still work
+    toggleChurch({ ...churchA, id: 'church-0', slug: 'church-0' });
+    expect(useCompareStore.getState().selectedChurches).toHaveLength(MAX_COMPARE - 1);
   });
 });
