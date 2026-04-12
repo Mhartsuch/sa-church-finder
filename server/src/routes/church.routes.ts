@@ -9,14 +9,7 @@ import {
   churchSearchSchema,
 } from '../schemas/church.schema.js'
 import { toggleSavedChurch } from '../services/saved-church.service.js'
-import {
-  searchChurches,
-  getAvailableDenominations,
-  getAvailableLanguages,
-  getAvailableAmenities,
-  getAvailableNeighborhoods,
-  getAvailableServiceTypes,
-} from '../services/church.service.js'
+import { searchChurches, getFilterOptions } from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
 import { listChurchEventsBySlug } from '../services/event.service.js'
 import { ISearchParams } from '../types/church.types.js'
@@ -78,17 +71,11 @@ router.get(
  */
 router.get('/filter-options', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [denominations, languages, amenities, neighborhoods, serviceTypes] = await Promise.all([
-      getAvailableDenominations(),
-      getAvailableLanguages(),
-      getAvailableAmenities(),
-      getAvailableNeighborhoods(),
-      getAvailableServiceTypes(),
-    ])
-
-    res.json({
-      data: { denominations, languages, amenities, neighborhoods, serviceTypes },
-    })
+    // `getFilterOptions` wraps the five underlying DISTINCT queries in a
+    // 5-minute in-process cache so the common "search page cold load" path
+    // doesn't thrash the database. See church.service.ts for the TTL details.
+    const data = await getFilterOptions()
+    res.json({ data })
     return
   } catch (error) {
     next(error)

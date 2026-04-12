@@ -171,10 +171,16 @@ export const useSearchStore = create<SearchStore>((set) => ({
     }),
 
   clearFilters: () =>
+    // "Clear all" / "Clear everything" / "Reset everything" all land here.
+    // Wipe the map-area constraint too so the user ends up with a clean
+    // city-wide search — otherwise a lingering bounds chip survives the
+    // reset and keeps constraining results, which contradicts the intent
+    // of the button the user just pressed.
     set({
       filters: {},
       query: '',
       page: 1,
+      mapBounds: null,
     }),
 
   setSort: (sort: SearchSort) => set({ sort, page: 1 }),

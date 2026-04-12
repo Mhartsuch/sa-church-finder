@@ -1,5 +1,5 @@
 import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
-import { SearchFilters } from '@/stores/search-store';
+import { MapBounds, SearchFilters } from '@/stores/search-store';
 
 // `mapBounds` is not part of SearchFilters — it lives at the store root —
 // but the SearchPage wants to render it as a chip alongside the real
@@ -166,8 +166,17 @@ export const getActiveSearchTokens = (
  * so the chip in the header reads naturally — "3 filters active" for a user
  * who picked parking + nursery + wifi, or English + Spanish + Vietnamese,
  * not "1 filter active".
+ *
+ * `mapBounds` lives outside `SearchFilters` in the store, but it narrows the
+ * result set exactly like any other filter. Pass it as the optional second
+ * argument so the "X filters active" subtitle stays accurate when the user
+ * has only pressed "Search this area". Existing callers that don't care
+ * about the bounds can keep passing a single argument.
  */
-export const countActiveFilters = (filters: SearchFilters): number => {
+export const countActiveFilters = (
+  filters: SearchFilters,
+  mapBounds?: MapBounds | null,
+): number => {
   let count = 0;
 
   for (const [, value] of Object.entries(filters) as [keyof SearchFilters, unknown][]) {
@@ -180,6 +189,10 @@ export const countActiveFilters = (filters: SearchFilters): number => {
       continue;
     }
 
+    count += 1;
+  }
+
+  if (mapBounds) {
     count += 1;
   }
 
