@@ -111,8 +111,19 @@ export interface ISearchResponse {
   };
 }
 
+/**
+ * One denomination family option returned by `/filter-options`. The
+ * `count` is the number of operational churches in that family (closed-
+ * permanently churches are excluded on the backend) and is used by the
+ * UI to sort and label the chips as "Baptist · 42".
+ */
+export interface IDenominationOption {
+  value: string;
+  count: number;
+}
+
 export interface IFilterOptions {
-  denominations: string[];
+  denominations: IDenominationOption[];
   languages: string[];
   amenities: string[];
   neighborhoods: string[];

@@ -80,7 +80,11 @@ found via the search endpoint. Cached for 5 minutes.
 ```json
 {
   "data": {
-    "denominations": ["Baptist", "Catholic", "Methodist", ...],
+    "denominations": [
+      { "value": "Baptist", "count": 42 },
+      { "value": "Catholic", "count": 38 },
+      { "value": "Non-denominational", "count": 24 }
+    ],
     "languages":     ["English", "Spanish", ...],
     "amenities":     ["Parking", "Nursery", "WiFi", ...],
     "neighborhoods": ["Alamo Heights", "Stone Oak", "Downtown", ...],
@@ -88,6 +92,13 @@ found via the search endpoint. Cached for 5 minutes.
   }
 }
 ```
+
+`denominations` returns `{ value, count }` tuples sorted by `count`
+descending (tiebreaker: alphabetical on `value`). `count` is the number
+of operational churches in each family; `CLOSED_PERMANENTLY` churches
+are excluded to match the behaviour of `GET /churches`. The UI uses
+the count to sort and label chips ("Baptist · 42"). All other filter
+arrays remain plain string arrays.
 
 ---
 

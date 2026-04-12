@@ -733,14 +733,38 @@ export async function getChurchById(id: string, userId?: string): Promise<IChurc
 
 // ── Filter option queries ──
 
-export async function getDenominationFamilies(): Promise<string[]> {
-  const result = await prisma.church.findMany({
-    where: { denominationFamily: { not: null } },
-    select: { denominationFamily: true },
-    distinct: ['denominationFamily'],
-    orderBy: { denominationFamily: 'asc' },
+export interface IDenominationOption {
+  value: string
+  count: number
+}
+
+/**
+ * Returns every denomination family that has at least one operational
+ * church, paired with the count of churches in that family. Results are
+ * sorted by count descending, then alphabetical as a tiebreaker, so the
+ * UI can pin the most common traditions first.
+ *
+ * Closed-permanently churches are excluded from the counts to match the
+ * list-view behaviour in `searchChurches` — a user who selects
+ * "Baptist · 42" should get 42 results, not 38.
+ */
+export async function getAvailableDenominations(): Promise<IDenominationOption[]> {
+  const rows = await prisma.church.groupBy({
+    by: ['denominationFamily'],
+    where: {
+      denominationFamily: { not: null },
+      businessStatus: { not: 'CLOSED_PERMANENTLY' },
+    },
+    _count: { _all: true },
   })
-  return result.map((r) => r.denominationFamily!).filter(Boolean)
+
+  return rows
+    .map((row) => ({
+      value: row.denominationFamily ?? '',
+      count: row._count._all,
+    }))
+    .filter((row) => row.value.trim().length > 0)
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
 }
 
 export async function getAvailableLanguages(): Promise<string[]> {

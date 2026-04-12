@@ -10,7 +10,15 @@ import { CategoryFilter } from './CategoryFilter';
 vi.mock('@/hooks/useChurches', () => ({
   useFilterOptions: () => ({
     data: {
-      denominations: ['Baptist', 'Catholic', 'Methodist', 'Non-denominational'],
+      // `denominations` is the new `{value, count}` shape, already sorted by
+      // count descending to match what the backend emits. The CategoryFilter
+      // derives its chip rail directly from this list.
+      denominations: [
+        { value: 'Baptist', count: 20 },
+        { value: 'Catholic', count: 15 },
+        { value: 'Methodist', count: 10 },
+        { value: 'Non-denominational', count: 6 },
+      ],
       languages: [],
       amenities: [],
       neighborhoods: [],

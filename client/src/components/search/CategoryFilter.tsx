@@ -12,24 +12,47 @@ interface CategoryItem {
   denominationValue?: string;
 }
 
-const ALL_CATEGORIES: CategoryItem[] = [
+// How many denomination chips to pin to the homepage rail. The rail
+// already scrolls horizontally, but a very long row buries the Compare
+// and Filters buttons on desktop and pushes the trailing chips off-
+// screen on mobile. 6 is enough for discovery; power users open the
+// filter modal for the rest. Tradition chips are sorted by church
+// count descending (the backend already orders them that way) so the
+// most common traditions win the pinned slots.
+const CATEGORY_DENOMINATION_LIMIT = 6;
+
+// Fallback icons for the common denomination families. Keeping these
+// local to the component (instead of the DB or a seed) avoids touching
+// the data model for a purely presentational concern. Missing keys
+// fall back to the generic church emoji — the rail still renders, just
+// with a default icon.
+const DENOMINATION_ICONS: Record<string, string> = {
+  catholic: '✝️',
+  baptist: '💧',
+  methodist: '✨',
+  episcopal: '🌅',
+  anglican: '🌅',
+  lutheran: '🌿',
+  'non-denominational': '🌳',
+  presbyterian: '📜',
+  pentecostal: '🔥',
+  orthodox: '☦️',
+  adventist: '🌄',
+};
+
+const DEFAULT_DENOMINATION_ICON = '⛪';
+
+const iconForDenomination = (value: string): string =>
+  DENOMINATION_ICONS[value.toLowerCase()] ?? DEFAULT_DENOMINATION_ICON;
+
+// Service-style chips stay static — they're text-search presets, not
+// denominations, and the curated wording/icons are intentional.
+const STATIC_CATEGORIES: CategoryItem[] = [
   { id: 'all', label: 'All', icon: '⛪' },
   { id: 'historic', label: 'Historic', icon: '🏛️', queryValue: 'Historic' },
   { id: 'contemporary', label: 'Contemporary', icon: '🎵', queryValue: 'Contemporary' },
   { id: 'traditional', label: 'Traditional', icon: '🏠', queryValue: 'Traditional' },
   { id: 'community', label: 'Community', icon: '💜', queryValue: 'Community' },
-  { id: 'catholic', label: 'Catholic', icon: '✝️', denominationValue: 'Catholic' },
-  { id: 'baptist', label: 'Baptist', icon: '💧', denominationValue: 'Baptist' },
-  { id: 'methodist', label: 'Methodist', icon: '✨', denominationValue: 'Methodist' },
-  { id: 'episcopal', label: 'Episcopal', icon: '🌅', denominationValue: 'Anglican' },
-  { id: 'lutheran', label: 'Lutheran', icon: '🌿', denominationValue: 'Lutheran' },
-  { id: 'non-denom', label: 'Non-Denom', icon: '🌳', denominationValue: 'Non-denominational' },
-  {
-    id: 'presbyterian',
-    label: 'Presbyterian',
-    icon: '📜',
-    denominationValue: 'Presbyterian',
-  },
   { id: 'missions', label: 'Missions', icon: '🏛️', queryValue: 'Mission' },
   { id: 'megachurch', label: 'Megachurch', icon: '🏢', queryValue: 'Megachurch' },
 ];
@@ -61,14 +84,23 @@ export const CategoryFilter = ({
   // and the badge telling different stories.
   const activeFilterCount = countActiveFilters(filters);
 
-  const availableDenominations = new Set(
-    (filterOptions?.denominations ?? []).map((d) => d.toLowerCase()),
-  );
+  // Build the denomination chip list from live filter-options data instead
+  // of a hardcoded whitelist. The backend returns `{value, count}` already
+  // sorted by count descending, so any denomination that exists in the
+  // dataset — Pentecostal, Orthodox, Assembly of God, etc. — surfaces on
+  // the homepage rail without a code change. We cap at CATEGORY_DENOMINATION_LIMIT
+  // so the rail stays tidy and the trailing Compare/Filters buttons stay
+  // reachable.
+  const denominationCategories: CategoryItem[] = (filterOptions?.denominations ?? [])
+    .slice(0, CATEGORY_DENOMINATION_LIMIT)
+    .map((option) => ({
+      id: `denom-${option.value.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      label: option.value,
+      icon: iconForDenomination(option.value),
+      denominationValue: option.value,
+    }));
 
-  const categories = ALL_CATEGORIES.filter((item) => {
-    if (!item.denominationValue) return true;
-    return availableDenominations.has(item.denominationValue.toLowerCase());
-  });
+  const categories: CategoryItem[] = [...STATIC_CATEGORIES, ...denominationCategories];
 
   // A denomination category chip is considered "on" when its value is in the
   // multi-select array. The "All" chip stays on only when nothing is active.

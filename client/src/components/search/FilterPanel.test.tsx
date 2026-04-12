@@ -10,7 +10,14 @@ import { FilterPanel } from './FilterPanel';
 vi.mock('@/hooks/useChurches', () => ({
   useFilterOptions: () => ({
     data: {
-      denominations: ['Baptist', 'Catholic', 'Methodist'],
+      // `denominations` now returns `{value, count}` tuples. The order here
+      // mirrors the count-desc sort the backend emits, so the DenominationFilterSection
+      // renders Baptist (12) first, then Catholic (8), then Methodist (4).
+      denominations: [
+        { value: 'Baptist', count: 12 },
+        { value: 'Catholic', count: 8 },
+        { value: 'Methodist', count: 4 },
+      ],
       languages: ['English', 'Spanish'],
       amenities: ['Parking', 'Nursery'],
       neighborhoods: ['Downtown', 'Alamo Heights'],
@@ -42,8 +49,10 @@ describe('FilterPanel', () => {
   it('renders the dynamic filter options returned by the API', () => {
     render(<FilterPanel resultCount={42} />);
 
-    // Dynamic options from useFilterOptions mock
-    expect(screen.getByRole('button', { name: 'Baptist' })).toBeInTheDocument();
+    // Denomination chips now append the church count: "Baptist · 12".
+    expect(screen.getByRole('button', { name: 'Baptist · 12' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Catholic · 8' })).toBeInTheDocument();
+    // Other filters still render as plain labels.
     expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Parking' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Downtown' })).toBeInTheDocument();
@@ -63,14 +72,14 @@ describe('FilterPanel', () => {
   it('toggles a denomination into the multi-select when tapped', () => {
     render(<FilterPanel resultCount={0} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Baptist' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Baptist · 12' }));
     expect(useSearchStore.getState().filters.denomination).toEqual(['Baptist']);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Methodist' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Methodist · 4' }));
     expect(useSearchStore.getState().filters.denomination).toEqual(['Baptist', 'Methodist']);
 
     // Tapping again removes that specific value.
-    fireEvent.click(screen.getByRole('button', { name: 'Baptist' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Baptist · 12' }));
     expect(useSearchStore.getState().filters.denomination).toEqual(['Methodist']);
   });
 
@@ -95,9 +104,10 @@ describe('FilterPanel', () => {
     fireEvent.click(toggle);
 
     expect(useSearchStore.getState().filters.wheelchairAccessible).toBe(true);
-    expect(
-      screen.getByRole('switch', { name: 'Wheelchair accessible' }),
-    ).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'Wheelchair accessible' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 
   it('treats distance as single-select and toggles off on re-tap', () => {

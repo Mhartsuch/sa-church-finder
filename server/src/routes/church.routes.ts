@@ -11,7 +11,7 @@ import {
 import { toggleSavedChurch } from '../services/saved-church.service.js'
 import {
   searchChurches,
-  getDenominationFamilies,
+  getAvailableDenominations,
   getAvailableLanguages,
   getAvailableAmenities,
   getAvailableNeighborhoods,
@@ -79,7 +79,7 @@ router.get(
 router.get('/filter-options', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [denominations, languages, amenities, neighborhoods, serviceTypes] = await Promise.all([
-      getDenominationFamilies(),
+      getAvailableDenominations(),
       getAvailableLanguages(),
       getAvailableAmenities(),
       getAvailableNeighborhoods(),

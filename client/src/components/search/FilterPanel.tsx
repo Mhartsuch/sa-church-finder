@@ -7,12 +7,22 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import type { ComponentType, SVGProps } from 'react';
+import { useState, type ComponentType, type SVGProps } from 'react';
 
 import { DAY_OPTIONS, DISTANCE_OPTIONS, MIN_RATING_OPTIONS, TIME_OPTIONS } from '@/constants';
 import { useFilterOptions } from '@/hooks/useChurches';
 import { countActiveFilters } from '@/lib/search-state';
 import { SearchFilters, useSearchStore } from '@/stores/search-store';
+import type { IDenominationOption } from '@/types/church';
+
+// How many denomination chips render by default when the full list is
+// long. Above this threshold a "Show all (N more)" disclosure pins the
+// most common traditions and hides the long tail until the user asks.
+const DENOMINATION_PINNED_COUNT = 6;
+// Threshold below which the disclosure is suppressed entirely — a list
+// of 7 or 8 chips fits comfortably and a "Show all (1 more)" button
+// feels like noise.
+const DENOMINATION_DISCLOSURE_THRESHOLD = 8;
 
 interface FilterPanelProps {
   onClose?: () => void;
@@ -180,14 +190,29 @@ const LanguageFilterSection = ({ options }: LanguageFilterSectionProps) => {
 };
 
 interface DenominationFilterSectionProps {
-  options: FilterOption[];
+  options: IDenominationOption[];
 }
 
 const DenominationFilterSection = ({ options }: DenominationFilterSectionProps) => {
   const selected = useSearchStore((state) => state.filters.denomination) ?? [];
   const toggleDenomination = useSearchStore((state) => state.toggleDenomination);
+  const [expanded, setExpanded] = useState(false);
 
   if (options.length === 0) return null;
+
+  // The backend already sorts by count desc, but re-sort defensively so the
+  // section stays self-consistent even if a future consumer mocks the data
+  // out of order (the existing tests do exactly this).
+  const sortedOptions = [...options].sort(
+    (a, b) => b.count - a.count || a.value.localeCompare(b.value),
+  );
+
+  const needsDisclosure = sortedOptions.length > DENOMINATION_DISCLOSURE_THRESHOLD;
+  const visibleOptions =
+    needsDisclosure && !expanded
+      ? sortedOptions.slice(0, DENOMINATION_PINNED_COUNT)
+      : sortedOptions;
+  const hiddenCount = needsDisclosure ? sortedOptions.length - DENOMINATION_PINNED_COUNT : 0;
 
   return (
     <section className="rounded-[24px] border border-border bg-card p-5">
@@ -199,20 +224,34 @@ const DenominationFilterSection = ({ options }: DenominationFilterSectionProps) 
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {options.map((option) => {
-          const value = String(option.value);
-          const active = selected.includes(value);
+        {visibleOptions.map((option) => {
+          const active = selected.includes(option.value);
+          // Middle-dot separator matches the visual rhythm used in ChurchCard
+          // (`rating · distance`). Keeps the design language consistent across
+          // the app.
+          const label = `${option.value} · ${option.count}`;
 
           return (
             <FilterOptionButton
-              key={`denomination-${value}`}
+              key={`denomination-${option.value}`}
               active={active}
-              label={option.label}
-              onClick={() => toggleDenomination(value)}
+              label={label}
+              onClick={() => toggleDenomination(option.value)}
             />
           );
         })}
       </div>
+
+      {needsDisclosure ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-3 text-sm font-semibold text-foreground underline-offset-4 hover:underline"
+          aria-expanded={expanded}
+        >
+          {expanded ? 'Show fewer' : `Show all (${hiddenCount} more)`}
+        </button>
+      ) : null}
     </section>
   );
 };
@@ -322,10 +361,7 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
 
   const activeFilterCount = countActiveFilters(filters);
 
-  const denominationOptions: FilterOption[] = (filterOptions?.denominations ?? []).map((d) => ({
-    label: d,
-    value: d,
-  }));
+  const denominationOptions: IDenominationOption[] = filterOptions?.denominations ?? [];
 
   const languageOptions: FilterOption[] = (filterOptions?.languages ?? []).map((l) => ({
     label: l,
