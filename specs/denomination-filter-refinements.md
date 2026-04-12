@@ -14,6 +14,22 @@ denomination surface — the homepage `CategoryFilter` rail and the
 `FilterPanel` Tradition section — has several ergonomics gaps that a
 follow-up audit turned up:
 
+0. **Legacy "demo" churches are still polluting live search.** A visual
+   audit of the live site turns up ~13–25 church cards that visibly
+   differ from the Google-imported majority — stock copy, no cover photo,
+   sparse amenities, inconsistent formatting. Commit `df21ac6` (2026-04-08)
+   removed them from the seed file and shipped
+   `server/src/scripts/cleanup-demo-churches.ts` (wired as
+   `npm run db:cleanup-demo` in `server/package.json:16`), which deletes
+   every church where `googlePlaceId IS NULL` and cascades through
+   services, photos, reviews, events, claims, and saved entries. The
+   script was never run against the production database, so the demo
+   rows are still there. This is a one-shot operational task — no code
+   changes needed — but it is a hard prerequisite for the denomination
+   count work below, because demo churches would otherwise skew the
+   counts shown next to each chip ("Baptist · 42" where 3 of those are
+   demo rows is misleading).
+
 1. **`CategoryFilter` denomination list is hardcoded to 8 entries.**
    `client/src/components/search/CategoryFilter.tsx:15–35` ships a static
    `ALL_CATEGORIES` array with exactly eight denomination chips: Catholic,
@@ -58,7 +74,17 @@ the same file and (2)/(3) share the same backend-data extension.
 
 ## Approach
 
-Four changes, split across two layers:
+Four code changes, preceded by one operational step.
+
+0. **Operational: run `npm run db:cleanup-demo` against production.** The
+   script already exists and already does exactly the right thing —
+   identifies churches by `googlePlaceId IS NULL`, cascades the delete
+   through every related row, logs each affected table, and reports the
+   final remaining church count. No code changes. This happens once,
+   before the code changes ship, so that (a) users stop seeing the
+   inconsistent cards immediately and (b) the per-denomination counts we
+   introduce below are computed against a clean dataset. See _Rollout_
+   below for the exact ordering.
 
 1. **Backend: extend `filter-options` with per-denomination counts.**
    `GET /api/v1/churches/filter-options` currently returns
@@ -105,6 +131,14 @@ there is no mapping layer to drift out of sync. No special fix needed.
 ## Scope
 
 ### In scope
+
+**Operational (pre-deploy)**
+
+- Run `npm run db:cleanup-demo` against production. No code changes —
+  the script at `server/src/scripts/cleanup-demo-churches.ts` is already
+  wired up and already covers the full cascade. Capture the before/after
+  church count from its stdout log for the PR description / rollout
+  notes so the team can verify the correct number of rows were removed.
 
 **Backend**
 
@@ -251,18 +285,56 @@ None. Counts are computed from existing `churches.denominationFamily`.
 
 ### No new pages or routes.
 
+## Rollout
+
+Order matters because the code changes assume a clean dataset. The
+`npm run db:cleanup-demo` command is idempotent (a second run is a
+no-op once the demo rows are gone), so the window between steps 1 and 2
+is low-risk.
+
+1. **Production cleanup (one-shot).** Run `npm run db:cleanup-demo`
+   against the production `DATABASE_URL`. Record stdout:
+   - How many demo churches were removed
+   - How many of each related-row type were cascaded (saved entries,
+     review votes, reviews, events, photos, services, claims)
+   - Final remaining church count
+   Paste the output into the PR description for auditability.
+2. **Staging / preview verification.** Load the live site with the
+   existing frontend build and confirm the ~13–25 inconsistent cards
+   are gone from the search results. This step is pure observation — no
+   code has shipped yet, so the current `CategoryFilter` rail and
+   `FilterPanel` Tradition section are unchanged.
+3. **Ship the denomination code changes** (backend filter-options
+   counts, `FilterPanel` chip labels + disclosure, `CategoryFilter`
+   data-driven rail, API spec doc update). The counts now returned by
+   `/filter-options` will already reflect the post-cleanup dataset.
+4. **Post-deploy re-run of `db:cleanup-demo`.** Expected to be a no-op,
+   but cheap insurance — confirms no new demo-shaped rows leaked in
+   during the deploy window. Log the "No demo churches found — nothing
+   to remove." line from the script to close the loop.
+
+No rollback path for step 1 beyond a DB restore — deletes are
+destructive. Since the demo churches are explicitly identified as "not
+imported from Google Places" and have been flagged for removal since
+commit `df21ac6` (2026-04-08), the loss-of-work risk is zero.
+
 ## Test plan
 
 No automated tests (per the convention prior search specs set). Manual
 smoke plan before merging:
 
-1. `npm run db:seed` with the latest seed file, then `npm run dev`.
-2. Visit `/` and confirm the homepage chip rail shows the top 6
+1. **Verify cleanup ran.** Hit
+   `GET /api/v1/churches?pageSize=50` against production (or query the
+   DB directly) and confirm every returned church has a non-null
+   `googlePlaceId`. Spot-check a few of the previously-inconsistent
+   cards by name to make sure they're gone.
+2. `npm run db:seed` with the latest seed file, then `npm run dev`.
+3. Visit `/` and confirm the homepage chip rail shows the top 6
    denominations from the seed data in count-desc order, with the "All"
    chip still first and the service-style chips still present.
-3. If seed data contains a denomination previously not in the hardcoded
+4. If seed data contains a denomination previously not in the hardcoded
    list (e.g. Pentecostal), confirm it now renders as a chip.
-4. Visit `/search`, open the filter modal, and verify the Tradition
+5. Visit `/search`, open the filter modal, and verify the Tradition
    section:
    - Chips include a `· N` count suffix.
    - Chips are sorted by count descending.
@@ -270,14 +342,14 @@ smoke plan before merging:
      a "Show all (N more)" button.
    - Clicking "Show all" expands the full list; clicking "Show fewer"
      collapses.
-5. Select 2 denominations; confirm the URL, the chips in the results
+6. Select 2 denominations; confirm the URL, the chips in the results
    header, and the API request all behave the same as before multi-select
    shipped.
-6. Hit the API directly:
+7. Hit the API directly:
    `curl /api/v1/churches/filter-options` and verify
    `denominations` is an array of `{ value, count }` objects in
    count-desc order.
-7. `npm run lint && npm run typecheck && npm run test && npm run build`
+8. `npm run lint && npm run typecheck && npm run test && npm run build`
    all pass (the existing filter-panel test may need a small update to
    match the new prop shape).
 
