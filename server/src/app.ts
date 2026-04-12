@@ -27,7 +27,18 @@ export const createApp = (): Express => {
     app.set('trust proxy', 1)
   }
 
-  app.use(helmet())
+  app.use(
+    helmet({
+      hsts: {
+        maxAge: 63072000, // 2 years
+        includeSubDomains: true,
+        preload: true,
+      },
+      contentSecurityPolicy: false, // CSP handled by frontend host (Render/Vercel)
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      frameguard: { action: 'deny' },
+    }),
+  )
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ limit: '10mb', extended: true }))
   app.use(
