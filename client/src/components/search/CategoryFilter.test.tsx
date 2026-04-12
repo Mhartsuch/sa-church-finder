@@ -42,7 +42,10 @@ const resetStore = () => {
   });
 };
 
-const getFiltersButton = () => screen.getByRole('button', { name: /filters/i });
+// Both the mobile (<lg) and desktop (lg+) Filters buttons render in JSDOM
+// since responsive CSS classes don't hide elements. Grab all matches and
+// use the first one — they share the same onClick handler and badge logic.
+const getFiltersButton = () => screen.getAllByRole('button', { name: /filters/i })[0];
 
 describe('CategoryFilter', () => {
   beforeEach(() => {

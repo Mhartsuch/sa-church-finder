@@ -174,6 +174,24 @@ export const CategoryFilter = ({
         })}
       </div>
 
+      {/* Mobile-only filters button — visible below lg breakpoint */}
+      {onOpenFilters ? (
+        <button
+          type="button"
+          onClick={onOpenFilters}
+          className="relative inline-flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-foreground lg:hidden"
+          aria-label="Open filters"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters
+          {activeFilterCount > 0 ? (
+            <span className="absolute -right-2 -top-2 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#FF385C] px-1 text-[10px] font-bold text-white">
+              {activeFilterCount}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
+
       <div className="hidden items-center gap-3 border-l border-border pl-4 lg:flex">
         {onCompare ? (
           <button
