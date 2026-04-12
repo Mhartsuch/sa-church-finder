@@ -256,6 +256,54 @@ const DenominationFilterSection = ({ options }: DenominationFilterSectionProps) 
   );
 };
 
+/**
+ * Minimum-rating picker. The generic `FilterSection` can't render the "Any"
+ * chip the spec calls for because `undefined` isn't a selectable value in
+ * `FilterOption` — so this bespoke section handles the clear-state chip
+ * explicitly. "Any" is active when `filters.minRating` is either `undefined`
+ * or `0` (the two off-states used across the codebase; see search-state.ts
+ * and useURLSearchState.ts for the > 0 check).
+ */
+const MinRatingFilterSection = () => {
+  const minRating = useSearchStore((state) => state.filters.minRating);
+  const setFilter = useSearchStore((state) => state.setFilter);
+
+  const anyActive = minRating === undefined || minRating === 0;
+
+  return (
+    <section className="rounded-[24px] border border-border bg-card p-5">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-base font-semibold text-foreground">Minimum rating</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Hide lower-rated churches. Uses their effective rating (community reviews, then Google).
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <FilterOptionButton
+          active={anyActive}
+          label="Any"
+          onClick={() => setFilter('minRating', undefined)}
+        />
+        {MIN_RATING_OPTIONS.map((option) => {
+          const active = minRating === option.value;
+
+          return (
+            <FilterOptionButton
+              key={`minRating-${option.value}`}
+              active={active}
+              label={option.label}
+              onClick={() => {
+                setFilter('minRating', active ? undefined : option.value);
+              }}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
 const BOOLEAN_FILTER_OPTIONS: BooleanFilterOption[] = [
   {
     key: 'wheelchairAccessible',
@@ -417,12 +465,7 @@ export const FilterPanel = ({ onClose, resultCount = 0 }: FilterPanelProps) => {
           options={DISTANCE_OPTIONS}
         />
 
-        <FilterSection
-          label="Minimum rating"
-          description="Hide lower-rated churches. Uses their effective rating (community reviews, then Google)."
-          filterKey="minRating"
-          options={MIN_RATING_OPTIONS}
-        />
+        <MinRatingFilterSection />
 
         <DenominationFilterSection options={denominationOptions} />
 

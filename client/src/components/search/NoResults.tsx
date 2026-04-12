@@ -1,4 +1,4 @@
-import { MapPin, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
+import { Map as MapIcon, MapPin, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 
 import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
 import { countActiveFilters } from '@/lib/search-state';
@@ -19,15 +19,17 @@ const timeLabelFor = (time: string): string =>
 export const NoResults = () => {
   const query = useSearchStore((s) => s.query);
   const filters = useSearchStore((s) => s.filters);
+  const mapBounds = useSearchStore((s) => s.mapBounds);
   const clearFilters = useSearchStore((s) => s.clearFilters);
   const setQuery = useSearchStore((s) => s.setQuery);
   const setFilter = useSearchStore((s) => s.setFilter);
+  const setMapBounds = useSearchStore((s) => s.setMapBounds);
   const toggleAmenity = useSearchStore((s) => s.toggleAmenity);
   const toggleLanguage = useSearchStore((s) => s.toggleLanguage);
   const toggleDenomination = useSearchStore((s) => s.toggleDenomination);
 
   const hasQuery = query.trim().length > 0;
-  const hasFilters = countActiveFilters(filters) > 0;
+  const hasFilters = countActiveFilters(filters, mapBounds) > 0;
 
   const suggestions: Suggestion[] = [];
 
@@ -48,6 +50,18 @@ export const NoResults = () => {
       label: 'Clear search text',
       icon: <Search className="h-4 w-4" />,
       action: () => setQuery(''),
+    });
+  }
+
+  // A tight map-area bounds is the single most common cause of a zero-result
+  // state for users who have been exploring the map — emit the removal chip
+  // before anything else so it shows up even when the 4-chip visual cap would
+  // otherwise bury it.
+  if (mapBounds) {
+    suggestions.push({
+      label: 'Remove "Map area"',
+      icon: <MapIcon className="h-4 w-4" />,
+      action: () => setMapBounds(null),
     });
   }
 

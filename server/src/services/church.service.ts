@@ -738,6 +738,14 @@ export interface IDenominationOption {
   count: number
 }
 
+export interface IFilterOptionsPayload {
+  denominations: IDenominationOption[]
+  languages: string[]
+  amenities: string[]
+  neighborhoods: string[]
+  serviceTypes: string[]
+}
+
 /**
  * Returns every denomination family that has at least one operational
  * church, paired with the count of churches in that family. Results are
@@ -808,4 +816,68 @@ export async function getAvailableServiceTypes(): Promise<string[]> {
     ORDER BY LOWER("serviceType") ASC
   `
   return rows.map((r) => r.service_type)
+}
+
+// ── Filter options cache ──
+//
+// `/api/v1/churches/filter-options` runs five independent DISTINCT queries on
+// every call. The underlying data only changes when a church is added, edited,
+// or removed, so a short in-process TTL cache cuts the per-request cost to
+// zero for the common case (the search page load) without risking meaningfully
+// stale chips. 5 minutes matches the TTL the frontend React Query layer
+// already applies via `FILTER_OPTIONS_STALE_TIME`, so the two layers line up.
+//
+// The cache is intentionally process-local (single Node instance) — we don't
+// need Redis for this. If the API ever runs multi-instance, each instance
+// gets its own copy and they expire independently, which is fine for
+// read-only filter options.
+const FILTER_OPTIONS_CACHE_TTL_MS = 5 * 60 * 1000
+
+let filterOptionsCache: { payload: IFilterOptionsPayload; expiresAt: number } | null = null
+
+/**
+ * Returns the full filter-options payload used by the search page's filter
+ * panel. Cached for 5 minutes to avoid running five DISTINCT queries on every
+ * page load. Call `invalidateFilterOptionsCache()` after any mutation that
+ * could change the distinct set (church create/update/delete, service edits,
+ * etc.) if you want the next request to recompute immediately.
+ */
+export async function getFilterOptions(): Promise<IFilterOptionsPayload> {
+  const now = Date.now()
+
+  if (filterOptionsCache && filterOptionsCache.expiresAt > now) {
+    return filterOptionsCache.payload
+  }
+
+  const [denominations, languages, amenities, neighborhoods, serviceTypes] = await Promise.all([
+    getAvailableDenominations(),
+    getAvailableLanguages(),
+    getAvailableAmenities(),
+    getAvailableNeighborhoods(),
+    getAvailableServiceTypes(),
+  ])
+
+  const payload: IFilterOptionsPayload = {
+    denominations,
+    languages,
+    amenities,
+    neighborhoods,
+    serviceTypes,
+  }
+
+  filterOptionsCache = {
+    payload,
+    expiresAt: now + FILTER_OPTIONS_CACHE_TTL_MS,
+  }
+
+  return payload
+}
+
+/**
+ * Clears the in-process filter-options cache. Test suites call this between
+ * cases so stale fixtures don't leak across `it()` blocks; production code
+ * calls it from mutation paths that could change the distinct sets.
+ */
+export function invalidateFilterOptionsCache(): void {
+  filterOptionsCache = null
 }

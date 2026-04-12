@@ -168,7 +168,11 @@ export const SearchPage = () => {
   }, [filters, mapBounds, query]);
   const totalResults = data?.meta.total ?? 0;
   const churches = data?.data ?? [];
-  const activeAdvancedFilterCount = countActiveFilters(filters);
+  // Include `mapBounds` in the count so the "X filters active" subtitle lines
+  // up with what the user can see in the chip row. Without this, a user who
+  // only panned + clicked "Search this area" saw "0 filters active" even
+  // though the map-area chip was visible.
+  const activeAdvancedFilterCount = countActiveFilters(filters, mapBounds);
   const toggleAmenity = useSearchStore((state) => state.toggleAmenity);
   const toggleLanguage = useSearchStore((state) => state.toggleLanguage);
   const toggleDenomination = useSearchStore((state) => state.toggleDenomination);
