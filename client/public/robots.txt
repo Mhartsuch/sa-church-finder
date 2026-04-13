@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /account
+Disallow: /analytics
+Disallow: /compare
 Disallow: /leaders
 Disallow: /login
 Disallow: /register

@@ -169,8 +169,6 @@ const HomePage = () => {
   const setFilter = useSearchStore((state) => state.setFilter);
   const setQuery = useSearchStore((state) => state.setQuery);
 
-  useDocumentHead({ canonicalPath: '/' });
-
   const churchCount = featured?.meta.total ?? 0;
   const denominationCount = filterOptions?.denominations.length ?? 0;
 

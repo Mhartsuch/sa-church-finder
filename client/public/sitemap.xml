@@ -16,11 +16,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://sachurchfinder.com/compare</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://sachurchfinder.com/forum</loc>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
+import { EventListJsonLd } from '@/components/seo/JsonLd';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useEventsFeed } from '@/hooks/useEvents';
 import { ChurchEventType, EVENT_TYPES, IAggregatedEvent, IEventsFeedFilters } from '@/types/event';
@@ -151,21 +152,14 @@ const EventCard = ({ event }: { event: IAggregatedEvent }) => {
 
 const EventsDiscoveryPage = () => {
   useDocumentHead({
-    title: 'Church Events',
-    description:
-      'Browse upcoming church events in San Antonio — services, community gatherings, volunteer opportunities, study groups, and more.',
-    canonicalPath: '/events',
-  });
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [form, setForm] = useState<FeedFormState>(() => readFormFromParams(searchParams));
-
-  useDocumentHead({
     title: 'Church Events in San Antonio',
     description:
       'Discover upcoming church events in San Antonio — services, community gatherings, volunteer opportunities, study groups, and youth programs.',
     canonicalPath: '/events',
   });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [form, setForm] = useState<FeedFormState>(() => readFormFromParams(searchParams));
 
   // Keep local form in sync when URL changes (e.g. back/forward navigation).
   useEffect(() => {
@@ -275,6 +269,7 @@ const EventsDiscoveryPage = () => {
 
   return (
     <div className="flex-1 bg-background">
+      {events.length > 0 && <EventListJsonLd events={events} />}
       <section className="mx-auto max-w-[1760px] px-4 py-10 sm:px-6 lg:px-10">
         <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Sparkles className="h-4 w-4 text-[#FF385C]" />
