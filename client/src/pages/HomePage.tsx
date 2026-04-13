@@ -13,38 +13,51 @@ import { useSearchStore } from '@/stores/search-store';
 import { IChurchSummary } from '@/types/church';
 import { formatRating } from '@/utils/format';
 
-// ── San Antonio neighborhoods with curated imagery descriptions ──
+// ── San Antonio neighborhoods with curated stock photography ──
+// Photos from Unsplash (free for commercial use). Gradient serves as fallback.
 
 const NEIGHBORHOODS = [
   {
     name: 'Downtown',
     tagline: 'Historic missions & cathedrals',
     gradient: 'from-amber-600 to-orange-800',
+    image:
+      'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&h=800&fit=crop&auto=format',
   },
   {
     name: 'Alamo Heights',
     tagline: 'Established congregations',
     gradient: 'from-emerald-600 to-teal-800',
+    image:
+      'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=800&fit=crop&auto=format',
   },
   {
     name: 'Stone Oak',
     tagline: 'Modern megachurches',
     gradient: 'from-blue-600 to-indigo-800',
+    image:
+      'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=800&fit=crop&auto=format',
   },
   {
     name: 'Southtown',
     tagline: 'Diverse & community-driven',
     gradient: 'from-rose-600 to-pink-800',
+    image:
+      'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&h=800&fit=crop&auto=format',
   },
   {
     name: 'Medical Center',
     tagline: 'Family-friendly worship',
     gradient: 'from-violet-600 to-purple-800',
+    image:
+      'https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=600&h=800&fit=crop&auto=format',
   },
   {
     name: 'Helotes',
     tagline: 'Small-town fellowship',
     gradient: 'from-cyan-600 to-sky-800',
+    image:
+      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&h=800&fit=crop&auto=format',
   },
 ];
 
@@ -292,12 +305,24 @@ const HomePage = () => {
                 className="group relative overflow-hidden rounded-2xl text-left transition-all hover:-translate-y-1 hover:shadow-airbnb"
               >
                 <div
-                  className={`aspect-[3/4] bg-gradient-to-br ${hood.gradient} p-5 transition-all group-hover:brightness-110`}
+                  className={`relative aspect-[3/4] bg-gradient-to-br ${hood.gradient} transition-all group-hover:brightness-110`}
                 >
-                  <MapPin className="h-5 w-5 text-white/70" />
-                  <div className="absolute bottom-5 left-5 right-5">
-                    <h3 className="text-[16px] font-bold text-white">{hood.name}</h3>
-                    <p className="mt-0.5 text-[13px] text-white/70">{hood.tagline}</p>
+                  <img
+                    src={hood.image}
+                    alt={`${hood.name} neighborhood in San Antonio`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="relative flex h-full flex-col justify-between p-5">
+                    <MapPin className="h-5 w-5 text-white/70" />
+                    <div>
+                      <h3 className="text-[16px] font-bold text-white">{hood.name}</h3>
+                      <p className="mt-0.5 text-[13px] text-white/70">{hood.tagline}</p>
+                    </div>
                   </div>
                 </div>
               </button>
