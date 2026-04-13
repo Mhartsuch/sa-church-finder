@@ -9,6 +9,9 @@ export const EVENT_TYPES = [
 
 export type ChurchEventType = (typeof EVENT_TYPES)[number];
 
+export type EventSource = 'MANUAL' | 'WEBSITE_SCRAPE';
+export type EventStatus = 'PUBLISHED' | 'PENDING' | 'REJECTED';
+
 export interface IChurchEvent {
   /**
    * The stored series (template) id. For non-recurring events this uniquely
@@ -42,6 +45,12 @@ export interface IChurchEvent {
   recurrenceRule: string | null;
   /** True when this record is an expanded occurrence of a recurring series. */
   isOccurrence: boolean;
+  /** How the event was created: manually or via discovery pipeline. */
+  source: EventSource;
+  /** Visibility status: pending events await admin review. */
+  status: EventStatus;
+  /** URL where the event was discovered (pipeline-sourced events only). */
+  sourceUrl: string | null;
   createdById: string | null;
   createdAt: string;
   updatedAt: string;

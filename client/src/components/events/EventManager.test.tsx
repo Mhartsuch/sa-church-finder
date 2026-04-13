@@ -25,6 +25,9 @@ const sampleEvent: IChurchEvent = {
   isRecurring: false,
   recurrenceRule: null,
   isOccurrence: false,
+  source: 'MANUAL',
+  status: 'PUBLISHED',
+  sourceUrl: null,
   createdById: 'user-1',
   createdAt: '2026-04-01T00:00:00.000Z',
   updatedAt: '2026-04-01T00:00:00.000Z',
@@ -251,7 +254,7 @@ describe('EventManager', () => {
       isRecurring: true,
       recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU,WE',
     });
-  })
+  });
 
   it('shows a validation error when end time is not after start time', () => {
     renderWithProviders(

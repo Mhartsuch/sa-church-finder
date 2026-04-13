@@ -69,6 +69,10 @@ const baseEventRecord = {
   locationOverride: null,
   isRecurring: false,
   recurrenceRule: null,
+  source: 'MANUAL',
+  status: 'PUBLISHED',
+  sourceUrl: null,
+  sourceHash: null,
   createdById: 'user-admin-1',
   createdAt: new Date('2026-04-01T00:00:00.000Z'),
   updatedAt: new Date('2026-04-01T00:00:00.000Z'),
@@ -554,7 +558,9 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     expect(response.status).toBe(200)
     expect(response.body.data).toHaveLength(5)
 
-    const occurrenceIds = response.body.data.map((event: { occurrenceId: string }) => event.occurrenceId)
+    const occurrenceIds = response.body.data.map(
+      (event: { occurrenceId: string }) => event.occurrenceId,
+    )
     expect(new Set(occurrenceIds).size).toBe(5)
     expect(occurrenceIds[0]).toBe('event-recurring::2026-05-03T15:00:00.000Z')
 
@@ -580,9 +586,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
   })
 
   it('rejects invalid event type values', async () => {
-    const response = await request(createApp())
-      .get('/api/v1/events')
-      .query({ type: 'not-a-type' })
+    const response = await request(createApp()).get('/api/v1/events').query({ type: 'not-a-type' })
 
     expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')

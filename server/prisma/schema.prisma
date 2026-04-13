@@ -36,6 +36,21 @@ enum RibbonCategorySource {
   @@map("ribbon_category_source")
 }
 
+enum EventSource {
+  MANUAL
+  WEBSITE_SCRAPE
+
+  @@map("event_source")
+}
+
+enum EventStatus {
+  PUBLISHED
+  PENDING
+  REJECTED
+
+  @@map("event_status")
+}
+
 enum RibbonCategoryFilterType {
   QUERY
   DENOMINATION
@@ -205,6 +220,10 @@ model Event {
   locationOverride      String?
   isRecurring           Boolean                @default(false)
   recurrenceRule        String?
+  source                EventSource            @default(MANUAL)
+  status                EventStatus            @default(PUBLISHED)
+  sourceUrl             String?
+  sourceHash            String?                @unique
   createdById           String?
   createdBy             User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt             DateTime               @default(now())

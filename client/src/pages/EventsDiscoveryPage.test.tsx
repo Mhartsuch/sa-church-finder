@@ -29,6 +29,9 @@ const makeEvent = (overrides: Partial<IAggregatedEvent> = {}): IAggregatedEvent 
   isRecurring: false,
   recurrenceRule: null,
   isOccurrence: false,
+  source: 'MANUAL',
+  status: 'PUBLISHED',
+  sourceUrl: null,
   createdById: 'user-1',
   createdAt: '2026-04-01T00:00:00.000Z',
   updatedAt: '2026-04-01T00:00:00.000Z',
@@ -113,9 +116,7 @@ describe('EventsDiscoveryPage', () => {
 
     renderPage();
 
-    expect(
-      screen.getByRole('heading', { name: 'Upcoming community events' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Upcoming community events' })).toBeInTheDocument();
     expect(screen.getByText('1 upcoming event')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Easter Sunrise Service' })).toBeInTheDocument();
 

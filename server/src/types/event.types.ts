@@ -1,3 +1,5 @@
+import type { EventSource, EventStatus } from '@prisma/client'
+
 export const EVENT_TYPES = ['service', 'community', 'volunteer', 'study', 'youth', 'other'] as const
 
 export type ChurchEventType = (typeof EVENT_TYPES)[number]
@@ -36,6 +38,9 @@ export interface IChurchEvent {
    * series rather than the stored template row.
    */
   isOccurrence: boolean
+  source: EventSource
+  status: EventStatus
+  sourceUrl?: string | null
   createdById?: string | null
   createdAt: Date
   updatedAt: Date
@@ -52,6 +57,8 @@ export interface IChurchEventFilters {
    * where the user is managing the template rather than a single occurrence.
    */
   expand?: boolean
+  /** Filter by event status. Defaults to PUBLISHED for public feeds. */
+  status?: EventStatus
 }
 
 export interface IChurchEventResponse {
@@ -115,6 +122,8 @@ export interface IEventsFeedFilters {
   q?: string
   page?: number
   pageSize?: number
+  /** Filter by event status. Defaults to PUBLISHED for public feeds. */
+  status?: EventStatus
 }
 
 export interface IEventsFeedResponse {

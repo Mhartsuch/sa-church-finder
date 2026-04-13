@@ -184,9 +184,18 @@
 | location_override | VARCHAR(300) | NULLABLE                   | If different from church address                                                                                                                                                                                              |
 | is_recurring      | BOOLEAN      | default false              |                                                                                                                                                                                                                               |
 | recurrence_rule   | VARCHAR(255) | NULLABLE                   | iCal RRULE body — supports `FREQ=DAILY\|WEEKLY\|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`. Parsed and canonicalized on write; expanded into occurrences on read (see `server/src/lib/recurrence.ts`). |
+| source            | ENUM         | default 'MANUAL'           | 'MANUAL' (admin-created) or 'WEBSITE_SCRAPE' (discovered by pipeline)                                                                                                                                                         |
+| status            | ENUM         | default 'PUBLISHED'        | 'PUBLISHED', 'PENDING' (awaiting review), 'REJECTED'                                                                                                                                                                          |
+| source_url        | TEXT         | NULLABLE                   | URL where the event was discovered (for pipeline-sourced events)                                                                                                                                                              |
+| source_hash       | TEXT         | UNIQUE, NULLABLE           | SHA-256 deduplication hash (churchId + title + date)                                                                                                                                                                          |
 | created_by        | UUID         | FK → users.id, NULLABLE    |                                                                                                                                                                                                                               |
 | created_at        | TIMESTAMP    | default now()              |                                                                                                                                                                                                                               |
 | updated_at        | TIMESTAMP    | auto-update                |                                                                                                                                                                                                                               |
+
+**Enums:**
+
+- `event_source`: MANUAL, WEBSITE_SCRAPE
+- `event_status`: PUBLISHED, PENDING, REJECTED
 
 ### church_claims
 
@@ -298,27 +307,28 @@
 
 ### ribbon_categories
 
-| Column       | Type                         | Constraints    | Notes                                           |
-| ------------ | ---------------------------- | -------------- | ----------------------------------------------- |
-| id           | UUID                         | PK             | auto-generated                                  |
-| label        | TEXT                         | NOT NULL       | Display name on the chip                        |
-| icon         | TEXT                         | default '⛪'   | Emoji icon                                      |
-| slug         | TEXT                         | UNIQUE         | URL-safe identifier                             |
-| filter_type  | ribbon_category_filter_type  | NOT NULL       | QUERY or DENOMINATION                           |
-| filter_value | TEXT                         | NOT NULL       | Value used for filtering                        |
-| position     | INTEGER                      | default 0      | Sort order (lower = further left)               |
-| is_visible   | BOOLEAN                      | default true   | Admin can hide without deleting                 |
-| source       | ribbon_category_source       | default MANUAL | MANUAL (admin) or AUTO (generated from data)    |
-| is_pinned    | BOOLEAN                      | default false  | Pinned categories survive auto-gen sweeps       |
-| created_at   | TIMESTAMP                    | default now()  |                                                 |
-| updated_at   | TIMESTAMP                    | auto-updated   |                                                 |
+| Column       | Type                        | Constraints    | Notes                                        |
+| ------------ | --------------------------- | -------------- | -------------------------------------------- |
+| id           | UUID                        | PK             | auto-generated                               |
+| label        | TEXT                        | NOT NULL       | Display name on the chip                     |
+| icon         | TEXT                        | default '⛪'   | Emoji icon                                   |
+| slug         | TEXT                        | UNIQUE         | URL-safe identifier                          |
+| filter_type  | ribbon_category_filter_type | NOT NULL       | QUERY or DENOMINATION                        |
+| filter_value | TEXT                        | NOT NULL       | Value used for filtering                     |
+| position     | INTEGER                     | default 0      | Sort order (lower = further left)            |
+| is_visible   | BOOLEAN                     | default true   | Admin can hide without deleting              |
+| source       | ribbon_category_source      | default MANUAL | MANUAL (admin) or AUTO (generated from data) |
+| is_pinned    | BOOLEAN                     | default false  | Pinned categories survive auto-gen sweeps    |
+| created_at   | TIMESTAMP                   | default now()  |                                              |
+| updated_at   | TIMESTAMP                   | auto-updated   |                                              |
 
 **Indexes:** slug (unique), position, is_visible
 
 **Enums:**
+
 - `ribbon_category_source`: MANUAL, AUTO
 - `ribbon_category_filter_type`: QUERY, DENOMINATION
 
 ---
 
-_Last updated: 2026-04-13 — added ribbon_categories table and church passport models._
+_Last updated: 2026-04-13 — added event discovery pipeline fields (source, status, sourceUrl, sourceHash)._

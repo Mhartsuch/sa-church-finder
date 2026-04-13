@@ -14,7 +14,8 @@
     "import:google-churches": "tsx src/scripts/google-import/index.ts",
     "enrich:google-ratings": "tsx src/scripts/google-enrich/index.ts",
     "db:cleanup-demo": "tsx src/scripts/cleanup-demo-churches.ts",
-    "enrich:church-details": "tsx src/scripts/enrich-details/index.ts"
+    "enrich:church-details": "tsx src/scripts/enrich-details/index.ts",
+    "discover:events": "tsx src/scripts/event-discovery/index.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

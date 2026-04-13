@@ -1,4 +1,4 @@
-import { Event, Prisma, Role } from '@prisma/client'
+import { Event, EventStatus, Prisma, Role } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
 import {
@@ -70,6 +70,9 @@ function mapEventRow(event: Event): IChurchEvent {
     isRecurring: event.isRecurring,
     recurrenceRule: event.recurrenceRule,
     isOccurrence: false,
+    source: event.source,
+    status: event.status,
+    sourceUrl: event.sourceUrl,
     createdById: event.createdById,
     createdAt: event.createdAt,
     updatedAt: event.updatedAt,
@@ -177,9 +180,7 @@ function assertValidRecurrenceInput(
   }
 
   if (!isRecurring && trimmed) {
-    throw new ValidationError(
-      'recurrenceRule must be empty when isRecurring is false or omitted',
-    )
+    throw new ValidationError('recurrenceRule must be empty when isRecurring is false or omitted')
   }
 
   if (!trimmed) {
@@ -213,9 +214,12 @@ export async function listChurchEventsBySlug(
   const to = filters.to ?? new Date(from.getTime() + DEFAULT_EXPANSION_WINDOW_MS)
   const expand = filters.expand !== false
 
+  const statusFilter: EventStatus = filters.status ?? EventStatus.PUBLISHED
+
   const where: Prisma.EventWhereInput = expand
     ? {
         churchId: church.id,
+        status: statusFilter,
         ...(filters.type ? { eventType: filters.type } : {}),
         // Candidates: non-recurring events inside the window, plus every
         // recurring event that could conceivably reach the window (start on
@@ -233,6 +237,7 @@ export async function listChurchEventsBySlug(
       }
     : {
         churchId: church.id,
+        status: statusFilter,
         ...(filters.type ? { eventType: filters.type } : {}),
         startTime: { gte: from, lte: to },
       }
@@ -279,7 +284,10 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const trimmedQuery = filters.q?.trim()
   const hasQuery = Boolean(trimmedQuery)
 
+  const feedStatusFilter: EventStatus = filters.status ?? EventStatus.PUBLISHED
+
   const baseQueryFilters: Prisma.EventWhereInput = {
+    status: feedStatusFilter,
     ...(filters.type ? { eventType: filters.type } : {}),
     ...(hasQuery
       ? {
@@ -491,9 +499,7 @@ export async function updateChurchEvent(
 
   const data: Prisma.EventUpdateInput = {
     ...(input.title !== undefined ? { title: input.title.trim() } : {}),
-    ...(input.description !== undefined
-      ? { description: input.description?.trim() || null }
-      : {}),
+    ...(input.description !== undefined ? { description: input.description?.trim() || null } : {}),
     ...(input.eventType !== undefined ? { eventType: input.eventType } : {}),
     ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
     ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
@@ -502,10 +508,7 @@ export async function updateChurchEvent(
       : {}),
   }
 
-  if (
-    input.isRecurring !== undefined ||
-    input.recurrenceRule !== undefined
-  ) {
+  if (input.isRecurring !== undefined || input.recurrenceRule !== undefined) {
     data.isRecurring = nextIsRecurring
     data.recurrenceRule = normalizedRecurrenceRule
   }
