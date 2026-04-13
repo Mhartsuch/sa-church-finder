@@ -152,6 +152,8 @@ model Review {
   facilitiesRating      Int?
   helpfulCount          Int                    @default(0)
   isFlagged             Boolean                @default(false)
+  responseBody          String?
+  respondedAt           DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   votes                 ReviewVote[]

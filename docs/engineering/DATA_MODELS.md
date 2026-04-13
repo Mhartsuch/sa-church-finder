@@ -148,6 +148,8 @@
 | facilities_rating | SMALLINT     | NULLABLE                   | 1–5 sub-rating            |
 | helpful_count     | INTEGER      | default 0                  | Cached vote count         |
 | is_flagged        | BOOLEAN      | default false              | Flagged for moderation    |
+| response_body     | TEXT         | NULLABLE                   | Church leader's reply     |
+| responded_at      | TIMESTAMP    | NULLABLE                   | When response was posted  |
 | created_at        | TIMESTAMP    | default now()              |                           |
 | updated_at        | TIMESTAMP    | auto-update                |                           |
 
@@ -169,21 +171,21 @@
 
 ### events
 
-| Column            | Type         | Constraints                | Notes                                                          |
-| ----------------- | ------------ | -------------------------- | -------------------------------------------------------------- |
-| id                | UUID         | PK, default gen            |                                                                |
-| church_id         | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                              |
-| title             | VARCHAR(200) | NOT NULL                   |                                                                |
-| description       | TEXT         | NULLABLE                   |                                                                |
-| event_type        | VARCHAR(50)  | NOT NULL                   | 'service', 'community', 'volunteer', 'study', 'youth', 'other' |
-| start_time        | TIMESTAMP    | NOT NULL                   |                                                                |
-| end_time          | TIMESTAMP    | NULLABLE                   |                                                                |
-| location_override | VARCHAR(300) | NULLABLE                   | If different from church address                               |
-| is_recurring      | BOOLEAN      | default false              |                                                                |
+| Column            | Type         | Constraints                | Notes                                                                                                                                                                                                                         |
+| ----------------- | ------------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                | UUID         | PK, default gen            |                                                                                                                                                                                                                               |
+| church_id         | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                                                                                                                                                                                             |
+| title             | VARCHAR(200) | NOT NULL                   |                                                                                                                                                                                                                               |
+| description       | TEXT         | NULLABLE                   |                                                                                                                                                                                                                               |
+| event_type        | VARCHAR(50)  | NOT NULL                   | 'service', 'community', 'volunteer', 'study', 'youth', 'other'                                                                                                                                                                |
+| start_time        | TIMESTAMP    | NOT NULL                   |                                                                                                                                                                                                                               |
+| end_time          | TIMESTAMP    | NULLABLE                   |                                                                                                                                                                                                                               |
+| location_override | VARCHAR(300) | NULLABLE                   | If different from church address                                                                                                                                                                                              |
+| is_recurring      | BOOLEAN      | default false              |                                                                                                                                                                                                                               |
 | recurrence_rule   | VARCHAR(255) | NULLABLE                   | iCal RRULE body — supports `FREQ=DAILY\|WEEKLY\|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`. Parsed and canonicalized on write; expanded into occurrences on read (see `server/src/lib/recurrence.ts`). |
-| created_by        | UUID         | FK → users.id, NULLABLE    |                                                                |
-| created_at        | TIMESTAMP    | default now()              |                                                                |
-| updated_at        | TIMESTAMP    | auto-update                |                                                                |
+| created_by        | UUID         | FK → users.id, NULLABLE    |                                                                                                                                                                                                                               |
+| created_at        | TIMESTAMP    | default now()              |                                                                                                                                                                                                                               |
+| updated_at        | TIMESTAMP    | auto-update                |                                                                                                                                                                                                                               |
 
 ### church_claims
 
@@ -233,4 +235,4 @@
 
 ---
 
-_Last updated: 2026-04-08_
+_Last updated: 2026-04-13 — added review response fields (response_body, responded_at)._

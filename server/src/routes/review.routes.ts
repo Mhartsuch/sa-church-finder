@@ -11,6 +11,8 @@ import {
   ResolveFlaggedReviewBody,
   resolveFlaggedReviewSchema,
   reviewIdSchema,
+  reviewResponseSchema,
+  ReviewResponseBody,
   updateReviewSchema,
   UpdateReviewBody,
 } from '../schemas/review.schema.js'
@@ -18,10 +20,12 @@ import {
   addHelpfulVote,
   createReview,
   deleteReview,
+  deleteReviewResponse,
   flagReview,
   getFlaggedReviews,
   getChurchReviews,
   removeHelpfulVote,
+  respondToReview,
   resolveFlaggedReview,
   updateReview,
 } from '../services/review.service.js'
@@ -185,6 +189,57 @@ router.post(
   },
 )
 
+router.post(
+  '/reviews/:id/response',
+  validate(reviewResponseSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+      const input = req.body as ReviewResponseBody
+
+      logger.info({ reviewId: id, userId }, 'Adding response to review')
+
+      const result = await respondToReview(id, userId, { body: input.body })
+
+      res.status(201).json({
+        data: result,
+        message: 'Review response added successfully',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.delete(
+  '/reviews/:id/response',
+  validate(reviewIdSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+
+      logger.info({ reviewId: id, userId }, 'Removing response from review')
+
+      const result = await deleteReviewResponse(id, userId)
+
+      res.json({
+        data: result,
+        message: 'Review response removed successfully',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
 router.delete(
   '/reviews/:id',
   validate(reviewIdSchema),
@@ -238,10 +293,7 @@ router.patch(
       const userId = req.session.userId!
       const input = req.body as ResolveFlaggedReviewBody
 
-      logger.info(
-        { reviewId: id, userId, status: input.status },
-        'Resolving flagged review',
-      )
+      logger.info({ reviewId: id, userId, status: input.status }, 'Resolving flagged review')
 
       const result = await resolveFlaggedReview(id, userId, input)
 

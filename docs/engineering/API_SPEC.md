@@ -142,41 +142,6 @@ Update editable church listing fields. Only included fields are changed (PATCH s
 
 ---
 
-### Church Services
-
-#### `GET /churches/:churchId/services`
-
-List all services for a church.
-
----
-
-#### `POST /churches/:churchId/services` _(church_admin)_
-
-Add a new service time.
-
-| Field        | Type   | Required | Notes                                                        |
-| ------------ | ------ | -------- | ------------------------------------------------------------ |
-| day_of_week  | number | Yes      | 0=Sunday through 6=Saturday                                  |
-| start_time   | string | Yes      | HH:MM format (e.g., '09:00')                                 |
-| end_time     | string | No       | HH:MM format                                                 |
-| service_type | string | Yes      | 'traditional', 'contemporary', 'blended', 'youth', 'spanish' |
-| language     | string | No       | Default: 'English'                                           |
-| description  | string | No       | Max 200 chars                                                |
-
----
-
-#### `PATCH /churches/services/:id` _(church_admin)_
-
-Update an existing service.
-
----
-
-#### `DELETE /churches/services/:id` _(church_admin or site_admin)_
-
-Remove a service.
-
----
-
 ### Church Photos
 
 #### `GET /churches/:churchId/photos`
@@ -267,6 +232,61 @@ Remove the current user's helpful vote from a review.
 #### `POST /reviews/:id/flag` _(authenticated)_
 
 Flag a review for moderation.
+
+---
+
+#### `POST /reviews/:id/response` _(church_admin or site_admin)_
+
+Add or update a church leader's response to a review. The authenticated user must be the church's claimant or a site admin.
+
+| Field | Type   | Required | Notes             |
+| ----- | ------ | -------- | ----------------- |
+| body  | string | Yes      | 1–2000 characters |
+
+**Response:** `{ data: { reviewId, responseBody, respondedAt }, message }`
+
+**Errors:** `401` not authenticated, `403` not the church's claimant, `404` review not found.
+
+---
+
+#### `DELETE /reviews/:id/response` _(church_admin or site_admin)_
+
+Remove the church leader's response from a review. Same authorization as `POST`.
+
+**Response:** `{ data: { reviewId }, message }`
+
+---
+
+### Church Services
+
+#### `POST /churches/:churchId/services` _(church_admin or site_admin)_
+
+Add a new service time. The authenticated user must be the church's claimant or a site admin.
+
+| Field       | Type   | Required | Notes                        |
+| ----------- | ------ | -------- | ---------------------------- |
+| dayOfWeek   | number | Yes      | 0=Sunday through 6=Saturday  |
+| startTime   | string | Yes      | HH:MM format (e.g., '09:00') |
+| endTime     | string | No       | HH:MM format                 |
+| serviceType | string | Yes      | e.g., 'Sunday Worship'       |
+| language    | string | No       | Default: 'English'           |
+| description | string | No       | Max 500 chars                |
+
+**Response:** `{ data: ChurchService, message: "Service time created successfully" }`
+
+**Errors:** `401` not authenticated, `403` not authorized, `404` church not found, `400` validation failed.
+
+---
+
+#### `PATCH /services/:id` _(church_admin or site_admin)_
+
+Update an existing service time. At least one field must be provided.
+
+---
+
+#### `DELETE /services/:id` _(church_admin or site_admin)_
+
+Remove a service time.
 
 ---
 
@@ -564,4 +584,4 @@ Submit a claim request for a church.
 
 ---
 
-_Last updated: 2026-04-11 — documented church-admin event create/update/delete endpoints._
+_Last updated: 2026-04-13 — added review response endpoints and church service CRUD endpoints for leader portal._
