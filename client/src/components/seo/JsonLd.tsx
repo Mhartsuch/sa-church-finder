@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { IChurch } from '@/types/church';
 import { getDayName } from '@/utils/format';
 

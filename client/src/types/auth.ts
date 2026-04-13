@@ -45,7 +45,4 @@ export interface VerifyEmailResult {
   status: 'verified' | 'already-verified'
 }
 
-export interface ApiEnvelope<T> {
-  data: T
-  message?: string
-}
+export type { ApiEnvelope } from './api'

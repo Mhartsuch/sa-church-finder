@@ -6,7 +6,7 @@ const dateTimeSchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid datetime value')
 
-const optionalNullableString = (max: number) =>
+const optionalNullableString = (max: number): z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>> =>
   z.union([z.string().trim().max(max), z.null()]).optional()
 
 const optionalNullableDateTime = z.union([dateTimeSchema, z.null()]).optional()

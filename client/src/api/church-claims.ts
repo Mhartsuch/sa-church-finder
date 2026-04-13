@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api-client';
+import { ApiEnvelope } from '@/types/api';
 import {
   CreateChurchClaimInput,
   IAdminChurchClaimsResponse,
@@ -8,10 +9,6 @@ import {
   ResolveChurchClaimInput,
   ResolveChurchClaimResult,
 } from '@/types/church-claim';
-
-type ApiEnvelope<T> = {
-  data: T;
-};
 
 type SubmitChurchClaimEnvelope = {
   data: IViewerChurchClaim & {

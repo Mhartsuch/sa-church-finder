@@ -4,7 +4,7 @@ const dayOfWeekSchema = z.coerce.number().int().min(0).max(6)
 
 const timeStringSchema = z.string().regex(/^\d{2}:\d{2}$/, 'Time must be in HH:MM format')
 
-const optionalNullableString = (max: number) =>
+const optionalNullableString = (max: number): z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>> =>
   z.union([z.string().trim().max(max), z.null()]).optional()
 
 export const createChurchServiceSchema = z.object({
