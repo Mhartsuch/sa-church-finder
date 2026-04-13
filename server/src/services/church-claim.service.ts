@@ -2,6 +2,7 @@ import { ClaimStatus, Prisma, Role } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
+import { sendClaimStatusEmail } from './notification-email.service.js'
 import {
   IAdminChurchClaim,
   IAdminChurchClaimsResponse,
@@ -145,9 +146,7 @@ const normalizeWebsiteDomain = (website: string | null | undefined): string | nu
 
 const domainsMatch = (candidate: string, allowed: string): boolean => {
   return (
-    candidate === allowed ||
-    candidate.endsWith(`.${allowed}`) ||
-    allowed.endsWith(`.${candidate}`)
+    candidate === allowed || candidate.endsWith(`.${allowed}`) || allowed.endsWith(`.${candidate}`)
   )
 }
 
@@ -188,7 +187,9 @@ const ensureVerificationDomainMatchesChurch = (
     )
   }
 
-  if (![...allowedDomains].some((allowedDomain) => domainsMatch(verificationDomain, allowedDomain))) {
+  if (
+    ![...allowedDomains].some((allowedDomain) => domainsMatch(verificationDomain, allowedDomain))
+  ) {
     throw new AppError(
       400,
       'CLAIM_EMAIL_DOMAIN_MISMATCH',
@@ -233,10 +234,6 @@ export async function createChurchClaim(
 
   if (!church) {
     throw new NotFoundError('Church not found')
-  }
-
-  if (church.isClaimed) {
-    throw new ConflictError('This church is already claimed')
   }
 
   const existingApprovedClaim = await prisma.churchClaim.findFirst({
@@ -284,9 +281,7 @@ export async function createChurchClaim(
   return mapClaimResult(claim)
 }
 
-export async function getUserChurchClaims(
-  userId: string,
-): Promise<IUserChurchClaimsResponse> {
+export async function getUserChurchClaims(userId: string): Promise<IUserChurchClaimsResponse> {
   const claims = await prisma.churchClaim.findMany({
     where: {
       userId,
@@ -334,6 +329,8 @@ export async function resolveChurchClaim(
       church: {
         select: {
           id: true,
+          name: true,
+          slug: true,
           isClaimed: true,
           claimedById: true,
         },
@@ -341,6 +338,8 @@ export async function resolveChurchClaim(
       user: {
         select: {
           id: true,
+          email: true,
+          name: true,
           role: true,
         },
       },
@@ -363,6 +362,15 @@ export async function resolveChurchClaim(
         reviewedById: moderatorUserId,
         reviewedAt: new Date(),
       },
+    })
+
+    // Fire-and-forget notification email
+    void sendClaimStatusEmail({
+      email: claim.user.email,
+      name: claim.user.name,
+      churchName: claim.church.name,
+      churchSlug: claim.church.slug,
+      status: 'rejected',
     })
 
     return {
@@ -405,10 +413,141 @@ export async function resolveChurchClaim(
 
   await prisma.$transaction(operations)
 
+  // Fire-and-forget notification email
+  void sendClaimStatusEmail({
+    email: claim.user.email,
+    name: claim.user.name,
+    churchName: claim.church.name,
+    churchSlug: claim.church.slug,
+    status: 'approved',
+  })
+
   return {
     claimId,
     churchId: claim.churchId,
     userId: claim.userId,
     status: 'approved',
   }
+}
+
+export interface IChurchAdmin {
+  userId: string
+  name: string
+  email: string
+  roleTitle: string
+  isPrimary: boolean
+  approvedAt: Date | null
+}
+
+/**
+ * List all approved admins for a church. The caller must be an admin of the
+ * church or a site admin.
+ */
+export async function getChurchAdmins(
+  churchId: string,
+  callerUserId: string,
+): Promise<IChurchAdmin[]> {
+  const caller = await prisma.user.findUnique({
+    where: { id: callerUserId },
+    select: { role: true },
+  })
+
+  if (!caller) {
+    throw new AppError(401, 'AUTH_ERROR', 'Not authenticated')
+  }
+
+  if (caller.role !== Role.SITE_ADMIN) {
+    const callerClaim = await prisma.churchClaim.findFirst({
+      where: { churchId, userId: callerUserId, status: ClaimStatus.APPROVED },
+      select: { id: true },
+    })
+
+    if (!callerClaim) {
+      throw new AppError(
+        403,
+        'FORBIDDEN',
+        'You do not have permission to view admins for this church',
+      )
+    }
+  }
+
+  const church = await prisma.church.findUnique({
+    where: { id: churchId },
+    select: { claimedById: true },
+  })
+
+  const claims = await prisma.churchClaim.findMany({
+    where: { churchId, status: ClaimStatus.APPROVED },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  return claims.map((claim) => ({
+    userId: claim.user.id,
+    name: claim.user.name,
+    email: claim.user.email,
+    roleTitle: claim.roleTitle,
+    isPrimary: claim.user.id === church?.claimedById,
+    approvedAt: claim.reviewedAt,
+  }))
+}
+
+/**
+ * Remove an admin from a church. Only the primary admin (claimedById) or a
+ * site admin can remove other admins. Admins cannot remove themselves if they
+ * are the only remaining admin.
+ */
+export async function removeChurchAdmin(
+  churchId: string,
+  callerUserId: string,
+  targetUserId: string,
+): Promise<void> {
+  const caller = await prisma.user.findUnique({
+    where: { id: callerUserId },
+    select: { role: true },
+  })
+
+  if (!caller) {
+    throw new AppError(401, 'AUTH_ERROR', 'Not authenticated')
+  }
+
+  const church = await prisma.church.findUnique({
+    where: { id: churchId },
+    select: { claimedById: true },
+  })
+
+  if (!church) {
+    throw new NotFoundError('Church not found')
+  }
+
+  const isPrimaryAdmin = church.claimedById === callerUserId
+  const isSiteAdmin = caller.role === Role.SITE_ADMIN
+
+  if (!isPrimaryAdmin && !isSiteAdmin) {
+    throw new AppError(
+      403,
+      'FORBIDDEN',
+      'Only the primary admin or site admins can remove church admins',
+    )
+  }
+
+  if (targetUserId === church.claimedById) {
+    throw new AppError(400, 'CANNOT_REMOVE_PRIMARY', 'Cannot remove the primary admin of a church')
+  }
+
+  const targetClaim = await prisma.churchClaim.findFirst({
+    where: { churchId, userId: targetUserId, status: ClaimStatus.APPROVED },
+    select: { id: true },
+  })
+
+  if (!targetClaim) {
+    throw new NotFoundError('Admin not found for this church')
+  }
+
+  await prisma.churchClaim.update({
+    where: { id: targetClaim.id },
+    data: { status: ClaimStatus.REJECTED, reviewedAt: new Date(), reviewedById: callerUserId },
+  })
 }

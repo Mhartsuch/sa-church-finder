@@ -1,7 +1,9 @@
-import { Prisma, Role } from '@prisma/client'
+import { ClaimStatus, Prisma, Role } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
+import logger from '../lib/logger.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
+import { sendNewReviewNotification } from './notification-email.service.js'
 import {
   ICreateReviewInput,
   IFlaggedReview,
@@ -287,6 +289,8 @@ export async function createReview(
     where: { id: churchId },
     select: {
       id: true,
+      name: true,
+      slug: true,
       avgRating: true,
       reviewCount: true,
     },
@@ -329,7 +333,37 @@ export async function createReview(
     computeCreateAggregate(toNumber(church.avgRating), church.reviewCount, input.rating),
   )
 
+  // Fire-and-forget: notify church admins of the new review
+  void notifyChurchAdminsOfReview(church, review, input.rating)
+
   return mapReview(review)
+}
+
+async function notifyChurchAdminsOfReview(
+  church: { id: string; name: string; slug: string },
+  review: { user: { name: string }; body: string },
+  rating: number,
+): Promise<void> {
+  try {
+    const adminClaims = await prisma.churchClaim.findMany({
+      where: { churchId: church.id, status: ClaimStatus.APPROVED },
+      include: { user: { select: { email: true, name: true } } },
+    })
+
+    for (const claim of adminClaims) {
+      void sendNewReviewNotification({
+        adminEmail: claim.user.email,
+        adminName: claim.user.name,
+        churchName: church.name,
+        churchSlug: church.slug,
+        reviewerName: review.user.name,
+        rating,
+        reviewExcerpt: review.body,
+      })
+    }
+  } catch (error) {
+    logger.error({ error, churchId: church.id }, 'Failed to notify church admins of new review')
+  }
 }
 
 export async function updateReview(

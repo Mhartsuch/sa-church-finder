@@ -97,6 +97,8 @@ export const useURLSearchState = () => {
     if (urlGoodForGroups === 'true') setFilter('goodForGroups', true);
     if (urlHasPhotos === 'true') setFilter('hasPhotos', true);
     if (urlIsClaimed === 'true') setFilter('isClaimed', true);
+    const urlOpenNow = searchParams.get('openNow');
+    if (urlOpenNow === 'true') setFilter('openNow', true);
     if (urlMinRating) {
       const parsed = parseFloat(urlMinRating);
       if (Number.isFinite(parsed) && parsed > 0 && parsed <= 5) {
@@ -164,6 +166,7 @@ export const useURLSearchState = () => {
     if (filters.goodForGroups) params.set('goodForGroups', 'true');
     if (filters.hasPhotos) params.set('hasPhotos', 'true');
     if (filters.isClaimed) params.set('isClaimed', 'true');
+    if (filters.openNow) params.set('openNow', 'true');
     if (filters.minRating !== undefined && filters.minRating > 0) {
       params.set('minRating', String(filters.minRating));
     }

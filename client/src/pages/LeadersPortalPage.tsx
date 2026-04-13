@@ -11,7 +11,10 @@ import {
   MapPin,
   Pencil,
   Phone,
+  Shield,
   Sparkles,
+  Trash2,
+  Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -20,6 +23,7 @@ import { EventManager } from '@/components/events/EventManager';
 import { ReviewManager } from '@/components/reviews/ReviewManager';
 import { ServiceManager } from '@/components/services/ServiceManager';
 import { useAuthSession } from '@/hooks/useAuth';
+import { useChurchAdmins, useRemoveChurchAdmin } from '@/hooks/useChurchClaims';
 import { IManagedChurchPortal, useLeaderPortal } from '@/hooks/useLeaderPortal';
 import { IChurch } from '@/types/church';
 import { IChurchClaim } from '@/types/church-claim';
@@ -88,6 +92,93 @@ const getChurchProgress = (portalChurch: IManagedChurchPortal) => {
     completed,
     percent: Math.round((completed / checks.length) * 100),
   };
+};
+
+const ChurchAdminPanel = ({ churchId }: { churchId: string }) => {
+  const { data: admins, isLoading } = useChurchAdmins(churchId);
+  const removeAdmin = useRemoveChurchAdmin();
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 rounded-[24px] border border-border bg-card p-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="h-4 w-4" />
+          Loading team members...
+        </div>
+      </div>
+    );
+  }
+
+  if (!admins || admins.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-[24px] border border-border bg-card p-4">
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground">Team ({admins.length})</h3>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {admins.map((admin) => (
+          <div
+            key={admin.userId}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-sm font-medium text-foreground">{admin.name}</span>
+                {admin.isPrimary && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#effaf3] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#166534]">
+                    <Shield className="h-3 w-3" />
+                    Primary
+                  </span>
+                )}
+              </div>
+              <p className="truncate text-xs text-muted-foreground">
+                {admin.roleTitle} &middot; {admin.email}
+              </p>
+            </div>
+
+            {!admin.isPrimary && (
+              <>
+                {confirmRemoveId === admin.userId ? (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeAdmin.mutate({ churchId, adminUserId: admin.userId });
+                        setConfirmRemoveId(null);
+                      }}
+                      className="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmRemoveId(null)}
+                      className="rounded-lg bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-gray-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemoveId(admin.userId)}
+                    className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-red-600"
+                    aria-label={`Remove ${admin.name}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 const LoadingState = () => (
@@ -419,6 +510,8 @@ const LeadersPortalPage = () => {
                             </a>
                           ) : null}
                         </div>
+
+                        <ChurchAdminPanel churchId={church.id} />
                       </article>
                     );
                   })}

@@ -4,6 +4,7 @@ import { RequireAuth } from '@/components/auth/RequireAuth';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { OfflineBanner } from '@/components/layout/OfflineBanner';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { ToastContainer } from '@/components/layout/Toast';
 import { ToastProvider } from '@/hooks/useToast';
@@ -44,6 +45,7 @@ const App = () => {
   return (
     <ToastProvider>
       <div className="mobile-nav-spacer flex min-h-screen flex-col bg-background">
+        <OfflineBanner />
         <ScrollToTop />
         <Header />
         <Suspense fallback={<PageFallback />}>

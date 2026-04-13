@@ -34,6 +34,8 @@ export interface SearchFilters {
   // default" (10 mi); a value of 2/5/10/25 corresponds to the chips in the
   // filter panel distance section.
   radius?: number;
+  // "Open now" — only show churches with a service happening right now.
+  openNow?: boolean;
 }
 
 export type SearchFilterValue = string | number | boolean | string[] | undefined;

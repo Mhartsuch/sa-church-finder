@@ -6,9 +6,9 @@
  * bounding box filtering).
  */
 
-import { Prisma, Role } from '@prisma/client'
+import { ClaimStatus, Prisma, Role } from '@prisma/client'
 import prisma from '../lib/prisma.js'
-import { AppError, NotFoundError } from '../middleware/error-handler.js'
+import { AppError } from '../middleware/error-handler.js'
 import { getViewerClaimForChurch } from './church-claim.service.js'
 import {
   IBounds,
@@ -410,6 +410,22 @@ export async function searchChurches(
       WHERE cs."churchId" = c."id"
         AND cs."startTime" >= ${startRange}
         AND cs."startTime" < ${endRange}
+    )`)
+  }
+
+  // "Open now" — match churches with a service happening at the current
+  // day-of-week and time in America/Chicago (San Antonio's timezone).
+  if (params.openNow === true) {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }))
+    const currentDay = now.getDay() // 0=Sunday
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_services" cs
+      WHERE cs."churchId" = c."id"
+        AND cs."dayOfWeek" = ${currentDay}
+        AND cs."startTime" <= ${currentTime}
+        AND (cs."endTime" IS NOT NULL AND cs."endTime" > ${currentTime})
     )`)
   }
 
@@ -901,34 +917,36 @@ export interface IUpdateChurchInput {
 
 /**
  * Authorizes that the given user can manage the given church. Site admins
- * can manage any church; church admins can manage churches they claimed.
+ * can manage any church; church admins can manage churches they have an
+ * approved claim for (supports multiple admins per church).
  */
 const authorizeChurchManager = async (userId: string, churchId: string): Promise<void> => {
-  const [user, church] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, role: true },
-    }),
-    prisma.church.findUnique({
-      where: { id: churchId },
-      select: { id: true, claimedById: true, isClaimed: true },
-    }),
-  ])
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
+  })
 
   if (!user) {
     throw new AppError(401, 'AUTH_ERROR', 'Not authenticated')
-  }
-
-  if (!church) {
-    throw new NotFoundError('Church not found')
   }
 
   if (user.role === Role.SITE_ADMIN) {
     return
   }
 
-  if (user.role === Role.CHURCH_ADMIN && church.isClaimed && church.claimedById === user.id) {
-    return
+  if (user.role === Role.CHURCH_ADMIN) {
+    const approvedClaim = await prisma.churchClaim.findFirst({
+      where: {
+        churchId,
+        userId,
+        status: ClaimStatus.APPROVED,
+      },
+      select: { id: true },
+    })
+
+    if (approvedClaim) {
+      return
+    }
   }
 
   throw new AppError(403, 'FORBIDDEN', 'You do not have permission to edit this church')
