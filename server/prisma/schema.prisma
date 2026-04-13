@@ -68,6 +68,8 @@ model User {
   reviewVotes           ReviewVote[]
   passwordResetTokens   PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
+  forumPosts            ForumPost[]            @relation("ForumPosts")
+  forumReplies          ForumReply[]           @relation("ForumReplies")
 
   @@map("users")
 }
@@ -340,4 +342,39 @@ model UserAward {
   @@unique([userId, awardType])
   @@index([userId])
   @@map("user_awards")
+}
+
+model ForumPost {
+  id        String       @id @default(cuid())
+  title     String
+  body      String
+  category  String       @default("general")
+  authorId  String
+  author    User         @relation("ForumPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  replies   ForumReply[]
+  isPinned  Boolean      @default(false)
+  isLocked  Boolean      @default(false)
+  viewCount Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([category])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("forum_posts")
+}
+
+model ForumReply {
+  id        String    @id @default(cuid())
+  body      String
+  postId    String
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation("ForumReplies", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("forum_replies")
 }

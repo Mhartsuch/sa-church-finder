@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchMyChurchAnalytics } from '@/api/analytics';
+import { fetchChurchAnalytics, fetchMyChurchAnalytics } from '@/api/analytics';
 
 export const useMyChurchAnalytics = (enabled: boolean) => {
   return useQuery({
@@ -8,5 +8,14 @@ export const useMyChurchAnalytics = (enabled: boolean) => {
     queryFn: fetchMyChurchAnalytics,
     staleTime: 5 * 60 * 1000,
     enabled,
+  });
+};
+
+export const useChurchAnalytics = (churchId: string | null) => {
+  return useQuery({
+    queryKey: ['analytics', 'church', churchId],
+    queryFn: () => fetchChurchAnalytics(churchId!),
+    staleTime: 5 * 60 * 1000,
+    enabled: Boolean(churchId),
   });
 };

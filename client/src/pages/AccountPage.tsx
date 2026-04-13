@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ArrowRight,
+  BarChart3,
   Building2,
   CheckCircle2,
   Compass,
@@ -813,13 +814,22 @@ const AccountPage = () => {
                     into one place so you can quickly see what visitors can already view and what
                     still needs attention.
                   </p>
-                  <Link
-                    to="/leaders"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1f4d45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
-                  >
-                    Open leaders portal
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  <div className="flex gap-3">
+                    <Link
+                      to="/analytics"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#1f4d45] bg-card px-5 py-3 text-sm font-semibold text-[#1f4d45] transition-colors hover:bg-[#f5faf7]"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      Analytics
+                    </Link>
+                    <Link
+                      to="/leaders"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1f4d45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                    >
+                      Open leaders portal
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             ) : null}

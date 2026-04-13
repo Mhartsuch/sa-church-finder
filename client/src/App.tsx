@@ -1,11 +1,15 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { RequireAuth } from '@/components/auth/RequireAuth';
+import { ChurchProfileSkeleton } from '@/components/church/ChurchProfileSkeleton';
+import { EventsSkeleton } from '@/components/layout/EventsSkeleton';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { InstallPrompt } from '@/components/layout/InstallPrompt';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { OfflineBanner } from '@/components/layout/OfflineBanner';
+import { PageFallback } from '@/components/layout/PageFallback';
+import { RouteErrorBoundary } from '@/components/layout/RouteErrorBoundary';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { ToastContainer } from '@/components/layout/Toast';
 import { ToastProvider } from '@/hooks/ToastProvider';
@@ -37,12 +41,8 @@ const LeadersPortalPage = lazy(() => import('@/pages/LeadersPortalPage'));
 const ForumPage = lazy(() => import('@/pages/ForumPage'));
 const PassportPage = lazy(() => import('@/pages/PassportPage'));
 const CollectionPage = lazy(() => import('@/pages/CollectionPage'));
-
-const PageFallback = () => (
-  <div className="flex flex-1 items-center justify-center py-20">
-    <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-foreground" />
-  </div>
-);
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const AnalyticsDashboardPage = lazy(() => import('@/pages/AnalyticsDashboardPage'));
 
 const App = () => {
   return (
@@ -51,54 +51,246 @@ const App = () => {
         <OfflineBanner />
         <ScrollToTop />
         <Header />
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/compare" element={<ComparePage />} />
-            <Route path="/events" element={<EventsDiscoveryPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/churches/:slug" element={<ChurchProfilePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/help-center" element={<HelpCenterPage />} />
-            <Route path="/safety-information" element={<SafetyInformationPage />} />
-            <Route path="/accessibility" element={<AccessibilityPage />} />
-            <Route path="/report-a-concern" element={<ReportConcernPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/sitemap" element={<SitemapPage />} />
-            <Route path="/forum" element={<ForumPage />} />
-            <Route
-              path="/passport"
-              element={
-                <RequireAuth>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route
+            path="/churches/:slug"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<ChurchProfileSkeleton />}>
+                  <ChurchProfilePage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/events"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<EventsSkeleton />}>
+                  <EventsDiscoveryPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/compare"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ComparePage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <LoginPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <RegisterPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ForgotPasswordPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ResetPasswordPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/verify-email"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <VerifyEmailPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/help-center"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <HelpCenterPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/safety-information"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <SafetyInformationPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/accessibility"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <AccessibilityPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/report-a-concern"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ReportConcernPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/privacy"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <PrivacyPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/terms"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <TermsPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/sitemap"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <SitemapPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/forum"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ForumPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/passport"
+            element={
+              <RequireAuth>
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <PassportPage />
+                  </Suspense>
+                </RouteErrorBoundary>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/users/:id/passport"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
                   <PassportPage />
-                </RequireAuth>
-              }
-            />
-            <Route path="/users/:id/passport" element={<PassportPage />} />
-            <Route path="/collections/:id" element={<CollectionPage />} />
-            <Route
-              path="/leaders"
-              element={
-                <RequireAuth>
-                  <LeadersPortalPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/account"
-              element={
-                <RequireAuth>
-                  <AccountPage />
-                </RequireAuth>
-              }
-            />
-          </Routes>
-        </Suspense>
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/collections/:id"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <CollectionPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/leaders"
+            element={
+              <RequireAuth>
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <LeadersPortalPage />
+                  </Suspense>
+                </RouteErrorBoundary>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <RequireAuth>
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <AccountPage />
+                  </Suspense>
+                </RouteErrorBoundary>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <RequireAuth>
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <AnalyticsDashboardPage />
+                  </Suspense>
+                </RouteErrorBoundary>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <NotFoundPage />
+              </Suspense>
+            }
+          />
+        </Routes>
         <Footer />
         <MobileNav />
         <InstallPrompt />

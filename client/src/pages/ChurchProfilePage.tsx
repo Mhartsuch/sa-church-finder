@@ -2,10 +2,12 @@ import { FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Building2,
   Calendar,
   CheckCircle,
   ChevronLeft,
   Clock,
+  Compass,
   ExternalLink,
   Globe,
   Heart,
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import { Lightbox } from '@/components/church/Lightbox';
+import { getAwardDisplayName, LogVisitModal } from '@/components/church/LogVisitModal';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import { BreadcrumbJsonLd, ChurchJsonLd } from '@/components/seo/JsonLd';
@@ -28,6 +31,7 @@ import { useAuthSession } from '@/hooks/useAuth';
 import { useSubmitChurchClaim } from '@/hooks/useChurchClaims';
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches';
 import { useChurchEvents } from '@/hooks/useEvents';
+import { useCreateVisit } from '@/hooks/usePassport';
 import {
   useAddHelpfulVote,
   useChurchReviews,
@@ -214,6 +218,7 @@ export const ChurchProfilePage = () => {
   const addHelpfulVoteMutation = useAddHelpfulVote();
   const flagReviewMutation = useFlagReview();
   const removeHelpfulVoteMutation = useRemoveHelpfulVote();
+  const createVisitMutation = useCreateVisit();
   const { data: church, isLoading, error } = useChurch(slug ?? '');
   const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>('all');
   const [eventDateRange, setEventDateRange] = useState<EventDateRange>('next-30-days');
@@ -231,6 +236,7 @@ export const ChurchProfilePage = () => {
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [flagDialogReviewId, setFlagDialogReviewId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isLogVisitModalOpen, setIsLogVisitModalOpen] = useState(false);
   const eventWindow = buildEventDateWindow(eventWindowBaseIso, eventDateRange);
   const {
     data: churchEventsResponse,
@@ -344,6 +350,43 @@ export const ChurchProfilePage = () => {
           toggleError instanceof Error
             ? toggleError.message
             : 'Unable to update saved churches right now.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleLogVisit = async (input: { visitedAt: string; notes?: string; rating?: number }) => {
+    if (!user) {
+      navigateToLogin();
+      return;
+    }
+
+    try {
+      const result = await createVisitMutation.mutateAsync({
+        churchId: church.id,
+        input,
+      });
+
+      setIsLogVisitModalOpen(false);
+
+      addToast({
+        message: 'Visit logged to your passport!',
+        variant: 'success',
+      });
+
+      for (const award of result.newAwards) {
+        addToast({
+          message: `You earned the ${getAwardDisplayName(award)} badge!`,
+          variant: 'success',
+          duration: 6000,
+        });
+      }
+    } catch (visitError) {
+      addToast({
+        message:
+          visitError instanceof Error
+            ? visitError.message
+            : 'Unable to log your visit right now.',
         variant: 'error',
       });
     }
@@ -556,6 +599,16 @@ export const ChurchProfilePage = () => {
                       ? 'Saved'
                       : 'Save'}
                 </button>
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLogVisitModalOpen(true)}
+                    className="flex items-center gap-2 text-sm font-semibold text-foreground underline hover:text-foreground"
+                  >
+                    <Compass className="h-4 w-4" />
+                    Log Visit
+                  </button>
+                )}
               </div>
 
               {saveError ? (
@@ -1007,6 +1060,25 @@ export const ChurchProfilePage = () => {
                           {review.body}
                         </p>
 
+                        {review.responseBody ? (
+                          <div className="mt-4 rounded-2xl border border-gray-100 bg-[#f7f7f7] p-5">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-semibold text-foreground">
+                                Response from {church.name}
+                              </span>
+                              {review.respondedAt ? (
+                                <span className="text-xs text-muted-foreground">
+                                  · {new Date(review.respondedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                              {review.responseBody}
+                            </p>
+                          </div>
+                        ) : null}
+
                         {subratings.length > 0 ? (
                           <div className="mt-4 flex flex-wrap gap-2">
                             {subratings.map((item) => (
@@ -1338,6 +1410,18 @@ export const ChurchProfilePage = () => {
           initialIndex={lightboxIndex}
           alt={church.name}
           onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
+      {isLogVisitModalOpen && (
+        <LogVisitModal
+          churchId={church.id}
+          churchName={church.name}
+          isPending={createVisitMutation.isPending}
+          onSubmit={(input) => {
+            void handleLogVisit(input);
+          }}
+          onClose={() => setIsLogVisitModalOpen(false)}
         />
       )}
 
