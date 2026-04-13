@@ -4,6 +4,7 @@ import {
   SupportPageLayout,
   SupportPageSection,
 } from '@/components/support/SupportPageLayout';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const sitemapSections = [
   {
@@ -57,6 +58,12 @@ const contextualRoutes = [
 ] as const;
 
 export const SitemapPage = () => {
+  useDocumentHead({
+    title: 'Sitemap',
+    description: 'Browse all pages on SA Church Finder.',
+    canonicalPath: '/sitemap',
+  });
+
   return (
     <SupportPageLayout
       eyebrow="Site Map"

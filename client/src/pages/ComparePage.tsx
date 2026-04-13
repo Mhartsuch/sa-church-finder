@@ -16,6 +16,8 @@ import {
   X,
 } from 'lucide-react';
 
+import { useDocumentHead } from '@/hooks/useDocumentHead';
+
 import { useCompareStore, MAX_COMPARE } from '@/stores/compare-store';
 import { IChurchSummary, IChurchService } from '@/types/church';
 import { formatDistance, formatRating, formatServiceTime, getDayName } from '@/utils/format';
@@ -86,6 +88,14 @@ const CompareRow = ({ label, icon, churches, render, whiteSpacePre }: RowProps) 
 );
 
 const ComparePage = () => {
+  useDocumentHead({
+    title: 'Compare Churches',
+    description:
+      'Compare San Antonio churches side by side — service times, ratings, amenities, and more.',
+    canonicalPath: '/compare',
+    noindex: true,
+  });
+
   const selectedChurches = useCompareStore((state) => state.selectedChurches);
   const clearChurches = useCompareStore((state) => state.clearChurches);
   const removeChurch = useCompareStore((state) => state.removeChurch);

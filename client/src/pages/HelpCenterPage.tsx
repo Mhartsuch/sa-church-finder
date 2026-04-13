@@ -5,6 +5,7 @@ import {
   SupportPageLayout,
   SupportPageSection,
 } from '@/components/support/SupportPageLayout';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const gettingStartedItems = [
   {
@@ -61,6 +62,13 @@ const representativeItems = [
 ] as const;
 
 export const HelpCenterPage = () => {
+  useDocumentHead({
+    title: 'Help Center',
+    description:
+      'Get help with SA Church Finder — search tips, account management, reviews, and church claim requests.',
+    canonicalPath: '/help-center',
+  });
+
   return (
     <SupportPageLayout
       eyebrow="Support"

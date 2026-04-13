@@ -3,7 +3,7 @@ import { ArrowRight, Church, Heart, MapPin, Scale, Search, Star } from 'lucide-r
 import { Link, useNavigate } from 'react-router-dom';
 
 import { SearchBar } from '@/components/search/SearchBar';
-import { JsonLd, buildWebsiteJsonLd } from '@/components/seo/JsonLd';
+import { WebSiteJsonLd } from '@/components/seo/JsonLd';
 import { Testimonials } from '@/components/community/Testimonials';
 import { Newsletter } from '@/components/community/Newsletter';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
@@ -143,6 +143,13 @@ const FeaturedCardSkeleton = () => (
 // ── Main page ──
 
 const HomePage = () => {
+  useDocumentHead({
+    title: 'Find Your Church in San Antonio',
+    description:
+      'Discover 30+ churches across every denomination in San Antonio, TX. Read reviews, compare services, and find the perfect spiritual home for you and your family.',
+    canonicalPath: '/',
+  });
+
   const navigate = useNavigate();
   const { data: featured, isLoading: featuredLoading } = useFeaturedChurches();
   const { data: filterOptions } = useFilterOptions();
@@ -175,7 +182,7 @@ const HomePage = () => {
 
   return (
     <div className="flex-1 bg-background">
-      <JsonLd data={buildWebsiteJsonLd()} />
+      <WebSiteJsonLd />
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" />

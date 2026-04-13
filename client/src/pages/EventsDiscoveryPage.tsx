@@ -150,6 +150,13 @@ const EventCard = ({ event }: { event: IAggregatedEvent }) => {
 };
 
 const EventsDiscoveryPage = () => {
+  useDocumentHead({
+    title: 'Church Events',
+    description:
+      'Browse upcoming church events in San Antonio — services, community gatherings, volunteer opportunities, study groups, and more.',
+    canonicalPath: '/events',
+  });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [form, setForm] = useState<FeedFormState>(() => readFormFromParams(searchParams));
 

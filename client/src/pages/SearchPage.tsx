@@ -61,6 +61,13 @@ const stripOpenFiltersFlag = (state: unknown): SearchPageLocationState | null =>
 };
 
 export const SearchPage = () => {
+  useDocumentHead({
+    title: 'Search Churches',
+    description:
+      'Search and filter churches in San Antonio by denomination, neighborhood, service times, worship style, and more.',
+    canonicalPath: '/search',
+  });
+
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(

@@ -1,39 +1,46 @@
 import { IChurch } from '@/types/church';
-import { getDayName } from '@/utils/format';
 
-interface JsonLdProps {
-  data: Record<string, unknown>;
-}
-
-export function JsonLd({ data }: JsonLdProps) {
+/** Renders a <script type="application/ld+json"> tag with the given data. */
+function JsonLdScript({ data }: { data: Record<string, unknown> }): JSX.Element {
   return (
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
   );
 }
 
-const dayToSchema: Record<number, string> = {
-  0: 'Sunday',
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-  6: 'Saturday',
-};
+/** Schema.org WebSite markup for the home page (enables sitelinks search box). */
+export function WebSiteJsonLd(): JSX.Element {
+  return (
+    <JsonLdScript
+      data={{
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'SA Church Finder',
+        url: 'https://sachurchfinder.com',
+        description:
+          'Discover churches across San Antonio with neighborhood search, detailed profiles, and community-driven reviews.',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: 'https://sachurchfinder.com/search?q={search_term_string}',
+          },
+          'query-input': 'required name=search_term_string',
+        },
+      }}
+    />
+  );
+}
 
-export function buildChurchJsonLd(church: IChurch): Record<string, unknown> {
-  const openingHours = church.services.map((s) => {
-    const day = dayToSchema[s.dayOfWeek] ?? getDayName(s.dayOfWeek);
-    const start = s.startTime.replace(':', '');
-    const end = s.endTime?.replace(':', '') ?? '';
-    return end ? `${day} ${start}-${end}` : `${day} ${start}`;
-  });
+/** Schema.org Church / PlaceOfWorship markup for individual church pages. */
+export function ChurchJsonLd({ church }: { church: IChurch }): JSX.Element {
+  const rating = church.reviewCount > 0 ? church.avgRating : (church.googleRating ?? 0);
+  const reviewCount = church.reviewCount > 0 ? church.reviewCount : (church.googleReviewCount ?? 0);
 
-  const result: Record<string, unknown> = {
+  const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': 'Church',
+    '@type': ['Church', 'PlaceOfWorship'],
     name: church.name,
-    description: church.description ?? undefined,
+    url: `https://sachurchfinder.com/churches/${church.slug}`,
     address: {
       '@type': 'PostalAddress',
       streetAddress: church.address,
@@ -46,46 +53,71 @@ export function buildChurchJsonLd(church: IChurch): Record<string, unknown> {
       latitude: church.latitude,
       longitude: church.longitude,
     },
-    url: `https://sachurchfinder.com/churches/${church.slug}`,
   };
 
-  if (church.phone) result.telephone = church.phone;
-  if (church.website) result.sameAs = church.website;
-  if (church.coverImageUrl) result.image = church.coverImageUrl;
-  if (church.yearEstablished) result.foundingDate = String(church.yearEstablished);
-
-  if (openingHours.length > 0) {
-    result.openingHours = openingHours;
+  if (church.description) {
+    data.description = church.description;
   }
 
-  if (church.reviewCount > 0) {
-    result.aggregateRating = {
+  if (church.phone) {
+    data.telephone = church.phone;
+  }
+
+  if (church.email) {
+    data.email = church.email;
+  }
+
+  if (church.website) {
+    data.sameAs = church.website;
+  }
+
+  if (church.coverImageUrl) {
+    data.image = church.coverImageUrl;
+  }
+
+  if (church.photos && church.photos.length > 0) {
+    data.image = church.photos.map((p) => p.url);
+  }
+
+  if (church.yearEstablished) {
+    data.foundingDate = String(church.yearEstablished);
+  }
+
+  if (church.wheelchairAccessible) {
+    data.isAccessibleForFree = true;
+  }
+
+  if (rating > 0 && reviewCount > 0) {
+    data.aggregateRating = {
       '@type': 'AggregateRating',
-      ratingValue: church.avgRating,
-      reviewCount: church.reviewCount,
+      ratingValue: rating.toFixed(1),
+      reviewCount,
       bestRating: 5,
       worstRating: 1,
     };
   }
 
-  return result;
+  return <JsonLdScript data={data} />;
 }
 
-export function buildWebsiteJsonLd(): Record<string, unknown> {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'SA Church Finder',
-    url: 'https://sachurchfinder.com',
-    description:
-      'Discover churches across San Antonio with neighborhood search, detailed profiles, and community-driven reviews.',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: 'https://sachurchfinder.com/search?q={search_term_string}',
-      },
-      'query-input': 'required name=search_term_string',
-    },
-  };
+/** BreadcrumbList markup for church profile pages. */
+export function BreadcrumbJsonLd({
+  items,
+}: {
+  items: Array<{ name: string; url: string }>;
+}): JSX.Element {
+  return (
+    <JsonLdScript
+      data={{
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: items.map((item, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: item.name,
+          item: item.url,
+        })),
+      }}
+    />
+  );
 }

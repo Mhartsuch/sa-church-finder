@@ -16,12 +16,32 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://sachurchfinder.com/compare</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://sachurchfinder.com/forum</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://sachurchfinder.com/help-center</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://sachurchfinder.com/safety-information</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://sachurchfinder.com/accessibility</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://sachurchfinder.com/report-a-concern</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -32,6 +52,11 @@
   </url>
   <url>
     <loc>https://sachurchfinder.com/terms</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://sachurchfinder.com/sitemap</loc>
     <changefreq>monthly</changefreq>
     <priority>0.2</priority>
   </url>

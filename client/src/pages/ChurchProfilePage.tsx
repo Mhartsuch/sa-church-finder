@@ -22,7 +22,7 @@ import {
 import { Lightbox } from '@/components/church/Lightbox';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
-import { JsonLd, buildChurchJsonLd } from '@/components/seo/JsonLd';
+import { BreadcrumbJsonLd, ChurchJsonLd } from '@/components/seo/JsonLd';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useAuthSession } from '@/hooks/useAuth';
 import { useSubmitChurchClaim } from '@/hooks/useChurchClaims';
@@ -251,20 +251,19 @@ export const ChurchProfilePage = () => {
     pageSize: 10,
   });
 
-  useDocumentHead(
-    church
-      ? {
-          title: church.name,
-          description:
-            church.description?.slice(0, 160) ??
-            `${church.name} — ${church.denomination ?? 'Church'} in ${church.neighborhood ?? church.city}, ${church.state}. Service times, reviews, and directions.`,
-          canonicalPath: `/churches/${church.slug}`,
-          ogType: 'place',
-          ogImage: church.coverImageUrl ?? undefined,
-          ogImageAlt: `Photo of ${church.name}`,
-        }
-      : { title: 'Church Profile' },
-  );
+  const churchDescription = church?.description
+    ? church.description.slice(0, 155)
+    : church
+      ? `${church.name} in ${church.neighborhood ?? 'San Antonio'}, TX. Read reviews, view service times, and get directions.`
+      : undefined;
+
+  useDocumentHead({
+    title: church?.name,
+    description: churchDescription,
+    canonicalPath: slug ? `/churches/${slug}` : undefined,
+    ogType: 'place',
+    ogImage: church?.coverImageUrl ?? undefined,
+  });
 
   if (isLoading) {
     return <ProfileSkeleton />;
@@ -460,7 +459,14 @@ export const ChurchProfilePage = () => {
 
   return (
     <div className="flex-1 overflow-y-auto bg-background">
-      <JsonLd data={buildChurchJsonLd(church)} />
+      <ChurchJsonLd church={church} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: 'https://sachurchfinder.com/' },
+          { name: 'Search', url: 'https://sachurchfinder.com/search' },
+          { name: church.name, url: `https://sachurchfinder.com/churches/${church.slug}` },
+        ]}
+      />
       <div className="mx-auto max-w-[1180px] px-6 pb-4 pt-6 lg:px-0">
         <Link
           to="/"

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { buildSupportMailto, SUPPORT_EMAIL } from '@/constants/support';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useToast } from '@/hooks/useToast';
 import {
   SupportCard,
@@ -21,6 +22,12 @@ const fieldClassName =
   'mt-2 w-full rounded-[24px] border border-border bg-card px-4 py-3 text-sm leading-6 text-foreground outline-none transition-colors focus:border-foreground';
 
 export const ReportConcernPage = () => {
+  useDocumentHead({
+    title: 'Report a Concern',
+    description:
+      'Report safety concerns, inaccurate listings, or policy violations on SA Church Finder.',
+    canonicalPath: '/report-a-concern',
+  });
   const { addToast } = useToast();
   const [category, setCategory] = useState<(typeof concernCategories)[number]>('Unsafe behavior');
   const [location, setLocation] = useState('');
