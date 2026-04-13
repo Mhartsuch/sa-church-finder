@@ -30,6 +30,7 @@ import {
   useUserReviews,
 } from '@/hooks/useReviews';
 import { ChurchClaimStatus } from '@/types/church-claim';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useToast } from '@/hooks/useToast';
 import { formatRating } from '@/utils/format';
 
@@ -105,6 +106,8 @@ const getClaimStatusClasses = (status: ChurchClaimStatus): string => {
 };
 
 const AccountPage = () => {
+  useDocumentHead({ title: 'My Account', noindex: true });
+
   const navigate = useNavigate();
   const logoutMutation = useLogout();
   const requestEmailVerificationMutation = useRequestEmailVerification();

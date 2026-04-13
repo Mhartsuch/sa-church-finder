@@ -22,6 +22,7 @@ import {
 import { Lightbox } from '@/components/church/Lightbox';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
+import { BreadcrumbJsonLd, ChurchJsonLd } from '@/components/seo/JsonLd';
 import { useAuthSession } from '@/hooks/useAuth';
 import { useSubmitChurchClaim } from '@/hooks/useChurchClaims';
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches';
@@ -33,6 +34,7 @@ import {
   useRemoveHelpfulVote,
 } from '@/hooks/useReviews';
 import { ChurchProfileHero } from '@/components/church/ChurchProfileHero';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useToast } from '@/hooks/useToast';
 import { IChurchService } from '@/types/church';
 import { ChurchEventType, IChurchEvent } from '@/types/event';
@@ -249,6 +251,20 @@ export const ChurchProfilePage = () => {
     pageSize: 10,
   });
 
+  const churchDescription = church?.description
+    ? church.description.slice(0, 155)
+    : church
+      ? `${church.name} in ${church.neighborhood ?? 'San Antonio'}, TX. Read reviews, view service times, and get directions.`
+      : undefined;
+
+  useDocumentHead({
+    title: church?.name,
+    description: churchDescription,
+    canonicalPath: slug ? `/churches/${slug}` : undefined,
+    ogType: 'place',
+    ogImage: church?.coverImageUrl ?? undefined,
+  });
+
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -443,6 +459,14 @@ export const ChurchProfilePage = () => {
 
   return (
     <div className="flex-1 overflow-y-auto bg-background">
+      <ChurchJsonLd church={church} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: 'https://sachurchfinder.com/' },
+          { name: 'Search', url: 'https://sachurchfinder.com/search' },
+          { name: church.name, url: `https://sachurchfinder.com/churches/${church.slug}` },
+        ]}
+      />
       <div className="mx-auto max-w-[1180px] px-6 pb-4 pt-6 lg:px-0">
         <Link
           to="/"

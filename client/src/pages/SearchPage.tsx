@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, LayoutGrid, Map as MapIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { useDocumentHead } from '@/hooks/useDocumentHead';
+
 import { ChurchList } from '@/components/church/ChurchList';
 import { RecentlyViewed } from '@/components/church/RecentlyViewed';
 import { DenominationGuide } from '@/components/community/DenominationGuide';
@@ -60,6 +62,13 @@ const stripOpenFiltersFlag = (state: unknown): SearchPageLocationState | null =>
 };
 
 export const SearchPage = () => {
+  useDocumentHead({
+    title: 'Search Churches',
+    description:
+      'Search and filter churches in San Antonio by denomination, neighborhood, service times, worship style, and more.',
+    canonicalPath: '/search',
+  });
+
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(

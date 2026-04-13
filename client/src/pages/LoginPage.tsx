@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { useAuthSession, useLogin } from '@/hooks/useAuth';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import {
   buildAuthPageHref,
   buildGoogleAuthUrl,
@@ -42,6 +43,8 @@ const validateForm = ({ email, password }: LoginFormState): string | null => {
 };
 
 const LoginPage = () => {
+  useDocumentHead({ title: 'Log In', noindex: true });
+
   const location = useLocation();
   const navigate = useNavigate();
   const redirectTo = resolveAuthRedirectPath(location.state, location.search);

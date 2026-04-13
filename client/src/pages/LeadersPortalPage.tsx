@@ -20,6 +20,7 @@ import { EventManager } from '@/components/events/EventManager';
 import { ReviewManager } from '@/components/reviews/ReviewManager';
 import { ServiceManager } from '@/components/services/ServiceManager';
 import { useAuthSession } from '@/hooks/useAuth';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { IManagedChurchPortal, useLeaderPortal } from '@/hooks/useLeaderPortal';
 import { IChurch } from '@/types/church';
 import { IChurchClaim } from '@/types/church-claim';
@@ -115,6 +116,8 @@ const LoadingState = () => (
 );
 
 const LeadersPortalPage = () => {
+  useDocumentHead({ title: 'Leaders Portal', noindex: true });
+
   const { user } = useAuthSession();
   const {
     claimsQuery,

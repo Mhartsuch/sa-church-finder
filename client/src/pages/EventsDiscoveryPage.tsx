@@ -12,13 +12,10 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
+import { useDocumentHead } from '@/hooks/useDocumentHead';
+
 import { useEventsFeed } from '@/hooks/useEvents';
-import {
-  ChurchEventType,
-  EVENT_TYPES,
-  IAggregatedEvent,
-  IEventsFeedFilters,
-} from '@/types/event';
+import { ChurchEventType, EVENT_TYPES, IAggregatedEvent, IEventsFeedFilters } from '@/types/event';
 
 const PAGE_SIZE = 12;
 
@@ -154,6 +151,13 @@ const EventCard = ({ event }: { event: IAggregatedEvent }) => {
 };
 
 const EventsDiscoveryPage = () => {
+  useDocumentHead({
+    title: 'Church Events',
+    description:
+      'Browse upcoming church events in San Antonio — services, community gatherings, volunteer opportunities, study groups, and more.',
+    canonicalPath: '/events',
+  });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [form, setForm] = useState<FeedFormState>(() => readFormFromParams(searchParams));
 
@@ -330,9 +334,7 @@ const EventsDiscoveryPage = () => {
               <input
                 type="date"
                 value={form.fromDate}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, fromDate: event.target.value }))
-                }
+                onChange={(event) => setForm((prev) => ({ ...prev, fromDate: event.target.value }))}
                 className="w-full rounded-[10px] border border-border bg-background px-3 py-2.5 text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
               />
             </label>
