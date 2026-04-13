@@ -27,6 +27,7 @@
     "db:studio": "cd server && npx prisma studio",
     "import:google-churches": "cd server && npx tsx src/scripts/google-import/index.ts",
     "enrich:church-details": "cd server && npx tsx src/scripts/enrich-details/index.ts",
+    "enrich:website": "cd server && npx tsx src/scripts/enrich-website/index.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },
