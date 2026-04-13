@@ -1,7 +1,6 @@
 import crypto from 'node:crypto'
 
 import { extractTextFromHtml, findEventPageUrls } from './website-fetcher.js'
-import { parseEventsFromResponse } from './event-extractor.js'
 
 describe('extractTextFromHtml', () => {
   it('strips script and style tags', () => {
@@ -128,67 +127,8 @@ describe('findEventPageUrls', () => {
   })
 })
 
-describe('parseEventsFromResponse', () => {
-  it('parses valid JSON array of events', () => {
-    const response = JSON.stringify([
-      {
-        title: 'Sunday Worship',
-        description: 'Join us for worship',
-        eventType: 'service',
-        startDate: '2026-04-20',
-        startTime: '10:00',
-        endDate: null,
-        endTime: '11:30',
-        location: null,
-        isRecurring: true,
-        recurrenceDescription: 'Every Sunday',
-      },
-    ])
-    const events = parseEventsFromResponse(response)
-    expect(events).toHaveLength(1)
-    expect(events[0].title).toBe('Sunday Worship')
-    expect(events[0].eventType).toBe('service')
-  })
-
-  it('handles markdown code block wrapping', () => {
-    const response =
-      '```json\n[{"title":"VBS","eventType":"youth","startDate":"2026-06-15","startTime":null,"endDate":null,"endTime":null,"description":"Vacation Bible School","location":null,"isRecurring":false,"recurrenceDescription":null}]\n```'
-    const events = parseEventsFromResponse(response)
-    expect(events).toHaveLength(1)
-    expect(events[0].title).toBe('VBS')
-  })
-
-  it('returns empty array for empty JSON array', () => {
-    const events = parseEventsFromResponse('[]')
-    expect(events).toHaveLength(0)
-  })
-
-  it('filters out invalid events', () => {
-    const response = JSON.stringify([
-      { title: 'Valid Event', eventType: 'community', startDate: '2026-05-01' },
-      { title: '', eventType: 'service', startDate: '2026-05-01' },
-      { title: 'No Date', eventType: 'service' },
-      { title: 'Bad Type', eventType: 'unknown', startDate: '2026-05-01' },
-      null,
-      42,
-    ])
-    const events = parseEventsFromResponse(response)
-    expect(events).toHaveLength(1)
-    expect(events[0].title).toBe('Valid Event')
-  })
-
-  it('throws on invalid JSON', () => {
-    expect(() => parseEventsFromResponse('not json')).toThrow()
-  })
-
-  it('returns empty array for non-array JSON', () => {
-    const events = parseEventsFromResponse('{"title": "not an array"}')
-    expect(events).toHaveLength(0)
-  })
-})
-
 describe('generateSourceHash', () => {
-  // Re-implement the hash function here for testing since it's not exported
+  // Mirror the hash logic from save-events.ts
   function generateSourceHash(churchId: string, title: string, startDate: string): string {
     const normalizedTitle = title.toLowerCase().trim().replace(/\s+/g, ' ')
     const dateOnly = startDate.split('T')[0]

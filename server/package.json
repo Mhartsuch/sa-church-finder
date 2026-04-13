@@ -15,7 +15,8 @@
     "enrich:google-ratings": "tsx src/scripts/google-enrich/index.ts",
     "db:cleanup-demo": "tsx src/scripts/cleanup-demo-churches.ts",
     "enrich:church-details": "tsx src/scripts/enrich-details/index.ts",
-    "discover:events": "tsx src/scripts/event-discovery/index.ts"
+    "discover:events": "tsx src/scripts/event-discovery/fetch-content.ts",
+    "discover:save": "tsx src/scripts/event-discovery/save-events.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
