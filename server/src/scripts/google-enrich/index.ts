@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Google Places Enrich Script
  *
@@ -24,7 +25,7 @@ import { GooglePlacesClient } from '../google-import/google-places-client.js'
 
 dotenv.config()
 
-function parseArgs() {
+function parseArgs(): { all: boolean; dryRun: boolean; limit: number | null } {
   const args = process.argv.slice(2)
   const limitIndex = args.indexOf('--limit')
   return {
@@ -44,7 +45,7 @@ function getRequiredEnv(name: string, fallback?: string): string {
   return value
 }
 
-async function main() {
+async function main(): Promise<void> {
   const options = parseArgs()
   const prisma = new PrismaClient()
 

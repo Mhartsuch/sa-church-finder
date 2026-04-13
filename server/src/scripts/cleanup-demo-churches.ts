@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Cleanup script — removes demo/seed churches that were not imported from Google Places.
  *
@@ -14,7 +15,7 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-async function main() {
+async function main(): Promise<void> {
   const demoChurches = await prisma.church.findMany({
     where: { googlePlaceId: null },
     select: { id: true, name: true },

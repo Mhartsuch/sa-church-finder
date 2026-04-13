@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ToastProvider } from '@/hooks/useToast';
+import { ToastProvider } from '@/hooks/ToastProvider';
 import { IChurchEvent } from '@/types/event';
 
 import { EventManager } from './EventManager';
