@@ -770,6 +770,7 @@ Returns visible ribbon categories ordered by position. Cached server-side (5 min
 **Auth:** None (public)
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -803,16 +804,16 @@ Create a new ribbon category.
 
 **Auth:** SITE_ADMIN
 
-| Field       | Type    | Required | Notes                                  |
-| ----------- | ------- | -------- | -------------------------------------- |
-| label       | string  | Yes      | 1-50 chars                             |
-| icon        | string  | No       | Emoji, defaults to ⛪                  |
-| slug        | string  | No       | Auto-derived from label if omitted     |
-| filterType  | string  | Yes      | "QUERY" or "DENOMINATION"              |
-| filterValue | string  | Yes      | Value used for filtering               |
-| position    | number  | No       | Auto-appended if omitted               |
-| isVisible   | boolean | No       | Defaults to true                       |
-| isPinned    | boolean | No       | Defaults to false                      |
+| Field       | Type    | Required | Notes                              |
+| ----------- | ------- | -------- | ---------------------------------- |
+| label       | string  | Yes      | 1-50 chars                         |
+| icon        | string  | No       | Emoji, defaults to ⛪              |
+| slug        | string  | No       | Auto-derived from label if omitted |
+| filterType  | string  | Yes      | "QUERY" or "DENOMINATION"          |
+| filterValue | string  | Yes      | Value used for filtering           |
+| position    | number  | No       | Auto-appended if omitted           |
+| isVisible   | boolean | No       | Defaults to true                   |
+| isPinned    | boolean | No       | Defaults to false                  |
 
 ### PATCH /admin/ribbon-categories/:id
 
@@ -832,9 +833,9 @@ Bulk reorder categories by providing an ordered array of IDs.
 
 **Auth:** SITE_ADMIN
 
-| Field | Type     | Required | Notes                      |
-| ----- | -------- | -------- | -------------------------- |
-| ids   | string[] | Yes      | Ordered array of UUIDs     |
+| Field | Type     | Required | Notes                  |
+| ----- | -------- | -------- | ---------------------- |
+| ids   | string[] | Yes      | Ordered array of UUIDs |
 
 ### POST /admin/ribbon-categories/auto-generate
 
@@ -842,11 +843,12 @@ Auto-generate denomination categories from church data. Creates/updates AUTO-sou
 
 **Auth:** SITE_ADMIN
 
-| Field | Type   | Required | Notes                         |
-| ----- | ------ | -------- | ----------------------------- |
-| limit | number | No       | Max categories (default 6)    |
+| Field | Type   | Required | Notes                      |
+| ----- | ------ | -------- | -------------------------- |
+| limit | number | No       | Max categories (default 6) |
 
 **Response:**
+
 ```json
 {
   "data": { "created": 3, "updated": 1, "removed": 0 },
@@ -856,4 +858,160 @@ Auto-generate denomination categories from church data. Creates/updates AUTO-sou
 
 ---
 
-_Last updated: 2026-04-13 — added ribbon categories and church passport endpoints._
+### Forum
+
+Community discussion forum for church visitors and leaders.
+
+#### `GET /forum/posts`
+
+List forum posts with filtering and pagination.
+
+| Param    | Type   | Required | Notes                                                                         |
+| -------- | ------ | -------- | ----------------------------------------------------------------------------- |
+| category | string | No       | One of `general`, `recommendations`, `prayer-requests`, `events`, `newcomers` |
+| sort     | string | No       | `recent` (default), `popular` (by views), `most-replies`                      |
+| page     | number | No       | Page number (default: 1)                                                      |
+| pageSize | number | No       | Results per page (default: 20, max: 50)                                       |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "...",
+      "title": "Best churches for newcomers?",
+      "body": "Just moved to SA...",
+      "category": "newcomers",
+      "authorId": "...",
+      "author": { "id": "...", "name": "Jane", "avatarUrl": null },
+      "isPinned": false,
+      "isLocked": false,
+      "viewCount": 42,
+      "replyCount": 5,
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "pageSize": 20,
+    "total": 35,
+    "totalPages": 2,
+    "sort": "recent",
+    "category": null
+  }
+}
+```
+
+Pinned posts are always sorted first regardless of sort option.
+
+---
+
+#### `GET /forum/posts/:id`
+
+Get a single forum post with all replies. Increments the post's view count.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "...",
+    "title": "...",
+    "body": "...",
+    "category": "general",
+    "authorId": "...",
+    "author": { "id": "...", "name": "...", "avatarUrl": null },
+    "isPinned": false,
+    "isLocked": false,
+    "viewCount": 43,
+    "replyCount": 2,
+    "createdAt": "...",
+    "updatedAt": "...",
+    "replies": [
+      {
+        "id": "...",
+        "body": "Great question!",
+        "postId": "...",
+        "authorId": "...",
+        "author": { "id": "...", "name": "...", "avatarUrl": null },
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ]
+  }
+}
+```
+
+**Errors:** `404` post not found.
+
+---
+
+#### `POST /forum/posts` _(authenticated)_
+
+Create a new forum post.
+
+| Field    | Type   | Required | Notes                                                                                             |
+| -------- | ------ | -------- | ------------------------------------------------------------------------------------------------- |
+| title    | string | Yes      | 3–200 characters                                                                                  |
+| body     | string | Yes      | 10–5000 characters                                                                                |
+| category | string | No       | Default: `general`. One of `general`, `recommendations`, `prayer-requests`, `events`, `newcomers` |
+
+**Response:** `{ data: ForumPost, message: "Post created successfully" }`
+
+**Errors:** `400` validation failed, `401` not authenticated.
+
+---
+
+#### `PATCH /forum/posts/:id` _(post owner)_
+
+Update an existing forum post. At least one field must be provided. Only the post author can edit.
+
+| Field    | Type   | Required | Notes              |
+| -------- | ------ | -------- | ------------------ |
+| title    | string | No       | 3–200 characters   |
+| body     | string | No       | 10–5000 characters |
+| category | string | No       | Valid category     |
+
+**Response:** `{ data: ForumPost, message: "Post updated successfully" }`
+
+**Errors:** `400` validation failed, `401` not authenticated, `403` not the post author, `404` post not found.
+
+---
+
+#### `DELETE /forum/posts/:id` _(post owner or site_admin)_
+
+Delete a forum post and all its replies (cascade).
+
+**Response:** `{ data: { id, deleted: true }, message: "Post deleted successfully" }`
+
+**Errors:** `401` not authenticated, `403` not the post author or site admin, `404` post not found.
+
+---
+
+#### `POST /forum/posts/:id/replies` _(authenticated)_
+
+Add a reply to a forum post. Blocked if the post is locked.
+
+| Field | Type   | Required | Notes             |
+| ----- | ------ | -------- | ----------------- |
+| body  | string | Yes      | 1–5000 characters |
+
+**Response:** `{ data: ForumReply, message: "Reply created successfully" }`
+
+**Errors:** `400` validation failed, `401` not authenticated, `403` post is locked, `404` post not found.
+
+---
+
+#### `DELETE /forum/replies/:id` _(reply owner or site_admin)_
+
+Delete a forum reply.
+
+**Response:** `{ data: { id, deleted: true }, message: "Reply deleted successfully" }`
+
+**Errors:** `401` not authenticated, `403` not the reply author or site admin, `404` reply not found.
+
+---
+
+_Last updated: 2026-04-13 — added forum endpoints, ribbon categories, and church passport endpoints._

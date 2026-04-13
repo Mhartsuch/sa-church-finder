@@ -296,29 +296,62 @@
 
 ---
 
+### forum_posts
+
+| Column     | Type      | Constraints             | Notes                                                                          |
+| ---------- | --------- | ----------------------- | ------------------------------------------------------------------------------ |
+| id         | CUID      | PK, default gen         |                                                                                |
+| title      | TEXT      | NOT NULL                | 3–200 characters                                                               |
+| body       | TEXT      | NOT NULL                | 10–5000 characters                                                             |
+| category   | TEXT      | default 'general'       | One of: `general`, `recommendations`, `prayer-requests`, `events`, `newcomers` |
+| author_id  | TEXT      | FK → users.id, NOT NULL | ON DELETE CASCADE                                                              |
+| is_pinned  | BOOLEAN   | default false           | Pinned posts sort first in all views                                           |
+| is_locked  | BOOLEAN   | default false           | Locked posts reject new replies                                                |
+| view_count | INTEGER   | default 0               | Incremented on each detail fetch                                               |
+| created_at | TIMESTAMP | default now()           |                                                                                |
+| updated_at | TIMESTAMP | auto-update             |                                                                                |
+
+**Indexes:** category, author_id, created_at
+
+### forum_replies
+
+| Column     | Type      | Constraints                   | Notes             |
+| ---------- | --------- | ----------------------------- | ----------------- |
+| id         | CUID      | PK, default gen               |                   |
+| body       | TEXT      | NOT NULL                      | 1–5000 characters |
+| post_id    | TEXT      | FK → forum_posts.id, NOT NULL | ON DELETE CASCADE |
+| author_id  | TEXT      | FK → users.id, NOT NULL       | ON DELETE CASCADE |
+| created_at | TIMESTAMP | default now()                 |                   |
+| updated_at | TIMESTAMP | auto-update                   |                   |
+
+**Indexes:** post_id, author_id
+
+---
+
 ### ribbon_categories
 
-| Column       | Type                         | Constraints    | Notes                                           |
-| ------------ | ---------------------------- | -------------- | ----------------------------------------------- |
-| id           | UUID                         | PK             | auto-generated                                  |
-| label        | TEXT                         | NOT NULL       | Display name on the chip                        |
-| icon         | TEXT                         | default '⛪'   | Emoji icon                                      |
-| slug         | TEXT                         | UNIQUE         | URL-safe identifier                             |
-| filter_type  | ribbon_category_filter_type  | NOT NULL       | QUERY or DENOMINATION                           |
-| filter_value | TEXT                         | NOT NULL       | Value used for filtering                        |
-| position     | INTEGER                      | default 0      | Sort order (lower = further left)               |
-| is_visible   | BOOLEAN                      | default true   | Admin can hide without deleting                 |
-| source       | ribbon_category_source       | default MANUAL | MANUAL (admin) or AUTO (generated from data)    |
-| is_pinned    | BOOLEAN                      | default false  | Pinned categories survive auto-gen sweeps       |
-| created_at   | TIMESTAMP                    | default now()  |                                                 |
-| updated_at   | TIMESTAMP                    | auto-updated   |                                                 |
+| Column       | Type                        | Constraints    | Notes                                        |
+| ------------ | --------------------------- | -------------- | -------------------------------------------- |
+| id           | UUID                        | PK             | auto-generated                               |
+| label        | TEXT                        | NOT NULL       | Display name on the chip                     |
+| icon         | TEXT                        | default '⛪'   | Emoji icon                                   |
+| slug         | TEXT                        | UNIQUE         | URL-safe identifier                          |
+| filter_type  | ribbon_category_filter_type | NOT NULL       | QUERY or DENOMINATION                        |
+| filter_value | TEXT                        | NOT NULL       | Value used for filtering                     |
+| position     | INTEGER                     | default 0      | Sort order (lower = further left)            |
+| is_visible   | BOOLEAN                     | default true   | Admin can hide without deleting              |
+| source       | ribbon_category_source      | default MANUAL | MANUAL (admin) or AUTO (generated from data) |
+| is_pinned    | BOOLEAN                     | default false  | Pinned categories survive auto-gen sweeps    |
+| created_at   | TIMESTAMP                   | default now()  |                                              |
+| updated_at   | TIMESTAMP                   | auto-updated   |                                              |
 
 **Indexes:** slug (unique), position, is_visible
 
 **Enums:**
+
 - `ribbon_category_source`: MANUAL, AUTO
 - `ribbon_category_filter_type`: QUERY, DENOMINATION
 
 ---
 
-_Last updated: 2026-04-13 — added ribbon_categories table and church passport models._
+_Last updated: 2026-04-13 — added forum_posts, forum_replies, ribbon_categories, and church passport models._
