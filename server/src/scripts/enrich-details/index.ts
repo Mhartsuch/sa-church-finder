@@ -28,8 +28,6 @@
  * No external API calls required — runs entirely against the local database.
  */
 
-/* eslint-disable no-console */
-
 import { PrismaClient } from '@prisma/client'
 import dotenv from 'dotenv'
 

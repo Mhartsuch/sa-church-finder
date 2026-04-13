@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express'
 import { requireAuth } from './require-auth.js'
 import { AuthError } from './error-handler.js'
 
-const createMockReqResNext = (sessionUserId?: string) => {
+const createMockReqResNext = (sessionUserId?: string): { req: Request; res: Response; next: jest.MockedFunction<NextFunction> } => {
   const req = {
     session: {
       userId: sessionUserId,

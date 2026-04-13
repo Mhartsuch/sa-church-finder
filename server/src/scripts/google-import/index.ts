@@ -22,8 +22,6 @@
  *   SUPABASE_SERVICE_ROLE_KEY (for photo uploads)
  */
 
-/* eslint-disable no-console */
-
 import { PrismaClient } from '@prisma/client'
 import dotenv from 'dotenv'
 

@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { validate } from './validate.js'
 import { ValidationError } from './error-handler.js'
 
-const createMockReqResNext = (overrides: Partial<Request> = {}) => {
+const createMockReqResNext = (overrides: Partial<Request> = {}): { req: Request; res: Response; next: jest.MockedFunction<NextFunction> } => {
   const req = {
     body: {},
     query: {},
