@@ -236,4 +236,29 @@
 
 ---
 
-_Last updated: 2026-04-13 — added review response fields (response_body, responded_at)._
+### ribbon_categories
+
+| Column       | Type                         | Constraints    | Notes                                           |
+| ------------ | ---------------------------- | -------------- | ----------------------------------------------- |
+| id           | UUID                         | PK             | auto-generated                                  |
+| label        | TEXT                         | NOT NULL       | Display name on the chip                        |
+| icon         | TEXT                         | default '⛪'   | Emoji icon                                      |
+| slug         | TEXT                         | UNIQUE         | URL-safe identifier                             |
+| filter_type  | ribbon_category_filter_type  | NOT NULL       | QUERY or DENOMINATION                           |
+| filter_value | TEXT                         | NOT NULL       | Value used for filtering                        |
+| position     | INTEGER                      | default 0      | Sort order (lower = further left)               |
+| is_visible   | BOOLEAN                      | default true   | Admin can hide without deleting                 |
+| source       | ribbon_category_source       | default MANUAL | MANUAL (admin) or AUTO (generated from data)    |
+| is_pinned    | BOOLEAN                      | default false  | Pinned categories survive auto-gen sweeps       |
+| created_at   | TIMESTAMP                    | default now()  |                                                 |
+| updated_at   | TIMESTAMP                    | auto-updated   |                                                 |
+
+**Indexes:** slug (unique), position, is_visible
+
+**Enums:**
+- `ribbon_category_source`: MANUAL, AUTO
+- `ribbon_category_filter_type`: QUERY, DENOMINATION
+
+---
+
+_Last updated: 2026-04-13 — added ribbon_categories table for admin-managed category ribbon._

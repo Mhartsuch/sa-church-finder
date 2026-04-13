@@ -636,4 +636,99 @@ Submit a claim request for a church.
 
 ---
 
-_Last updated: 2026-04-13 — added review response endpoints and church service CRUD endpoints for leader portal._
+## Ribbon Categories
+
+### GET /ribbon-categories
+
+Returns visible ribbon categories ordered by position. Cached server-side (5 min TTL).
+
+**Auth:** None (public)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "label": "Historic",
+      "icon": "🏛️",
+      "slug": "historic",
+      "filterType": "QUERY",
+      "filterValue": "Historic",
+      "position": 0,
+      "isVisible": true,
+      "source": "MANUAL",
+      "isPinned": true,
+      "createdAt": "2026-04-13T...",
+      "updatedAt": "2026-04-13T..."
+    }
+  ]
+}
+```
+
+### GET /admin/ribbon-categories
+
+Returns all ribbon categories (including hidden) ordered by position.
+
+**Auth:** SITE_ADMIN
+
+### POST /admin/ribbon-categories
+
+Create a new ribbon category.
+
+**Auth:** SITE_ADMIN
+
+| Field       | Type    | Required | Notes                                  |
+| ----------- | ------- | -------- | -------------------------------------- |
+| label       | string  | Yes      | 1-50 chars                             |
+| icon        | string  | No       | Emoji, defaults to ⛪                  |
+| slug        | string  | No       | Auto-derived from label if omitted     |
+| filterType  | string  | Yes      | "QUERY" or "DENOMINATION"              |
+| filterValue | string  | Yes      | Value used for filtering               |
+| position    | number  | No       | Auto-appended if omitted               |
+| isVisible   | boolean | No       | Defaults to true                       |
+| isPinned    | boolean | No       | Defaults to false                      |
+
+### PATCH /admin/ribbon-categories/:id
+
+Update a ribbon category. At least one field required.
+
+**Auth:** SITE_ADMIN
+
+### DELETE /admin/ribbon-categories/:id
+
+Delete a ribbon category.
+
+**Auth:** SITE_ADMIN
+
+### POST /admin/ribbon-categories/reorder
+
+Bulk reorder categories by providing an ordered array of IDs.
+
+**Auth:** SITE_ADMIN
+
+| Field | Type     | Required | Notes                      |
+| ----- | -------- | -------- | -------------------------- |
+| ids   | string[] | Yes      | Ordered array of UUIDs     |
+
+### POST /admin/ribbon-categories/auto-generate
+
+Auto-generate denomination categories from church data. Creates/updates AUTO-sourced categories based on the most popular denominations. Never touches MANUAL or pinned categories.
+
+**Auth:** SITE_ADMIN
+
+| Field | Type   | Required | Notes                         |
+| ----- | ------ | -------- | ----------------------------- |
+| limit | number | No       | Max categories (default 6)    |
+
+**Response:**
+```json
+{
+  "data": { "created": 3, "updated": 1, "removed": 0 },
+  "message": "Auto-generation complete: 3 created, 1 updated, 0 removed"
+}
+```
+
+---
+
+_Last updated: 2026-04-13 — added ribbon categories endpoints for admin-managed category ribbon._

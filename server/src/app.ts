@@ -16,6 +16,7 @@ import churchRoutes from './routes/church.routes.js'
 import churchServiceRoutes from './routes/church-service.routes.js'
 import claimRoutes from './routes/claim.routes.js'
 import eventRoutes from './routes/event.routes.js'
+import ribbonCategoryRoutes from './routes/ribbon-category.routes.js'
 import reviewRoutes from './routes/review.routes.js'
 import sitemapRoutes from './routes/sitemap.routes.js'
 import userRoutes from './routes/users.routes.js'
@@ -104,6 +105,7 @@ export const createApp = (): Express => {
   app.use('/api/v1', claimRoutes)
   app.use('/api/v1', eventRoutes)
   app.use('/api/v1', reviewRoutes)
+  app.use('/api/v1', ribbonCategoryRoutes)
   app.use(sitemapRoutes)
 
   app.use((req: Request, res: Response) => {

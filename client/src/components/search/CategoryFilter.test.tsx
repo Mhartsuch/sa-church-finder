@@ -7,22 +7,17 @@ import { useSearchStore } from '@/stores/search-store';
 
 import { CategoryFilter } from './CategoryFilter';
 
-vi.mock('@/hooks/useChurches', () => ({
-  useFilterOptions: () => ({
+vi.mock('@/hooks/useRibbonCategories', () => ({
+  useRibbonCategories: () => ({
     data: {
-      // `denominations` is the new `{value, count}` shape, already sorted by
-      // count descending to match what the backend emits. The CategoryFilter
-      // derives its chip rail directly from this list.
-      denominations: [
-        { value: 'Baptist', count: 20 },
-        { value: 'Catholic', count: 15 },
-        { value: 'Methodist', count: 10 },
-        { value: 'Non-denominational', count: 6 },
+      data: [
+        { id: '1', label: 'Historic', icon: '🏛️', slug: 'historic', filterType: 'QUERY', filterValue: 'Historic', position: 0, isVisible: true, source: 'MANUAL', isPinned: true },
+        { id: '2', label: 'Contemporary', icon: '🎵', slug: 'contemporary', filterType: 'QUERY', filterValue: 'Contemporary', position: 1, isVisible: true, source: 'MANUAL', isPinned: true },
+        { id: '3', label: 'Traditional', icon: '🏠', slug: 'traditional', filterType: 'QUERY', filterValue: 'Traditional', position: 2, isVisible: true, source: 'MANUAL', isPinned: true },
+        { id: '4', label: 'Community', icon: '💜', slug: 'community', filterType: 'QUERY', filterValue: 'Community', position: 3, isVisible: true, source: 'MANUAL', isPinned: true },
+        { id: '5', label: 'Baptist', icon: '💧', slug: 'denom-baptist', filterType: 'DENOMINATION', filterValue: 'Baptist', position: 6, isVisible: true, source: 'AUTO', isPinned: false },
+        { id: '6', label: 'Catholic', icon: '✝️', slug: 'denom-catholic', filterType: 'DENOMINATION', filterValue: 'Catholic', position: 7, isVisible: true, source: 'AUTO', isPinned: false },
       ],
-      languages: [],
-      amenities: [],
-      neighborhoods: [],
-      serviceTypes: [],
     },
   }),
 }));
@@ -71,9 +66,6 @@ describe('CategoryFilter', () => {
   });
 
   it('ignores an empty multi-select array that the store may temporarily hold', () => {
-    // Previously the naive activeFilterCount treated `[]` as "present",
-    // inflating the badge to `1` for a cleared amenities array. The shared
-    // countActiveFilters helper excludes empties — regression guard for that.
     useSearchStore.setState((state) => ({
       ...state,
       filters: { amenities: [] as string[], denomination: ['Baptist'] },
@@ -112,9 +104,6 @@ describe('CategoryFilter', () => {
   it('toggles a denomination into the multi-select when its category chip is tapped', () => {
     render(<CategoryFilter onOpenFilters={vi.fn()} />);
 
-    // Category chips wrap the label inside a child span alongside an emoji,
-    // so fire the click on the label text rather than trying to match the
-    // combined button name which includes the emoji.
     fireEvent.click(screen.getByText('Catholic'));
 
     expect(useSearchStore.getState().filters.denomination).toEqual(['Catholic']);
@@ -134,5 +123,26 @@ describe('CategoryFilter', () => {
     const { query, filters } = useSearchStore.getState();
     expect(query).toBe('');
     expect(filters).toEqual({});
+  });
+
+  it('sets query when a QUERY-type chip is tapped', () => {
+    render(<CategoryFilter onOpenFilters={vi.fn()} />);
+
+    fireEvent.click(screen.getByText('Historic'));
+
+    expect(useSearchStore.getState().query).toBe('Historic');
+  });
+
+  it('toggles query off when the same QUERY-type chip is tapped again', () => {
+    useSearchStore.setState((state) => ({
+      ...state,
+      query: 'Historic',
+    }));
+
+    render(<CategoryFilter onOpenFilters={vi.fn()} />);
+
+    fireEvent.click(screen.getByText('Historic'));
+
+    expect(useSearchStore.getState().query).toBe('');
   });
 });

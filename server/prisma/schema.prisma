@@ -29,6 +29,20 @@ enum ClaimStatus {
   @@map("claim_status")
 }
 
+enum RibbonCategorySource {
+  MANUAL
+  AUTO
+
+  @@map("ribbon_category_source")
+}
+
+enum RibbonCategoryFilterType {
+  QUERY
+  DENOMINATION
+
+  @@map("ribbon_category_filter_type")
+}
+
 // Models
 model User {
   id                    String                 @id @default(uuid())
@@ -233,6 +247,25 @@ model EmailVerificationToken {
   createdAt             DateTime               @default(now())
 
   @@map("email_verification_tokens")
+}
+
+model RibbonCategory {
+  id          String                     @id @default(uuid())
+  label       String
+  icon        String                     @default("⛪")
+  slug        String                     @unique
+  filterType  RibbonCategoryFilterType
+  filterValue String
+  position    Int                        @default(0)
+  isVisible   Boolean                    @default(true)
+  source      RibbonCategorySource       @default(MANUAL)
+  isPinned    Boolean                    @default(false)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  @@index([position])
+  @@index([isVisible])
+  @@map("ribbon_categories")
 }
 
 model UserSavedChurch {
