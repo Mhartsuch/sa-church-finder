@@ -3,11 +3,12 @@ import { Routes, Route } from 'react-router-dom';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
+import { InstallPrompt } from '@/components/layout/InstallPrompt';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { OfflineBanner } from '@/components/layout/OfflineBanner';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { ToastContainer } from '@/components/layout/Toast';
-import { ToastProvider } from '@/hooks/useToast';
+import { ToastProvider } from '@/hooks/ToastProvider';
 
 // Eagerly loaded: home + search are the primary entry points
 import HomePage from '@/pages/HomePage';
@@ -100,6 +101,7 @@ const App = () => {
         </Suspense>
         <Footer />
         <MobileNav />
+        <InstallPrompt />
       </div>
       <ToastContainer />
     </ToastProvider>

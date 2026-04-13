@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Google Places Enrich Script
  *
@@ -16,8 +17,6 @@
  * Required environment variables:
  *   GOOGLE_PLACES_API_KEY or MAPS_API_KEY
  */
-
-/* eslint-disable no-console */
 
 import { Prisma, PrismaClient } from '@prisma/client'
 import dotenv from 'dotenv'

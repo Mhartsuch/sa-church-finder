@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-import { Toast as ToastType, useToast } from '@/hooks/useToast';
+import type { Toast as ToastType } from '@/types/toast';
+import { useToast } from '@/hooks/useToast';
 
 const ICON_MAP = {
   success: CheckCircle,

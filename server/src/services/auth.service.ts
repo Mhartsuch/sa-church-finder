@@ -485,6 +485,9 @@ async function syncGoogleUserProfile(profile: NormalizedGoogleUserProfile): Prom
     'User created from Google OAuth sign-in',
   )
 
+  // Fire-and-forget welcome email for new Google OAuth users
+  void sendWelcomeEmail({ email: createdUser.email, name: createdUser.name })
+
   return toAuthUser(createdUser)
 }
 

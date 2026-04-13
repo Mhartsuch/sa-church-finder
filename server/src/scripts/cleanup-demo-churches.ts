@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Cleanup script — removes demo/seed churches that were not imported from Google Places.
  *

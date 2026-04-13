@@ -18,10 +18,12 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
 import { ChurchEditor } from '@/components/church/ChurchEditor';
 import { EventManager } from '@/components/events/EventManager';
 import { ReviewManager } from '@/components/reviews/ReviewManager';
 import { ServiceManager } from '@/components/services/ServiceManager';
+import { useMyChurchAnalytics } from '@/hooks/useAnalytics';
 import { useAuthSession } from '@/hooks/useAuth';
 import { useChurchAdmins, useRemoveChurchAdmin } from '@/hooks/useChurchClaims';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
@@ -219,6 +221,10 @@ const LeadersPortalPage = () => {
     isManagedChurchesLoading,
   } = useLeaderPortal(user?.id ?? null);
   const [editingChurch, setEditingChurch] = useState<IChurch | null>(null);
+  const analyticsQuery = useMyChurchAnalytics(managedChurches.length > 0);
+  const analyticsMap = new Map(
+    (analyticsQuery.data ?? []).map((a) => [a.churchId, a]),
+  );
 
   if (!user) {
     return null;
@@ -482,6 +488,10 @@ const LeadersPortalPage = () => {
                           />
                           <ReviewManager churchId={church.id} churchName={church.name} />
                         </div>
+
+                        {analyticsMap.has(church.id) ? (
+                          <AnalyticsDashboard analytics={analyticsMap.get(church.id)!} />
+                        ) : null}
 
                         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           {church.phone ? (

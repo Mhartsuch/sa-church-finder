@@ -5,7 +5,7 @@ import { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ToastProvider } from '@/hooks/useToast';
+import { ToastProvider } from '@/hooks/ToastProvider';
 
 import LeadersPortalPage from './LeadersPortalPage';
 
