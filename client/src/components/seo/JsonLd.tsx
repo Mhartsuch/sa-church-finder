@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { IChurch } from '@/types/church';
 
 /** Renders a <script type="application/ld+json"> tag with the given data. */

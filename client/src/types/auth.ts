@@ -65,7 +65,4 @@ export interface DeactivateAccountInput {
   password?: string;
 }
 
-export interface ApiEnvelope<T> {
-  data: T;
-  message?: string;
-}
+export type { ApiEnvelope } from './api'

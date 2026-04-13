@@ -10,11 +10,13 @@
  *   npm run db:cleanup-demo
  */
 
+/* eslint-disable no-console */
+
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-async function main() {
+async function main(): Promise<void> {
   const demoChurches = await prisma.church.findMany({
     where: { googlePlaceId: null },
     select: { id: true, name: true },

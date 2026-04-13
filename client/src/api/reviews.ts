@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api-client';
+import { ApiEnvelope } from '@/types/api';
 import {
   CreateReviewInput,
   IFlaggedReviewsResponse,
@@ -15,29 +16,6 @@ import {
   ReviewResponseResult,
   UpdateReviewInput,
 } from '@/types/review';
-
-type ReviewEnvelope = {
-  data: IReview;
-};
-
-type DeleteReviewEnvelope = {
-  data: {
-    id: string;
-    churchId: string;
-  };
-};
-
-type HelpfulVoteEnvelope = {
-  data: ReviewHelpfulVoteResult;
-};
-
-type FlagReviewEnvelope = {
-  data: ReviewFlagResult;
-};
-
-type ResolveFlaggedReviewEnvelope = {
-  data: ResolveFlaggedReviewResult;
-};
 
 const buildReviewQueryString = (params: IReviewListParams): string => {
   const qs = new URLSearchParams();
@@ -61,7 +39,7 @@ export const fetchChurchReviews = async (
 
 export const createReview = async (input: CreateReviewInput): Promise<IReview> => {
   const { churchId, ...payload } = input;
-  const envelope = await apiRequest<ReviewEnvelope>(
+  const envelope = await apiRequest<ApiEnvelope<IReview>>(
     `/churches/${encodeURIComponent(churchId)}/reviews`,
     {
       method: 'POST',
@@ -74,7 +52,7 @@ export const createReview = async (input: CreateReviewInput): Promise<IReview> =
 
 export const updateReview = async (input: UpdateReviewInput): Promise<IReview> => {
   const { reviewId, ...payload } = input;
-  const envelope = await apiRequest<ReviewEnvelope>(`/reviews/${encodeURIComponent(reviewId)}`, {
+  const envelope = await apiRequest<ApiEnvelope<IReview>>(`/reviews/${encodeURIComponent(reviewId)}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
@@ -82,8 +60,8 @@ export const updateReview = async (input: UpdateReviewInput): Promise<IReview> =
   return envelope.data;
 };
 
-export const deleteReview = async (reviewId: string): Promise<DeleteReviewEnvelope['data']> => {
-  const envelope = await apiRequest<DeleteReviewEnvelope>(
+export const deleteReview = async (reviewId: string): Promise<{ id: string; churchId: string }> => {
+  const envelope = await apiRequest<ApiEnvelope<{ id: string; churchId: string }>>(
     `/reviews/${encodeURIComponent(reviewId)}`,
     {
       method: 'DELETE',
@@ -94,7 +72,7 @@ export const deleteReview = async (reviewId: string): Promise<DeleteReviewEnvelo
 };
 
 export const addHelpfulVote = async (reviewId: string): Promise<ReviewHelpfulVoteResult> => {
-  const envelope = await apiRequest<HelpfulVoteEnvelope>(
+  const envelope = await apiRequest<ApiEnvelope<ReviewHelpfulVoteResult>>(
     `/reviews/${encodeURIComponent(reviewId)}/helpful`,
     {
       method: 'POST',
@@ -105,7 +83,7 @@ export const addHelpfulVote = async (reviewId: string): Promise<ReviewHelpfulVot
 };
 
 export const removeHelpfulVote = async (reviewId: string): Promise<ReviewHelpfulVoteResult> => {
-  const envelope = await apiRequest<HelpfulVoteEnvelope>(
+  const envelope = await apiRequest<ApiEnvelope<ReviewHelpfulVoteResult>>(
     `/reviews/${encodeURIComponent(reviewId)}/helpful`,
     {
       method: 'DELETE',
@@ -116,7 +94,7 @@ export const removeHelpfulVote = async (reviewId: string): Promise<ReviewHelpful
 };
 
 export const flagReview = async (reviewId: string): Promise<ReviewFlagResult> => {
-  const envelope = await apiRequest<FlagReviewEnvelope>(
+  const envelope = await apiRequest<ApiEnvelope<ReviewFlagResult>>(
     `/reviews/${encodeURIComponent(reviewId)}/flag`,
     {
       method: 'POST',
@@ -142,7 +120,7 @@ export const resolveFlaggedReview = async (
   input: ResolveFlaggedReviewInput,
 ): Promise<ResolveFlaggedReviewResult> => {
   const { reviewId, ...payload } = input;
-  const envelope = await apiRequest<ResolveFlaggedReviewEnvelope>(
+  const envelope = await apiRequest<ApiEnvelope<ResolveFlaggedReviewResult>>(
     `/admin/flagged-reviews/${encodeURIComponent(reviewId)}`,
     {
       method: 'PATCH',
@@ -157,7 +135,7 @@ export const respondToReview = async (
   reviewId: string,
   body: string,
 ): Promise<ReviewResponseResult> => {
-  const envelope = await apiRequest<{ data: ReviewResponseResult }>(
+  const envelope = await apiRequest<ApiEnvelope<ReviewResponseResult>>(
     `/reviews/${encodeURIComponent(reviewId)}/response`,
     {
       method: 'POST',
@@ -171,7 +149,7 @@ export const respondToReview = async (
 export const deleteReviewResponse = async (
   reviewId: string,
 ): Promise<ReviewResponseDeleteResult> => {
-  const envelope = await apiRequest<{ data: ReviewResponseDeleteResult }>(
+  const envelope = await apiRequest<ApiEnvelope<ReviewResponseDeleteResult>>(
     `/reviews/${encodeURIComponent(reviewId)}/response`,
     {
       method: 'DELETE',

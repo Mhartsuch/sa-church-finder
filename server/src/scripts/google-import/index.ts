@@ -21,6 +21,8 @@
  *   SUPABASE_SERVICE_ROLE_KEY (for photo uploads)
  */
 
+/* eslint-disable no-console */
+
 import { PrismaClient } from '@prisma/client'
 import dotenv from 'dotenv'
 
@@ -100,7 +102,7 @@ async function runEnrichOnly(
   placesClient: GooglePlacesClient,
   storageClient: SupabaseStorageClient | null,
   options: ImportOptions,
-) {
+): Promise<void> {
   const stats = createEmptyStats()
 
   // Find all churches with a googlePlaceId
@@ -185,7 +187,7 @@ async function runEnrichOnly(
   printStats(stats)
 }
 
-async function main() {
+async function main(): Promise<void> {
   const options = parseArgs()
   const prisma = new PrismaClient()
 
@@ -370,7 +372,7 @@ async function main() {
   }
 }
 
-function printStats(stats: ReturnType<typeof createEmptyStats>) {
+function printStats(stats: ReturnType<typeof createEmptyStats>): void {
   console.log('')
   console.log('=== Import Summary ===')
   console.log(`Grid cells searched:  ${stats.gridCellsSearched}`)

@@ -17,6 +17,8 @@
  *   GOOGLE_PLACES_API_KEY or MAPS_API_KEY
  */
 
+/* eslint-disable no-console */
+
 import { Prisma, PrismaClient } from '@prisma/client'
 import dotenv from 'dotenv'
 
@@ -24,7 +26,13 @@ import { GooglePlacesClient } from '../google-import/google-places-client.js'
 
 dotenv.config()
 
-function parseArgs() {
+interface EnrichArgs {
+  all: boolean
+  dryRun: boolean
+  limit: number | null
+}
+
+function parseArgs(): EnrichArgs {
   const args = process.argv.slice(2)
   const limitIndex = args.indexOf('--limit')
   return {
@@ -44,7 +52,7 @@ function getRequiredEnv(name: string, fallback?: string): string {
   return value
 }
 
-async function main() {
+async function main(): Promise<void> {
   const options = parseArgs()
   const prisma = new PrismaClient()
 
