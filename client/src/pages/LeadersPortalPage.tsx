@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
 import { ChurchEditor } from '@/components/church/ChurchEditor';
 import { EventManager } from '@/components/events/EventManager';
+import { PhotoManager } from '@/components/photos/PhotoManager';
 import { ReviewManager } from '@/components/reviews/ReviewManager';
 import { ServiceManager } from '@/components/services/ServiceManager';
 import { useMyChurchAnalytics } from '@/hooks/useAnalytics';
@@ -222,9 +223,7 @@ const LeadersPortalPage = () => {
   } = useLeaderPortal(user?.id ?? null);
   const [editingChurch, setEditingChurch] = useState<IChurch | null>(null);
   const analyticsQuery = useMyChurchAnalytics(managedChurches.length > 0);
-  const analyticsMap = new Map(
-    (analyticsQuery.data ?? []).map((a) => [a.churchId, a]),
-  );
+  const analyticsMap = new Map((analyticsQuery.data ?? []).map((a) => [a.churchId, a]));
 
   if (!user) {
     return null;
@@ -488,6 +487,8 @@ const LeadersPortalPage = () => {
                           />
                           <ReviewManager churchId={church.id} churchName={church.name} />
                         </div>
+
+                        <PhotoManager churchId={church.id} churchName={church.name} />
 
                         {analyticsMap.has(church.id) ? (
                           <AnalyticsDashboard analytics={analyticsMap.get(church.id)!} />
