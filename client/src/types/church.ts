@@ -109,6 +109,7 @@ export interface ISearchParams {
   serviceType?: string;
   hasPhotos?: boolean;
   isClaimed?: boolean;
+  openNow?: boolean;
   sort?: 'relevance' | 'distance' | 'rating' | 'name';
   page?: number;
   pageSize?: number;

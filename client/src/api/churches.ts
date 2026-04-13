@@ -62,6 +62,7 @@ const buildQueryString = (params: ISearchParams): string => {
   if (params.goodForGroups) qs.append('goodForGroups', 'true');
   if (params.hasPhotos) qs.append('hasPhotos', 'true');
   if (params.isClaimed) qs.append('isClaimed', 'true');
+  if (params.openNow) qs.append('openNow', 'true');
   if (params.minRating !== undefined && params.minRating > 0) {
     qs.append('minRating', params.minRating.toString());
   }

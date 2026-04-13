@@ -13,6 +13,7 @@ import { MapContainer } from '@/components/map/MapContainer';
 import { CategoryFilter } from '@/components/search/CategoryFilter';
 import { FilterPanel } from '@/components/search/FilterPanel';
 import { NearMeButton } from '@/components/search/NearMeButton';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
 import {
@@ -86,6 +87,14 @@ export const SearchPage = () => {
   const setSort = useSearchStore((state) => state.setSort);
   const setMapBounds = useSearchStore((state) => state.setMapBounds);
   const clearFilters = useSearchStore((state) => state.clearFilters);
+
+  useDocumentHead({
+    title: query ? `"${query}" — Church Search` : 'Find Churches in San Antonio',
+    description: query
+      ? `Search results for "${query}" — find churches in San Antonio, TX with reviews, service times, and directions.`
+      : 'Search and filter churches across San Antonio by denomination, service times, neighborhood, amenities, and more.',
+    canonicalPath: '/search',
+  });
 
   const toggleMap = useCallback(() => {
     setShowMap((current) => {

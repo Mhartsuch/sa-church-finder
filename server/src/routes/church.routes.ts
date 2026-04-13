@@ -49,6 +49,7 @@ router.get(
         serviceType: q.serviceType as string | undefined,
         hasPhotos: q.hasPhotos as boolean | undefined,
         isClaimed: q.isClaimed as boolean | undefined,
+        openNow: q.openNow as boolean | undefined,
         sort: q.sort as 'relevance' | 'distance' | 'rating' | 'name' | undefined,
         page: q.page as number | undefined,
         pageSize: q.pageSize as number | undefined,

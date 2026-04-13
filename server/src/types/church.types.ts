@@ -157,6 +157,8 @@ export interface ISearchParams {
   hasPhotos?: boolean
   /** When `true`, only return churches marked as claimed/verified. */
   isClaimed?: boolean
+  /** When `true`, only return churches with a service happening right now (based on server time in America/Chicago). */
+  openNow?: boolean
   sort?: 'relevance' | 'distance' | 'rating' | 'name'
   page?: number
   pageSize?: number

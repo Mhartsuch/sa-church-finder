@@ -1,22 +1,23 @@
-import { apiRequest } from '@/lib/api-client'
+import { apiRequest } from '@/lib/api-client';
 import {
   CreateChurchClaimInput,
   IAdminChurchClaimsResponse,
+  IChurchAdmin,
   IUserChurchClaimsResponse,
   IViewerChurchClaim,
   ResolveChurchClaimInput,
   ResolveChurchClaimResult,
-} from '@/types/church-claim'
+} from '@/types/church-claim';
 
 type ApiEnvelope<T> = {
-  data: T
-}
+  data: T;
+};
 
 type SubmitChurchClaimEnvelope = {
   data: IViewerChurchClaim & {
-    churchId: string
-  }
-}
+    churchId: string;
+  };
+};
 
 export const submitChurchClaim = async (
   input: CreateChurchClaimInput,
@@ -30,20 +31,18 @@ export const submitChurchClaim = async (
         verificationEmail: input.verificationEmail,
       }),
     },
-  )
+  );
 
-  return envelope.data
-}
+  return envelope.data;
+};
 
-export const fetchUserChurchClaims = async (
-  userId: string,
-): Promise<IUserChurchClaimsResponse> => {
-  return apiRequest<IUserChurchClaimsResponse>(`/users/${encodeURIComponent(userId)}/claims`)
-}
+export const fetchUserChurchClaims = async (userId: string): Promise<IUserChurchClaimsResponse> => {
+  return apiRequest<IUserChurchClaimsResponse>(`/users/${encodeURIComponent(userId)}/claims`);
+};
 
 export const fetchAdminChurchClaims = async (): Promise<IAdminChurchClaimsResponse> => {
-  return apiRequest<IAdminChurchClaimsResponse>('/admin/claims')
-}
+  return apiRequest<IAdminChurchClaimsResponse>('/admin/claims');
+};
 
 export const resolveChurchClaim = async (
   input: ResolveChurchClaimInput,
@@ -56,7 +55,24 @@ export const resolveChurchClaim = async (
         status: input.status,
       }),
     },
-  )
+  );
 
-  return envelope.data
-}
+  return envelope.data;
+};
+
+export const fetchChurchAdmins = async (churchId: string): Promise<IChurchAdmin[]> => {
+  const envelope = await apiRequest<ApiEnvelope<IChurchAdmin[]>>(
+    `/churches/${encodeURIComponent(churchId)}/admins`,
+  );
+  return envelope.data;
+};
+
+export const removeChurchAdminRequest = async (
+  churchId: string,
+  adminUserId: string,
+): Promise<void> => {
+  await apiRequest(
+    `/churches/${encodeURIComponent(churchId)}/admins/${encodeURIComponent(adminUserId)}`,
+    { method: 'DELETE' },
+  );
+};

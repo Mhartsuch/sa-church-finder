@@ -7,6 +7,7 @@ import { resolveClientUrls } from '../lib/session.js'
 import { AppError, AuthError } from '../middleware/error-handler.js'
 import logger from '../lib/logger.js'
 import { isEmailDeliveryConfigured } from '../lib/email.js'
+import { sendWelcomeEmail } from './notification-email.service.js'
 import { getGoogleOAuthStatus } from '../lib/integration-status.js'
 import {
   AuthForgotPasswordBody,
@@ -528,6 +529,9 @@ export async function registerUser(input: AuthRegisterBody): Promise<AuthUser> {
       'Failed to prepare email verification instructions after registration',
     )
   }
+
+  // Fire-and-forget welcome email — don't block registration on it
+  void sendWelcomeEmail({ email: user.email, name: user.name })
 
   return toAuthUser(user)
 }

@@ -83,6 +83,7 @@ export const useChurchSearchParams = () => {
     goodForGroups: filters.goodForGroups,
     hasPhotos: filters.hasPhotos,
     isClaimed: filters.isClaimed,
+    openNow: filters.openNow,
     minRating: filters.minRating,
     neighborhood: filters.neighborhood,
     serviceType: filters.serviceType,

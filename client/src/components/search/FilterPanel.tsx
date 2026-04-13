@@ -2,6 +2,7 @@ import {
   Accessibility,
   Baby,
   BadgeCheck,
+  Clock,
   ImageIcon,
   SlidersHorizontal,
   Users,
@@ -48,7 +49,8 @@ type BooleanFilterKey =
   | 'goodForChildren'
   | 'goodForGroups'
   | 'hasPhotos'
-  | 'isClaimed';
+  | 'isClaimed'
+  | 'openNow';
 
 interface BooleanFilterOption {
   key: BooleanFilterKey;
@@ -305,6 +307,12 @@ const MinRatingFilterSection = () => {
 };
 
 const BOOLEAN_FILTER_OPTIONS: BooleanFilterOption[] = [
+  {
+    key: 'openNow',
+    label: 'Open now',
+    description: 'Only show churches with a service happening right now.',
+    icon: Clock,
+  },
   {
     key: 'wheelchairAccessible',
     label: 'Wheelchair accessible',

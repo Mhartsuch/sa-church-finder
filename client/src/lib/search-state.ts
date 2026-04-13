@@ -157,6 +157,14 @@ export const getActiveSearchTokens = (
     });
   }
 
+  if (filters.openNow) {
+    tokens.push({
+      key: 'openNow',
+      label: 'Service',
+      value: 'Open now',
+    });
+  }
+
   return tokens;
 };
 

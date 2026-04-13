@@ -42,6 +42,7 @@ export const churchSearchSchema = z.object({
       serviceType: z.string().optional(),
       hasPhotos: searchBooleanFlag.optional(),
       isClaimed: searchBooleanFlag.optional(),
+      openNow: searchBooleanFlag.optional(),
       sort: z.enum(['relevance', 'distance', 'rating', 'name']).optional(),
       page: z.coerce.number().int().positive().optional(),
       // Capped at 50 per API_SPEC; prior behaviour allowed up to 100 which let

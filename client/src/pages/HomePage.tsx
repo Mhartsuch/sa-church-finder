@@ -3,8 +3,10 @@ import { ArrowRight, Church, Heart, MapPin, Scale, Search, Star } from 'lucide-r
 import { Link, useNavigate } from 'react-router-dom';
 
 import { SearchBar } from '@/components/search/SearchBar';
+import { JsonLd, buildWebsiteJsonLd } from '@/components/seo/JsonLd';
 import { Testimonials } from '@/components/community/Testimonials';
 import { Newsletter } from '@/components/community/Newsletter';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useFeaturedChurches } from '@/hooks/useFeaturedChurches';
 import { useFilterOptions } from '@/hooks/useChurches';
 import { useSearchStore } from '@/stores/search-store';
@@ -147,6 +149,8 @@ const HomePage = () => {
   const setFilter = useSearchStore((state) => state.setFilter);
   const setQuery = useSearchStore((state) => state.setQuery);
 
+  useDocumentHead({ canonicalPath: '/' });
+
   const churchCount = featured?.meta.total ?? 0;
   const denominationCount = filterOptions?.denominations.length ?? 0;
 
@@ -171,6 +175,7 @@ const HomePage = () => {
 
   return (
     <div className="flex-1 bg-background">
+      <JsonLd data={buildWebsiteJsonLd()} />
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" />
