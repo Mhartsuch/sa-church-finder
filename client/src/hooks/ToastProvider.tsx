@@ -33,6 +33,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
         message: input.message,
         variant: input.variant ?? 'success',
         duration: input.duration ?? 4000,
+        action: input.action,
       };
       dispatch({ type: 'ADD', toast });
 

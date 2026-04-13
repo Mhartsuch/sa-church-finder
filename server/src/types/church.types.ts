@@ -112,6 +112,8 @@ export interface IChurchSummary {
 }
 
 export interface ISavedChurch extends IChurchSummary {
+  pastorName?: string | null
+  yearEstablished?: number | null
   savedAt: Date
 }
 
