@@ -58,6 +58,9 @@ model User {
   updatedAt             DateTime               @updatedAt
   reviews               Review[]
   savedChurches         UserSavedChurch[]
+  churchVisits          ChurchVisit[]
+  collections           ChurchCollection[]
+  awards                UserAward[]
   claimedChurches       ChurchClaim[]          @relation("claimUser")
   reviewedClaims        ChurchClaim[]          @relation("reviewedBy")
   photos                ChurchPhoto[]
@@ -114,6 +117,8 @@ model Church {
   events                Event[]
   claims                ChurchClaim[]
   savedByUsers          UserSavedChurch[]
+  visits                ChurchVisit[]
+  collectionItems       ChurchCollectionItem[]
 
   @@index([slug])
   @@index([denominationFamily])
@@ -277,4 +282,62 @@ model UserSavedChurch {
 
   @@id([userId, churchId])
   @@map("user_saved_churches")
+}
+
+model ChurchVisit {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  visitedAt             DateTime               @db.Date
+  notes                 String?
+  rating                Int?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@unique([userId, churchId, visitedAt])
+  @@index([userId])
+  @@map("church_visits")
+}
+
+model ChurchCollection {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String?
+  slug                  String
+  isPublic              Boolean                @default(true)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  items                 ChurchCollectionItem[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@map("church_collections")
+}
+
+model ChurchCollectionItem {
+  collectionId          String
+  collection            ChurchCollection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  notes                 String?
+  addedAt               DateTime               @default(now())
+
+  @@id([collectionId, churchId])
+  @@map("church_collection_items")
+}
+
+model UserAward {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  awardType             String
+  earnedAt              DateTime               @default(now())
+
+  @@unique([userId, awardType])
+  @@index([userId])
+  @@map("user_awards")
 }

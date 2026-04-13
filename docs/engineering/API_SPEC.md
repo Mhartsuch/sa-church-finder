@@ -621,6 +621,131 @@ Submit a claim request for a church.
 
 ---
 
+### Church Visits (Passport)
+
+#### `POST /churches/:id/visits` _(authenticated)_
+
+Log a visit to a church.
+
+| Field     | Type   | Required | Notes                 |
+| --------- | ------ | -------- | --------------------- |
+| visitedAt | string | Yes      | ISO date (YYYY-MM-DD) |
+| notes     | string | No       | Max 1000 chars        |
+| rating    | number | No       | 1–5 integer           |
+
+**Response:** `{ data: ChurchVisit, meta: { newAwards: Award[] }, message }`
+
+**Constraints:** One visit per user per church per day (unique on userId + churchId + visitedAt).
+
+---
+
+#### `PATCH /visits/:id` _(visit owner)_
+
+Update visit notes or rating.
+
+---
+
+#### `DELETE /visits/:id` _(visit owner)_
+
+Remove a visit record.
+
+---
+
+#### `GET /users/:id/visits` _(public)_
+
+List a user's church visits with church info.
+
+| Param    | Type   | Required | Notes                |
+| -------- | ------ | -------- | -------------------- |
+| page     | number | No       | Default: 1           |
+| pageSize | number | No       | Default: 20, max: 50 |
+
+---
+
+#### `GET /users/:id/passport` _(public)_
+
+Get a user's passport — stats, awards, and recent visits.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "user": { "id", "name", "avatarUrl", "createdAt" },
+    "stats": {
+      "totalVisits": 15,
+      "uniqueChurches": 12,
+      "denominationsVisited": 4,
+      "neighborhoodsVisited": 6,
+      "collectionsCount": 3,
+      "reviewCount": 8
+    },
+    "awards": [
+      { "awardType": "FIRST_VISIT", "earnedAt": "..." }
+    ],
+    "recentVisits": [
+      { "id", "visitedAt", "rating", "notes", "church": { "name", "slug", ... } }
+    ]
+  }
+}
+```
+
+---
+
+### Collections
+
+#### `POST /collections` _(authenticated)_
+
+Create a new collection.
+
+| Field       | Type    | Required | Notes         |
+| ----------- | ------- | -------- | ------------- |
+| name        | string  | Yes      | 1–100 chars   |
+| description | string  | No       | Max 500 chars |
+| isPublic    | boolean | No       | Default: true |
+
+---
+
+#### `GET /users/:id/collections` _(public for public collections, owner sees all)_
+
+List a user's collections.
+
+---
+
+#### `GET /collections/:id` _(public if isPublic, owner always)_
+
+Get a collection with its churches.
+
+---
+
+#### `PATCH /collections/:id` _(collection owner)_
+
+Update collection name, description, or visibility.
+
+---
+
+#### `DELETE /collections/:id` _(collection owner)_
+
+Delete a collection (cascade removes items).
+
+---
+
+#### `POST /collections/:id/churches/:churchId` _(collection owner)_
+
+Add a church to a collection.
+
+| Field | Type   | Required | Notes         |
+| ----- | ------ | -------- | ------------- |
+| notes | string | No       | Max 500 chars |
+
+---
+
+#### `DELETE /collections/:id/churches/:churchId` _(collection owner)_
+
+Remove a church from a collection.
+
+---
+
 ## Rate Limiting
 
 - Auth endpoints: 5 requests/minute per IP
@@ -731,4 +856,4 @@ Auto-generate denomination categories from church data. Creates/updates AUTO-sou
 
 ---
 
-_Last updated: 2026-04-13 — added ribbon categories endpoints for admin-managed category ribbon._
+_Last updated: 2026-04-13 — added ribbon categories and church passport endpoints._
