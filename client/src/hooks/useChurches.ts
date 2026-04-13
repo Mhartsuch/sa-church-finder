@@ -13,7 +13,8 @@ import { useSearchStore } from '@/stores/search-store';
 import {
   IChurch,
   IFilterOptions,
-  ISavedChurch,
+  ISavedChurchesParams,
+  ISavedChurchesResponse,
   ISearchParams,
   ISearchResponse,
   IUpdateChurchInput,
@@ -111,10 +112,10 @@ export const useChurch = (slug: string) => {
   });
 };
 
-export const useSavedChurches = (userId: string | null) => {
-  return useQuery<ISavedChurch[], Error>({
-    queryKey: [...SAVED_CHURCHES_QUERY_KEY, userId],
-    queryFn: () => fetchSavedChurches(userId!),
+export const useSavedChurches = (userId: string | null, params?: ISavedChurchesParams) => {
+  return useQuery<ISavedChurchesResponse, Error>({
+    queryKey: [...SAVED_CHURCHES_QUERY_KEY, userId, params],
+    queryFn: () => fetchSavedChurches(userId!, params),
     staleTime: STALE_TIME,
     enabled: Boolean(userId),
   });
@@ -125,30 +126,54 @@ export const useToggleSavedChurch = () => {
 
   return useMutation<{ churchId: string; saved: boolean }, Error, string>({
     mutationFn: toggleSavedChurch,
-    onSuccess: ({ churchId, saved }) => {
+    onMutate: async (churchId) => {
+      // Cancel in-flight fetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: CHURCHES_QUERY_KEY });
+      await queryClient.cancelQueries({ queryKey: CHURCH_QUERY_KEY });
+
+      // Snapshot the previous values for rollback
+      const previousSearch = queryClient.getQueriesData<ISearchResponse>({
+        queryKey: CHURCHES_QUERY_KEY,
+      });
+      const previousChurch = queryClient.getQueriesData<IChurch>({
+        queryKey: CHURCH_QUERY_KEY,
+      });
+
+      // Optimistically toggle isSaved in search results
       queryClient.setQueriesData<ISearchResponse>({ queryKey: CHURCHES_QUERY_KEY }, (current) =>
         current
           ? {
               ...current,
               data: current.data.map((church) =>
-                church.id === churchId ? { ...church, isSaved: saved } : church,
+                church.id === churchId ? { ...church, isSaved: !church.isSaved } : church,
               ),
             }
           : current,
       );
 
+      // Optimistically toggle isSaved in church detail
       queryClient.setQueriesData<IChurch>({ queryKey: CHURCH_QUERY_KEY }, (current) =>
-        current && current.id === churchId
-          ? {
-              ...current,
-              isSaved: saved,
-            }
-          : current,
+        current && current.id === churchId ? { ...current, isSaved: !current.isSaved } : current,
       );
 
-      void queryClient.invalidateQueries({
-        queryKey: SAVED_CHURCHES_QUERY_KEY,
-      });
+      return { previousSearch, previousChurch };
+    },
+    onError: (_error, _churchId, context) => {
+      // Roll back to the previous values on failure
+      if (context?.previousSearch) {
+        for (const [queryKey, data] of context.previousSearch) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      if (context?.previousChurch) {
+        for (const [queryKey, data] of context.previousChurch) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure server state is in sync
+      void queryClient.invalidateQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY });
     },
   });
 };

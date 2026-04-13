@@ -86,8 +86,19 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
       const church = churches.find((c) => c.id === churchId);
       const wasSaved = church?.isSaved;
       addToast({
-        message: wasSaved ? 'Removed from your wishlist' : 'Saved to your wishlist',
+        message: wasSaved ? 'Removed from saved churches' : 'Saved to your list',
         variant: 'success',
+        ...(wasSaved
+          ? {
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  void toggleSavedChurchMutation.mutateAsync(churchId);
+                },
+              },
+              duration: 6000,
+            }
+          : {}),
       });
     } catch (saveError) {
       addToast({

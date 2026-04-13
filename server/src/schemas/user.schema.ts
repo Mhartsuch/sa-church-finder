@@ -8,7 +8,15 @@ const userIdParams = z
 
 export const userSavedChurchesSchema = z.object({
   params: userIdParams,
-  query: z.object({}).passthrough(),
+  query: z
+    .object({
+      sort: z.enum(['savedAt', 'name', 'rating']).optional(),
+      order: z.enum(['asc', 'desc']).optional(),
+      q: z.string().optional(),
+      page: z.coerce.number().int().min(1).optional(),
+      pageSize: z.coerce.number().int().min(1).max(100).optional(),
+    })
+    .passthrough(),
   body: z.object({}).passthrough(),
 })
 

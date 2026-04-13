@@ -65,6 +65,26 @@ export interface ISavedChurch extends Omit<IChurchSummary, 'distance'> {
   savedAt: string;
 }
 
+export type SavedChurchSort = 'savedAt' | 'name' | 'rating';
+
+export interface ISavedChurchesParams {
+  sort?: SavedChurchSort;
+  order?: 'asc' | 'desc';
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ISavedChurchesResponse {
+  data: ISavedChurch[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface IUpdateChurchInput {
   description?: string | null;
   phone?: string | null;

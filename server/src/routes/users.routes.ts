@@ -21,7 +21,7 @@ import {
 } from '../schemas/user.schema.js'
 import { getUserChurchClaims } from '../services/church-claim.service.js'
 import { getUserReviewHistory } from '../services/review.service.js'
-import { getSavedChurchesForUser } from '../services/saved-church.service.js'
+import { getSavedChurchesForUser, SavedChurchSort } from '../services/saved-church.service.js'
 import {
   deactivateAccount,
   removeAvatar,
@@ -98,13 +98,19 @@ router.get(
 
       requireOwnProfile(req)
 
+      const q = req.query as Record<string, unknown>
+
       logger.info({ userId: id }, 'Fetching saved churches')
 
-      const savedChurches = await getSavedChurchesForUser(id)
-
-      res.json({
-        data: savedChurches,
+      const result = await getSavedChurchesForUser(id, {
+        sort: q.sort as SavedChurchSort | undefined,
+        order: q.order as 'asc' | 'desc' | undefined,
+        q: q.q as string | undefined,
+        page: q.page as number | undefined,
+        pageSize: q.pageSize as number | undefined,
       })
+
+      res.json(result)
       return
     } catch (error) {
       next(error)

@@ -2,7 +2,8 @@ import { apiRequest } from '@/lib/api-client';
 import {
   IChurch,
   IFilterOptions,
-  ISavedChurch,
+  ISavedChurchesParams,
+  ISavedChurchesResponse,
   ISearchParams,
   ISearchResponse,
   IUpdateChurchInput,
@@ -16,9 +17,7 @@ type FilterOptionsEnvelope = {
   data: IFilterOptions;
 };
 
-type SavedChurchesEnvelope = {
-  data: ISavedChurch[];
-};
+type SavedChurchesEnvelope = ISavedChurchesResponse;
 
 type ToggleSavedChurchEnvelope = {
   data: {
@@ -115,10 +114,18 @@ export const updateChurch = async (
   return envelope.data;
 };
 
-export const fetchSavedChurches = async (userId: string): Promise<ISavedChurch[]> => {
-  const envelope = await apiRequest<SavedChurchesEnvelope>(
-    `/users/${encodeURIComponent(userId)}/saved`,
-  );
+export const fetchSavedChurches = async (
+  userId: string,
+  params?: ISavedChurchesParams,
+): Promise<ISavedChurchesResponse> => {
+  const qs = new URLSearchParams();
+  if (params?.sort) qs.append('sort', params.sort);
+  if (params?.order) qs.append('order', params.order);
+  if (params?.q) qs.append('q', params.q);
+  if (params?.page !== undefined) qs.append('page', params.page.toString());
+  if (params?.pageSize !== undefined) qs.append('pageSize', params.pageSize.toString());
+  const queryStr = qs.toString();
+  const path = `/users/${encodeURIComponent(userId)}/saved${queryStr ? `?${queryStr}` : ''}`;
 
-  return envelope.data;
+  return apiRequest<SavedChurchesEnvelope>(path);
 };

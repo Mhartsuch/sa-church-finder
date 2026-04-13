@@ -52,6 +52,18 @@ const ToastItem = ({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: str
       <p className="flex-1 pt-px text-[14px] font-medium leading-snug text-foreground">
         {toast.message}
       </p>
+      {toast.action && (
+        <button
+          type="button"
+          onClick={() => {
+            toast.action?.onClick();
+            onDismiss(toast.id);
+          }}
+          className="flex-shrink-0 text-[13px] font-bold text-foreground underline underline-offset-2 transition-colors hover:text-muted-foreground"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}

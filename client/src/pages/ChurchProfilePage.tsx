@@ -342,8 +342,19 @@ export const ChurchProfilePage = () => {
     try {
       await toggleSavedChurchMutation.mutateAsync(church.id);
       addToast({
-        message: church.isSaved ? 'Removed from your wishlist' : 'Saved to your wishlist',
+        message: church.isSaved ? 'Removed from saved churches' : 'Saved to your list',
         variant: 'success',
+        ...(church.isSaved
+          ? {
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  void toggleSavedChurchMutation.mutateAsync(church.id);
+                },
+              },
+              duration: 6000,
+            }
+          : {}),
       });
     } catch (toggleError) {
       addToast({
@@ -385,9 +396,7 @@ export const ChurchProfilePage = () => {
     } catch (visitError) {
       addToast({
         message:
-          visitError instanceof Error
-            ? visitError.message
-            : 'Unable to log your visit right now.',
+          visitError instanceof Error ? visitError.message : 'Unable to log your visit right now.',
         variant: 'error',
       });
     }
@@ -1070,7 +1079,12 @@ export const ChurchProfilePage = () => {
                               </span>
                               {review.respondedAt ? (
                                 <span className="text-xs text-muted-foreground">
-                                  · {new Date(review.respondedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  ·{' '}
+                                  {new Date(review.respondedAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
                                 </span>
                               ) : null}
                             </div>
