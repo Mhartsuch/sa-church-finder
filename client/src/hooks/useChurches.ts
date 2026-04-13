@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { DEFAULT_RADIUS, PAGE_SIZE, SA_CENTER } from '@/constants';
 import {
@@ -124,7 +124,12 @@ export const useSavedChurches = (userId: string | null, params?: ISavedChurchesP
 export const useToggleSavedChurch = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<{ churchId: string; saved: boolean }, Error, string>({
+  type ToggleContext = {
+    previousSearch: [QueryKey, ISearchResponse | undefined][];
+    previousChurch: [QueryKey, IChurch | undefined][];
+  };
+
+  return useMutation<{ churchId: string; saved: boolean }, Error, string, ToggleContext>({
     mutationFn: toggleSavedChurch,
     onMutate: async (churchId) => {
       // Cancel in-flight fetches so they don't overwrite our optimistic update
