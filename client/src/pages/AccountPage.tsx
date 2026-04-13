@@ -402,6 +402,24 @@ const AccountPage = () => {
               {dashboardSummary}
             </p>
 
+            <Link
+              to="/passport"
+              className="mt-6 flex items-center justify-between rounded-[28px] border border-[#c9defa] bg-[#f5f9ff] p-5 transition-colors hover:bg-[#eef4ff]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-card text-[#1d4ed8] shadow-airbnb-subtle">
+                  <Compass className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Church Passport</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Track visits, earn awards, and share your church journey
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-[#1d4ed8]" />
+            </Link>
+
             {!user.emailVerified ? (
               <div className="mt-6 rounded-[28px] border border-[#ffc2cc] bg-[#fff0f3] p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

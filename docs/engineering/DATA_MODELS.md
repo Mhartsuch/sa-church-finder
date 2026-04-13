@@ -233,6 +233,66 @@
 
 **PK:** (user_id, church_id)
 
+### church_visits
+
+| Column     | Type      | Constraints                | Notes                     |
+| ---------- | --------- | -------------------------- | ------------------------- |
+| id         | UUID      | PK, default gen            |                           |
+| user_id    | UUID      | FK → users.id, NOT NULL    | ON DELETE CASCADE         |
+| church_id  | UUID      | FK → churches.id, NOT NULL | ON DELETE CASCADE         |
+| visited_at | DATE      | NOT NULL                   | Date of the visit         |
+| notes      | TEXT      | NULLABLE                   | Personal notes (max 1000) |
+| rating     | INTEGER   | NULLABLE                   | Personal 1–5 rating       |
+| created_at | TIMESTAMP | default now()              |                           |
+| updated_at | TIMESTAMP | auto-update                |                           |
+
+**Constraints:** UNIQUE(user_id, church_id, visited_at) — one visit per church per day.
+
+**Indexes:** user_id
+
+### church_collections
+
+| Column      | Type         | Constraints             | Notes                         |
+| ----------- | ------------ | ----------------------- | ----------------------------- |
+| id          | UUID         | PK, default gen         |                               |
+| user_id     | UUID         | FK → users.id, NOT NULL | ON DELETE CASCADE             |
+| name        | VARCHAR(100) | NOT NULL                |                               |
+| description | TEXT         | NULLABLE                | Max 500 chars                 |
+| slug        | VARCHAR(150) | NOT NULL                | URL-friendly, unique per user |
+| is_public   | BOOLEAN      | default true            |                               |
+| created_at  | TIMESTAMP    | default now()           |                               |
+| updated_at  | TIMESTAMP    | auto-update             |                               |
+
+**Constraints:** UNIQUE(user_id, slug)
+
+**Indexes:** user_id
+
+### church_collection_items
+
+| Column        | Type      | Constraints                          | Notes             |
+| ------------- | --------- | ------------------------------------ | ----------------- |
+| collection_id | UUID      | FK → church_collections.id, NOT NULL | ON DELETE CASCADE |
+| church_id     | UUID      | FK → churches.id, NOT NULL           | ON DELETE CASCADE |
+| notes         | TEXT      | NULLABLE                             | Max 500 chars     |
+| added_at      | TIMESTAMP | default now()                        |                   |
+
+**PK:** (collection_id, church_id)
+
+### user_awards
+
+| Column     | Type        | Constraints             | Notes                        |
+| ---------- | ----------- | ----------------------- | ---------------------------- |
+| id         | UUID        | PK, default gen         |                              |
+| user_id    | UUID        | FK → users.id, NOT NULL | ON DELETE CASCADE            |
+| award_type | VARCHAR(50) | NOT NULL                | Award identifier (enum-like) |
+| earned_at  | TIMESTAMP   | default now()           |                              |
+
+**Constraints:** UNIQUE(user_id, award_type) — one of each award per user.
+
+**Indexes:** user_id
+
+**Award types:** FIRST_VISIT, EXPLORER_5, DEVOTED_10, PILGRIM_25, DENOMINATION_DIVERSITY, NEIGHBORHOOD_EXPLORER, REGULAR, REVIEWER
+
 ---
 
-_Last updated: 2026-04-13 — added review response fields (response_body, responded_at)._
+_Last updated: 2026-04-13 — added church passport models (church_visits, church_collections, church_collection_items, user_awards)._

@@ -14,10 +14,13 @@ import authRoutes from './routes/auth.routes.js'
 import churchRoutes from './routes/church.routes.js'
 import churchServiceRoutes from './routes/church-service.routes.js'
 import claimRoutes from './routes/claim.routes.js'
+import collectionRoutes from './routes/collection.routes.js'
 import eventRoutes from './routes/event.routes.js'
+import passportRoutes from './routes/passport.routes.js'
 import reviewRoutes from './routes/review.routes.js'
 import sitemapRoutes from './routes/sitemap.routes.js'
 import userRoutes from './routes/users.routes.js'
+import visitRoutes from './routes/visit.routes.js'
 
 initializeServerSentry()
 
@@ -91,10 +94,13 @@ export const createApp = (): Express => {
   app.use('/api/v1/churches', churchRoutes)
   app.use('/api/v1/auth', authRoutes)
   app.use('/api/v1/users', userRoutes)
+  app.use('/api/v1/users', passportRoutes)
   app.use('/api/v1', churchServiceRoutes)
   app.use('/api/v1', claimRoutes)
+  app.use('/api/v1', collectionRoutes)
   app.use('/api/v1', eventRoutes)
   app.use('/api/v1', reviewRoutes)
+  app.use('/api/v1', visitRoutes)
   app.use(sitemapRoutes)
 
   app.use((req: Request, res: Response) => {
