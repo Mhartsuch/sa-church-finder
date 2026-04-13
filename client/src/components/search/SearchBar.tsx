@@ -127,7 +127,8 @@ export const SearchBar = ({ variant = 'compact', onSubmit, onOpenFilters }: Sear
 
           <div className="reference-search-field min-w-0 flex-[1.2]">
             <label htmlFor={`search-input-${variant}`} className="reference-search-label">
-              Search
+              <span className="lg:hidden">Search San Antonio</span>
+              <span className="hidden lg:inline">Search</span>
             </label>
             <div className="mt-1 flex items-center gap-2">
               <Search className="h-4 w-4 flex-shrink-0 text-muted-foreground" />

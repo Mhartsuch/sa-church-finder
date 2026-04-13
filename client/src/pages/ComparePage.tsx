@@ -87,6 +87,139 @@ const CompareRow = ({ label, icon, churches, render, whiteSpacePre }: RowProps) 
   </tr>
 );
 
+/** Mobile-friendly card for a single church in the compare view */
+const CompareCard = ({
+  church,
+  onRemove,
+}: {
+  church: IChurchSummary;
+  onRemove: (id: string) => void;
+}) => {
+  const rating = church.reviewCount > 0 ? church.avgRating : (church.googleRating ?? 0);
+  const count = church.reviewCount > 0 ? church.reviewCount : (church.googleReviewCount ?? 0);
+  const nextServiceText = formatServices(church.services);
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-airbnb-subtle">
+      {/* Photo + name header */}
+      <div className="relative">
+        <div className="aspect-[16/9] overflow-hidden bg-muted">
+          {church.coverImageUrl ? (
+            <img
+              src={church.coverImageUrl}
+              alt={church.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+              No photo
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => onRemove(church.id)}
+          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow-sm transition-colors hover:bg-muted"
+          aria-label={`Remove ${church.name}`}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="space-y-3 p-4">
+        <div>
+          <Link
+            to={`/churches/${church.slug}`}
+            className="text-base font-semibold text-foreground transition-colors hover:text-[#FF385C]"
+          >
+            {church.name}
+          </Link>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {church.denomination || 'Non-denominational'}
+          </p>
+        </div>
+
+        {/* Rating */}
+        {rating > 0 && (
+          <div className="flex items-center gap-1.5 text-sm">
+            <Star className="h-4 w-4 fill-[#fbbf24] text-[#fbbf24]" />
+            <span className="font-semibold">{formatRating(rating)}</span>
+            {count > 0 && <span className="text-muted-foreground">({count})</span>}
+          </div>
+        )}
+
+        {/* Details grid */}
+        <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 text-sm">
+          <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5" /> Distance
+          </dt>
+          <dd>{formatDistance(church.distance)}</dd>
+
+          {church.neighborhood && (
+            <>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Area
+              </dt>
+              <dd>{church.neighborhood}</dd>
+            </>
+          )}
+
+          <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" /> Services
+          </dt>
+          <dd className="whitespace-pre-line">{nextServiceText}</dd>
+
+          {church.languages.length > 0 && (
+            <>
+              <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Globe className="h-3.5 w-3.5" /> Languages
+              </dt>
+              <dd>{church.languages.join(', ')}</dd>
+            </>
+          )}
+
+          {church.phone && (
+            <>
+              <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" /> Phone
+              </dt>
+              <dd>
+                <a href={`tel:${church.phone}`} className="text-[#FF385C] hover:underline">
+                  {church.phone}
+                </a>
+              </dd>
+            </>
+          )}
+        </dl>
+
+        {/* Tags row */}
+        <div className="flex flex-wrap gap-1.5">
+          {church.wheelchairAccessible && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+              <Accessibility className="h-3 w-3" /> Accessible
+            </span>
+          )}
+          {church.goodForChildren && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+              <Baby className="h-3 w-3" /> Family
+            </span>
+          )}
+          {church.goodForGroups && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+              <Users className="h-3 w-3" /> Groups
+            </span>
+          )}
+          {church.isClaimed && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-700">
+              <Check className="h-3 w-3" /> Verified
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ComparePage = () => {
   useDocumentHead({
     title: 'Compare Churches',
@@ -155,8 +288,15 @@ const ComparePage = () => {
           </button>
         </div>
 
-        {/* Comparison table */}
-        <div className="mt-8 overflow-x-auto rounded-[20px] border border-border bg-card shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+        {/* Mobile: stacked card view */}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:hidden">
+          {churches.map((church) => (
+            <CompareCard key={church.id} church={church} onRemove={removeChurch} />
+          ))}
+        </div>
+
+        {/* Desktop: comparison table */}
+        <div className="mt-8 hidden overflow-x-auto rounded-[20px] border border-border bg-card shadow-[0_12px_40px_rgba(0,0,0,0.06)] md:block">
           <table className="w-full min-w-[600px] table-fixed border-collapse">
             <colgroup>
               <col className="w-[160px] sm:w-[200px]" />

@@ -252,7 +252,7 @@ export const SearchPage = () => {
   return (
     <>
       <div className="flex-1 bg-background">
-        <div className="sticky top-[80px] z-40 border-b border-border bg-background/96 backdrop-blur-md">
+        <div className="sticky top-[64px] z-40 border-b border-border bg-background/96 backdrop-blur-md sm:top-[80px]">
           <div className="mx-auto max-w-[1760px]">
             <CategoryFilter
               compareCount={compareCount}
@@ -317,10 +317,12 @@ export const SearchPage = () => {
         ) : null}
 
         <section className="reference-results-shell">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-[14px] font-semibold text-foreground">{resultsHeading}</h2>
-              <p className="mt-1 text-[14px] text-muted-foreground">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+            <div className="min-w-0">
+              <h2 className="text-[13px] font-semibold text-foreground sm:text-[14px]">
+                {resultsHeading}
+              </h2>
+              <p className="mt-0.5 truncate text-[13px] text-muted-foreground sm:mt-1 sm:text-[14px]">
                 {resultsDescription}
                 {activeAdvancedFilterCount > 0
                   ? `  /  ${activeAdvancedFilterCount} filter${activeAdvancedFilterCount === 1 ? '' : 's'} active`
@@ -328,7 +330,7 @@ export const SearchPage = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
               <NearMeButton />
 
               {!isMobile ? (
@@ -441,7 +443,7 @@ export const SearchPage = () => {
             )}
 
             {showMap ? (
-              <div className={`${isMobile ? 'mt-4' : 'sticky top-[156px] self-start'} min-w-0`}>
+              <div className={`${isMobile ? 'mt-4' : 'sticky top-[160px] self-start'} min-w-0`}>
                 <div className="overflow-hidden rounded-[12px] border border-border bg-card">
                   <div
                     className={`${isMobile ? 'h-[70vh] min-h-[460px]' : 'h-[calc(100vh-180px)] min-h-[620px]'}`}
@@ -511,7 +513,7 @@ export const SearchPage = () => {
             role="dialog"
             aria-modal="true"
             aria-label="Filters"
-            className={`w-full max-w-[780px] overflow-hidden rounded-[24px] bg-card shadow-[0_20px_80px_rgba(0,0,0,0.25)] ${
+            className={`w-full max-w-[780px] overflow-hidden rounded-t-[24px] bg-card shadow-[0_20px_80px_rgba(0,0,0,0.25)] sm:rounded-[24px] ${
               filterModalState === 'closing'
                 ? 'animate-[modal-slide-up_0.25s_ease-in_reverse_forwards]'
                 : 'animate-modal-slide-up'

@@ -40,7 +40,7 @@ export const Footer = () => {
 
   return (
     <footer aria-label="Site footer" className="border-t border-border bg-muted">
-      <div className="mx-auto max-w-[1760px] px-10 py-12">
+      <div className="mx-auto max-w-[1760px] px-4 py-8 sm:px-6 sm:py-12 lg:px-10">
         {import.meta.env.VITE_STRIPE_DONATION_URL && (
           <div className="mb-8 flex flex-col items-center gap-3 border-b border-border pb-6 text-center">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

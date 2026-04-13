@@ -66,10 +66,13 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md">
       <div className="mx-auto max-w-[1760px] px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div className="flex min-h-[80px] items-center gap-4">
-          <Link to="/" className="flex flex-shrink-0 items-center gap-2 text-[#FF385C]">
-            <Church className="h-8 w-8" strokeWidth={2.2} />
-            <span className="text-[20px] font-extrabold tracking-[-0.03em]">ChurchFinder</span>
+        <div className="flex min-h-[64px] items-center gap-2 sm:min-h-[80px] sm:gap-4">
+          <Link to="/" className="flex flex-shrink-0 items-center gap-1.5 text-[#FF385C] sm:gap-2">
+            <Church className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.2} />
+            <span className="hidden text-[20px] font-extrabold tracking-[-0.03em] sm:inline">
+              ChurchFinder
+            </span>
+            <span className="text-[17px] font-extrabold tracking-[-0.03em] sm:hidden">CF</span>
           </Link>
 
           <div className="hidden flex-1 justify-center lg:flex">

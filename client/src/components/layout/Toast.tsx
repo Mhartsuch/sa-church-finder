@@ -72,7 +72,7 @@ export const ToastContainer = () => {
   }
 
   return createPortal(
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-3">
+    <div className="fixed bottom-20 left-4 right-4 z-[100] flex flex-col-reverse gap-3 sm:bottom-6 sm:left-auto sm:right-6">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={dismissToast} />
       ))}
