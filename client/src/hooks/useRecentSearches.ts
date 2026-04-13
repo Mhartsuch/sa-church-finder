@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'church-finder-recent-searches';
 const MAX_ITEMS = 6;
@@ -22,11 +22,11 @@ function loadRecent(): string[] {
   }
 }
 
-function saveRecent(items: string[]) {
+/** Write to localStorage and notify other hook instances on this page. */
+function persistAndNotify(items: string[]) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    // Notify other hook instances on this page that the data changed.
     window.dispatchEvent(new CustomEvent(SYNC_EVENT));
   } catch {
     // localStorage may be full, unavailable, or restricted — silently ignore.
@@ -36,18 +36,32 @@ function saveRecent(items: string[]) {
 export function useRecentSearches() {
   const [recent, setRecent] = useState<string[]>(loadRecent);
 
+  // Track whether a state update originated from *this* hook instance so the
+  // SYNC_EVENT listener can skip the redundant re-read that would otherwise
+  // create an infinite render loop (new array ref → effect → event → setRecent → …).
+  const selfUpdate = useRef(false);
+
+  // Persist to localStorage whenever `recent` changes.
   useEffect(() => {
-    saveRecent(recent);
+    persistAndNotify(recent);
   }, [recent]);
 
-  // Re-read from localStorage whenever another hook instance on the same page
-  // writes new data, or when a different tab updates localStorage (the native
-  // `storage` event covers the cross-tab case).
+  // Re-read from localStorage whenever *another* hook instance on the same
+  // page writes new data, or when a different tab updates localStorage (the
+  // native `storage` event covers the cross-tab case).
   useEffect(() => {
-    const resync = () => setRecent(loadRecent());
+    const resync = () => {
+      if (selfUpdate.current) {
+        selfUpdate.current = false;
+        return;
+      }
+      setRecent(loadRecent());
+    };
 
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY) resync();
+      if (event.key === STORAGE_KEY) {
+        setRecent(loadRecent());
+      }
     };
 
     window.addEventListener(SYNC_EVENT, resync);
@@ -63,8 +77,8 @@ export function useRecentSearches() {
     const term = rawTerm.trim();
     if (!term) return;
 
+    selfUpdate.current = true;
     setRecent((prev) => {
-      // De-dupe case-insensitively so "Catholic" and "catholic" collapse.
       const normalized = term.toLowerCase();
       const filtered = prev.filter((existing) => existing.toLowerCase() !== normalized);
       return [term, ...filtered].slice(0, MAX_ITEMS);
@@ -75,10 +89,12 @@ export function useRecentSearches() {
     const normalized = rawTerm.trim().toLowerCase();
     if (!normalized) return;
 
+    selfUpdate.current = true;
     setRecent((prev) => prev.filter((existing) => existing.toLowerCase() !== normalized));
   }, []);
 
   const clearRecent = useCallback(() => {
+    selfUpdate.current = true;
     setRecent([]);
   }, []);
 
