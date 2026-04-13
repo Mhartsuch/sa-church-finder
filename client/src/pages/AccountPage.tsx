@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { AccountSettings } from '@/components/auth/AccountSettings';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth';
 import {
@@ -378,8 +379,20 @@ const AccountPage = () => {
           <section className="rounded-[32px] border border-border bg-card p-6 shadow-airbnb-subtle sm:p-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-foreground text-xl font-bold text-white">
-                  {initials}
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[24px] bg-foreground text-xl font-bold text-white">
+                  {user.avatarUrl ? (
+                    <img
+                      src={
+                        user.avatarUrl.startsWith('http')
+                          ? user.avatarUrl
+                          : `${import.meta.env.VITE_API_URL || ''}${user.avatarUrl}`
+                      }
+                      alt={user.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">{user.name}</h2>
@@ -751,6 +764,13 @@ const AccountPage = () => {
                 </div>
               )}
             </div>
+
+            <AccountSettings
+              user={user}
+              onDeactivated={() => {
+                navigate('/', { replace: true });
+              }}
+            />
 
             {hasLeaderPortalEntry ? (
               <div className="mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f5faf7] p-5">

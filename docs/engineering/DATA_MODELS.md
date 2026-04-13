@@ -53,6 +53,7 @@
 | role           | ENUM         | NOT NULL, default 'user' | 'user', 'church_admin', 'site_admin' |
 | google_id      | VARCHAR(255) | UNIQUE, NULLABLE         | Google OAuth subject ID              |
 | email_verified | BOOLEAN      | default false            |                                      |
+| deactivated_at | TIMESTAMP    | NULLABLE                 | Soft-delete timestamp                |
 | created_at     | TIMESTAMP    | default now()            |                                      |
 | updated_at     | TIMESTAMP    | auto-update              |                                      |
 

@@ -9,6 +9,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: 'default' | 'destructive';
   isPending?: boolean;
+  children?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +22,7 @@ export const ConfirmDialog = ({
   cancelLabel = 'Cancel',
   variant = 'default',
   isPending = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
@@ -76,6 +78,7 @@ export const ConfirmDialog = ({
             >
               {description}
             </p>
+            {children}
           </div>
         </div>
 
