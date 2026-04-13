@@ -17,6 +17,8 @@ import { Link } from 'react-router-dom';
 
 import { ChurchEditor } from '@/components/church/ChurchEditor';
 import { EventManager } from '@/components/events/EventManager';
+import { ReviewManager } from '@/components/reviews/ReviewManager';
+import { ServiceManager } from '@/components/services/ServiceManager';
 import { useAuthSession } from '@/hooks/useAuth';
 import { IManagedChurchPortal, useLeaderPortal } from '@/hooks/useLeaderPortal';
 import { IChurch } from '@/types/church';
@@ -377,6 +379,16 @@ const LeadersPortalPage = () => {
                           />
                         </div>
 
+                        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                          <ServiceManager
+                            churchId={church.id}
+                            churchName={church.name}
+                            services={church.services}
+                            isLoading={portalChurch.isChurchLoading || isManagedChurchesLoading}
+                          />
+                          <ReviewManager churchId={church.id} churchName={church.name} />
+                        </div>
+
                         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           {church.phone ? (
                             <span className="inline-flex items-center gap-1.5">
@@ -513,6 +525,14 @@ const LeadersPortalPage = () => {
                 <p>
                   Use the <strong>Upcoming events</strong> panel to publish, update, or retire
                   gatherings right from this portal.
+                </p>
+                <p>
+                  Use <strong>Service times</strong> to manage your weekly schedule so visitors know
+                  exactly when to visit.
+                </p>
+                <p>
+                  Use <strong>Recent reviews</strong> to respond to visitor feedback directly from
+                  this portal.
                 </p>
                 <p>Claim approvals and moderation tools still live on your member dashboard.</p>
               </div>
