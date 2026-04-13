@@ -7,6 +7,7 @@ import {
   deleteForumReply,
   fetchForumPost,
   fetchForumPosts,
+  updateForumPost,
 } from '@/api/forum';
 import {
   CreateForumPostInput,
@@ -60,6 +61,17 @@ export const useCreateForumReply = () => {
 
   return useMutation<unknown, Error, { postId: string; body: string }>({
     mutationFn: ({ postId, body }) => createForumReply(postId, body),
+    onSuccess: () => {
+      invalidateForumQueries(queryClient);
+    },
+  });
+};
+
+export const useUpdateForumPost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<IForumPost, Error, { postId: string; input: Partial<CreateForumPostInput> }>({
+    mutationFn: ({ postId, input }) => updateForumPost(postId, input),
     onSuccess: () => {
       invalidateForumQueries(queryClient);
     },

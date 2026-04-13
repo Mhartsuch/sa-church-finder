@@ -7,6 +7,7 @@ import {
   Eye,
   Lock,
   MessageCircle,
+  Pencil,
   Pin,
   Plus,
   Send,
@@ -23,6 +24,7 @@ import {
   useDeleteForumReply,
   useForumPost,
   useForumPosts,
+  useUpdateForumPost,
 } from '@/hooks/useForum';
 import { useToast } from '@/hooks/useToast';
 import type {
@@ -271,7 +273,10 @@ const PostDetail = ({
   const { user } = useAuthSession();
   const { data, isLoading, error } = useForumPost(postId);
   const [replyBody, setReplyBody] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editBody, setEditBody] = useState('');
   const createReplyMutation = useCreateForumReply();
+  const updatePostMutation = useUpdateForumPost();
   const deletePostMutation = useDeleteForumPost();
   const deleteReplyMutation = useDeleteForumReply();
   const { addToast } = useToast();
@@ -289,6 +294,26 @@ const PostDetail = ({
     } catch (err) {
       addToast({
         message: err instanceof Error ? err.message : 'Failed to post reply',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleStartEdit = () => {
+    if (!post) return;
+    setEditBody(post.body);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!post || !editBody.trim()) return;
+    try {
+      await updatePostMutation.mutateAsync({ postId: post.id, input: { body: editBody.trim() } });
+      setIsEditing(false);
+      addToast({ message: 'Post updated', variant: 'success' });
+    } catch (err) {
+      addToast({
+        message: err instanceof Error ? err.message : 'Failed to update post',
         variant: 'error',
       });
     }
@@ -382,18 +407,58 @@ const PostDetail = ({
                 {post.viewCount}
               </span>
             </div>
-            <p className="mt-4 whitespace-pre-line text-sm leading-7 text-foreground">{post.body}</p>
+            {isEditing ? (
+              <div className="mt-4 space-y-3">
+                <textarea
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                  rows={6}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm leading-7 text-foreground placeholder:text-muted-foreground focus:border-[#FF385C] focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveEdit()}
+                    disabled={updatePostMutation.isPending || !editBody.trim()}
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#FF385C] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#E31C5F] disabled:opacity-50"
+                  >
+                    {updatePostMutation.isPending ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 whitespace-pre-line text-sm leading-7 text-foreground">{post.body}</p>
+            )}
 
-            {isOwner || isAdmin ? (
-              <button
-                type="button"
-                onClick={() => void handleDeletePost()}
-                disabled={deletePostMutation.isPending}
-                className="mt-4 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-[#FF385C]"
-              >
-                <Trash2 className="h-3 w-3" />
-                {deletePostMutation.isPending ? 'Deleting...' : 'Delete post'}
-              </button>
+            {(isOwner || isAdmin) && !isEditing ? (
+              <div className="mt-4 flex gap-3">
+                {isOwner ? (
+                  <button
+                    type="button"
+                    onClick={handleStartEdit}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void handleDeletePost()}
+                  disabled={deletePostMutation.isPending}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-[#FF385C]"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  {deletePostMutation.isPending ? 'Deleting...' : 'Delete post'}
+                </button>
+              </div>
             ) : null}
           </div>
         </div>
