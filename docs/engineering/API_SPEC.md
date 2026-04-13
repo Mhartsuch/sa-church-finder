@@ -486,6 +486,19 @@ Reset password with token.
 
 ---
 
+#### `POST /auth/change-password` _(authenticated)_
+
+Change password for the currently authenticated user.
+
+| Field           | Type   | Required       |
+| --------------- | ------ | -------------- |
+| currentPassword | string | Yes            |
+| newPassword     | string | Yes (8+ chars) |
+
+**Notes:** Returns 400 for Google-only users who have no password set.
+
+---
+
 ### User
 
 #### `GET /users/:id/claims`
@@ -503,6 +516,45 @@ Get all reviews by a user.
 #### `GET /users/:id/saved`
 
 Get user's saved churches. _(authenticated, own profile only)_
+
+---
+
+#### `PATCH /users/:id/profile` _(authenticated, own profile only)_
+
+Update user profile information.
+
+| Field | Type   | Required |
+| ----- | ------ | -------- |
+| name  | string | No       |
+| email | string | No       |
+
+**Notes:** At least one field is required. Changing email sets `emailVerified` to false and issues a new verification token.
+
+---
+
+#### `POST /users/:id/avatar` _(authenticated, own profile only)_
+
+Upload a profile photo. Accepts multipart/form-data with an `avatar` file field.
+
+**Constraints:** JPEG, PNG, WebP, or GIF. Max 5 MB.
+
+---
+
+#### `DELETE /users/:id/avatar` _(authenticated, own profile only)_
+
+Remove the user's profile photo.
+
+---
+
+#### `POST /users/:id/deactivate` _(authenticated, own profile only)_
+
+Soft-delete the user account.
+
+| Field    | Type   | Required                                         |
+| -------- | ------ | ------------------------------------------------ |
+| password | string | Yes for password users, optional for Google-only |
+
+**Notes:** Sets `deactivatedAt` timestamp and destroys the session. Deactivated users cannot log in. Contact support to reactivate.
 
 ---
 

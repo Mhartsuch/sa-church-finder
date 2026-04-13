@@ -53,6 +53,7 @@
 | role           | ENUM         | NOT NULL, default 'user' | 'user', 'church_admin', 'site_admin' |
 | google_id      | VARCHAR(255) | UNIQUE, NULLABLE         | Google OAuth subject ID              |
 | email_verified | BOOLEAN      | default false            |                                      |
+| deactivated_at | TIMESTAMP    | NULLABLE                 | Soft-delete timestamp                |
 | created_at     | TIMESTAMP    | default now()            |                                      |
 | updated_at     | TIMESTAMP    | auto-update              |                                      |
 
@@ -169,21 +170,21 @@
 
 ### events
 
-| Column            | Type         | Constraints                | Notes                                                          |
-| ----------------- | ------------ | -------------------------- | -------------------------------------------------------------- |
-| id                | UUID         | PK, default gen            |                                                                |
-| church_id         | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                              |
-| title             | VARCHAR(200) | NOT NULL                   |                                                                |
-| description       | TEXT         | NULLABLE                   |                                                                |
-| event_type        | VARCHAR(50)  | NOT NULL                   | 'service', 'community', 'volunteer', 'study', 'youth', 'other' |
-| start_time        | TIMESTAMP    | NOT NULL                   |                                                                |
-| end_time          | TIMESTAMP    | NULLABLE                   |                                                                |
-| location_override | VARCHAR(300) | NULLABLE                   | If different from church address                               |
-| is_recurring      | BOOLEAN      | default false              |                                                                |
+| Column            | Type         | Constraints                | Notes                                                                                                                                                                                                                         |
+| ----------------- | ------------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                | UUID         | PK, default gen            |                                                                                                                                                                                                                               |
+| church_id         | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                                                                                                                                                                                             |
+| title             | VARCHAR(200) | NOT NULL                   |                                                                                                                                                                                                                               |
+| description       | TEXT         | NULLABLE                   |                                                                                                                                                                                                                               |
+| event_type        | VARCHAR(50)  | NOT NULL                   | 'service', 'community', 'volunteer', 'study', 'youth', 'other'                                                                                                                                                                |
+| start_time        | TIMESTAMP    | NOT NULL                   |                                                                                                                                                                                                                               |
+| end_time          | TIMESTAMP    | NULLABLE                   |                                                                                                                                                                                                                               |
+| location_override | VARCHAR(300) | NULLABLE                   | If different from church address                                                                                                                                                                                              |
+| is_recurring      | BOOLEAN      | default false              |                                                                                                                                                                                                                               |
 | recurrence_rule   | VARCHAR(255) | NULLABLE                   | iCal RRULE body — supports `FREQ=DAILY\|WEEKLY\|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`. Parsed and canonicalized on write; expanded into occurrences on read (see `server/src/lib/recurrence.ts`). |
-| created_by        | UUID         | FK → users.id, NULLABLE    |                                                                |
-| created_at        | TIMESTAMP    | default now()              |                                                                |
-| updated_at        | TIMESTAMP    | auto-update                |                                                                |
+| created_by        | UUID         | FK → users.id, NULLABLE    |                                                                                                                                                                                                                               |
+| created_at        | TIMESTAMP    | default now()              |                                                                                                                                                                                                                               |
+| updated_at        | TIMESTAMP    | auto-update                |                                                                                                                                                                                                                               |
 
 ### church_claims
 

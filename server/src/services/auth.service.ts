@@ -32,11 +32,13 @@ const authUserSelect = Prisma.validator<Prisma.UserSelect>()({
 const authUserWithPasswordSelect = Prisma.validator<Prisma.UserSelect>()({
   ...authUserSelect,
   passwordHash: true,
+  deactivatedAt: true,
 })
 
 const authUserWithGoogleSelect = Prisma.validator<Prisma.UserSelect>()({
   ...authUserSelect,
   googleId: true,
+  deactivatedAt: true,
 })
 
 type AuthUserRecord = Prisma.UserGetPayload<{ select: typeof authUserSelect }>
@@ -381,6 +383,14 @@ async function syncGoogleUserProfile(profile: NormalizedGoogleUserProfile): Prom
   })
 
   if (existingGoogleUser) {
+    if (existingGoogleUser.deactivatedAt) {
+      throw new AppError(
+        403,
+        'ACCOUNT_DEACTIVATED',
+        'This account has been deactivated. Please contact support to reactivate.',
+      )
+    }
+
     const nextAvatarUrl = existingGoogleUser.avatarUrl || profile.avatarUrl
     const shouldUpdate =
       existingGoogleUser.email !== profile.email ||
@@ -418,6 +428,14 @@ async function syncGoogleUserProfile(profile: NormalizedGoogleUserProfile): Prom
   })
 
   if (existingEmailUser) {
+    if (existingEmailUser.deactivatedAt) {
+      throw new AppError(
+        403,
+        'ACCOUNT_DEACTIVATED',
+        'This account has been deactivated. Please contact support to reactivate.',
+      )
+    }
+
     if (existingEmailUser.googleId && existingEmailUser.googleId !== profile.googleId) {
       throw new AppError(
         409,
@@ -540,6 +558,14 @@ export async function authenticateUser(input: AuthLoginBody): Promise<AuthUser> 
 
   if (!user?.passwordHash) {
     throw new AuthError('Invalid email or password')
+  }
+
+  if (user.deactivatedAt) {
+    throw new AppError(
+      403,
+      'ACCOUNT_DEACTIVATED',
+      'This account has been deactivated. Please contact support to reactivate.',
+    )
   }
 
   const passwordMatches = await bcrypt.compare(input.password, user.passwordHash)
@@ -779,11 +805,23 @@ export async function resetPassword(input: AuthResetPasswordBody): Promise<void>
   logger.info({ userId: passwordResetToken.userId }, 'Password reset completed')
 }
 
+export async function issueEmailVerificationForUser(input: {
+  email: string
+  name: string | null
+  userId: string
+}): Promise<{ previewUrl?: string }> {
+  return issueEmailVerificationToken(input)
+}
+
 export async function getCurrentUser(userId: string): Promise<AuthUser | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: authUserSelect,
+    select: { ...authUserSelect, deactivatedAt: true },
   })
 
-  return user ? toAuthUser(user) : null
+  if (!user || user.deactivatedAt) {
+    return null
+  }
+
+  return toAuthUser(user)
 }

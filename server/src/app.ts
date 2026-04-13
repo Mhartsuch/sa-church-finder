@@ -2,6 +2,7 @@ import 'dotenv/config'
 import cors from 'cors'
 import express, { Express, Request, Response } from 'express'
 import helmet from 'helmet'
+import path from 'path'
 import { pinoHttp } from 'pino-http'
 
 import { getPublicServerIntegrationStatus } from './lib/integration-status.js'
@@ -85,6 +86,14 @@ export const createApp = (): Express => {
       integrations: getPublicServerIntegrationStatus(),
     })
   })
+
+  app.use(
+    '/uploads',
+    express.static(path.join(process.cwd(), 'uploads'), {
+      maxAge: '7d',
+      immutable: true,
+    }),
+  )
 
   app.use('/api/v1/churches', churchRoutes)
   app.use('/api/v1/auth', authRoutes)
