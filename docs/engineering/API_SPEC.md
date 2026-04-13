@@ -146,33 +146,68 @@ Update editable church listing fields. Only included fields are changed (PATCH s
 
 #### `GET /churches/:churchId/photos`
 
-List photos for a church, ordered by display_order.
+List all photos for a church, ordered by `displayOrder` ascending.
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "churchId": "uuid",
+      "url": "/uploads/church-photos/abc123.jpg",
+      "altText": "Church exterior",
+      "displayOrder": 0,
+      "createdAt": "2026-04-13T00:00:00.000Z"
+    }
+  ],
+  "meta": { "total": 1 }
+}
+```
 
 ---
 
-#### `POST /churches/:churchId/photos` _(church_admin)_
+#### `POST /churches/:churchId/photos` _(church_admin or site_admin)_
 
-Upload a photo. Accepts multipart/form-data.
+Upload a photo. Accepts `multipart/form-data`.
 
-| Field         | Type   | Required | Notes                                |
-| ------------- | ------ | -------- | ------------------------------------ |
-| image         | file   | Yes      | JPEG, PNG, or WebP. Max 5MB.         |
-| alt_text      | string | No       | Accessibility description            |
-| display_order | number | No       | Sort position (default: append last) |
+| Field   | Type   | Required | Notes                                                        |
+| ------- | ------ | -------- | ------------------------------------------------------------ |
+| photo   | file   | Yes      | JPEG, PNG, or WebP. Max 10 MB.                               |
+| altText | string | No       | Accessibility description for screen readers (max 300 chars) |
 
-**Flow:** Backend uploads to Cloudinary, stores URL and public_id in database.
+**Flow:** Backend saves the file to `uploads/church-photos/` on disk and creates a database record. The photo is appended to the end of the display order.
 
----
-
-#### `PATCH /churches/photos/:id` _(church_admin)_
-
-Update photo metadata (alt_text, display_order).
+**Returns:** `201` with the created photo object.
 
 ---
 
-#### `DELETE /churches/photos/:id` _(church_admin or site_admin)_
+#### `PATCH /churches/photos/:photoId` _(church_admin or site_admin)_
 
-Delete a photo (removes from Cloudinary and database).
+Update the alt text of a photo.
+
+| Field   | Type          | Required | Notes                          |
+| ------- | ------------- | -------- | ------------------------------ |
+| altText | string / null | Yes      | New alt text, or null to clear |
+
+---
+
+#### `PUT /churches/:churchId/photos/reorder` _(church_admin or site_admin)_
+
+Reorder photos for a church.
+
+| Field    | Type  | Required | Notes                                                             |
+| -------- | ----- | -------- | ----------------------------------------------------------------- |
+| ordering | array | Yes      | Array of `{ photoId: string, displayOrder: number }` (1–50 items) |
+
+**Returns:** The full list of photos in the new order.
+
+---
+
+#### `DELETE /churches/photos/:photoId` _(church_admin or site_admin)_
+
+Delete a photo. Removes the database record and attempts to clean up the file from disk.
 
 ---
 
