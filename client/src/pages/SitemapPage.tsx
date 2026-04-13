@@ -27,6 +27,11 @@ const sitemapSections = [
     ],
   },
   {
+    title: 'Community',
+    description: 'Public spaces for local discussion alongside church discovery.',
+    links: [{ label: 'Forum', to: '/forum' }],
+  },
+  {
     title: 'Account',
     description: 'Authentication and member account entry points.',
     links: [

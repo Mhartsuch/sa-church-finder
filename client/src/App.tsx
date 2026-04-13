@@ -32,6 +32,7 @@ const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
 const TermsPage = lazy(() => import('@/pages/TermsPage'));
 const SitemapPage = lazy(() => import('@/pages/SitemapPage'));
 const LeadersPortalPage = lazy(() => import('@/pages/LeadersPortalPage'));
+const ForumPage = lazy(() => import('@/pages/ForumPage'));
 
 const PageFallback = () => (
   <div className="flex flex-1 items-center justify-center py-20">
@@ -64,6 +65,7 @@ const App = () => {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/sitemap" element={<SitemapPage />} />
+            <Route path="/forum" element={<ForumPage />} />
             <Route
               path="/leaders"
               element={
