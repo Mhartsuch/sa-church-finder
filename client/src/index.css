@@ -207,10 +207,17 @@
   .reference-hero-card {
     position: relative;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: 16px;
     background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    padding: 56px 48px;
+    padding: 32px 20px;
     color: #ffffff;
+  }
+
+  @media (min-width: 640px) {
+    .reference-hero-card {
+      border-radius: 20px;
+      padding: 56px 48px;
+    }
   }
 
   .reference-hero-backdrop {
@@ -249,10 +256,17 @@
   }
 
   .reference-hero-copy {
-    margin-top: 16px;
-    font-size: 17px;
+    margin-top: 12px;
+    font-size: 14px;
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.82);
+  }
+
+  @media (min-width: 640px) {
+    .reference-hero-copy {
+      margin-top: 16px;
+      font-size: 17px;
+    }
   }
 
   .reference-hero-dismiss {
@@ -281,16 +295,24 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-top: 28px;
+    margin-top: 20px;
     border-radius: 12px;
     background: var(--brand-gradient);
-    padding: 14px 28px;
-    font-size: 15px;
+    padding: 12px 22px;
+    font-size: 14px;
     font-weight: 600;
     color: #ffffff;
     transition:
       opacity 0.2s ease,
       transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @media (min-width: 640px) {
+    .reference-hero-cta {
+      margin-top: 28px;
+      padding: 14px 28px;
+      font-size: 15px;
+    }
   }
 
   .reference-hero-cta:hover {
@@ -300,8 +322,15 @@
 
   .reference-hero-stats {
     display: flex;
-    gap: 36px;
-    margin-top: 28px;
+    gap: 24px;
+    margin-top: 20px;
+  }
+
+  @media (min-width: 640px) {
+    .reference-hero-stats {
+      gap: 36px;
+      margin-top: 28px;
+    }
   }
 
   .reference-hero-stat-number {
@@ -309,20 +338,38 @@
       'Inter',
       -apple-system,
       sans-serif;
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 400;
   }
 
+  @media (min-width: 640px) {
+    .reference-hero-stat-number {
+      font-size: 28px;
+    }
+  }
+
   .reference-hero-stat-label {
-    font-size: 13px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.65);
     letter-spacing: 0.01em;
+  }
+
+  @media (min-width: 640px) {
+    .reference-hero-stat-label {
+      font-size: 13px;
+    }
   }
 
   .reference-results-shell {
     max-width: 1760px;
     margin: 0 auto;
-    padding: 24px 16px 96px;
+    padding: 20px 16px 120px;
+  }
+
+  @media (min-width: 1024px) {
+    .reference-results-shell {
+      padding-bottom: 96px;
+    }
   }
 
   /* Bottom padding reservation so fixed MobileNav and map toggle don't
@@ -461,7 +508,7 @@
   }
 
   .reference-search-field {
-    padding: 14px 18px;
+    padding: 12px 16px;
   }
 
   .reference-search-field + .reference-search-field::before {
@@ -472,14 +519,5 @@
     margin: 8px;
     width: calc(100% - 16px);
     border-radius: 14px;
-  }
-
-  .reference-hero-card {
-    padding: 40px 24px;
-  }
-
-  .reference-hero-stats {
-    flex-direction: column;
-    gap: 16px;
   }
 }

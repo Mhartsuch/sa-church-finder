@@ -49,7 +49,7 @@ export function InstallPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-16 left-4 right-4 z-50 mx-auto max-w-md animate-in slide-in-from-bottom md:bottom-6">
+    <div className="fixed bottom-[calc(80px+env(safe-area-inset-bottom,0px))] left-4 right-4 z-50 mx-auto max-w-md animate-in slide-in-from-bottom lg:bottom-6">
       <div className="flex items-center gap-3 rounded-xl border border-teal-200 bg-white p-4 shadow-lg dark:border-teal-800 dark:bg-gray-900">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
