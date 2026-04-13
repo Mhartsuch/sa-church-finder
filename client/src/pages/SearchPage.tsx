@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, LayoutGrid, Map as MapIcon, X } from 'lucide-react';
+import { ChevronDown, Clock, LayoutGrid, Map as MapIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ChurchList } from '@/components/church/ChurchList';
@@ -15,6 +15,7 @@ import { FilterPanel } from '@/components/search/FilterPanel';
 import { NearMeButton } from '@/components/search/NearMeButton';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
 import {
   ActiveSearchTokenKey,
@@ -94,6 +95,7 @@ export const SearchPage = () => {
   const setSort = useSearchStore((state) => state.setSort);
   const setMapBounds = useSearchStore((state) => state.setMapBounds);
   const clearFilters = useSearchStore((state) => state.clearFilters);
+  const { recent, removeRecent, clearRecent } = useRecentSearches();
 
   useDocumentHead({
     title: query ? `"${query}" — Church Search` : 'Find Churches in San Antonio',
@@ -384,6 +386,48 @@ export const SearchPage = () => {
               >
                 Clear everything
               </button>
+            </div>
+          ) : null}
+
+          {recent.length > 0 && !query.trim() && activeTokens.length === 0 ? (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Recent searches</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearRecent}
+                  className="text-[12px] font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {recent.map((term) => (
+                  <div
+                    key={term}
+                    className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card pl-3 pr-1.5 py-1.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setQuery(term)}
+                      className="truncate max-w-[200px]"
+                    >
+                      {term}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRecent(term)}
+                      className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label={`Remove "${term}" from recent searches`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 

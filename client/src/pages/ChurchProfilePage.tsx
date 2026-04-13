@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 
 import { Lightbox } from '@/components/church/Lightbox';
-import { getAwardDisplayName, LogVisitModal } from '@/components/church/LogVisitModal';
+import { LogVisitModal } from '@/components/church/LogVisitModal';
+import { getAwardDisplayName } from '@/utils/awards';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import { BreadcrumbJsonLd, ChurchJsonLd } from '@/components/seo/JsonLd';
@@ -268,7 +269,7 @@ export const ChurchProfilePage = () => {
     description: churchDescription,
     canonicalPath: slug ? `/churches/${slug}` : undefined,
     ogType: 'place',
-    ogImage: church?.coverImageUrl ?? undefined,
+    ogImage: church?.coverImageUrl ?? church?.photos?.[0]?.url ?? undefined,
   });
 
   if (isLoading) {

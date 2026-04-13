@@ -48,10 +48,17 @@ const App = () => {
   return (
     <ToastProvider>
       <div className="mobile-nav-spacer flex min-h-screen flex-col bg-background">
+        <a
+          href="#main-content"
+          className="sr-only z-[100] rounded bg-[#FF385C] px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        >
+          Skip to main content
+        </a>
         <OfflineBanner />
         <ScrollToTop />
         <Header />
-        <Routes>
+        <main id="main-content">
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route
@@ -290,7 +297,8 @@ const App = () => {
               </Suspense>
             }
           />
-        </Routes>
+          </Routes>
+        </main>
         <Footer />
         <MobileNav />
         <InstallPrompt />

@@ -33,48 +33,55 @@ export function useDocumentHead(options: DocumentHeadOptions): void {
   useEffect(() => {
     previousTitle.current = document.title;
 
+    // Track all tags created/updated so we can clean them up on unmount
+    const managedTags: HTMLElement[] = [];
+
     // Title
     document.title = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
 
     // Meta description
-    setMeta('description', description);
+    managedTags.push(setMeta('description', description));
 
     // Robots
-    setMeta('robots', noindex ? 'noindex,nofollow' : 'index,follow');
+    managedTags.push(setMeta('robots', noindex ? 'noindex,nofollow' : 'index,follow'));
 
     // Canonical
     if (canonicalPath !== undefined) {
-      setLink('canonical', `${SITE_URL}${canonicalPath}`);
+      managedTags.push(setLink('canonical', `${SITE_URL}${canonicalPath}`));
     }
 
     // Open Graph
-    setMetaProperty('og:title', title ?? SITE_NAME);
-    setMetaProperty('og:description', description);
-    setMetaProperty('og:type', ogType);
+    managedTags.push(setMetaProperty('og:title', title ?? SITE_NAME));
+    managedTags.push(setMetaProperty('og:description', description));
+    managedTags.push(setMetaProperty('og:type', ogType));
     if (canonicalPath !== undefined) {
-      setMetaProperty('og:url', `${SITE_URL}${canonicalPath}`);
+      managedTags.push(setMetaProperty('og:url', `${SITE_URL}${canonicalPath}`));
     }
     if (ogImage) {
-      setMetaProperty('og:image', ogImage);
+      managedTags.push(setMetaProperty('og:image', ogImage));
     }
 
-    // Twitter
-    setMeta('twitter:title', title ?? SITE_NAME);
-    setMeta('twitter:description', description);
+    // Twitter Card
+    managedTags.push(setMeta('twitter:card', ogImage ? 'summary_large_image' : 'summary'));
+    managedTags.push(setMeta('twitter:title', title ?? SITE_NAME));
+    managedTags.push(setMeta('twitter:description', description));
     if (ogImage) {
-      setMeta('twitter:card', 'summary_large_image');
-      setMeta('twitter:image', ogImage);
+      managedTags.push(setMeta('twitter:image', ogImage));
     }
 
     return () => {
       if (previousTitle.current !== null) {
         document.title = previousTitle.current;
       }
+      // Remove all meta/link tags to prevent stale tags when navigating away
+      for (const tag of managedTags) {
+        tag.parentNode?.removeChild(tag);
+      }
     };
   }, [title, description, canonicalPath, ogType, ogImage, noindex]);
 }
 
-function setMeta(name: string, content: string): void {
+function setMeta(name: string, content: string): HTMLMetaElement {
   let el = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
   if (!el) {
     el = document.createElement('meta');
@@ -82,9 +89,10 @@ function setMeta(name: string, content: string): void {
     document.head.appendChild(el);
   }
   el.content = content;
+  return el;
 }
 
-function setMetaProperty(property: string, content: string): void {
+function setMetaProperty(property: string, content: string): HTMLMetaElement {
   let el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
   if (!el) {
     el = document.createElement('meta');
@@ -92,9 +100,10 @@ function setMetaProperty(property: string, content: string): void {
     document.head.appendChild(el);
   }
   el.content = content;
+  return el;
 }
 
-function setLink(rel: string, href: string): void {
+function setLink(rel: string, href: string): HTMLLinkElement {
   let el = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
   if (!el) {
     el = document.createElement('link');
@@ -102,4 +111,5 @@ function setLink(rel: string, href: string): void {
     document.head.appendChild(el);
   }
   el.href = href;
+  return el;
 }

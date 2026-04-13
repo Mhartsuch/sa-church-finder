@@ -1,8 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Star, X } from 'lucide-react';
 
-import { AWARD_METADATA, IAward } from '@/types/passport';
-
 interface LogVisitModalProps {
   churchId: string;
   churchName: string;
@@ -19,18 +17,7 @@ const todayDateString = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-export const getAwardDisplayName = (award: IAward): string => {
-  const meta = AWARD_METADATA[award.awardType];
-  return meta ? `${meta.icon} ${meta.name}` : award.awardType;
-};
-
-export const getAwardDescription = (award: IAward): string => {
-  const meta = AWARD_METADATA[award.awardType];
-  return meta?.description ?? '';
-};
-
 export const LogVisitModal = ({
-  churchId: _churchId,
   churchName,
   isPending,
   onSubmit,

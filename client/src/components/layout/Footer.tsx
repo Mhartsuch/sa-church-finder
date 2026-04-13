@@ -27,7 +27,11 @@ const FOOTER_COLUMNS = [
   },
 ];
 
-const COMMUNITY_ROUTED_LINKS = new Map<string, string>([['Community events', '/events']]);
+const COMMUNITY_ROUTED_LINKS = new Map<string, string>([
+  ['Community events', '/events'],
+  ['Forum', '/forum'],
+  ['Church leaders portal', '/leaders'],
+]);
 
 export const Footer = () => {
   const supportLinksByLabel = new Map<string, string>(
@@ -35,7 +39,7 @@ export const Footer = () => {
   );
 
   return (
-    <footer className="border-t border-border bg-muted">
+    <footer aria-label="Site footer" className="border-t border-border bg-muted">
       <div className="mx-auto max-w-[1760px] px-10 py-12">
         {import.meta.env.VITE_STRIPE_DONATION_URL && (
           <div className="mb-8 flex flex-col items-center gap-3 border-b border-border pb-6 text-center">
