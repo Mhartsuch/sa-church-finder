@@ -4,21 +4,34 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
+  Car,
   CheckCircle,
   ChevronLeft,
   Clock,
   Compass,
   ExternalLink,
+  Facebook,
+  Gift,
   Globe,
+  HandHeart,
   Heart,
+  Instagram,
   Mail,
   MapPin,
+  Music,
   Phone,
+  PlayCircle,
+  ScrollText,
   ShieldAlert,
+  Shirt,
   Share,
+  Sparkles,
   Star,
   ThumbsUp,
+  Twitter,
+  UserPlus,
   Users,
+  Youtube,
 } from 'lucide-react';
 
 import { Lightbox } from '@/components/church/Lightbox';
@@ -41,7 +54,7 @@ import {
 } from '@/hooks/useReviews';
 import { ChurchProfileHero } from '@/components/church/ChurchProfileHero';
 import { useToast } from '@/hooks/useToast';
-import { IChurchService } from '@/types/church';
+import { IChurch, IChurchService } from '@/types/church';
 import { ChurchEventType, IChurchEvent } from '@/types/event';
 import { IReview, ReviewSort } from '@/types/review';
 import { formatRating, formatServiceTime, getDayName } from '@/utils/format';
@@ -199,6 +212,167 @@ const buildEventDateWindow = (
     from: fromDate.toISOString(),
     to: toDate.toISOString(),
   };
+};
+
+const ENRICHMENT_RESOURCE_LINKS = [
+  { key: 'newVisitorUrl', label: 'New visitor info', Icon: UserPlus },
+  { key: 'sermonUrl', label: 'Sermons', Icon: Music },
+  { key: 'livestreamUrl', label: 'Livestream', Icon: PlayCircle },
+  { key: 'givingUrl', label: 'Give online', Icon: Gift },
+  { key: 'statementOfFaithUrl', label: 'Statement of faith', Icon: ScrollText },
+] as const;
+
+const ENRICHMENT_SOCIAL_LINKS = [
+  { key: 'facebook', label: 'Facebook', Icon: Facebook },
+  { key: 'instagram', label: 'Instagram', Icon: Instagram },
+  { key: 'twitter', label: 'Twitter / X', Icon: Twitter },
+  { key: 'youtube', label: 'YouTube', Icon: Youtube },
+] as const;
+
+type ChurchEnrichmentSectionProps = {
+  enrichment: NonNullable<IChurch['enrichment']>;
+};
+
+const ChurchEnrichmentSection = ({ enrichment }: ChurchEnrichmentSectionProps) => {
+  const resourceLinks = ENRICHMENT_RESOURCE_LINKS.filter(({ key }) => enrichment[key]);
+  const socialLinks = ENRICHMENT_SOCIAL_LINKS.filter(({ key }) => enrichment.socialLinks[key]);
+  const hasMinistries = enrichment.ministries.length > 0;
+  const hasAffiliations = enrichment.affiliations.length > 0;
+  const hasStyle = Boolean(enrichment.serviceStyle);
+  const hasPlanNotes = Boolean(enrichment.parkingInfo) || Boolean(enrichment.dressCode);
+
+  if (
+    resourceLinks.length === 0 &&
+    socialLinks.length === 0 &&
+    !hasMinistries &&
+    !hasAffiliations &&
+    !hasStyle &&
+    !hasPlanNotes
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="border-b border-border py-8">
+      <div className="mb-5 flex items-center gap-3">
+        <h2 className="text-[22px] font-semibold text-foreground">Online and ways to connect</h2>
+        <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+          From the church&apos;s website
+        </span>
+      </div>
+
+      {resourceLinks.length > 0 ? (
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {resourceLinks.map(({ key, label, Icon }) => {
+            const url = enrichment[key] as string;
+            return (
+              <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-[15px] text-foreground transition-colors hover:border-foreground focus:border-foreground focus:outline-none"
+              >
+                <Icon className="h-5 w-5 flex-shrink-0 text-foreground" aria-hidden="true" />
+                <span className="flex-1 font-medium">{label}</span>
+                <ExternalLink
+                  className="h-4 w-4 flex-shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </a>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {socialLinks.length > 0 ? (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {socialLinks.map(({ key, label, Icon }) => {
+            const url = enrichment.socialLinks[key] as string;
+            return (
+              <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label={label}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-foreground focus:border-foreground focus:outline-none"
+              >
+                <Icon className="h-4 w-4 text-foreground" aria-hidden="true" />
+                <span>{label}</span>
+              </a>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {hasStyle || hasAffiliations ? (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {hasStyle ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f0e7da] px-3 py-1 text-xs font-semibold text-[#8c5b2e]">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              {enrichment.serviceStyle} worship style
+            </span>
+          ) : null}
+          {enrichment.affiliations.map((affiliation) => (
+            <span
+              key={affiliation}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground"
+            >
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+              {affiliation}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {hasMinistries ? (
+        <div className="mb-6">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <HandHeart className="mr-1.5 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true" />
+            Ministries
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {enrichment.ministries.map((ministry) => (
+              <span
+                key={ministry}
+                className="rounded-full border border-border bg-card px-3 py-1 text-sm text-foreground"
+              >
+                {ministry}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {hasPlanNotes ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {enrichment.parkingInfo ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+              <Car className="h-5 w-5 flex-shrink-0 text-foreground" aria-hidden="true" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Parking
+                </p>
+                <p className="mt-1 text-sm leading-6 text-foreground">{enrichment.parkingInfo}</p>
+              </div>
+            </div>
+          ) : null}
+          {enrichment.dressCode ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+              <Shirt className="h-5 w-5 flex-shrink-0 text-foreground" aria-hidden="true" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Dress code
+                </p>
+                <p className="mt-1 text-sm leading-6 text-foreground">{enrichment.dressCode}</p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 const isEventWithinNextWeek = (event: IChurchEvent): boolean => {
@@ -937,6 +1111,8 @@ export const ChurchProfilePage = () => {
                 </div>
               </div>
             ) : null}
+
+            {church.enrichment ? <ChurchEnrichmentSection enrichment={church.enrichment} /> : null}
 
             <div id="reviews" className="py-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

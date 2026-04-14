@@ -333,4 +333,63 @@ describe('ChurchProfilePage', () => {
 
     expect(screen.getByText('Church Not Found')).toBeInTheDocument();
   });
+
+  it('does not render the "Online and ways to connect" section when no enrichment is present', () => {
+    renderChurchProfilePage();
+    expect(screen.queryByText('Online and ways to connect')).not.toBeInTheDocument();
+  });
+
+  it('renders enrichment resources, ministries, affiliations, and social links', async () => {
+    const { useChurch } = await import('@/hooks/useChurches');
+    (useChurch as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      data: {
+        ...mockChurch,
+        enrichment: {
+          ministries: ['AWANA', 'Celebrate Recovery'],
+          affiliations: ['Southern Baptist Convention'],
+          serviceStyle: 'Blended',
+          sermonUrl: 'https://example.com/sermons',
+          livestreamUrl: 'https://example.com/live',
+          statementOfFaithUrl: null,
+          givingUrl: 'https://example.com/give',
+          newVisitorUrl: 'https://example.com/new',
+          parkingInfo: 'Large lot on the north side.',
+          dressCode: 'Casual welcome.',
+          socialLinks: {
+            facebook: 'https://facebook.com/gracebaptist',
+            instagram: null,
+            twitter: null,
+            youtube: 'https://youtube.com/@gracebaptist',
+          },
+          updatedAt: '2026-04-10T00:00:00.000Z',
+        },
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderChurchProfilePage();
+
+    expect(screen.getByText('Online and ways to connect')).toBeInTheDocument();
+    expect(screen.getByText('New visitor info')).toBeInTheDocument();
+    expect(screen.getByText('Sermons')).toBeInTheDocument();
+    expect(screen.getByText('Livestream')).toBeInTheDocument();
+    expect(screen.getByText('Give online')).toBeInTheDocument();
+    expect(screen.queryByText('Statement of faith')).not.toBeInTheDocument();
+
+    expect(screen.getByText('AWANA')).toBeInTheDocument();
+    expect(screen.getByText('Celebrate Recovery')).toBeInTheDocument();
+    expect(screen.getByText('Southern Baptist Convention')).toBeInTheDocument();
+    expect(screen.getByText('Blended worship style')).toBeInTheDocument();
+
+    expect(screen.getByText('Large lot on the north side.')).toBeInTheDocument();
+    expect(screen.getByText('Casual welcome.')).toBeInTheDocument();
+
+    const facebook = screen.getByRole('link', { name: 'Facebook' });
+    expect(facebook).toHaveAttribute('href', 'https://facebook.com/gracebaptist');
+    expect(facebook).toHaveAttribute('target', '_blank');
+    const youtube = screen.getByRole('link', { name: 'YouTube' });
+    expect(youtube).toHaveAttribute('href', 'https://youtube.com/@gracebaptist');
+    expect(screen.queryByRole('link', { name: 'Instagram' })).not.toBeInTheDocument();
+  });
 });

@@ -108,6 +108,34 @@ Get full church profile by slug.
 
 **Response:** Complete church object with services, photos, upcoming events, and aggregate review data.
 
+When the church has a successfully-applied v2 website-enrichment run (i.e. `enrichment_states.status = "applied"`), the response also includes an `enrichment` object containing the presentational subset of the extracted data. The backend sanitizes the stored snapshot before returning it — only `http`/`https` URLs are kept, string lists are deduped and capped at 20 entries, and free-text notes are trimmed/truncated. Any field that fails validation is returned as `null` (or omitted from the arrays) so clients can render every populated value directly.
+
+```jsonc
+{
+  "enrichment": {
+    "ministries": ["AWANA", "Celebrate Recovery"],
+    "affiliations": ["Southern Baptist Convention"],
+    "serviceStyle": "Blended", // "Traditional" | "Contemporary" | "Blended" | "Liturgical" | null
+    "sermonUrl": "https://example.com/sermons",
+    "livestreamUrl": "https://example.com/live",
+    "statementOfFaithUrl": null,
+    "givingUrl": "https://example.com/give",
+    "newVisitorUrl": "https://example.com/new",
+    "parkingInfo": "Large lot on the north side of the building.",
+    "dressCode": "Casual welcome.",
+    "socialLinks": {
+      "facebook": "https://facebook.com/example",
+      "instagram": null,
+      "twitter": null,
+      "youtube": "https://youtube.com/@example",
+    },
+    "updatedAt": "2026-04-14T00:00:00.000Z",
+  },
+}
+```
+
+Churches with no enrichment row — or an enrichment row that failed to produce any surfaceable data — return `enrichment: null`.
+
 ---
 
 #### `POST /churches` _(site_admin only)_

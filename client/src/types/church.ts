@@ -7,6 +7,35 @@ export interface IChurchPhoto {
   displayOrder: number;
 }
 
+export interface IChurchEnrichmentSocialLinks {
+  facebook: string | null;
+  instagram: string | null;
+  twitter: string | null;
+  youtube: string | null;
+}
+
+/**
+ * Presentational snapshot of the v2 website-enrichment extraction. Populated
+ * on church detail responses when an enrichment run has applied data for the
+ * church — otherwise omitted. Every field is best-effort; the server drops
+ * anything that fails URL/length validation, so consumers can render any
+ * populated value directly.
+ */
+export interface IChurchEnrichment {
+  ministries: string[];
+  affiliations: string[];
+  serviceStyle: string | null;
+  sermonUrl: string | null;
+  livestreamUrl: string | null;
+  statementOfFaithUrl: string | null;
+  givingUrl: string | null;
+  newVisitorUrl: string | null;
+  parkingInfo: string | null;
+  dressCode: string | null;
+  socialLinks: IChurchEnrichmentSocialLinks;
+  updatedAt: string;
+}
+
 export interface IChurch {
   id: string;
   name: string;
@@ -43,6 +72,7 @@ export interface IChurch {
   wheelchairAccessible: boolean | null;
   photos?: IChurchPhoto[];
   viewerClaim?: IViewerChurchClaim | null;
+  enrichment?: IChurchEnrichment | null;
   services: IChurchService[];
 }
 

@@ -13,6 +13,7 @@ import { getViewerClaimForChurch } from './church-claim.service.js'
 import {
   IBounds,
   IChurch,
+  IChurchEnrichment,
   IChurchPhoto,
   IChurchSummary,
   ISearchParams,
@@ -656,12 +657,112 @@ export async function searchChurches(
 
 // ── Single church lookups ──
 
+const ENRICHMENT_STRING_MAX = 280
+const ENRICHMENT_ARRAY_MAX = 20
+const ALLOWED_SERVICE_STYLES = new Set(['Traditional', 'Contemporary', 'Blended', 'Liturgical'])
+
+function sanitizeHttpUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
+function sanitizeTextField(value: unknown, max = ENRICHMENT_STRING_MAX): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  return trimmed.length > max ? `${trimmed.slice(0, max).trimEnd()}…` : trimmed
+}
+
+function sanitizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const entry of value) {
+    if (typeof entry !== 'string') continue
+    const trimmed = entry.trim()
+    if (!trimmed) continue
+    const key = trimmed.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(trimmed)
+    if (out.length >= ENRICHMENT_ARRAY_MAX) break
+  }
+  return out
+}
+
+/**
+ * Normalize the raw JSON snapshot stored on `enrichment_states.extractedData`
+ * into the presentational shape exposed to the frontend. Drops any data that
+ * fails validation (URLs must be HTTP/HTTPS, strings are trimmed and capped,
+ * arrays are deduped) and returns null when no surfaceable fields survive.
+ */
+export function toChurchEnrichment(data: unknown, updatedAt: Date): IChurchEnrichment | null {
+  if (!data || typeof data !== 'object') return null
+  const snapshot = data as Record<string, unknown>
+
+  const rawSocial =
+    snapshot.socialLinks && typeof snapshot.socialLinks === 'object'
+      ? (snapshot.socialLinks as Record<string, unknown>)
+      : {}
+
+  const serviceStyleRaw = sanitizeTextField(snapshot.serviceStyle, 40)
+  const serviceStyle =
+    serviceStyleRaw && ALLOWED_SERVICE_STYLES.has(serviceStyleRaw) ? serviceStyleRaw : null
+
+  const enrichment: IChurchEnrichment = {
+    ministries: sanitizeStringArray(snapshot.ministries),
+    affiliations: sanitizeStringArray(snapshot.affiliations),
+    serviceStyle,
+    sermonUrl: sanitizeHttpUrl(snapshot.sermonUrl),
+    livestreamUrl: sanitizeHttpUrl(snapshot.livestreamUrl),
+    statementOfFaithUrl: sanitizeHttpUrl(snapshot.statementOfFaithUrl),
+    givingUrl: sanitizeHttpUrl(snapshot.givingUrl),
+    newVisitorUrl: sanitizeHttpUrl(snapshot.newVisitorUrl),
+    parkingInfo: sanitizeTextField(snapshot.parkingInfo),
+    dressCode: sanitizeTextField(snapshot.dressCode, 80),
+    socialLinks: {
+      facebook: sanitizeHttpUrl(rawSocial.facebook),
+      instagram: sanitizeHttpUrl(rawSocial.instagram),
+      twitter: sanitizeHttpUrl(rawSocial.twitter),
+      youtube: sanitizeHttpUrl(rawSocial.youtube),
+    },
+    updatedAt,
+  }
+
+  const hasAny =
+    enrichment.ministries.length > 0 ||
+    enrichment.affiliations.length > 0 ||
+    Boolean(enrichment.serviceStyle) ||
+    Boolean(enrichment.sermonUrl) ||
+    Boolean(enrichment.livestreamUrl) ||
+    Boolean(enrichment.statementOfFaithUrl) ||
+    Boolean(enrichment.givingUrl) ||
+    Boolean(enrichment.newVisitorUrl) ||
+    Boolean(enrichment.parkingInfo) ||
+    Boolean(enrichment.dressCode) ||
+    Boolean(enrichment.socialLinks.facebook) ||
+    Boolean(enrichment.socialLinks.instagram) ||
+    Boolean(enrichment.socialLinks.twitter) ||
+    Boolean(enrichment.socialLinks.youtube)
+
+  return hasAny ? enrichment : null
+}
+
 export async function getChurchBySlug(slug: string, userId?: string): Promise<IChurch | null> {
   const church = await prisma.church.findFirst({
     where: { slug },
     include: {
       services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
       photos: { orderBy: { displayOrder: 'asc' } },
+      enrichmentState: true,
     },
   })
   if (!church) return null
@@ -688,8 +789,16 @@ export async function getChurchBySlug(slug: string, userId?: string): Promise<IC
     displayOrder: p.displayOrder,
   }))
 
+  const enrichment =
+    church.enrichmentState && church.enrichmentState.status === 'applied'
+      ? toChurchEnrichment(church.enrichmentState.extractedData, church.enrichmentState.updatedAt)
+      : null
+
+  const { enrichmentState: _unused, ...churchRest } = church
+  void _unused
+
   return {
-    ...church,
+    ...churchRest,
     latitude: toNumber(church.latitude),
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
@@ -697,6 +806,7 @@ export async function getChurchBySlug(slug: string, userId?: string): Promise<IC
     googleReviewCount: church.googleReviewCount ?? null,
     isSaved: Boolean(savedChurch),
     viewerClaim,
+    enrichment,
     services: church.services,
     photos,
   }
@@ -708,6 +818,7 @@ export async function getChurchById(id: string, userId?: string): Promise<IChurc
     include: {
       services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
       photos: { orderBy: { displayOrder: 'asc' } },
+      enrichmentState: true,
     },
   })
   if (!church) return null
@@ -734,8 +845,16 @@ export async function getChurchById(id: string, userId?: string): Promise<IChurc
     displayOrder: p.displayOrder,
   }))
 
+  const enrichment =
+    church.enrichmentState && church.enrichmentState.status === 'applied'
+      ? toChurchEnrichment(church.enrichmentState.extractedData, church.enrichmentState.updatedAt)
+      : null
+
+  const { enrichmentState: _unused, ...churchRest } = church
+  void _unused
+
   return {
-    ...church,
+    ...churchRest,
     latitude: toNumber(church.latitude),
     longitude: toNumber(church.longitude),
     avgRating: toNumber(church.avgRating),
@@ -743,6 +862,7 @@ export async function getChurchById(id: string, userId?: string): Promise<IChurc
     googleReviewCount: church.googleReviewCount ?? null,
     isSaved: Boolean(savedChurch),
     viewerClaim,
+    enrichment,
     services: church.services,
     photos,
   }

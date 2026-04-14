@@ -34,6 +34,38 @@ export interface IChurchPhoto {
   displayOrder: number
 }
 
+/**
+ * Enrichment snapshot surfaced on church detail responses.
+ *
+ * Sourced from `enrichment_states.extractedData` (the v2 website enrichment
+ * pipeline). Only safe, presentational fields are exposed — see
+ * `toChurchEnrichment` in `church.service.ts` for the sanitizing/whitelisting
+ * logic. All fields are optional: a church with no enrichment row omits the
+ * object entirely, and a church with partial extraction only includes the
+ * fields that passed validation.
+ */
+export interface IChurchEnrichmentSocialLinks {
+  facebook?: string | null
+  instagram?: string | null
+  twitter?: string | null
+  youtube?: string | null
+}
+
+export interface IChurchEnrichment {
+  ministries: string[]
+  affiliations: string[]
+  serviceStyle: string | null
+  sermonUrl: string | null
+  livestreamUrl: string | null
+  statementOfFaithUrl: string | null
+  givingUrl: string | null
+  newVisitorUrl: string | null
+  parkingInfo: string | null
+  dressCode: string | null
+  socialLinks: IChurchEnrichmentSocialLinks
+  updatedAt: Date
+}
+
 export interface IChurch {
   id: string
   name: string
@@ -71,6 +103,7 @@ export interface IChurch {
   wheelchairAccessible?: boolean | null
   photos?: IChurchPhoto[]
   viewerClaim?: IViewerChurchClaim | null
+  enrichment?: IChurchEnrichment | null
   createdAt: Date
   updatedAt: Date
   services: IChurchService[]
