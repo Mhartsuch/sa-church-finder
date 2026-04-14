@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -66,50 +66,83 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
   const meta = data?.meta;
   const totalPages = meta?.totalPages || 1;
 
-  const handleToggleSave = async (churchId: string) => {
-    setActionError(null);
+  const handleToggleSave = useCallback(
+    async (churchId: string) => {
+      setActionError(null);
 
-    if (!user) {
-      navigate('/login', {
-        state: {
-          from: {
-            pathname: location.pathname,
-            search: location.search,
+      if (!user) {
+        navigate('/login', {
+          state: {
+            from: {
+              pathname: location.pathname,
+              search: location.search,
+            },
           },
-        },
-      });
-      return;
-    }
+        });
+        return;
+      }
 
-    try {
-      await toggleSavedChurchMutation.mutateAsync(churchId);
-      const church = churches.find((c) => c.id === churchId);
-      const wasSaved = church?.isSaved;
-      addToast({
-        message: wasSaved ? 'Removed from saved churches' : 'Saved to your list',
-        variant: 'success',
-        ...(wasSaved
-          ? {
-              action: {
-                label: 'Undo',
-                onClick: () => {
-                  void toggleSavedChurchMutation.mutateAsync(churchId);
+      try {
+        await toggleSavedChurchMutation.mutateAsync(churchId);
+        const church = churches.find((c) => c.id === churchId);
+        const wasSaved = church?.isSaved;
+        addToast({
+          message: wasSaved ? 'Removed from saved churches' : 'Saved to your list',
+          variant: 'success',
+          ...(wasSaved
+            ? {
+                action: {
+                  label: 'Undo',
+                  onClick: () => {
+                    void toggleSavedChurchMutation.mutateAsync(churchId);
+                  },
                 },
-              },
-              duration: 6000,
-            }
-          : {}),
-      });
-    } catch (saveError) {
+                duration: 6000,
+              }
+            : {}),
+        });
+      } catch (saveError) {
+        addToast({
+          message:
+            saveError instanceof Error
+              ? saveError.message
+              : 'Unable to update saved churches right now.',
+          variant: 'error',
+        });
+      }
+    },
+    [addToast, churches, location.pathname, location.search, navigate, toggleSavedChurchMutation, user],
+  );
+
+  // Stable references for ChurchCard memoization — inline arrow functions
+  // would invalidate React.memo on every parent render.
+  const handleCardClick = useCallback(
+    (slug: string) => navigate(`/churches/${slug}`),
+    [navigate],
+  );
+
+  const handleToggleCompare = useCallback(
+    (c: IChurchSummary) => {
+      const wasCompared = selectedChurches.some((s) => s.id === c.id);
+      toggleChurch(c);
       addToast({
-        message:
-          saveError instanceof Error
-            ? saveError.message
-            : 'Unable to update saved churches right now.',
-        variant: 'error',
+        message: wasCompared
+          ? `${c.name} removed from compare`
+          : `${c.name} added to compare`,
+        variant: 'info',
       });
-    }
-  };
+    },
+    [addToast, selectedChurches, toggleChurch],
+  );
+
+  const handleQuickView = useCallback((slug: string) => setQuickViewSlug(slug), []);
+
+  const handleToggleSaveAction = useCallback(
+    (churchId: string) => {
+      void handleToggleSave(churchId);
+    },
+    [handleToggleSave],
+  );
 
   if (isLoading) {
     return <ChurchCardSkeletonGrid count={variant === 'grid' ? 8 : 6} variant={variant} />;
@@ -165,21 +198,10 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
                 (selectedChurch) => selectedChurch.id === church.id,
               )}
               onHover={setHoveredChurch}
-              onClick={(slug) => navigate(`/churches/${slug}`)}
-              onToggleCompare={(c: IChurchSummary) => {
-                const wasCompared = selectedChurches.some((s) => s.id === c.id);
-                toggleChurch(c);
-                addToast({
-                  message: wasCompared
-                    ? `${c.name} removed from compare`
-                    : `${c.name} added to compare`,
-                  variant: 'info',
-                });
-              }}
-              onQuickView={(slug) => setQuickViewSlug(slug)}
-              onToggleSave={(churchId) => {
-                void handleToggleSave(churchId);
-              }}
+              onClick={handleCardClick}
+              onToggleCompare={handleToggleCompare}
+              onQuickView={handleQuickView}
+              onToggleSave={handleToggleSaveAction}
               isSavePending={
                 toggleSavedChurchMutation.isPending &&
                 toggleSavedChurchMutation.variables === church.id
