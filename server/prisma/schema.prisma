@@ -121,11 +121,32 @@ model Church {
   savedByUsers          UserSavedChurch[]
   visits                ChurchVisit[]
   collectionItems       ChurchCollectionItem[]
+  enrichmentState       EnrichmentState?
 
   @@index([slug])
   @@index([denominationFamily])
   @@index([latitude, longitude])
   @@map("churches")
+}
+
+model EnrichmentState {
+  id            String    @id @default(uuid())
+  churchId      String    @unique
+  church        Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  version       String    @default("v2")
+  status        String    // pending | fetched | extracted | applied | skipped_no_data | failed | rate_limited
+  pagesFetched  Json      @default("[]")
+  extractedData Json?
+  confidence    Float?
+  source        String?
+  lastError     String?
+  attempts      Int       @default(0)
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, version])
+  @@map("enrichment_states")
 }
 
 model ChurchService {
@@ -209,9 +230,12 @@ model Event {
   recurrenceRule        String?
   createdById           String?
   createdBy             User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  isAutoImported        Boolean                @default(false)
+  sourceUrl             String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
+  @@index([churchId, isAutoImported])
   @@map("events")
 }
 

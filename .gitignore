@@ -38,3 +38,6 @@ server/prisma/*.db-journal
 
 # Uploaded files (local dev)
 uploads/
+
+# Enrichment pipeline HTML cache
+server/.enrichment-cache/

@@ -185,8 +185,12 @@
 | is_recurring      | BOOLEAN      | default false              |                                                                                                                                                                                                                               |
 | recurrence_rule   | VARCHAR(255) | NULLABLE                   | iCal RRULE body — supports `FREQ=DAILY\|WEEKLY\|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`. Parsed and canonicalized on write; expanded into occurrences on read (see `server/src/lib/recurrence.ts`). |
 | created_by        | UUID         | FK → users.id, NULLABLE    |                                                                                                                                                                                                                               |
+| is_auto_imported  | BOOLEAN      | default false              | Set true for events populated by the website enrichment pipeline. The pipeline replaces all auto-imported rows on each run; hand-curated events (`is_auto_imported=false`) are preserved.                                     |
+| source_url        | TEXT         | NULLABLE                   | Page where the event was scraped from (for auto-imported events).                                                                                                                                                             |
 | created_at        | TIMESTAMP    | default now()              |                                                                                                                                                                                                                               |
 | updated_at        | TIMESTAMP    | auto-update                |                                                                                                                                                                                                                               |
+
+**Indexes:** (church_id, is_auto_imported)
 
 ### church_claims
 
@@ -354,4 +358,32 @@
 
 ---
 
-_Last updated: 2026-04-13 — added forum_posts, forum_replies, ribbon_categories, and church passport models._
+### enrichment_states
+
+Tracks progress of the website enrichment pipeline (v2) so runs are
+resumable after interruption or Claude CLI rate limits.
+
+| Column         | Type      | Constraints              | Notes                                                                                   |
+| -------------- | --------- | ------------------------ | --------------------------------------------------------------------------------------- |
+| id             | UUID      | PK                       | auto-generated                                                                          |
+| church_id      | TEXT      | FK → churches.id, UNIQUE | ON DELETE CASCADE. One state row per church.                                            |
+| version        | TEXT      | default 'v2'             | Pipeline version identifier                                                             |
+| status         | TEXT      | NOT NULL                 | pending \| fetched \| extracted \| applied \| skipped_no_data \| failed \| rate_limited |
+| pages_fetched  | JSONB     | default '[]'             | Array of `{url, statusCode, bytes, fetchedAt, fromCache}`                               |
+| extracted_data | JSONB     | nullable                 | Last ExtractedChurchData snapshot                                                       |
+| confidence     | FLOAT     | nullable                 | 0.0–1.0                                                                                 |
+| source         | TEXT      | nullable                 | e.g. `json-ld`, `claude-ai`, `merged`                                                   |
+| last_error     | TEXT      | nullable                 | Most recent failure message                                                             |
+| attempts       | INTEGER   | default 0                | Incremented on each fetch attempt                                                       |
+| started_at     | TIMESTAMP | default now()            |                                                                                         |
+| completed_at   | TIMESTAMP | nullable                 | Set when terminal state reached                                                         |
+| updated_at     | TIMESTAMP | auto-updated             |                                                                                         |
+
+**Indexes:** church_id (unique), (status, version)
+
+The pipeline script (`npm run enrich:website-v2`) consults this table to
+skip already-applied churches and to resume interrupted runs.
+
+---
+
+_Last updated: 2026-04-14 — added enrichment_states + events.is_auto_imported/source_url for resumable website enrichment (v2)._

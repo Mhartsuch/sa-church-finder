@@ -28,6 +28,7 @@
     "import:google-churches": "cd server && npx tsx src/scripts/google-import/index.ts",
     "enrich:church-details": "cd server && npx tsx src/scripts/enrich-details/index.ts",
     "enrich:website": "cd server && npx tsx src/scripts/enrich-website/index.ts",
+    "enrich:website-v2": "cd server && npx tsx src/scripts/enrich-website-v2/index.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },
