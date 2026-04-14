@@ -10,6 +10,7 @@ import logger from './lib/logger.js'
 import prisma from './lib/prisma.js'
 import { createSessionMiddleware, resolveClientUrls } from './lib/session.js'
 import { initializeServerSentry } from './lib/sentry.js'
+import { cacheControl } from './middleware/cache-control.js'
 import { errorHandler } from './middleware/error-handler.js'
 import analyticsRoutes from './routes/analytics.routes.js'
 import authRoutes from './routes/auth.routes.js'
@@ -103,6 +104,8 @@ export const createApp = (): Express => {
       immutable: true,
     }),
   )
+
+  app.use('/api/v1', cacheControl)
 
   app.use('/api/v1/analytics', analyticsRoutes)
   app.use('/api/v1/churches', churchRoutes)

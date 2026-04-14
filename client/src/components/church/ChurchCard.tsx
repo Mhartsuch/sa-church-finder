@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Accessibility, ChevronLeft, ChevronRight, Eye, Heart, Scale, Star } from 'lucide-react';
 
 import { IChurchSummary } from '@/types/church';
@@ -16,7 +16,7 @@ interface ChurchCardProps {
   isSavePending?: boolean;
 }
 
-export const ChurchCard = ({
+const ChurchCardComponent = ({
   church,
   isHovered,
   isCompared,
@@ -317,3 +317,7 @@ export const ChurchCard = ({
     </article>
   );
 };
+
+// Memoized so hovering/saving a single card doesn't re-render the entire grid.
+// Parent must pass stable callback references (see ChurchList).
+export const ChurchCard = memo(ChurchCardComponent);
