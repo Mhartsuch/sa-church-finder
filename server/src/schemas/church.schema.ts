@@ -102,6 +102,24 @@ export const churchEventsSchema = z.object({
 })
 
 /**
+ * Schema for GET /churches/:slug/events.ics — the only optional filter is the
+ * event-type, which narrows the subscription feed.
+ */
+export const churchCalendarFeedSchema = z.object({
+  params: z
+    .object({
+      slug: z.string().min(1),
+    })
+    .passthrough(),
+  query: z
+    .object({
+      type: z.enum(EVENT_TYPES).optional(),
+    })
+    .passthrough(),
+  body: z.object({}).passthrough(),
+})
+
+/**
  * Schema for church ID route parameters
  */
 export const churchIdSchema = z.object({

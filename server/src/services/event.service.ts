@@ -52,6 +52,45 @@ type EventWithChurch = Event & {
   }
 }
 
+/**
+ * Upper bound on events returned for a single calendar feed. Keeps generated
+ * ICS documents to a predictable size even for long-running churches.
+ */
+const MAX_FEED_EVENTS = 500
+
+/**
+ * Window for calendar feeds — include events up to this many days in the
+ * past (so in-progress occurrences don't vanish mid-subscription) and bound
+ * by MAX_FEED_EVENTS going forward.
+ */
+const FEED_LOOKBACK_DAYS = 7
+
+export interface ICalendarFeedEvent {
+  id: string
+  title: string
+  description: string | null
+  eventType: ChurchEventType
+  startTime: Date
+  endTime: Date | null
+  locationOverride: string | null
+  isRecurring: boolean
+  recurrenceRule: string | null
+  updatedAt: Date
+  church: {
+    id: string
+    slug: string
+    name: string
+    city: string
+    address: string | null
+  }
+}
+
+export interface ICalendarFeedPayload {
+  calendarName: string
+  calendarDescription: string
+  events: ICalendarFeedEvent[]
+}
+
 const buildOccurrenceId = (id: string, startTime: Date): string =>
   `${id}::${startTime.toISOString()}`
 
@@ -177,9 +216,7 @@ function assertValidRecurrenceInput(
   }
 
   if (!isRecurring && trimmed) {
-    throw new ValidationError(
-      'recurrenceRule must be empty when isRecurring is false or omitted',
-    )
+    throw new ValidationError('recurrenceRule must be empty when isRecurring is false or omitted')
   }
 
   if (!trimmed) {
@@ -361,6 +398,134 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   }
 }
 
+type FeedEventRow = Event & {
+  church: {
+    id: string
+    slug: string
+    name: string
+    city: string
+    address: string
+  }
+}
+
+const mapFeedEvent = (event: FeedEventRow): ICalendarFeedEvent => ({
+  id: event.id,
+  title: event.title,
+  description: event.description,
+  eventType: event.eventType as ChurchEventType,
+  startTime: event.startTime,
+  endTime: event.endTime,
+  locationOverride: event.locationOverride,
+  isRecurring: event.isRecurring,
+  recurrenceRule: event.recurrenceRule,
+  updatedAt: event.updatedAt,
+  church: {
+    id: event.church.id,
+    slug: event.church.slug,
+    name: event.church.name,
+    city: event.church.city,
+    address: event.church.address,
+  },
+})
+
+const resolveFeedFrom = (now: Date): Date => {
+  const from = new Date(now)
+  from.setUTCDate(from.getUTCDate() - FEED_LOOKBACK_DAYS)
+  return from
+}
+
+/**
+ * Fetch all non-recurring events that have not yet ended plus every recurring
+ * series row for a single church. The caller is expected to hand the result
+ * to the ICS builder, which passes RRULE metadata through to the client's
+ * calendar so expansion happens natively.
+ */
+export async function getChurchCalendarFeedBySlug(
+  slug: string,
+  now: Date = new Date(),
+): Promise<ICalendarFeedPayload | null> {
+  const church = await prisma.church.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      city: true,
+      address: true,
+    },
+  })
+
+  if (!church) return null
+
+  const from = resolveFeedFrom(now)
+
+  const rows = (await prisma.event.findMany({
+    where: {
+      churchId: church.id,
+      OR: [{ isRecurring: true }, { isRecurring: false, startTime: { gte: from } }],
+    },
+    include: {
+      church: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          city: true,
+          address: true,
+        },
+      },
+    },
+    orderBy: [{ startTime: 'asc' }, { title: 'asc' }],
+    take: MAX_FEED_EVENTS,
+  })) as FeedEventRow[]
+
+  return {
+    calendarName: `${church.name} — Events`,
+    calendarDescription: `Upcoming events at ${church.name} via SA Church Finder.`,
+    events: rows.map(mapFeedEvent),
+  }
+}
+
+/**
+ * Fetch events across every church for the aggregated calendar feed. Supports
+ * the same event-type filter as the JSON aggregated feed.
+ */
+export async function getAggregatedCalendarFeed(options: {
+  type?: ChurchEventType
+  now?: Date
+}): Promise<ICalendarFeedPayload> {
+  const now = options.now ?? new Date()
+  const from = resolveFeedFrom(now)
+
+  const rows = (await prisma.event.findMany({
+    where: {
+      ...(options.type ? { eventType: options.type } : {}),
+      OR: [{ isRecurring: true }, { isRecurring: false, startTime: { gte: from } }],
+    },
+    include: {
+      church: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          city: true,
+          address: true,
+        },
+      },
+    },
+    orderBy: [{ startTime: 'asc' }, { title: 'asc' }],
+    take: MAX_FEED_EVENTS,
+  })) as FeedEventRow[]
+
+  const typeSuffix = options.type ? ` (${options.type})` : ''
+
+  return {
+    calendarName: `SA Church Finder — Events${typeSuffix}`,
+    calendarDescription: `Upcoming church events across San Antonio${typeSuffix}.`,
+    events: rows.map(mapFeedEvent),
+  }
+}
+
 const ensureValidEventTimes = (startTime: Date, endTime: Date | null | undefined): void => {
   if (Number.isNaN(startTime.getTime())) {
     throw new AppError(400, 'INVALID_EVENT_TIMES', 'Start time is not a valid date')
@@ -491,9 +656,7 @@ export async function updateChurchEvent(
 
   const data: Prisma.EventUpdateInput = {
     ...(input.title !== undefined ? { title: input.title.trim() } : {}),
-    ...(input.description !== undefined
-      ? { description: input.description?.trim() || null }
-      : {}),
+    ...(input.description !== undefined ? { description: input.description?.trim() || null } : {}),
     ...(input.eventType !== undefined ? { eventType: input.eventType } : {}),
     ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
     ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
@@ -502,10 +665,7 @@ export async function updateChurchEvent(
       : {}),
   }
 
-  if (
-    input.isRecurring !== undefined ||
-    input.recurrenceRule !== undefined
-  ) {
+  if (input.isRecurring !== undefined || input.recurrenceRule !== undefined) {
     data.isRecurring = nextIsRecurring
     data.recurrenceRule = normalizedRecurrenceRule
   }

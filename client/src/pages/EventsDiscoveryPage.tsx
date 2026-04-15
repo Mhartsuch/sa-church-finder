@@ -13,9 +13,11 @@ import {
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
+import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalendarButton';
 import { EventListJsonLd } from '@/components/seo/JsonLd';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useEventsFeed } from '@/hooks/useEvents';
+import { buildAggregatedEventsFeedUrl } from '@/lib/calendar-feed-url';
 import { ChurchEventType, EVENT_TYPES, IAggregatedEvent, IEventsFeedFilters } from '@/types/event';
 
 const PAGE_SIZE = 12;
@@ -300,6 +302,16 @@ const EventsDiscoveryPage = () => {
           Browse services, studies, volunteer opportunities, and community gatherings from churches
           across San Antonio. Filter by type or date to plan your next visit.
         </p>
+        <div className="mt-4">
+          <SubscribeToCalendarButton
+            feedUrl={buildAggregatedEventsFeedUrl({ type: filters.type ?? null })}
+            label={
+              filters.type
+                ? `Subscribe to ${EVENT_TYPE_LABELS[filters.type]} events`
+                : 'Subscribe to the city events feed'
+            }
+          />
+        </div>
 
         <form
           onSubmit={handleApplyFilters}

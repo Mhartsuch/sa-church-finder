@@ -24,6 +24,8 @@ import {
 import { Lightbox } from '@/components/church/Lightbox';
 import { LogVisitModal } from '@/components/church/LogVisitModal';
 import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
+import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalendarButton';
+import { buildChurchEventsFeedUrl } from '@/lib/calendar-feed-url';
 import { getAwardDisplayName } from '@/utils/awards';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
@@ -751,6 +753,12 @@ export const ChurchProfilePage = () => {
                     See what is happening beyond Sunday morning, from studies and service days to
                     community nights that help you get a feel for the church.
                   </p>
+                  <div className="mt-3">
+                    <SubscribeToCalendarButton
+                      feedUrl={buildChurchEventsFeedUrl(church.slug)}
+                      label={`Subscribe to ${church.name} events`}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">

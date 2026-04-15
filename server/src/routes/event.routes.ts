@@ -1,11 +1,14 @@
 import { NextFunction, Request, Response, Router } from 'express'
 
+import { buildCalendarFeed } from '../lib/ics.js'
 import logger from '../lib/logger.js'
+import { resolvePublicSiteUrl } from '../lib/public-url.js'
 import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
   CreateChurchEventBody,
   UpdateChurchEventBody,
+  aggregatedCalendarFeedSchema,
   createChurchEventSchema,
   eventIdSchema,
   eventsFeedSchema,
@@ -14,6 +17,7 @@ import {
 import {
   createChurchEvent,
   deleteChurchEvent,
+  getAggregatedCalendarFeed,
   listEventsFeed,
   updateChurchEvent,
 } from '../services/event.service.js'
@@ -25,6 +29,54 @@ import {
 } from '../types/event.types.js'
 
 const router = Router()
+
+router.get(
+  '/events.ics',
+  validate(aggregatedCalendarFeedSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const q = req.query as Record<string, unknown>
+      const type = typeof q.type === 'string' ? (q.type as ChurchEventType) : undefined
+
+      logger.info({ type }, 'Generating aggregated calendar feed')
+
+      const feed = await getAggregatedCalendarFeed({ type })
+      const siteUrl = resolvePublicSiteUrl()
+
+      const ics = buildCalendarFeed({
+        calendarName: feed.calendarName,
+        calendarDescription: feed.calendarDescription,
+        events: feed.events.map((event) => ({
+          id: event.id,
+          title: `${event.title} · ${event.church.name}`,
+          description: event.description,
+          eventType: event.eventType,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          location: event.locationOverride ?? event.church.address,
+          url: `${siteUrl}/churches/${event.church.slug}`,
+          isRecurring: event.isRecurring,
+          recurrenceRule: event.recurrenceRule,
+          updatedAt: event.updatedAt,
+        })),
+      })
+
+      const filenameSuffix = type ? `-${type}` : ''
+
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="sa-church-finder${filenameSuffix}-events.ics"`,
+      )
+      res.setHeader('Cache-Control', 'public, max-age=300')
+      res.send(ics)
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
 
 router.get(
   '/events',

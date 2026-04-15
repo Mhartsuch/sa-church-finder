@@ -105,5 +105,15 @@ export const eventsFeedSchema = z.object({
   body: z.object({}).passthrough(),
 })
 
+export const aggregatedCalendarFeedSchema = z.object({
+  params: z.object({}).passthrough(),
+  query: z
+    .object({
+      type: z.enum(EVENT_TYPES).optional(),
+    })
+    .passthrough(),
+  body: z.object({}).passthrough(),
+})
+
 export type CreateChurchEventBody = z.infer<typeof createChurchEventSchema>['body']
 export type UpdateChurchEventBody = z.infer<typeof updateChurchEventSchema>['body']

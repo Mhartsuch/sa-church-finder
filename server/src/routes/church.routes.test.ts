@@ -215,4 +215,139 @@ describe('church routes', () => {
       code: 'NOT_FOUND',
     })
   })
+
+  describe('GET /churches/:slug/events.ics', () => {
+    it('returns a text/calendar ICS feed for a single church', async () => {
+      mockedPrisma.church.findUnique.mockResolvedValue({
+        id: 'church-1',
+        slug: 'grace-fellowship',
+        name: 'Grace Fellowship',
+        city: 'San Antonio',
+        address: '1234 Broadway',
+      })
+      mockedPrisma.event.findMany.mockResolvedValue([
+        {
+          id: 'event-1',
+          churchId: 'church-1',
+          title: 'Sunday Worship',
+          description: 'Weekly gathering',
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: new Date('2026-05-03T15:30:00.000Z'),
+          locationOverride: null,
+          isRecurring: true,
+          recurrenceRule: 'FREQ=WEEKLY',
+          createdById: 'user-1',
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-04-10T00:00:00.000Z'),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+      ])
+
+      const response = await request(createApp()).get(
+        '/api/v1/churches/grace-fellowship/events.ics',
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-type']).toMatch(/text\/calendar/)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="grace-fellowship-events\.ics"/,
+      )
+      const body = response.text
+      expect(body.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true)
+      expect(body).toMatch(/X-WR-CALNAME:Grace Fellowship — Events/)
+      expect(body).toMatch(/UID:event-1@sachurchfinder\.com/)
+      expect(body).toMatch(/SUMMARY:Sunday Worship/)
+      expect(body).toMatch(/RRULE:FREQ=WEEKLY/)
+      // Falls back to the church address when no locationOverride is set.
+      expect(body).toMatch(/LOCATION:1234 Broadway/)
+    })
+
+    it('narrows the feed by event type when ?type is provided', async () => {
+      mockedPrisma.church.findUnique.mockResolvedValue({
+        id: 'church-1',
+        slug: 'grace-fellowship',
+        name: 'Grace Fellowship',
+        city: 'San Antonio',
+        address: '1234 Broadway',
+      })
+      mockedPrisma.event.findMany.mockResolvedValue([
+        {
+          id: 'event-service',
+          churchId: 'church-1',
+          title: 'Worship',
+          description: null,
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'user-1',
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+        {
+          id: 'event-community',
+          churchId: 'church-1',
+          title: 'Dinner',
+          description: null,
+          eventType: 'community',
+          startTime: new Date('2026-05-10T14:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'user-1',
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+      ])
+
+      const response = await request(createApp())
+        .get('/api/v1/churches/grace-fellowship/events.ics')
+        .query({ type: 'service' })
+
+      expect(response.status).toBe(200)
+      expect(response.text).toMatch(/SUMMARY:Worship/)
+      expect(response.text).not.toMatch(/SUMMARY:Dinner/)
+    })
+
+    it('returns 404 when the church slug is unknown', async () => {
+      mockedPrisma.church.findUnique.mockResolvedValue(null)
+
+      const response = await request(createApp()).get('/api/v1/churches/missing-church/events.ics')
+
+      expect(response.status).toBe(404)
+      expect(response.body.error).toMatchObject({ code: 'NOT_FOUND' })
+    })
+
+    it('rejects an invalid type filter', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/churches/grace-fellowship/events.ics')
+        .query({ type: 'bogus' })
+
+      expect(response.status).toBe(400)
+    })
+  })
 })

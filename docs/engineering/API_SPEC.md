@@ -461,6 +461,38 @@ Delete an event. Authorization matches the create/update endpoints.
 
 ---
 
+#### `GET /events.ics`
+
+Aggregated **iCalendar (RFC 5545)** feed for every church. Designed to be subscribed to from a
+calendar app (Apple Calendar, Google Calendar, Outlook) so upcoming events stay in sync with a
+user's personal calendar.
+
+| Param | Type   | Required | Notes                                       |
+| ----- | ------ | -------- | ------------------------------------------- |
+| type  | string | No       | Filter by event type, same values as above. |
+
+**Response headers:** `Content-Type: text/calendar; charset=utf-8`,
+`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder-events.ics"`.
+
+The document emits one `VEVENT` per stored row. Recurring series pass their canonical `RRULE`
+straight through so calendar clients expand occurrences natively. Non-recurring events that
+already ended more than a week ago are omitted; future entries are capped at 500 per feed.
+
+---
+
+#### `GET /churches/:slug/events.ics`
+
+Per-church iCalendar feed with the same shape as `/events.ics`. The calendar name is
+`"<Church Name> — Events"` so subscribers can distinguish feeds in their calendar app sidebar.
+
+| Param | Type   | Required | Notes                                       |
+| ----- | ------ | -------- | ------------------------------------------- |
+| type  | string | No       | Filter by event type, same values as above. |
+
+Returns `404 NOT_FOUND` when the slug does not exist.
+
+---
+
 ### Auth
 
 #### `POST /auth/register`

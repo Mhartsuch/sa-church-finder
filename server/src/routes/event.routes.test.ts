@@ -554,7 +554,9 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     expect(response.status).toBe(200)
     expect(response.body.data).toHaveLength(5)
 
-    const occurrenceIds = response.body.data.map((event: { occurrenceId: string }) => event.occurrenceId)
+    const occurrenceIds = response.body.data.map(
+      (event: { occurrenceId: string }) => event.occurrenceId,
+    )
     expect(new Set(occurrenceIds).size).toBe(5)
     expect(occurrenceIds[0]).toBe('event-recurring::2026-05-03T15:00:00.000Z')
 
@@ -580,12 +582,124 @@ describe('GET /api/v1/events (aggregated feed)', () => {
   })
 
   it('rejects invalid event type values', async () => {
-    const response = await request(createApp())
-      .get('/api/v1/events')
-      .query({ type: 'not-a-type' })
+    const response = await request(createApp()).get('/api/v1/events').query({ type: 'not-a-type' })
 
     expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
     expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+  })
+
+  describe('GET /events.ics aggregated calendar feed', () => {
+    it('returns a text/calendar feed combining events across churches', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        {
+          id: 'event-a',
+          churchId: 'church-1',
+          title: 'Sunday Worship',
+          description: null,
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: new Date('2026-05-03T15:30:00.000Z'),
+          locationOverride: null,
+          isRecurring: true,
+          recurrenceRule: 'FREQ=WEEKLY',
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date('2026-04-10T00:00:00.000Z'),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+        {
+          id: 'event-b',
+          churchId: 'church-2',
+          title: 'Food Drive',
+          description: null,
+          eventType: 'community',
+          startTime: new Date('2026-05-05T16:00:00.000Z'),
+          endTime: null,
+          locationOverride: 'Parking lot',
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u2',
+          createdAt: new Date(),
+          updatedAt: new Date('2026-04-10T00:00:00.000Z'),
+          church: {
+            id: 'church-2',
+            slug: 'northside-chapel',
+            name: 'Northside Chapel',
+            city: 'San Antonio',
+            address: '999 Evers',
+          },
+        },
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events.ics')
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-type']).toMatch(/text\/calendar/)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+      const body = response.text
+      expect(body).toMatch(/BEGIN:VCALENDAR/)
+      expect(body).toMatch(/SUMMARY:Sunday Worship · Grace Fellowship/)
+      expect(body).toMatch(/SUMMARY:Food Drive · Northside Chapel/)
+      expect(body).toMatch(/RRULE:FREQ=WEEKLY/)
+      // Non-recurring event keeps its locationOverride.
+      expect(body).toMatch(/LOCATION:Parking lot/)
+    })
+
+    it('filters the feed by event type and updates the filename', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        {
+          id: 'event-a',
+          churchId: 'church-1',
+          title: 'Sunday Worship',
+          description: null,
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+      ])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ eventType: 'service' }),
+        }),
+      )
+    })
+
+    it('rejects an invalid type filter', async () => {
+      const response = await request(createApp()).get('/api/v1/events.ics').query({ type: 'bogus' })
+
+      expect(response.status).toBe(400)
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
   })
 })

@@ -1,9 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import { buildCalendarFeed } from '../lib/ics.js'
 import logger from '../lib/logger.js'
 import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
   ChurchUpdateBody,
+  churchCalendarFeedSchema,
   churchDetailSchema,
   churchEventsSchema,
   churchIdSchema,
@@ -13,7 +15,8 @@ import {
 import { toggleSavedChurch } from '../services/saved-church.service.js'
 import { searchChurches, getFilterOptions, updateChurch } from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
-import { listChurchEventsBySlug } from '../services/event.service.js'
+import { getChurchCalendarFeedBySlug, listChurchEventsBySlug } from '../services/event.service.js'
+import { resolvePublicSiteUrl } from '../lib/public-url.js'
 import { ISearchParams } from '../types/church.types.js'
 import { IUpdateChurchInput } from '../services/church.service.js'
 import { ChurchEventType, IChurchEventFilters } from '../types/event.types.js'
@@ -150,6 +153,65 @@ router.patch(
         data: church,
         message: 'Church updated successfully',
       })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.get(
+  '/:slug/events.ics',
+  validate(churchCalendarFeedSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params
+      const q = req.query as Record<string, unknown>
+      const type = typeof q.type === 'string' ? (q.type as ChurchEventType) : undefined
+
+      logger.info({ slug, type }, 'Generating church calendar feed')
+
+      const feed = await getChurchCalendarFeedBySlug(slug)
+
+      if (!feed) {
+        res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: `Church with slug "${slug}" not found`,
+          },
+        })
+        return
+      }
+
+      const filteredEvents = type
+        ? feed.events.filter((event) => event.eventType === type)
+        : feed.events
+
+      const siteUrl = resolvePublicSiteUrl()
+
+      const ics = buildCalendarFeed({
+        calendarName: feed.calendarName,
+        calendarDescription: feed.calendarDescription,
+        events: filteredEvents.map((event) => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          eventType: event.eventType,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          location: event.locationOverride ?? event.church.address,
+          url: `${siteUrl}/churches/${event.church.slug}`,
+          isRecurring: event.isRecurring,
+          recurrenceRule: event.recurrenceRule,
+          updatedAt: event.updatedAt,
+        })),
+      })
+
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
+      res.setHeader('Content-Disposition', `inline; filename="${slug}-events.ics"`)
+      res.setHeader('Cache-Control', 'public, max-age=300')
+      res.send(ics)
       return
     } catch (error) {
       next(error)
