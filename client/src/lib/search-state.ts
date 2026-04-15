@@ -1,7 +1,11 @@
 import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
-import { SearchFilters } from '@/stores/search-store';
+import { MapBounds, SearchFilters } from '@/stores/search-store';
 
-export type ActiveSearchTokenKey = 'query' | keyof SearchFilters;
+// `mapBounds` is not part of SearchFilters — it lives at the store root —
+// but the SearchPage wants to render it as a chip alongside the real
+// filters, so include it in the token-key union. The rest of the module
+// only emits `'query'` and `keyof SearchFilters` keys.
+export type ActiveSearchTokenKey = 'query' | 'mapBounds' | keyof SearchFilters;
 
 export interface ActiveSearchToken {
   key: ActiveSearchTokenKey;
@@ -32,12 +36,14 @@ export const getActiveSearchTokens = (
     });
   }
 
-  if (filters.denomination) {
-    tokens.push({
-      key: 'denomination',
-      label: 'Tradition',
-      value: filters.denomination,
-    });
+  if (filters.denomination && filters.denomination.length > 0) {
+    for (const denomination of filters.denomination) {
+      tokens.push({
+        key: 'denomination',
+        label: 'Tradition',
+        value: denomination,
+      });
+    }
   }
 
   if (filters.day !== undefined) {
@@ -58,23 +64,147 @@ export const getActiveSearchTokens = (
     });
   }
 
-  if (filters.language) {
+  if (filters.languages && filters.languages.length > 0) {
+    for (const language of filters.languages) {
+      tokens.push({
+        key: 'languages',
+        label: 'Language',
+        value: language,
+      });
+    }
+  }
+
+  if (filters.amenities && filters.amenities.length > 0) {
+    for (const amenity of filters.amenities) {
+      tokens.push({
+        key: 'amenities',
+        label: 'Amenity',
+        value: amenity,
+      });
+    }
+  }
+
+  if (filters.neighborhood) {
     tokens.push({
-      key: 'language',
-      label: 'Language',
-      value: filters.language,
+      key: 'neighborhood',
+      label: 'Neighborhood',
+      value: filters.neighborhood,
     });
   }
 
-  if (filters.amenities) {
+  if (filters.serviceType) {
     tokens.push({
-      key: 'amenities',
-      label: 'Amenity',
-      value: filters.amenities,
+      key: 'serviceType',
+      label: 'Service type',
+      value: filters.serviceType,
+    });
+  }
+
+  if (filters.radius !== undefined) {
+    tokens.push({
+      key: 'radius',
+      label: 'Within',
+      value: `${filters.radius} mi`,
+    });
+  }
+
+  if (filters.minRating !== undefined && filters.minRating > 0) {
+    tokens.push({
+      key: 'minRating',
+      label: 'Rating',
+      // Use a cleaner label: 4 → "4+ stars", 4.5 → "4.5+ stars"
+      value: `${filters.minRating}+ stars`,
+    });
+  }
+
+  if (filters.wheelchairAccessible) {
+    tokens.push({
+      key: 'wheelchairAccessible',
+      label: 'Access',
+      value: 'Wheelchair',
+    });
+  }
+
+  if (filters.goodForChildren) {
+    tokens.push({
+      key: 'goodForChildren',
+      label: 'Community',
+      value: 'Family friendly',
+    });
+  }
+
+  if (filters.goodForGroups) {
+    tokens.push({
+      key: 'goodForGroups',
+      label: 'Community',
+      value: 'Good for groups',
+    });
+  }
+
+  if (filters.hasPhotos) {
+    tokens.push({
+      key: 'hasPhotos',
+      label: 'Quality',
+      value: 'Has photos',
+    });
+  }
+
+  if (filters.isClaimed) {
+    tokens.push({
+      key: 'isClaimed',
+      label: 'Quality',
+      value: 'Verified',
+    });
+  }
+
+  if (filters.openNow) {
+    tokens.push({
+      key: 'openNow',
+      label: 'Service',
+      value: 'Open now',
     });
   }
 
   return tokens;
+};
+
+/**
+ * Counts how many filters the user has actually selected. Each entry in a
+ * multi-select array (amenities, languages, denomination) counts separately
+ * so the chip in the header reads naturally — "3 filters active" for a user
+ * who picked parking + nursery + wifi, or English + Spanish + Vietnamese,
+ * not "1 filter active".
+ *
+ * `mapBounds` lives outside `SearchFilters` in the store, but it narrows the
+ * result set exactly like any other filter. Pass it as the optional second
+ * argument so the "X filters active" subtitle stays accurate when the user
+ * has only pressed "Search this area". Existing callers that don't care
+ * about the bounds can keep passing a single argument.
+ */
+export const countActiveFilters = (
+  filters: SearchFilters,
+  mapBounds?: MapBounds | null,
+): number => {
+  let count = 0;
+
+  for (const [, value] of Object.entries(filters) as [keyof SearchFilters, unknown][]) {
+    if (value === undefined || value === '' || value === false) {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      count += value.length;
+      continue;
+    }
+
+    count += 1;
+  }
+
+  if (mapBounds) {
+    count += 1;
+  }
+
+  return count;
 };
 
 export const getWhenSummary = (filters: SearchFilters): string => {

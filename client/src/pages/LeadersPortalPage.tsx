@@ -1,23 +1,36 @@
+import { useState } from 'react';
 import {
   ArrowRight,
   Building2,
   CalendarRange,
   CheckCircle2,
   CircleAlert,
-  Clock3,
   ExternalLink,
   Globe,
   Mail,
   MapPin,
+  Pencil,
   Phone,
+  Shield,
   Sparkles,
+  Trash2,
+  Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
+import { ChurchEditor } from '@/components/church/ChurchEditor';
+import { EventManager } from '@/components/events/EventManager';
+import { PhotoManager } from '@/components/photos/PhotoManager';
+import { ReviewManager } from '@/components/reviews/ReviewManager';
+import { ServiceManager } from '@/components/services/ServiceManager';
+import { useMyChurchAnalytics } from '@/hooks/useAnalytics';
 import { useAuthSession } from '@/hooks/useAuth';
+import { useChurchAdmins, useRemoveChurchAdmin } from '@/hooks/useChurchClaims';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { IManagedChurchPortal, useLeaderPortal } from '@/hooks/useLeaderPortal';
+import { IChurch } from '@/types/church';
 import { IChurchClaim } from '@/types/church-claim';
-import { ChurchEventType } from '@/types/event';
 
 const formatShortDate = (date: string): string =>
   new Intl.DateTimeFormat('en-US', {
@@ -32,37 +45,6 @@ const formatEventDate = (date: string): string =>
     month: 'short',
     day: 'numeric',
   }).format(new Date(date));
-
-const formatEventTimeRange = (startTime: string, endTime?: string | null): string => {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  const startLabel = formatter.format(new Date(startTime));
-  if (!endTime) {
-    return startLabel;
-  }
-
-  return `${startLabel} - ${formatter.format(new Date(endTime))}`;
-};
-
-const formatEventTypeLabel = (eventType: ChurchEventType): string => {
-  switch (eventType) {
-    case 'service':
-      return 'Service';
-    case 'community':
-      return 'Community';
-    case 'volunteer':
-      return 'Volunteer';
-    case 'study':
-      return 'Study';
-    case 'youth':
-      return 'Youth';
-    default:
-      return 'Other';
-  }
-};
 
 const getListingChecks = (
   portalChurch: IManagedChurchPortal,
@@ -116,6 +98,93 @@ const getChurchProgress = (portalChurch: IManagedChurchPortal) => {
   };
 };
 
+const ChurchAdminPanel = ({ churchId }: { churchId: string }) => {
+  const { data: admins, isLoading } = useChurchAdmins(churchId);
+  const removeAdmin = useRemoveChurchAdmin();
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 rounded-[24px] border border-border bg-card p-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="h-4 w-4" />
+          Loading team members...
+        </div>
+      </div>
+    );
+  }
+
+  if (!admins || admins.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-[24px] border border-border bg-card p-4">
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground">Team ({admins.length})</h3>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {admins.map((admin) => (
+          <div
+            key={admin.userId}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-sm font-medium text-foreground">{admin.name}</span>
+                {admin.isPrimary && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#effaf3] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#166534]">
+                    <Shield className="h-3 w-3" />
+                    Primary
+                  </span>
+                )}
+              </div>
+              <p className="truncate text-xs text-muted-foreground">
+                {admin.roleTitle} &middot; {admin.email}
+              </p>
+            </div>
+
+            {!admin.isPrimary && (
+              <>
+                {confirmRemoveId === admin.userId ? (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeAdmin.mutate({ churchId, adminUserId: admin.userId });
+                        setConfirmRemoveId(null);
+                      }}
+                      className="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmRemoveId(null)}
+                      className="rounded-lg bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-gray-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemoveId(admin.userId)}
+                    className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-red-600"
+                    aria-label={`Remove ${admin.name}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const LoadingState = () => (
   <div className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
     <section className="animate-pulse rounded-[32px] border border-border bg-card p-6 shadow-airbnb-subtle sm:p-8">
@@ -141,6 +210,8 @@ const LoadingState = () => (
 );
 
 const LeadersPortalPage = () => {
+  useDocumentHead({ title: 'Leaders Portal', noindex: true });
+
   const { user } = useAuthSession();
   const {
     claimsQuery,
@@ -150,6 +221,9 @@ const LeadersPortalPage = () => {
     rejectedClaims,
     isManagedChurchesLoading,
   } = useLeaderPortal(user?.id ?? null);
+  const [editingChurch, setEditingChurch] = useState<IChurch | null>(null);
+  const analyticsQuery = useMyChurchAnalytics(managedChurches.length > 0);
+  const analyticsMap = new Map((analyticsQuery.data ?? []).map((a) => [a.churchId, a]));
 
   if (!user) {
     return null;
@@ -327,6 +401,14 @@ const LeadersPortalPage = () => {
                           </div>
 
                           <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingChurch(church)}
+                              className="inline-flex items-center gap-2 rounded-full bg-[#FF385C] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#b00838]"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit listing
+                            </button>
                             <Link
                               to={`/churches/${church.slug}`}
                               className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
@@ -387,72 +469,30 @@ const LeadersPortalPage = () => {
                             </div>
                           </div>
 
-                          <div className="rounded-[24px] border border-border bg-card p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <h3 className="text-base font-semibold text-foreground">
-                                  Calendar snapshot
-                                </h3>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                  Next 30 days of public-facing events.
-                                </p>
-                              </div>
-                              <span className="rounded-full bg-[#fff5f0] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#FF385C]">
-                                {portalChurch.upcomingEvents.length} planned
-                              </span>
-                            </div>
-
-                            {portalChurch.isEventsLoading || isManagedChurchesLoading ? (
-                              <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                                Loading upcoming events...
-                              </p>
-                            ) : portalChurch.eventsError ? (
-                              <p className="mt-4 text-sm leading-6 text-[#a8083a]">
-                                {portalChurch.eventsError.message}
-                              </p>
-                            ) : portalChurch.upcomingEvents.length === 0 ? (
-                              <div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-background p-4">
-                                <p className="text-sm leading-6 text-muted-foreground">
-                                  No public events are scheduled yet in the next 30 days. Once event
-                                  publishing tools land, this is where gaps will be easiest to spot.
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="mt-4 space-y-3">
-                                {portalChurch.upcomingEvents.slice(0, 3).map((event) => (
-                                  <div
-                                    key={event.id}
-                                    className="rounded-2xl border border-border bg-background p-4"
-                                  >
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="text-sm font-semibold text-foreground">
-                                        {event.title}
-                                      </p>
-                                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                                        {formatEventTypeLabel(event.eventType)}
-                                      </span>
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                      <span className="inline-flex items-center gap-1">
-                                        <CalendarRange className="h-4 w-4" />
-                                        {formatEventDate(event.startTime)}
-                                      </span>
-                                      <span className="inline-flex items-center gap-1">
-                                        <Clock3 className="h-4 w-4" />
-                                        {formatEventTimeRange(event.startTime, event.endTime)}
-                                      </span>
-                                    </div>
-                                    {event.description ? (
-                                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                                        {event.description}
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          <EventManager
+                            churchId={church.id}
+                            churchName={church.name}
+                            events={portalChurch.upcomingEvents}
+                            isLoading={portalChurch.isEventsLoading || isManagedChurchesLoading}
+                            errorMessage={portalChurch.eventsError?.message ?? null}
+                          />
                         </div>
+
+                        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                          <ServiceManager
+                            churchId={church.id}
+                            churchName={church.name}
+                            services={church.services}
+                            isLoading={portalChurch.isChurchLoading || isManagedChurchesLoading}
+                          />
+                          <ReviewManager churchId={church.id} churchName={church.name} />
+                        </div>
+
+                        <PhotoManager churchId={church.id} churchName={church.name} />
+
+                        {analyticsMap.has(church.id) ? (
+                          <AnalyticsDashboard analytics={analyticsMap.get(church.id)!} />
+                        ) : null}
 
                         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           {church.phone ? (
@@ -484,6 +524,8 @@ const LeadersPortalPage = () => {
                             </a>
                           ) : null}
                         </div>
+
+                        <ChurchAdminPanel churchId={church.id} />
                       </article>
                     );
                   })}
@@ -580,13 +622,24 @@ const LeadersPortalPage = () => {
 
             <div className="mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
-                What comes next
+                What you can do here
               </p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-white/90">
-                <p>Listing-edit and event-publishing controls are still the next backend slice.</p>
                 <p>
-                  Until then, use this page to audit gaps before a visitor or site admin spots them
-                  first.
+                  Use <strong>Edit listing</strong> to update your description, contact info,
+                  languages, amenities, and accessibility details.
+                </p>
+                <p>
+                  Use the <strong>Upcoming events</strong> panel to publish, update, or retire
+                  gatherings right from this portal.
+                </p>
+                <p>
+                  Use <strong>Service times</strong> to manage your weekly schedule so visitors know
+                  exactly when to visit.
+                </p>
+                <p>
+                  Use <strong>Recent reviews</strong> to respond to visitor feedback directly from
+                  this portal.
                 </p>
                 <p>Claim approvals and moderation tools still live on your member dashboard.</p>
               </div>
@@ -608,6 +661,10 @@ const LeadersPortalPage = () => {
             </div>
           </aside>
         </div>
+
+        {editingChurch ? (
+          <ChurchEditor church={editingChurch} onClose={() => setEditingChurch(null)} />
+        ) : null}
       </div>
     </div>
   );

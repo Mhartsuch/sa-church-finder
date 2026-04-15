@@ -2,6 +2,7 @@ import 'dotenv/config'
 import cors from 'cors'
 import express, { Express, Request, Response } from 'express'
 import helmet from 'helmet'
+import path from 'path'
 import { pinoHttp } from 'pino-http'
 
 import { getPublicServerIntegrationStatus } from './lib/integration-status.js'
@@ -9,12 +10,23 @@ import logger from './lib/logger.js'
 import prisma from './lib/prisma.js'
 import { createSessionMiddleware, resolveClientUrls } from './lib/session.js'
 import { initializeServerSentry } from './lib/sentry.js'
+import { cacheControl } from './middleware/cache-control.js'
 import { errorHandler } from './middleware/error-handler.js'
+import analyticsRoutes from './routes/analytics.routes.js'
 import authRoutes from './routes/auth.routes.js'
 import churchRoutes from './routes/church.routes.js'
+import churchPhotoRoutes from './routes/church-photo.routes.js'
+import churchServiceRoutes from './routes/church-service.routes.js'
 import claimRoutes from './routes/claim.routes.js'
+import collectionRoutes from './routes/collection.routes.js'
+import eventRoutes from './routes/event.routes.js'
+import forumRoutes from './routes/forum.routes.js'
+import passportRoutes from './routes/passport.routes.js'
+import ribbonCategoryRoutes from './routes/ribbon-category.routes.js'
 import reviewRoutes from './routes/review.routes.js'
+import sitemapRoutes from './routes/sitemap.routes.js'
 import userRoutes from './routes/users.routes.js'
+import visitRoutes from './routes/visit.routes.js'
 
 initializeServerSentry()
 
@@ -26,7 +38,18 @@ export const createApp = (): Express => {
     app.set('trust proxy', 1)
   }
 
-  app.use(helmet())
+  app.use(
+    helmet({
+      hsts: {
+        maxAge: 63072000, // 2 years
+        includeSubDomains: true,
+        preload: true,
+      },
+      contentSecurityPolicy: false, // CSP handled by frontend host (Render/Vercel)
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      frameguard: { action: 'deny' },
+    }),
+  )
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ limit: '10mb', extended: true }))
   app.use(
@@ -74,11 +97,31 @@ export const createApp = (): Express => {
     })
   })
 
+  app.use(
+    '/uploads',
+    express.static(path.join(process.cwd(), 'uploads'), {
+      maxAge: '7d',
+      immutable: true,
+    }),
+  )
+
+  app.use('/api/v1', cacheControl)
+
+  app.use('/api/v1/analytics', analyticsRoutes)
   app.use('/api/v1/churches', churchRoutes)
   app.use('/api/v1/auth', authRoutes)
   app.use('/api/v1/users', userRoutes)
+  app.use('/api/v1/users', passportRoutes)
+  app.use('/api/v1', churchPhotoRoutes)
+  app.use('/api/v1', churchServiceRoutes)
   app.use('/api/v1', claimRoutes)
+  app.use('/api/v1', collectionRoutes)
+  app.use('/api/v1', eventRoutes)
+  app.use('/api/v1', forumRoutes)
   app.use('/api/v1', reviewRoutes)
+  app.use('/api/v1', ribbonCategoryRoutes)
+  app.use('/api/v1', visitRoutes)
+  app.use(sitemapRoutes)
 
   app.use((req: Request, res: Response) => {
     res.status(404).json({

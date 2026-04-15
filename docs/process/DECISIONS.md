@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-023: Ship an in-house RRULE subset instead of depending on the `rrule` package
+
+- **Date:** 2026-04-11
+- **Status:** ACTIVE
+- **Decision:** Implement a focused iCal RRULE parser/expander in `server/src/lib/recurrence.ts` that supports `FREQ=DAILY|WEEKLY|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`, rather than adding the standalone `rrule` dependency to `server/package.json`.
+- **Alternatives Considered:** Adopt the full `rrule` npm library for complete RFC 5545 coverage; keep recurring-event metadata inert and require admins to create one-off events for every date; precompute an `event_occurrences` table via a scheduled job; ship an `expand` toggle without any server-side parsing.
+- **Reasoning:** The `AGENTS.md` constraints explicitly require approval for new dependencies, and the subset of RRULE that real church schedules actually use is small enough (DAILY/WEEKLY+BYDAY/MONTHLY with COUNT or UNTIL) that an in-house implementation stays auditable and keeps the blast radius tiny. Writing it ourselves also gave us complete control over the canonicalization format, lets us tie the parser directly into our existing `ValidationError` flow, and avoids the licensing + bundle-size questions that come with pulling in a full RFC 5545 implementation. The 32 focused unit tests in `recurrence.test.ts` give us confidence that the supported subset behaves correctly.
+- **Consequences:** Rules outside the supported subset (e.g. `FREQ=YEARLY`, `BYMONTH`, `BYMONTHDAY`, `BYSETPOS`, multiple rules per event, timezone-bearing DTSTART) are rejected on write with a descriptive `VALIDATION_ERROR`. If future product needs call for those patterns we can either extend `recurrence.ts` or graduate to the full `rrule` package — the public event payload already exposes `seriesStartTime`/`occurrenceId` so switching parsers underneath would not break clients. Per-occurrence overrides (e.g. "cancel Christmas Eve") still need a schema change (`event_exceptions`) before they can ship.
+
 ### DEC-022: Resume the original Milestone 3 roadmap after the temporary MVP detour
 
 - **Date:** 2026-03-31
@@ -82,7 +91,7 @@
 - **Decision:** Use a public per-church events API and church-profile events section as the first Milestone 3 slice, with type/date filtering and seeded upcoming event data, instead of waiting for the heavier church-claim and admin-dashboard tooling before shipping anything from the new milestone.
 - **Alternatives Considered:** Start Milestone 3 with claim-request workflows first; postpone all events work until church admins could create/edit events themselves; build a cross-church events feed before proving the per-church experience.
 - **Reasoning:** The database already had `Event` support, and church profile pages were already a strong discovery surface, so a read-first events slice could create immediate user value with relatively little product risk. Shipping public event visibility first also lets the team validate how events should look and filter on the profile page before committing to the much larger permissions, moderation, and dashboard work required for church-admin tooling.
-- **Consequences:** Milestone 3 now has a user-visible events foundation on church profiles. The next follow-up is claim/admin ownership so churches can manage those events directly, and recurring-event metadata is stored but not yet expanded into generated occurrence series.
+- **Consequences:** Milestone 3 now has a user-visible events foundation on church profiles. Church claim/admin ownership and recurring-event RRULE expansion both landed subsequently (see DEC-023 and the 2026-04-11 progress entry).
 
 ### DEC-014: Keep Sentry optional and env-gated, and only report truly unexpected server failures
 

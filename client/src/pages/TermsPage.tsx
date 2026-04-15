@@ -5,6 +5,7 @@ import {
   SupportPageLayout,
   SupportPageSection,
 } from '@/components/support/SupportPageLayout';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const termsPrinciples = [
   {
@@ -49,6 +50,13 @@ const legalNotes = [
 ] as const;
 
 export const TermsPage = () => {
+  useDocumentHead({
+    title: 'Terms of Service',
+    description:
+      'Terms and conditions for using SA Church Finder, including acceptable use and content policies.',
+    canonicalPath: '/terms',
+  });
+
   return (
     <SupportPageLayout
       eyebrow="Legal"

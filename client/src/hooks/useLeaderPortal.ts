@@ -66,6 +66,9 @@ export const useLeaderPortal = (userId: string | null) => {
         fetchChurchEvents(claim.church.slug, {
           from: eventWindow.from,
           to: eventWindow.to,
+          // Admins manage the stored series rows directly — don't expand
+          // recurring events into one entry per occurrence.
+          expand: false,
         }),
       staleTime: STALE_TIME,
       enabled: Boolean(userId),

@@ -5,6 +5,7 @@ import {
   SupportPageLayout,
   SupportPageSection,
 } from '@/components/support/SupportPageLayout';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const visitTips = [
   {
@@ -49,6 +50,13 @@ const moderationSteps = [
 ] as const;
 
 export const SafetyInformationPage = () => {
+  useDocumentHead({
+    title: 'Safety Information',
+    description:
+      'Tips for visiting churches safely in San Antonio — planning your visit, online safety, and reporting concerns.',
+    canonicalPath: '/safety-information',
+  });
+
   return (
     <SupportPageLayout
       eyebrow="Trust & Safety"

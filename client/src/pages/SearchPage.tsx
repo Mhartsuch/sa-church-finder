@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, List, Map, X } from 'lucide-react';
+import { ChevronDown, Clock, LayoutGrid, Map as MapIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ChurchList } from '@/components/church/ChurchList';
@@ -12,16 +12,24 @@ import { Testimonials } from '@/components/community/Testimonials';
 import { MapContainer } from '@/components/map/MapContainer';
 import { CategoryFilter } from '@/components/search/CategoryFilter';
 import { FilterPanel } from '@/components/search/FilterPanel';
+import { NearMeButton } from '@/components/search/NearMeButton';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useChurchSearchParams, useChurches } from '@/hooks/useChurches';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useURLSearchState } from '@/hooks/useURLSearchState';
-import { getActiveSearchTokens } from '@/lib/search-state';
+import {
+  ActiveSearchTokenKey,
+  countActiveFilters,
+  getActiveSearchTokens,
+} from '@/lib/search-state';
 import { useCompareStore } from '@/stores/compare-store';
-import { SearchFilters, useSearchStore } from '@/stores/search-store';
+import { useSearchStore } from '@/stores/search-store';
 
 const MOBILE_BREAKPOINT = 1024;
 
 const SORT_OPTIONS = [
-  { value: 'distance', label: 'Recommended' },
+  { value: 'relevance', label: 'Best match' },
+  { value: 'distance', label: 'Nearest' },
   { value: 'rating', label: 'Highest rated' },
   { value: 'name', label: 'Name (A-Z)' },
 ] as const;
@@ -54,6 +62,13 @@ const stripOpenFiltersFlag = (state: unknown): SearchPageLocationState | null =>
 };
 
 export const SearchPage = () => {
+  useDocumentHead({
+    title: 'Search Churches',
+    description:
+      'Search and filter churches in San Antonio by denomination, neighborhood, service times, worship style, and more.',
+    canonicalPath: '/search',
+  });
+
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(
@@ -74,10 +89,33 @@ export const SearchPage = () => {
   const filters = useSearchStore((state) => state.filters);
   const sort = useSearchStore((state) => state.sort);
   const mapBounds = useSearchStore((state) => state.mapBounds);
+  const userLocation = useSearchStore((state) => state.userLocation);
   const setFilter = useSearchStore((state) => state.setFilter);
   const setQuery = useSearchStore((state) => state.setQuery);
   const setSort = useSearchStore((state) => state.setSort);
+  const setMapBounds = useSearchStore((state) => state.setMapBounds);
   const clearFilters = useSearchStore((state) => state.clearFilters);
+  const { recent, removeRecent, clearRecent } = useRecentSearches();
+
+  useDocumentHead({
+    title: query ? `"${query}" — Church Search` : 'Find Churches in San Antonio',
+    description: query
+      ? `Search results for "${query}" — find churches in San Antonio, TX with reviews, service times, and directions.`
+      : 'Search and filter churches across San Antonio by denomination, service times, neighborhood, amenities, and more.',
+    canonicalPath: '/search',
+  });
+
+  const toggleMap = useCallback(() => {
+    setShowMap((current) => {
+      // Hiding the map should also drop the "visible map area" filter so the
+      // list reverts to the city-wide search — otherwise a stale bounds filter
+      // silently constrains results even though the map is gone.
+      if (current) {
+        setMapBounds(null);
+      }
+      return !current;
+    });
+  }, [setMapBounds]);
   const locationState = getSearchPageLocationState(location.state);
   const compareCount = useCompareStore((state) => state.selectedChurches.length);
 
@@ -134,34 +172,77 @@ export const SearchPage = () => {
 
   const searchParams = useChurchSearchParams();
   const { data, error, isLoading } = useChurches(searchParams);
-  const activeTokens = useMemo(() => getActiveSearchTokens(query, filters), [filters, query]);
+  const activeTokens = useMemo(() => {
+    const tokens = getActiveSearchTokens(query, filters);
+    // `mapBounds` lives outside SearchFilters, so it can't flow through the
+    // generic token helper. Prepend a synthetic "Map area" chip whenever the
+    // map-bounds filter is set so users have a consistent, dismissable
+    // control — previously the only way out of a lingering bounds filter was
+    // to hide the map entirely, which was discoverable by accident at best.
+    if (mapBounds) {
+      return [{ key: 'mapBounds' as const, label: 'Map area', value: 'visible area' }, ...tokens];
+    }
+    return tokens;
+  }, [filters, mapBounds, query]);
   const totalResults = data?.meta.total ?? 0;
   const churches = data?.data ?? [];
-  const activeAdvancedFilterCount = Object.values(filters).filter(
-    (value) => value !== undefined && value !== '',
-  ).length;
+  // Include `mapBounds` in the count so the "X filters active" subtitle lines
+  // up with what the user can see in the chip row. Without this, a user who
+  // only panned + clicked "Search this area" saw "0 filters active" even
+  // though the map-area chip was visible.
+  const activeAdvancedFilterCount = countActiveFilters(filters, mapBounds);
+  const toggleAmenity = useSearchStore((state) => state.toggleAmenity);
+  const toggleLanguage = useSearchStore((state) => state.toggleLanguage);
+  const toggleDenomination = useSearchStore((state) => state.toggleDenomination);
   const denominationCount = new Set(churches.map((church) => church.denomination).filter(Boolean))
     .size;
 
+  const locationLabel = userLocation ? 'near you' : 'in San Antonio';
   const resultsHeading = isLoading
-    ? 'Finding churches in San Antonio'
+    ? `Finding churches ${locationLabel}`
     : error
       ? 'Search results are temporarily unavailable'
       : totalResults === 1
-        ? '1 church in San Antonio'
-        : `${totalResults} churches in San Antonio`;
+        ? `1 church ${locationLabel}`
+        : `${totalResults} churches ${locationLabel}`;
+
+  // When exactly one tradition is selected we keep the legacy "<Name> churches"
+  // subtitle; anything else falls back to "All denominations" and lets the chip
+  // row carry the specifics. Keeps the subtitle short even with 4+ selections.
+  const singleDenominationLabel =
+    filters.denomination && filters.denomination.length === 1 ? filters.denomination[0] : null;
 
   const resultsDescription = error
     ? 'The list is unavailable right now, but your search state is still preserved.'
-    : filters.denomination
-      ? `${filters.denomination} churches`
+    : singleDenominationLabel
+      ? `${singleDenominationLabel} churches`
       : query.trim()
         ? `Matching "${query.trim()}"`
         : 'All denominations';
 
-  const removeToken = (tokenKey: 'query' | keyof SearchFilters) => {
+  const removeToken = (tokenKey: ActiveSearchTokenKey, tokenValue: string) => {
     if (tokenKey === 'query') {
       setQuery('');
+      return;
+    }
+
+    if (tokenKey === 'mapBounds') {
+      setMapBounds(null);
+      return;
+    }
+
+    // Multi-select filters — remove only the one chip the user clicked so the
+    // remaining selections stay active.
+    if (tokenKey === 'amenities') {
+      toggleAmenity(tokenValue);
+      return;
+    }
+    if (tokenKey === 'languages') {
+      toggleLanguage(tokenValue);
+      return;
+    }
+    if (tokenKey === 'denomination') {
+      toggleDenomination(tokenValue);
       return;
     }
 
@@ -171,7 +252,7 @@ export const SearchPage = () => {
   return (
     <>
       <div className="flex-1 bg-background">
-        <div className="sticky top-[80px] z-40 border-b border-border bg-background/96 backdrop-blur-md">
+        <div className="sticky top-[64px] z-40 border-b border-border bg-background/96 backdrop-blur-md sm:top-[80px]">
           <div className="mx-auto max-w-[1760px]">
             <CategoryFilter
               compareCount={compareCount}
@@ -236,25 +317,26 @@ export const SearchPage = () => {
         ) : null}
 
         <section className="reference-results-shell">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-[14px] font-semibold text-foreground">{resultsHeading}</h2>
-              <p className="mt-1 text-[14px] text-muted-foreground">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+            <div className="min-w-0">
+              <h2 className="text-[13px] font-semibold text-foreground sm:text-[14px]">
+                {resultsHeading}
+              </h2>
+              <p className="mt-0.5 truncate text-[13px] text-muted-foreground sm:mt-1 sm:text-[14px]">
                 {resultsDescription}
                 {activeAdvancedFilterCount > 0
                   ? `  /  ${activeAdvancedFilterCount} filter${activeAdvancedFilterCount === 1 ? '' : 's'} active`
                   : ''}
-                {mapBounds ? '  /  Following the visible map area' : ''}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
+              <NearMeButton />
+
               {!isMobile ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowMap((current) => !current);
-                  }}
+                  onClick={toggleMap}
                   className={`rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
                     showMap
                       ? 'border-foreground bg-foreground text-white'
@@ -290,7 +372,7 @@ export const SearchPage = () => {
                 <button
                   key={`${token.key}-${token.value}`}
                   type="button"
-                  onClick={() => removeToken(token.key)}
+                  onClick={() => removeToken(token.key, token.value)}
                   className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground"
                 >
                   <span>
@@ -309,6 +391,48 @@ export const SearchPage = () => {
             </div>
           ) : null}
 
+          {recent.length > 0 && !query.trim() && activeTokens.length === 0 ? (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Recent searches</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearRecent}
+                  className="text-[12px] font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {recent.map((term) => (
+                  <div
+                    key={term}
+                    className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card pl-3 pr-1.5 py-1.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setQuery(term)}
+                      className="truncate max-w-[200px]"
+                    >
+                      {term}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRecent(term)}
+                      className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label={`Remove "${term}" from recent searches`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div
             className={`mt-6 ${showMap && !isMobile ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr),minmax(420px,46%)] xl:gap-8' : ''}`}
           >
@@ -319,7 +443,7 @@ export const SearchPage = () => {
             )}
 
             {showMap ? (
-              <div className={`${isMobile ? 'mt-4' : 'sticky top-[156px] self-start'} min-w-0`}>
+              <div className={`${isMobile ? 'mt-4' : 'sticky top-[160px] self-start'} min-w-0`}>
                 <div className="overflow-hidden rounded-[12px] border border-border bg-card">
                   <div
                     className={`${isMobile ? 'h-[70vh] min-h-[460px]' : 'h-[calc(100vh-180px)] min-h-[620px]'}`}
@@ -345,23 +469,32 @@ export const SearchPage = () => {
         ) : null}
 
         {isMobile ? (
-          <div className="reference-fab">
+          <div role="group" aria-label="Toggle between list and map" className="mobile-map-toggle">
             <button
               type="button"
-              onClick={() => setShowMap((current) => !current)}
-              className="reference-fab-button"
+              onClick={() => {
+                if (showMap) {
+                  toggleMap();
+                }
+              }}
+              aria-pressed={!showMap}
+              className="mobile-map-toggle-option"
             >
-              {showMap ? (
-                <>
-                  Show list
-                  <List className="h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  Show map
-                  <Map className="h-4 w-4" />
-                </>
-              )}
+              <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!showMap) {
+                  toggleMap();
+                }
+              }}
+              aria-pressed={showMap}
+              className="mobile-map-toggle-option"
+            >
+              <MapIcon className="h-4 w-4" aria-hidden="true" />
+              Map
             </button>
           </div>
         ) : null}
@@ -380,7 +513,7 @@ export const SearchPage = () => {
             role="dialog"
             aria-modal="true"
             aria-label="Filters"
-            className={`w-full max-w-[780px] overflow-hidden rounded-[24px] bg-card shadow-[0_20px_80px_rgba(0,0,0,0.25)] ${
+            className={`w-full max-w-[780px] overflow-hidden rounded-t-[24px] bg-card shadow-[0_20px_80px_rgba(0,0,0,0.25)] sm:rounded-[24px] ${
               filterModalState === 'closing'
                 ? 'animate-[modal-slide-up_0.25s_ease-in_reverse_forwards]'
                 : 'animate-modal-slide-up'

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Location pin shape -->
+  <path d="M256 16C150.4 16 64 102.4 64 208c0 154 176 280 186.4 287.2a10 10 0 0011.2 0C272 488 448 362 448 208 448 102.4 361.6 16 256 16z" fill="#0f766e"/>
+  <!-- Church building -->
+  <g transform="translate(256, 220)">
+    <!-- Cross -->
+    <rect x="-8" y="-120" width="16" height="60" rx="4" fill="#ffffff"/>
+    <rect x="-24" y="-104" width="48" height="16" rx="4" fill="#ffffff"/>
+    <!-- Steeple -->
+    <polygon points="0,-60 -30,-20 30,-20" fill="#ffffff"/>
+    <!-- Main building -->
+    <rect x="-60" y="-20" width="120" height="80" rx="2" fill="#ffffff"/>
+    <!-- Door -->
+    <path d="M-16 60 L-16 20 A16 16 0 0 1 16 20 L16 60z" fill="#0f766e"/>
+    <!-- Windows -->
+    <circle cx="-32" cy="10" r="10" fill="#0f766e" opacity="0.6"/>
+    <circle cx="32" cy="10" r="10" fill="#0f766e" opacity="0.6"/>
+  </g>
+</svg>
