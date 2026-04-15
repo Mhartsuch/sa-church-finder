@@ -161,6 +161,12 @@ export interface IEventsFeedFilters {
    * `/churches/filter-options` endpoint (`denominations[].value`).
    */
   denomination?: string[];
+  /**
+   * Restrict the feed to events hosted by churches flagged as wheelchair
+   * accessible. Churches whose accessibility flag is `false` or unknown
+   * (`null`) are excluded so visitors can trust the narrowed result set.
+   */
+  accessibleOnly?: boolean;
 }
 
 export interface IEventsFeedResponse {
@@ -179,6 +185,7 @@ export interface IEventsFeedResponse {
       timeOfDay?: EventTimeOfDay;
       neighborhood?: string;
       denomination?: string[];
+      accessibleOnly?: boolean;
     };
   };
 }

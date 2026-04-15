@@ -110,6 +110,7 @@ router.get(
         // The Zod schema normalizes single, comma-separated, and repeated
         // `denomination` query params into a deduped `string[]`.
         denomination: Array.isArray(q.denomination) ? (q.denomination as string[]) : undefined,
+        accessibleOnly: q.accessibleOnly === true ? true : undefined,
       }
 
       logger.info({ filters }, 'Fetching aggregated events feed')

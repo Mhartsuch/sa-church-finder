@@ -359,6 +359,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const savedByUserId = filters.savedByUserId
   const trimmedNeighborhood = filters.neighborhood?.trim()
   const hasNeighborhood = Boolean(trimmedNeighborhood)
+  const accessibleOnly = filters.accessibleOnly === true
 
   // Multi-select event type. A single value collapses into a one-element `in`
   // clause, which Prisma is happy to translate; an empty array is treated as
@@ -401,6 +402,10 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
           })),
         }
       : {}),
+    // `wheelchairAccessible` is a nullable boolean: `null` means "unknown".
+    // Requiring `equals: true` filters out both `false` and `null` churches
+    // so visitors can trust the narrowed result set.
+    ...(accessibleOnly ? { wheelchairAccessible: true } : {}),
   }
   const hasChurchClause = Object.keys(churchClause).length > 0
 
@@ -503,6 +508,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
                 ),
               )
             : undefined,
+        accessibleOnly: accessibleOnly ? true : undefined,
       },
     },
   }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Accessibility,
   Calendar,
   CalendarDays,
   ChevronLeft,
@@ -114,6 +115,11 @@ type FeedFormState = {
    * (mirroring how `types` is handled above).
    */
   denominations: string[];
+  /**
+   * When true, limit the feed to events hosted by churches flagged as
+   * wheelchair accessible.
+   */
+  accessibleOnly: boolean;
 };
 
 const EMPTY_FORM: FeedFormState = {
@@ -125,6 +131,7 @@ const EMPTY_FORM: FeedFormState = {
   timeOfDay: '',
   neighborhood: '',
   denominations: [],
+  accessibleOnly: false,
 };
 
 const parseTypeParam = (raw: string | null): ChurchEventType[] => {
@@ -173,6 +180,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : '',
     neighborhood: searchParams.get('neighborhood') ?? '',
     denominations: parseDenominationParam(searchParams.get('denomination')),
+    accessibleOnly: searchParams.get('accessible') === '1',
   };
 };
 
@@ -292,6 +300,7 @@ const EventsDiscoveryPage = () => {
     const types = parseTypeParam(searchParams.get('type'));
     const neighborhood = searchParams.get('neighborhood')?.trim() || undefined;
     const denominations = parseDenominationParam(searchParams.get('denomination'));
+    const accessibleOnly = searchParams.get('accessible') === '1';
 
     return {
       type: types.length > 0 ? types : undefined,
@@ -304,6 +313,7 @@ const EventsDiscoveryPage = () => {
       timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : undefined,
       neighborhood,
       denomination: denominations.length > 0 ? denominations : undefined,
+      accessibleOnly: accessibleOnly || undefined,
     };
   }, [searchParams, page, isAuthenticated]);
 
@@ -351,6 +361,9 @@ const EventsDiscoveryPage = () => {
         chips.push({ key: `denomination:${family}`, label: `Denomination: ${family}` });
       }
     }
+    if (filters.accessibleOnly) {
+      chips.push({ key: 'accessible', label: 'Wheelchair accessible' });
+    }
     return chips;
   }, [
     filters.type,
@@ -359,6 +372,7 @@ const EventsDiscoveryPage = () => {
     filters.timeOfDay,
     filters.neighborhood,
     filters.denomination,
+    filters.accessibleOnly,
     searchParams,
   ]);
 
@@ -378,6 +392,7 @@ const EventsDiscoveryPage = () => {
     if (nextForm.denominations.length > 0) {
       next.set('denomination', nextForm.denominations.join(','));
     }
+    if (nextForm.accessibleOnly) next.set('accessible', '1');
 
     const nextPage = overrides.page === undefined ? page : overrides.page;
     if (nextPage && nextPage > 1) {
@@ -412,6 +427,7 @@ const EventsDiscoveryPage = () => {
     if (key === 'saved') nextForm.savedOnly = false;
     if (key === 'timeOfDay') nextForm.timeOfDay = '';
     if (key === 'neighborhood') nextForm.neighborhood = '';
+    if (key === 'accessible') nextForm.accessibleOnly = false;
 
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
@@ -439,6 +455,12 @@ const EventsDiscoveryPage = () => {
 
   const handleToggleSavedOnly = (): void => {
     const nextForm: FeedFormState = { ...form, savedOnly: !form.savedOnly };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleAccessibleOnly = (): void => {
+    const nextForm: FeedFormState = { ...form, accessibleOnly: !form.accessibleOnly };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -616,6 +638,20 @@ const EventsDiscoveryPage = () => {
               From saved churches
             </button>
           ) : null}
+          <button
+            type="button"
+            onClick={handleToggleAccessibleOnly}
+            aria-pressed={form.accessibleOnly}
+            aria-label="Show only events at wheelchair-accessible churches"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+              form.accessibleOnly
+                ? 'border-foreground bg-foreground text-white'
+                : 'border-border bg-card text-foreground hover:border-foreground'
+            }`}
+          >
+            <Accessibility className="h-3.5 w-3.5" />
+            Wheelchair accessible
+          </button>
         </div>
 
         <div

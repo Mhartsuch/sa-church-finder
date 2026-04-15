@@ -156,6 +156,14 @@ export interface IEventsFeedFilters {
    * options from `GET /api/v1/churches/filter-options` (`denominations[].value`).
    */
   denomination?: string[]
+  /**
+   * Restrict the feed to events hosted by churches flagged as wheelchair
+   * accessible (`church.wheelchairAccessible = true`). Churches where the
+   * field is `false` or `null` (unknown) are filtered out so visitors can
+   * trust the narrowed result set. Mirrors the same-named flag on the church
+   * search endpoint.
+   */
+  accessibleOnly?: boolean
 }
 
 export interface IEventsFeedResponse {
@@ -174,6 +182,7 @@ export interface IEventsFeedResponse {
       timeOfDay?: EventTimeOfDay
       neighborhood?: string
       denomination?: string[]
+      accessibleOnly?: boolean
     }
   }
 }

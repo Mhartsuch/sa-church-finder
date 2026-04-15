@@ -183,6 +183,10 @@ export const eventsFeedSchema = z.object({
 
           return normalized.length > 0 ? normalized : undefined
         }),
+      // Restrict the feed to events at churches flagged as wheelchair
+      // accessible. Reuses the same boolean-ish parser as `savedOnly` so
+      // `?accessibleOnly=true`, `=1`, and `=yes` all work for URL share-links.
+      accessibleOnly: booleanishFlag,
     })
     .passthrough()
     .refine(

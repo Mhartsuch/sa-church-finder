@@ -783,6 +783,84 @@ describe('EventsDiscoveryPage', () => {
     });
   });
 
+  describe('wheelchair-accessible filter', () => {
+    it('renders the accessibility toggle chip regardless of auth state', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const chip = screen.getByRole('button', { name: /wheelchair-accessible/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('writes accessible=1 to the URL and passes accessibleOnly to the feed filters', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const chip = screen.getByRole('button', { name: /wheelchair-accessible/i });
+      fireEvent.click(chip);
+
+      expect(getSearch()).toContain('accessible=1');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ accessibleOnly: true });
+
+      // Two instances of the label appear once the filter is on: the toggle
+      // chip above the form (now in its active state) and the applied-chip in
+      // the chip rail below.
+      expect(screen.getAllByText('Wheelchair accessible')).toHaveLength(2);
+    });
+
+    it('reflects the active state on the toggle when seeded from the URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?accessible=1');
+
+      const chip = screen.getByRole('button', {
+        name: /wheelchair-accessible/i,
+      });
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('removes accessible=1 from the URL when the filter chip is cleared', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?accessible=1');
+
+      const filterChips = screen.getAllByText('Wheelchair accessible');
+      // The second occurrence lives in the applied-chips rail (the first is on
+      // the toggle chip above the form). Both let the user clear the filter,
+      // but the chip-rail instance matches the shared clear-chip flow.
+      const clearChip = filterChips[filterChips.length - 1]!.closest('button');
+      expect(clearChip).not.toBeNull();
+      fireEvent.click(clearChip!);
+
+      expect(getSearch()).not.toContain('accessible=');
+    });
+  });
+
   it('renders pagination and advances to the next page', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([makeEvent()], { total: 36, totalPages: 3, page: 1, pageSize: 12 }),

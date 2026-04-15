@@ -875,6 +875,86 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     })
   })
 
+  describe('accessibleOnly filter', () => {
+    it('filters the feed to wheelchair-accessible churches when enabled', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ accessibleOnly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // Matching `equals: true` excludes both `false` and `null` churches so
+      // visitors can trust the narrowed result set.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: { wheelchairAccessible: true },
+      })
+    })
+
+    it('omits the accessibleOnly meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('treats accessibleOnly=false as no filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ accessibleOnly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('combines accessibleOnly with neighborhood and denomination in one church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        accessibleOnly: 'true',
+        neighborhood: 'Downtown',
+        denomination: 'Baptist',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBe(true)
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          wheelchairAccessible: true,
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }],
+        },
+      })
+    })
+  })
+
   describe('timeOfDay filter (San Antonio local time)', () => {
     // San Antonio is America/Chicago — CDT (UTC-5) in May/June.
     // 09:00 CDT  -> 14:00 UTC (morning)

@@ -60,6 +60,9 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
       qs.append('denomination', cleaned.join(','));
     }
   }
+  if (params.accessibleOnly) {
+    qs.append('accessibleOnly', 'true');
+  }
 
   const queryStr = qs.toString();
   return queryStr ? `?${queryStr}` : '';
