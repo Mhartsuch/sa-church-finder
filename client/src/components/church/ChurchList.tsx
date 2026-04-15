@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -62,7 +62,10 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
     });
   }, [page]);
 
-  const churches = data?.data || [];
+  // Memoize the churches array so its identity is stable across renders that
+  // don't actually change the data — otherwise it changes on every render and
+  // invalidates the dependencies of `handleToggleSave`'s useCallback below.
+  const churches = useMemo(() => data?.data ?? [], [data?.data]);
   const meta = data?.meta;
   const totalPages = meta?.totalPages || 1;
 

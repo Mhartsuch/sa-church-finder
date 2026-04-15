@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Church Website Enrichment Pipeline — v2
  *
