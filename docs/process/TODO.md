@@ -162,4 +162,4 @@
 
 ---
 
-_Last updated: 2026-04-15 (events discovery feed now supports a `timeOfDay` filter — `GET /api/v1/events?timeOfDay=morning|afternoon|evening` evaluated in San Antonio local time and a chip group on `/events`; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_
+_Last updated: 2026-04-15 (home page now surfaces a "Upcoming church events" module that previews the next week of events via the existing `/api/v1/events` feed and deep-links into `/events`; also fixed an off-by-one in `html-cache` that caused `maxAgeMs=0` to briefly return fresh content; events discovery feed supports a `timeOfDay` filter — `GET /api/v1/events?timeOfDay=morning|afternoon|evening` evaluated in San Antonio local time and a chip group on `/events`; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_

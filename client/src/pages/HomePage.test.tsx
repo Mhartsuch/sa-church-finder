@@ -18,6 +18,10 @@ vi.mock('@/components/community/Newsletter', () => ({
   Newsletter: () => <div data-testid="newsletter">Newsletter</div>,
 }));
 
+vi.mock('@/components/events/HomeFeaturedEvents', () => ({
+  HomeFeaturedEvents: () => <div data-testid="home-featured-events">Featured events</div>,
+}));
+
 vi.mock('@/hooks/useFeaturedChurches', () => ({
   useFeaturedChurches: () => ({
     data: {

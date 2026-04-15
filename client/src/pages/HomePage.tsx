@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { ArrowRight, Church, Heart, MapPin, Scale, Search, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { HomeFeaturedEvents } from '@/components/events/HomeFeaturedEvents';
 import { SearchBar } from '@/components/search/SearchBar';
 import { WebSiteJsonLd } from '@/components/seo/JsonLd';
 import { Testimonials } from '@/components/community/Testimonials';
@@ -286,6 +287,9 @@ const HomePage = () => {
           </Link>
         </div>
       </section>
+
+      {/* ── Upcoming events ── */}
+      <HomeFeaturedEvents />
 
       {/* ── Explore neighborhoods ── */}
       <section className="bg-muted/50">
