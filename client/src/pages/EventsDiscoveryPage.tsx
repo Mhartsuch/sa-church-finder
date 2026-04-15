@@ -27,6 +27,7 @@ import {
   matchEventDatePreset,
   resolveEventDatePreset,
 } from '@/lib/event-date-presets';
+import { groupEventsByLocalDay } from '@/lib/event-grouping';
 import {
   ChurchEventType,
   EVENT_TIME_OF_DAY,
@@ -256,7 +257,8 @@ const EventsDiscoveryPage = () => {
 
   const totalResults = data?.meta.total ?? 0;
   const totalPages = data?.meta.totalPages ?? 0;
-  const events = data?.data ?? [];
+  const events = useMemo(() => data?.data ?? [], [data?.data]);
+  const eventGroups = useMemo(() => groupEventsByLocalDay(events), [events]);
 
   const appliedChips = useMemo(() => {
     const chips: Array<{ key: string; label: string }> = [];
@@ -641,9 +643,23 @@ const EventsDiscoveryPage = () => {
               ) : null}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {events.map((event) => (
-                <EventCard key={event.occurrenceId} event={event} />
+            <div className="space-y-10">
+              {eventGroups.map((group) => (
+                <section key={group.dayKey} aria-label={group.label}>
+                  <div className="mb-4 flex items-baseline justify-between gap-3 border-b border-border pb-2">
+                    <h3 className="text-[18px] font-bold tracking-tight text-foreground">
+                      {group.label}
+                    </h3>
+                    <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {group.events.length === 1 ? '1 event' : `${group.events.length} events`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {group.events.map((event) => (
+                      <EventCard key={event.occurrenceId} event={event} />
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           )}

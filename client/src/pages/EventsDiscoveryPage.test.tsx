@@ -388,6 +388,72 @@ describe('EventsDiscoveryPage', () => {
     expect(screen.queryByText(/Time of day:/)).not.toBeInTheDocument();
   });
 
+  it('groups events by local day with a header above each day section', () => {
+    // Pin "now" so day labels are deterministic regardless of the host clock
+    // and timezone. Using noon local time keeps the computed "Today"/"Tomorrow"
+    // keys clear of midnight regardless of DST.
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 3, 15, 12, 0, 0));
+
+      // Build event timestamps from local-time Date objects (rather than UTC
+      // strings) so the local-day keys match the fixed "now" irrespective of
+      // the host's zone.
+      const dayOneMorning = makeEvent({
+        id: 'ev-a',
+        occurrenceId: 'ev-a',
+        title: 'Morning Prayer',
+        startTime: new Date(2026, 3, 15, 8, 0).toISOString(),
+        endTime: new Date(2026, 3, 15, 9, 0).toISOString(),
+      });
+      const dayOneEvening = makeEvent({
+        id: 'ev-b',
+        occurrenceId: 'ev-b',
+        title: 'Evening Bible Study',
+        startTime: new Date(2026, 3, 15, 19, 0).toISOString(),
+        endTime: new Date(2026, 3, 15, 20, 30).toISOString(),
+      });
+      const dayTwoDinner = makeEvent({
+        id: 'ev-c',
+        occurrenceId: 'ev-c',
+        title: 'Community Dinner',
+        startTime: new Date(2026, 3, 17, 18, 0).toISOString(),
+        endTime: new Date(2026, 3, 17, 20, 0).toISOString(),
+      });
+
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([dayOneMorning, dayOneEvening, dayTwoDinner], {
+          total: 3,
+          totalPages: 1,
+        }),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      // Same-day events collapse under a single "Today" header...
+      const todaySection = screen.getByRole('region', { name: 'Today' });
+      expect(within(todaySection).getByText('2 events')).toBeInTheDocument();
+      expect(
+        within(todaySection).getByRole('heading', { name: 'Morning Prayer' }),
+      ).toBeInTheDocument();
+      expect(
+        within(todaySection).getByRole('heading', { name: 'Evening Bible Study' }),
+      ).toBeInTheDocument();
+
+      // ...and a later day gets its own header with a day-of-week label.
+      const laterSection = screen.getByRole('region', { name: 'Friday, April 17' });
+      expect(within(laterSection).getByText('1 event')).toBeInTheDocument();
+      expect(
+        within(laterSection).getByRole('heading', { name: 'Community Dinner' }),
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('renders pagination and advances to the next page', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([makeEvent()], { total: 36, totalPages: 3, page: 1, pageSize: 12 }),
