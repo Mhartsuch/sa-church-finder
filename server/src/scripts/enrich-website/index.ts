@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Church Website Enrichment Pipeline
  *
@@ -189,9 +188,7 @@ async function main(): Promise<void> {
     if (!options.skipAi) {
       const claudeOk = await isClaudeAvailable()
       if (!claudeOk) {
-        console.error(
-          'Error: Claude CLI not found on PATH. Install Claude Code or use --skip-ai.',
-        )
+        console.error('Error: Claude CLI not found on PATH. Install Claude Code or use --skip-ai.')
         process.exitCode = 1
         return
       }

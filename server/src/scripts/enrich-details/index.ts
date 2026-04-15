@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Church Details Enrichment Pipeline
  *

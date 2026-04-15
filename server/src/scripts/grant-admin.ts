@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Grant SITE_ADMIN role to an existing user by email.
  *

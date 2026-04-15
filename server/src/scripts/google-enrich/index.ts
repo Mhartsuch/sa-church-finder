@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Google Places Enrich Script
  *
