@@ -49,6 +49,17 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.neighborhood && params.neighborhood.trim()) {
     qs.append('neighborhood', params.neighborhood.trim());
   }
+  // Denomination families are multi-select and OR-combined on the backend.
+  // Match the shared wire format (`?denomination=Baptist,Methodist`) used by
+  // the church search endpoint so cached state can round-trip cleanly.
+  if (params.denomination && params.denomination.length > 0) {
+    const cleaned = Array.from(
+      new Set(params.denomination.map((value) => value.trim()).filter((value) => value.length > 0)),
+    );
+    if (cleaned.length > 0) {
+      qs.append('denomination', cleaned.join(','));
+    }
+  }
 
   const queryStr = qs.toString();
   return queryStr ? `?${queryStr}` : '';

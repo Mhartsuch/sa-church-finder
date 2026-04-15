@@ -148,6 +148,14 @@ export interface IEventsFeedFilters {
    * from `GET /api/v1/churches/filter-options`.
    */
   neighborhood?: string
+  /**
+   * Restrict the feed to events whose hosting church belongs to one of the
+   * named denomination families (e.g. `["Baptist", "Methodist"]`). Matching
+   * is case-insensitive against `church.denominationFamily`, mirroring the
+   * shape used by the church search endpoint. Callers should source valid
+   * options from `GET /api/v1/churches/filter-options` (`denominations[].value`).
+   */
+  denomination?: string[]
 }
 
 export interface IEventsFeedResponse {
@@ -165,6 +173,7 @@ export interface IEventsFeedResponse {
       savedOnly?: boolean
       timeOfDay?: EventTimeOfDay
       neighborhood?: string
+      denomination?: string[]
     }
   }
 }

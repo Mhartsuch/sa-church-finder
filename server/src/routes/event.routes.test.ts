@@ -760,6 +760,121 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     })
   })
 
+  describe('denomination filter', () => {
+    it('filters the feed to a single denomination family (case-insensitive)', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ denomination: 'Baptist' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // The denomination filter is expressed as an OR of insensitive equality
+      // clauses on `denominationFamily`, nested under the shared `church` clause.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          OR: [
+            {
+              denominationFamily: { equals: 'baptist', mode: 'insensitive' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('accepts a comma-separated multi-select and dedupes case-insensitively', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ denomination: 'Baptist,Methodist,baptist' })
+
+      expect(response.status).toBe(200)
+      // The echoed meta preserves the originally-supplied casing/order so chip
+      // labels read naturally; the underlying SQL is matched insensitively.
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist', 'Methodist', 'baptist'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          OR: [
+            {
+              denominationFamily: { equals: 'baptist', mode: 'insensitive' },
+            },
+            {
+              denominationFamily: { equals: 'methodist', mode: 'insensitive' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('combines the denomination filter with neighborhood and savedOnly into one church clause', async () => {
+      const agent = await buildLoginAgent()
+
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await agent.get('/api/v1/events').query({
+        denomination: 'Baptist',
+        neighborhood: 'Downtown',
+        savedOnly: 'true',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.savedOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          savedByUsers: { some: { userId: 'user-admin-1' } },
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [
+            {
+              denominationFamily: { equals: 'baptist', mode: 'insensitive' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('omits the denomination meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toBeUndefined()
+    })
+
+    it('drops empty denomination tokens and skips the filter entirely', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ denomination: ' , , ' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+  })
+
   describe('timeOfDay filter (San Antonio local time)', () => {
     // San Antonio is America/Chicago — CDT (UTC-5) in May/June.
     // 09:00 CDT  -> 14:00 UTC (morning)

@@ -107,6 +107,9 @@ router.get(
           typeof q.neighborhood === 'string' && q.neighborhood.trim().length > 0
             ? q.neighborhood.trim()
             : undefined,
+        // The Zod schema normalizes single, comma-separated, and repeated
+        // `denomination` query params into a deduped `string[]`.
+        denomination: Array.isArray(q.denomination) ? (q.denomination as string[]) : undefined,
       }
 
       logger.info({ filters }, 'Fetching aggregated events feed')

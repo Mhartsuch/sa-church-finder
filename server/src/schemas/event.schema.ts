@@ -156,6 +156,33 @@ export const eventsFeedSchema = z.object({
         .max(120)
         .optional()
         .transform((value) => (value && value.length > 0 ? value : undefined)),
+      // Multi-select denomination family filter. Supports a single value
+      // (`denomination=Baptist`), a comma-separated list
+      // (`denomination=Baptist,Methodist`), or repeated query params. Matches
+      // the wire format the church search endpoint already accepts so the
+      // shared `/churches/filter-options` payload (`denominations[].value`)
+      // can drive both surfaces. Empty / whitespace-only entries collapse to
+      // `undefined` so downstream code can skip the filter.
+      denomination: z
+        .union([z.string(), z.array(z.string())])
+        .optional()
+        .transform((value) => {
+          if (value === undefined) return undefined
+
+          const raw = Array.isArray(value)
+            ? value.flatMap((item) => item.split(','))
+            : value.split(',')
+
+          const normalized = Array.from(
+            new Set(
+              raw
+                .map((item) => item.trim())
+                .filter((item): item is string => item.length > 0 && item.length <= 120),
+            ),
+          )
+
+          return normalized.length > 0 ? normalized : undefined
+        }),
     })
     .passthrough()
     .refine(

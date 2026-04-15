@@ -108,6 +108,12 @@ type FeedFormState = {
   savedOnly: boolean;
   timeOfDay: EventTimeOfDay | '';
   neighborhood: string;
+  /**
+   * Multi-select denomination-family filter. The selection order is
+   * preserved so the serialized URL string stays stable across re-renders
+   * (mirroring how `types` is handled above).
+   */
+  denominations: string[];
 };
 
 const EMPTY_FORM: FeedFormState = {
@@ -118,6 +124,7 @@ const EMPTY_FORM: FeedFormState = {
   savedOnly: false,
   timeOfDay: '',
   neighborhood: '',
+  denominations: [],
 };
 
 const parseTypeParam = (raw: string | null): ChurchEventType[] => {
@@ -127,6 +134,26 @@ const parseTypeParam = (raw: string | null): ChurchEventType[] => {
   for (const token of raw.split(',')) {
     const trimmed = token.trim();
     if (isChurchEventType(trimmed) && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      ordered.push(trimmed);
+    }
+  }
+  return ordered;
+};
+
+/**
+ * Parse the comma-separated `denomination` URL param into a deduplicated,
+ * order-preserving list of family names. Casing is preserved so chip labels
+ * read naturally (e.g. "Baptist" not "baptist") — the server matches
+ * case-insensitively against `denominationFamily`.
+ */
+const parseDenominationParam = (raw: string | null): string[] => {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim();
+    if (trimmed.length > 0 && !seen.has(trimmed)) {
       seen.add(trimmed);
       ordered.push(trimmed);
     }
@@ -145,6 +172,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     savedOnly: searchParams.get('saved') === '1',
     timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : '',
     neighborhood: searchParams.get('neighborhood') ?? '',
+    denominations: parseDenominationParam(searchParams.get('denomination')),
   };
 };
 
@@ -263,6 +291,7 @@ const EventsDiscoveryPage = () => {
     const savedOnly = isAuthenticated && searchParams.get('saved') === '1';
     const types = parseTypeParam(searchParams.get('type'));
     const neighborhood = searchParams.get('neighborhood')?.trim() || undefined;
+    const denominations = parseDenominationParam(searchParams.get('denomination'));
 
     return {
       type: types.length > 0 ? types : undefined,
@@ -274,6 +303,7 @@ const EventsDiscoveryPage = () => {
       savedOnly: savedOnly || undefined,
       timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : undefined,
       neighborhood,
+      denomination: denominations.length > 0 ? denominations : undefined,
     };
   }, [searchParams, page, isAuthenticated]);
 
@@ -314,6 +344,13 @@ const EventsDiscoveryPage = () => {
     if (filters.neighborhood) {
       chips.push({ key: 'neighborhood', label: `Neighborhood: ${filters.neighborhood}` });
     }
+    if (filters.denomination) {
+      // Each selected denomination family gets its own removable chip so users
+      // can drop them one at a time without clearing the whole multi-select.
+      for (const family of filters.denomination) {
+        chips.push({ key: `denomination:${family}`, label: `Denomination: ${family}` });
+      }
+    }
     return chips;
   }, [
     filters.type,
@@ -321,6 +358,7 @@ const EventsDiscoveryPage = () => {
     filters.savedOnly,
     filters.timeOfDay,
     filters.neighborhood,
+    filters.denomination,
     searchParams,
   ]);
 
@@ -337,6 +375,9 @@ const EventsDiscoveryPage = () => {
     if (nextForm.savedOnly) next.set('saved', '1');
     if (nextForm.timeOfDay) next.set('timeOfDay', nextForm.timeOfDay);
     if (nextForm.neighborhood.trim()) next.set('neighborhood', nextForm.neighborhood.trim());
+    if (nextForm.denominations.length > 0) {
+      next.set('denomination', nextForm.denominations.join(','));
+    }
 
     const nextPage = overrides.page === undefined ? page : overrides.page;
     if (nextPage && nextPage > 1) {
@@ -352,10 +393,18 @@ const EventsDiscoveryPage = () => {
   };
 
   const handleClearChip = (key: string): void => {
-    const nextForm: FeedFormState = { ...form, types: [...form.types] };
+    const nextForm: FeedFormState = {
+      ...form,
+      types: [...form.types],
+      denominations: [...form.denominations],
+    };
     if (key.startsWith('type:')) {
       const removed = key.slice('type:'.length);
       nextForm.types = nextForm.types.filter((type) => type !== removed);
+    }
+    if (key.startsWith('denomination:')) {
+      const removed = key.slice('denomination:'.length);
+      nextForm.denominations = nextForm.denominations.filter((family) => family !== removed);
     }
     if (key === 'q') nextForm.q = '';
     if (key === 'from') nextForm.fromDate = '';
@@ -374,6 +423,16 @@ const EventsDiscoveryPage = () => {
       ? form.types.filter((existing) => existing !== type)
       : [...form.types, type];
     const nextForm: FeedFormState = { ...form, types: nextTypes };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleDenomination = (family: string): void => {
+    const isSelected = form.denominations.includes(family);
+    const nextDenominations = isSelected
+      ? form.denominations.filter((existing) => existing !== family)
+      : [...form.denominations, family];
+    const nextForm: FeedFormState = { ...form, denominations: nextDenominations };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -424,6 +483,37 @@ const EventsDiscoveryPage = () => {
   };
 
   const neighborhoodOptions = filterOptions?.neighborhoods ?? [];
+
+  // Surface up to MAX_DENOMINATION_CHIPS top families as quick chips, but
+  // always include any currently-selected family even when it falls outside
+  // the top slice (so URL-supplied selections stay clickable instead of
+  // silently disappearing). Selected families are pinned to the front to make
+  // active state easy to scan. The list is derived directly from
+  // `filterOptions?.denominations` rather than a separately-defaulted variable
+  // so the useMemo dependency array stays stable (a fresh `[]` literal would
+  // re-trigger the memo on every render).
+  const MAX_DENOMINATION_CHIPS = 8;
+  const visibleDenominationFamilies: string[] = useMemo(() => {
+    const ordered: string[] = [];
+    const seen = new Set<string>();
+
+    for (const family of form.denominations) {
+      if (!seen.has(family)) {
+        seen.add(family);
+        ordered.push(family);
+      }
+    }
+
+    for (const option of filterOptions?.denominations ?? []) {
+      if (ordered.length >= MAX_DENOMINATION_CHIPS) break;
+      if (!seen.has(option.value)) {
+        seen.add(option.value);
+        ordered.push(option.value);
+      }
+    }
+
+    return ordered;
+  }, [filterOptions?.denominations, form.denominations]);
 
   const goToPage = (nextPage: number): void => {
     if (nextPage < 1 || (totalPages > 0 && nextPage > totalPages)) return;
@@ -555,6 +645,36 @@ const EventsDiscoveryPage = () => {
             );
           })}
         </div>
+
+        {visibleDenominationFamilies.length > 0 ? (
+          <div
+            className="mt-3 flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Denomination"
+          >
+            <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Denomination
+            </span>
+            {visibleDenominationFamilies.map((family) => {
+              const isActive = form.denominations.includes(family);
+              return (
+                <button
+                  key={family}
+                  type="button"
+                  onClick={() => handleToggleDenomination(family)}
+                  aria-pressed={isActive}
+                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                    isActive
+                      ? 'border-foreground bg-foreground text-white'
+                      : 'border-border bg-card text-foreground hover:border-foreground'
+                  }`}
+                >
+                  {family}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         <div
           className="mt-3 flex flex-wrap items-center gap-2"
