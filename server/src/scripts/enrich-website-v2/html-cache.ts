@@ -33,7 +33,7 @@ export async function readHtmlCache(
   try {
     const info = await stat(path)
     const age = Date.now() - info.mtimeMs
-    if (age > maxAgeMs) return null
+    if (age >= maxAgeMs) return null
     return await readFile(path, 'utf8')
   } catch {
     return null
