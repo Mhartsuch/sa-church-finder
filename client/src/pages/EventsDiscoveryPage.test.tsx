@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { IAggregatedEvent, IEventsFeedResponse } from '@/types/event';
 
+import { ToastProvider } from '@/hooks/ToastProvider';
+
 import EventsDiscoveryPage from './EventsDiscoveryPage';
 
 const useEventsFeedMock = vi.fn();
@@ -73,23 +75,25 @@ const renderPage = (initialEntry = '/events') => {
 
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route
-            path="/events"
-            element={
-              <>
-                <LocationSpy
-                  onLocation={(search) => {
-                    latestSearch = search;
-                  }}
-                />
-                {children}
-              </>
-            }
-          />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route
+              path="/events"
+              element={
+                <>
+                  <LocationSpy
+                    onLocation={(search) => {
+                      latestSearch = search;
+                    }}
+                  />
+                  {children}
+                </>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>
   );
 

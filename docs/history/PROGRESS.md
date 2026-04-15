@@ -15,6 +15,26 @@
 
 ## Log
 
+### 2026-04-15 - Share Button For Churches And Events
+
+**Focus:** Give members a real "Share" affordance on church profiles and event cards so they can push a link to friends without manually copying the URL.
+
+**Completed:**
+
+- **Share link helpers:** Added `client/src/lib/share-links.ts` with pure functions for the Twitter/X intent URL, the Facebook sharer URL, the mailto deep link (subject + body with text + URL), a `canUseNativeShare` check that consults `navigator.share` / `navigator.canShare`, and a `copyTextToClipboard` helper that prefers the async Clipboard API and falls back to a hidden-textarea `execCommand('copy')` path for older browsers.
+- **ShareButton component:** New `client/src/components/layout/ShareButton.tsx` renders a trigger that invokes `navigator.share` on devices that support it (with silent handling of `AbortError` when the user dismisses the sheet) and otherwise opens an accessible menu (`role="menu"` + `menuitem` items) with Copy link, Share on X, Share on Facebook, and Share via email. Copy link uses the clipboard helper, flips the menu item to "Copied!" with a check icon for two seconds, raises a success toast via the existing `ToastProvider`, and emits an error toast if copying fails. The menu closes on Escape, outside click, and after any choice is made, and supports `inline`, `subtle`, and `pill` visual variants.
+- **Integrations:** Replaced the placeholder `Share` button in the church-profile hero (`ChurchProfilePage.tsx`) with the real component and added the `subtle` variant alongside the existing "Add to calendar" button on every event card — both on the church profile's event list and on the aggregated events discovery page (`EventsDiscoveryPage.tsx`). Shared URLs point to the canonical church profile (with a `#events` anchor for event shares) so the link lands on the right place.
+- **Tests:** Added `ShareButton.test.tsx` (9 cases covering the URL builders, the closed-by-default state, the menu options, clipboard copy + toast, the native share sheet taking precedence when available, fallback to the menu on non-abort share errors, and Escape to close) and wrapped the `EventsDiscoveryPage` test render in a `ToastProvider` so the new button's toast context is available.
+
+**Verification:**
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npm run test` — 351 client + 521 server tests pass.
+- `npm run build` — client + server build successfully.
+
+---
+
 ### 2026-04-15 - Add-to-Calendar For Events
 
 **Focus:** Let members export any event they discover on the site straight into their own calendar apps without leaving the page.

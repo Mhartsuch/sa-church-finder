@@ -15,7 +15,6 @@ import {
   MapPin,
   Phone,
   ShieldAlert,
-  Share,
   Star,
   ThumbsUp,
   Users,
@@ -28,6 +27,7 @@ import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalend
 import { buildChurchEventsFeedUrl } from '@/lib/calendar-feed-url';
 import { getAwardDisplayName } from '@/utils/awards';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
+import { ShareButton } from '@/components/layout/ShareButton';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import { BreadcrumbJsonLd, ChurchJsonLd } from '@/components/seo/JsonLd';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
@@ -589,10 +589,18 @@ export const ChurchProfilePage = () => {
               </div>
 
               <div className="mt-4 flex items-center gap-4">
-                <button className="flex items-center gap-2 text-sm font-semibold text-foreground underline hover:text-foreground">
-                  <Share className="h-4 w-4" />
-                  Share
-                </button>
+                <ShareButton
+                  target={{
+                    title: church.name,
+                    text: church.description
+                      ? church.description.slice(0, 140)
+                      : `${church.name} on SA Church Finder`,
+                    url:
+                      typeof window !== 'undefined'
+                        ? `${window.location.origin}/churches/${church.slug}`
+                        : `/churches/${church.slug}`,
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -912,7 +920,20 @@ export const ChurchProfilePage = () => {
                             <MapPin className="h-4 w-4 text-foreground" />
                             <span>{event.locationOverride || church.address}</span>
                           </div>
-                          <div className="mt-4 flex justify-end">
+                          <div className="mt-4 flex flex-wrap justify-end gap-2">
+                            <ShareButton
+                              variant="subtle"
+                              target={{
+                                title: `${event.title} — ${church.name}`,
+                                text: event.description
+                                  ? event.description.slice(0, 140)
+                                  : `${formatEventDate(event.startTime)} at ${church.name}`,
+                                url:
+                                  typeof window !== 'undefined'
+                                    ? `${window.location.origin}/churches/${church.slug}#events`
+                                    : `/churches/${church.slug}#events`,
+                              }}
+                            />
                             <AddToCalendarButton
                               event={{
                                 id: event.occurrenceId,

@@ -14,6 +14,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
 import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalendarButton';
+import { ShareButton } from '@/components/layout/ShareButton';
 import { EventListJsonLd } from '@/components/seo/JsonLd';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useEventsFeed } from '@/hooks/useEvents';
@@ -155,7 +156,20 @@ const EventCard = ({ event }: { event: IAggregatedEvent }) => {
           ) : null}
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <ShareButton
+            variant="subtle"
+            target={{
+              title: `${event.title} — ${event.church.name}`,
+              text: event.description
+                ? event.description.slice(0, 140)
+                : `Upcoming at ${event.church.name}`,
+              url:
+                typeof window !== 'undefined'
+                  ? `${window.location.origin}/churches/${event.church.slug}#events`
+                  : `/churches/${event.church.slug}#events`,
+            }}
+          />
           <AddToCalendarButton
             event={{
               id: event.occurrenceId,
