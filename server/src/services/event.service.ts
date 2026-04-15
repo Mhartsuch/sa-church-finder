@@ -356,8 +356,13 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const hasQuery = Boolean(trimmedQuery)
   const savedByUserId = filters.savedByUserId
 
+  // Multi-select event type. A single value collapses into a one-element `in`
+  // clause, which Prisma is happy to translate; an empty array is treated as
+  // "no filter" so callers can default-construct the array safely.
+  const eventTypes = filters.type && filters.type.length > 0 ? filters.type : undefined
+
   const baseQueryFilters: Prisma.EventWhereInput = {
-    ...(filters.type ? { eventType: filters.type } : {}),
+    ...(eventTypes ? { eventType: { in: eventTypes } } : {}),
     ...(savedByUserId ? { church: { savedByUsers: { some: { userId: savedByUserId } } } } : {}),
     ...(hasQuery
       ? {
@@ -435,7 +440,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
       pageSize,
       totalPages,
       filters: {
-        type: filters.type,
+        type: eventTypes,
         from,
         to,
         q: hasQuery ? trimmedQuery : undefined,

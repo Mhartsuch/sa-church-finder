@@ -33,7 +33,12 @@ const buildQueryString = (params: IChurchEventFilters): string => {
 const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   const qs = new URLSearchParams();
 
-  if (params.type) qs.append('type', params.type);
+  // Event types are multi-select and OR-combined on the backend. Serialize as
+  // a single comma-separated `type` query param so the same wire format works
+  // for one or many values; an empty array means "no filter".
+  if (params.type && params.type.length > 0) {
+    qs.append('type', params.type.join(','));
+  }
   if (params.from) qs.append('from', params.from);
   if (params.to) qs.append('to', params.to);
   if (params.q && params.q.trim()) qs.append('q', params.q.trim());

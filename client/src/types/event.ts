@@ -119,7 +119,13 @@ export interface IAggregatedEvent extends IChurchEvent {
 }
 
 export interface IEventsFeedFilters {
-  type?: ChurchEventType;
+  /**
+   * Multi-select event type filter. The wire format is a single
+   * comma-separated `type` query param (e.g. `type=service,community`); the
+   * server normalizes single, comma-separated, and repeated query params into
+   * the same shape. An empty array or `undefined` means "no filter".
+   */
+  type?: ChurchEventType[];
   from?: string;
   to?: string;
   q?: string;
@@ -149,7 +155,7 @@ export interface IEventsFeedResponse {
     pageSize: number;
     totalPages: number;
     filters: {
-      type?: ChurchEventType;
+      type?: ChurchEventType[];
       from: string;
       to?: string;
       q?: string;

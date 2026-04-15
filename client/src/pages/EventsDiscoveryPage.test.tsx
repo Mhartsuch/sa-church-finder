@@ -157,7 +157,7 @@ describe('EventsDiscoveryPage', () => {
 
     const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
     expect(filterArgs).toMatchObject({
-      type: 'youth',
+      type: ['youth'],
       q: 'easter',
       from: '2026-04-01T00:00:00.000Z',
       to: '2026-04-30T23:59:59.999Z',
@@ -170,7 +170,7 @@ describe('EventsDiscoveryPage', () => {
     expect(screen.getByText('Search: "easter"')).toBeInTheDocument();
   });
 
-  it('updates the URL query string when the user applies filters', () => {
+  it('writes the selected event type to the URL when its chip is toggled on', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([]),
       isLoading: false,
@@ -180,13 +180,100 @@ describe('EventsDiscoveryPage', () => {
 
     const { getSearch } = renderPage();
 
-    const typeSelect = screen.getByLabelText('Event type');
-    fireEvent.change(typeSelect, { target: { value: 'community' } });
-
-    const applyButton = screen.getByRole('button', { name: 'Apply filters' });
-    fireEvent.click(applyButton);
+    const typeGroup = screen.getByRole('group', { name: 'Event type' });
+    fireEvent.click(within(typeGroup).getByRole('button', { name: 'Community' }));
 
     expect(getSearch()).toContain('type=community');
+  });
+
+  it('supports selecting multiple event types as a comma-separated list', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    const { getSearch } = renderPage();
+
+    const typeGroup = screen.getByRole('group', { name: 'Event type' });
+    fireEvent.click(within(typeGroup).getByRole('button', { name: 'Service' }));
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Event type' })).getByRole('button', {
+        name: 'Community',
+      }),
+    );
+
+    // URL captures both selections in click order.
+    const search = getSearch();
+    expect(search).toContain('type=service%2Ccommunity');
+
+    // Both chips show up in the active filter strip.
+    expect(screen.getByText('Type: Service')).toBeInTheDocument();
+    expect(screen.getByText('Type: Community')).toBeInTheDocument();
+
+    // Both chip buttons reflect aria-pressed=true.
+    expect(
+      within(screen.getByRole('group', { name: 'Event type' })).getByRole('button', {
+        name: 'Service',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      within(screen.getByRole('group', { name: 'Event type' })).getByRole('button', {
+        name: 'Community',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('parses a comma-separated `type` URL param into a multi-select filter', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?type=service,community');
+
+    const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+    expect(filterArgs).toMatchObject({ type: ['service', 'community'] });
+
+    // Two separate chips so each type can be removed independently.
+    expect(screen.getByText('Type: Service')).toBeInTheDocument();
+    expect(screen.getByText('Type: Community')).toBeInTheDocument();
+  });
+
+  it('removes a single event type from the URL when its chip is cleared', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    const { getSearch } = renderPage('/events?type=service,community');
+
+    // Click the "Type: Service" active-filter chip to remove just `service`.
+    const chip = screen.getByRole('button', { name: /Type: Service/ });
+    fireEvent.click(chip);
+
+    const search = getSearch();
+    expect(search).toContain('type=community');
+    expect(search).not.toContain('service');
+  });
+
+  it('ignores unknown event types in the URL', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?type=service,not-a-type');
+
+    const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+    expect(filterArgs).toMatchObject({ type: ['service'] });
   });
 
   it('applies a date preset to the URL when clicked, and toggles it off on second click', () => {

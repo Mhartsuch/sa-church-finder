@@ -1,6 +1,47 @@
 import { z } from 'zod'
 
-import { EVENT_TIME_OF_DAY, EVENT_TYPES } from '../types/event.types.js'
+import { ChurchEventType, EVENT_TIME_OF_DAY, EVENT_TYPES } from '../types/event.types.js'
+
+const isChurchEventType = (value: string): value is ChurchEventType =>
+  (EVENT_TYPES as readonly string[]).includes(value)
+
+/**
+ * Multi-select event type filter for the aggregated events feed. Accepts
+ *   - a single value (`type=service`)
+ *   - a comma-separated list (`type=service,community`)
+ *   - repeated query params (`type=service&type=community`, which Express
+ *     surfaces as a string array)
+ *
+ * Always normalizes to a deduplicated `ChurchEventType[]` so the service layer
+ * sees a consistent shape. Returns `undefined` when no value is supplied so
+ * downstream code can skip the filter entirely.
+ */
+const eventTypesQueryParam = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value, ctx) => {
+    if (value === undefined) return undefined
+
+    const raw = Array.isArray(value) ? value.flatMap((item) => item.split(',')) : value.split(',')
+
+    const normalized = Array.from(
+      new Set(raw.map((item) => item.trim()).filter((item): item is string => item.length > 0)),
+    )
+
+    if (normalized.length === 0) return undefined
+
+    for (const candidate of normalized) {
+      if (!isChurchEventType(candidate)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Unknown event type: ${candidate}`,
+        })
+        return z.NEVER
+      }
+    }
+
+    return normalized as ChurchEventType[]
+  })
 
 const dateTimeSchema = z
   .string()
@@ -100,7 +141,7 @@ export const eventsFeedSchema = z.object({
   params: z.object({}).passthrough(),
   query: z
     .object({
-      type: z.enum(EVENT_TYPES).optional(),
+      type: eventTypesQueryParam,
       from: dateTimeSchema.optional(),
       to: dateTimeSchema.optional(),
       q: z.string().trim().max(200).optional(),

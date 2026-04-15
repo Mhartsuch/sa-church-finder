@@ -457,7 +457,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       pageSize: 10,
       totalPages: 1,
     })
-    expect(response.body.meta.filters.type).toBe('service')
+    expect(response.body.meta.filters.type).toEqual(['service'])
     expect(response.body.meta.filters.q).toBe('spring')
 
     expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
@@ -587,6 +587,53 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
     expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+  })
+
+  it('accepts a comma-separated list of event types and ORs them together', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await request(createApp())
+      .get('/api/v1/events')
+      .query({ type: 'service,community' })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.type).toEqual(['service', 'community'])
+
+    const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+      AND: Array<Record<string, unknown>>
+    }
+    expect(whereArg.AND[0]).toMatchObject({
+      eventType: { in: ['service', 'community'] },
+    })
+  })
+
+  it('accepts repeated `type` query params for multi-select', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    // Express parses `?type=service&type=community` as a string array on
+    // req.query, so the schema needs to handle both shapes.
+    const response = await request(createApp()).get('/api/v1/events?type=service&type=community')
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.type).toEqual(['service', 'community'])
+  })
+
+  it('dedupes repeated event types and rejects when any is invalid', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const okResponse = await request(createApp())
+      .get('/api/v1/events')
+      .query({ type: 'service,service,community' })
+
+    expect(okResponse.status).toBe(200)
+    expect(okResponse.body.meta.filters.type).toEqual(['service', 'community'])
+
+    const badResponse = await request(createApp())
+      .get('/api/v1/events')
+      .query({ type: 'service,not-a-type' })
+
+    expect(badResponse.status).toBe(400)
+    expect(badResponse.body.error.code).toBe('VALIDATION_ERROR')
   })
 
   it('requires authentication when savedOnly=true is requested', async () => {

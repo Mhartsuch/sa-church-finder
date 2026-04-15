@@ -93,7 +93,9 @@ router.get(
       }
 
       const filters: IEventsFeedFilters = {
-        type: typeof q.type === 'string' ? (q.type as ChurchEventType) : undefined,
+        // The Zod schema normalizes single, comma-separated, and repeated
+        // `type` query params into a deduped `ChurchEventType[]`.
+        type: Array.isArray(q.type) ? (q.type as ChurchEventType[]) : undefined,
         from: typeof q.from === 'string' ? new Date(q.from) : undefined,
         to: typeof q.to === 'string' ? new Date(q.to) : undefined,
         q: typeof q.q === 'string' && q.q.trim().length > 0 ? q.q.trim() : undefined,

@@ -113,7 +113,12 @@ export interface IAggregatedEvent extends IChurchEvent {
 }
 
 export interface IEventsFeedFilters {
-  type?: ChurchEventType
+  /**
+   * Multi-select event type filter. When more than one type is supplied the
+   * feed returns the union (OR) of those event types. An empty array or
+   * `undefined` means "no filter".
+   */
+  type?: ChurchEventType[]
   from?: Date
   to?: Date
   q?: string
@@ -145,7 +150,7 @@ export interface IEventsFeedResponse {
     pageSize: number
     totalPages: number
     filters: {
-      type?: ChurchEventType
+      type?: ChurchEventType[]
       from: Date
       to: Date
       q?: string

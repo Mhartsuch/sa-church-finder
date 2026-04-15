@@ -97,7 +97,11 @@ const toIsoFromDateInput = (value: string, endOfDay = false): string | undefined
 
 type FeedFormState = {
   q: string;
-  type: ChurchEventType | '';
+  /**
+   * Multi-select event type filter. Order matches the order users selected
+   * the chips, which keeps the URL stable across re-renders.
+   */
+  types: ChurchEventType[];
   fromDate: string;
   toDate: string;
   savedOnly: boolean;
@@ -106,20 +110,33 @@ type FeedFormState = {
 
 const EMPTY_FORM: FeedFormState = {
   q: '',
-  type: '',
+  types: [],
   fromDate: '',
   toDate: '',
   savedOnly: false,
   timeOfDay: '',
 };
 
+const parseTypeParam = (raw: string | null): ChurchEventType[] => {
+  if (!raw) return [];
+  const seen = new Set<ChurchEventType>();
+  const ordered: ChurchEventType[] = [];
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim();
+    if (isChurchEventType(trimmed) && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      ordered.push(trimmed);
+    }
+  }
+  return ordered;
+};
+
 const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
-  const rawType = searchParams.get('type');
   const rawTimeOfDay = searchParams.get('timeOfDay');
 
   return {
     q: searchParams.get('q') ?? '',
-    type: isChurchEventType(rawType) ? rawType : '',
+    types: parseTypeParam(searchParams.get('type')),
     fromDate: toDateInputValue(searchParams.get('from') ?? undefined),
     toDate: toDateInputValue(searchParams.get('to') ?? undefined),
     savedOnly: searchParams.get('saved') === '1',
@@ -237,12 +254,12 @@ const EventsDiscoveryPage = () => {
   const page = pageParam ? Math.max(1, parseInt(pageParam, 10) || 1) : 1;
 
   const filters: IEventsFeedFilters = useMemo(() => {
-    const rawType = searchParams.get('type');
     const rawTimeOfDay = searchParams.get('timeOfDay');
     const savedOnly = isAuthenticated && searchParams.get('saved') === '1';
+    const types = parseTypeParam(searchParams.get('type'));
 
     return {
-      type: isChurchEventType(rawType) ? rawType : undefined,
+      type: types.length > 0 ? types : undefined,
       q: searchParams.get('q')?.trim() || undefined,
       from: toIsoFromDateInput(searchParams.get('from') ?? '', false),
       to: toIsoFromDateInput(searchParams.get('to') ?? '', true),
@@ -263,7 +280,11 @@ const EventsDiscoveryPage = () => {
   const appliedChips = useMemo(() => {
     const chips: Array<{ key: string; label: string }> = [];
     if (filters.type) {
-      chips.push({ key: 'type', label: `Type: ${EVENT_TYPE_LABELS[filters.type]}` });
+      // Each selected event type gets its own removable chip so users can
+      // peel them off one at a time without clearing the whole multi-select.
+      for (const type of filters.type) {
+        chips.push({ key: `type:${type}`, label: `Type: ${EVENT_TYPE_LABELS[type]}` });
+      }
     }
     if (filters.q) {
       chips.push({ key: 'q', label: `Search: "${filters.q}"` });
@@ -293,7 +314,7 @@ const EventsDiscoveryPage = () => {
     const next = new URLSearchParams();
 
     if (nextForm.q.trim()) next.set('q', nextForm.q.trim());
-    if (nextForm.type) next.set('type', nextForm.type);
+    if (nextForm.types.length > 0) next.set('type', nextForm.types.join(','));
     if (nextForm.fromDate) next.set('from', nextForm.fromDate);
     if (nextForm.toDate) next.set('to', nextForm.toDate);
     if (nextForm.savedOnly) next.set('saved', '1');
@@ -313,14 +334,27 @@ const EventsDiscoveryPage = () => {
   };
 
   const handleClearChip = (key: string): void => {
-    const nextForm: FeedFormState = { ...form };
-    if (key === 'type') nextForm.type = '';
+    const nextForm: FeedFormState = { ...form, types: [...form.types] };
+    if (key.startsWith('type:')) {
+      const removed = key.slice('type:'.length);
+      nextForm.types = nextForm.types.filter((type) => type !== removed);
+    }
     if (key === 'q') nextForm.q = '';
     if (key === 'from') nextForm.fromDate = '';
     if (key === 'to') nextForm.toDate = '';
     if (key === 'saved') nextForm.savedOnly = false;
     if (key === 'timeOfDay') nextForm.timeOfDay = '';
 
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleType = (type: ChurchEventType): void => {
+    const isSelected = form.types.includes(type);
+    const nextTypes = isSelected
+      ? form.types.filter((existing) => existing !== type)
+      : [...form.types, type];
+    const nextForm: FeedFormState = { ...form, types: nextTypes };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -402,14 +436,25 @@ const EventsDiscoveryPage = () => {
           across San Antonio. Filter by type or date to plan your next visit.
         </p>
         <div className="mt-4">
-          <SubscribeToCalendarButton
-            feedUrl={buildAggregatedEventsFeedUrl({ type: filters.type ?? null })}
-            label={
-              filters.type
-                ? `Subscribe to ${EVENT_TYPE_LABELS[filters.type]} events`
-                : 'Subscribe to the city events feed'
-            }
-          />
+          {/*
+            The aggregated calendar feed currently supports a single event-type
+            filter per subscription URL. When the user has narrowed to exactly
+            one type we point the feed at it; otherwise we offer the city-wide
+            feed so the subscribe action stays useful for any selection.
+          */}
+          {(() => {
+            const onlyType = filters.type && filters.type.length === 1 ? filters.type[0] : null;
+            return (
+              <SubscribeToCalendarButton
+                feedUrl={buildAggregatedEventsFeedUrl({ type: onlyType })}
+                label={
+                  onlyType
+                    ? `Subscribe to ${EVENT_TYPE_LABELS[onlyType]} events`
+                    : 'Subscribe to the city events feed'
+                }
+              />
+            );
+          })()}
         </div>
 
         <div
@@ -459,6 +504,34 @@ const EventsDiscoveryPage = () => {
         <div
           className="mt-3 flex flex-wrap items-center gap-2"
           role="group"
+          aria-label="Event type"
+        >
+          <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Event type
+          </span>
+          {EVENT_TYPES.map((type) => {
+            const isActive = form.types.includes(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => handleToggleType(type)}
+                aria-pressed={isActive}
+                className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                  isActive
+                    ? 'border-foreground bg-foreground text-white'
+                    : 'border-border bg-card text-foreground hover:border-foreground'
+                }`}
+              >
+                {EVENT_TYPE_LABELS[type]}
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          className="mt-3 flex flex-wrap items-center gap-2"
+          role="group"
           aria-label="Time of day"
         >
           <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -489,7 +562,7 @@ const EventsDiscoveryPage = () => {
           className="mt-4 rounded-[20px] border border-border bg-card p-5 shadow-airbnb-subtle"
           aria-label="Event filters"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr),minmax(0,1fr)]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr)]">
             <label className="flex flex-col gap-1.5">
               <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Search
@@ -504,29 +577,6 @@ const EventsDiscoveryPage = () => {
                   className="w-full rounded-[10px] border border-border bg-background px-9 py-2.5 text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
                 />
               </div>
-            </label>
-
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Event type
-              </span>
-              <select
-                value={form.type}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    type: event.target.value as ChurchEventType | '',
-                  }))
-                }
-                className="w-full rounded-[10px] border border-border bg-background px-3 py-2.5 text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
-              >
-                <option value="">All types</option>
-                {EVENT_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {EVENT_TYPE_LABELS[type]}
-                  </option>
-                ))}
-              </select>
             </label>
 
             <label className="flex flex-col gap-1.5">
