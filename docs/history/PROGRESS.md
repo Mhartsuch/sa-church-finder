@@ -15,6 +15,26 @@
 
 ## Log
 
+### 2026-04-15 - Add-to-Calendar For Events
+
+**Focus:** Let members export any event they discover on the site straight into their own calendar apps without leaving the page.
+
+**Completed:**
+
+- **Calendar link utilities:** Added `client/src/lib/calendar-links.ts` with pure helpers to build a Google Calendar `action=TEMPLATE` URL, an Outlook.com `compose` deep link, and a self-contained RFC 5545 ICS body (plus a slugified `.ics` filename and a `data:` URI download). Times are rendered in UTC basic-format (`YYYYMMDDTHHMMSSZ`), optional description/url are folded into the calendar details, and invalid/missing end times fall back to a 1-hour block after start. Escaping covers commas, semicolons, backslashes, and newlines per RFC 5545.
+- **AddToCalendarButton:** New `client/src/components/events/AddToCalendarButton.tsx` renders an accessible menu (`role="menu"` + `menuitem` links) with Google / Outlook / Apple (.ics) choices, closes on Escape, outside click, and after an item is chosen, and supports `subtle` and `pill` visual variants.
+- **Integrations:** Wired the new button into every public event card — the Events Discovery page (`EventsDiscoveryPage.tsx`) passes a church-profile URL so the calendar entry links back to the church, and the Church Profile event list now shows it alongside the existing date/time/location panel with the event title prefixed by the church name.
+- **Tests:** Added `calendar-links.test.ts` (14 cases across Google URL params, Outlook deep-link params, ICS escaping, ICS defaults, data URI roundtrip, filename slugification, and invalid-start rejection) and `AddToCalendarButton.test.tsx` (6 cases covering the closed-by-default state, the three calendar choices, Google href composition, ICS download filename + data URI, Escape to close, and outside-click to close).
+
+**Verification:**
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npm run test` — 315 client + 501 server tests pass.
+- `npm run build` — client + server build successfully.
+
+---
+
 ### 2026-04-11 - Recurring-Event RRULE Expansion
 
 **Focus:** Turned the previously inert `recurrenceRule` metadata into real, occurrence-aware event payloads so a weekly Sunday service shows up on every upcoming Sunday in both the per-church events list and the aggregated public events feed.

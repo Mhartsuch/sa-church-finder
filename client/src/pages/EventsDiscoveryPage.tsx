@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
+import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
 import { EventListJsonLd } from '@/components/seo/JsonLd';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useEventsFeed } from '@/hooks/useEvents';
@@ -144,6 +145,23 @@ const EventCard = ({ event }: { event: IAggregatedEvent }) => {
               {event.church.city}
             </span>
           ) : null}
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <AddToCalendarButton
+            event={{
+              id: event.occurrenceId,
+              title: event.title,
+              description: event.description,
+              startTime: event.startTime,
+              endTime: event.endTime,
+              location: event.locationOverride ?? event.church.name,
+              url:
+                typeof window !== 'undefined'
+                  ? `${window.location.origin}/churches/${event.church.slug}`
+                  : `/churches/${event.church.slug}`,
+            }}
+          />
         </div>
       </div>
     </article>

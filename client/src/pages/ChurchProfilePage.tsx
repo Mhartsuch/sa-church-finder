@@ -23,6 +23,7 @@ import {
 
 import { Lightbox } from '@/components/church/Lightbox';
 import { LogVisitModal } from '@/components/church/LogVisitModal';
+import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
 import { getAwardDisplayName } from '@/utils/awards';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import ReviewForm from '@/components/reviews/ReviewForm';
@@ -902,6 +903,22 @@ export const ChurchProfilePage = () => {
                           <div className="mt-3 flex items-center gap-3">
                             <MapPin className="h-4 w-4 text-foreground" />
                             <span>{event.locationOverride || church.address}</span>
+                          </div>
+                          <div className="mt-4 flex justify-end">
+                            <AddToCalendarButton
+                              event={{
+                                id: event.occurrenceId,
+                                title: `${event.title} — ${church.name}`,
+                                description: event.description,
+                                startTime: event.startTime,
+                                endTime: event.endTime,
+                                location: event.locationOverride || church.address,
+                                url:
+                                  typeof window !== 'undefined'
+                                    ? `${window.location.origin}/churches/${church.slug}`
+                                    : `/churches/${church.slug}`,
+                              }}
+                            />
                           </div>
                         </div>
                       </div>
