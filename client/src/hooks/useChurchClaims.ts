@@ -1,34 +1,37 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   fetchAdminChurchClaims,
+  fetchChurchAdmins,
   fetchUserChurchClaims,
+  removeChurchAdminRequest,
   resolveChurchClaim,
   submitChurchClaim,
-} from '@/api/church-claims'
-import { AUTH_SESSION_QUERY_KEY } from '@/hooks/useAuth'
-import { CHURCHES_QUERY_KEY, CHURCH_QUERY_KEY } from '@/hooks/useChurches'
+} from '@/api/church-claims';
+import { AUTH_SESSION_QUERY_KEY } from '@/hooks/useAuth';
+import { CHURCHES_QUERY_KEY, CHURCH_QUERY_KEY } from '@/hooks/useChurches';
 import {
   CreateChurchClaimInput,
   IAdminChurchClaimsResponse,
+  IChurchAdmin,
   IViewerChurchClaim,
   IUserChurchClaimsResponse,
   ResolveChurchClaimInput,
   ResolveChurchClaimResult,
-} from '@/types/church-claim'
+} from '@/types/church-claim';
 
-const STALE_TIME = 60000
+const STALE_TIME = 60000;
 
-export const USER_CHURCH_CLAIMS_QUERY_KEY = ['user-church-claims'] as const
-export const ADMIN_CHURCH_CLAIMS_QUERY_KEY = ['admin-church-claims'] as const
+export const USER_CHURCH_CLAIMS_QUERY_KEY = ['user-church-claims'] as const;
+export const ADMIN_CHURCH_CLAIMS_QUERY_KEY = ['admin-church-claims'] as const;
 
 const invalidateClaimAwareQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
-  void queryClient.invalidateQueries({ queryKey: CHURCHES_QUERY_KEY })
-  void queryClient.invalidateQueries({ queryKey: CHURCH_QUERY_KEY })
-  void queryClient.invalidateQueries({ queryKey: USER_CHURCH_CLAIMS_QUERY_KEY })
-  void queryClient.invalidateQueries({ queryKey: ADMIN_CHURCH_CLAIMS_QUERY_KEY })
-  void queryClient.invalidateQueries({ queryKey: AUTH_SESSION_QUERY_KEY })
-}
+  void queryClient.invalidateQueries({ queryKey: CHURCHES_QUERY_KEY });
+  void queryClient.invalidateQueries({ queryKey: CHURCH_QUERY_KEY });
+  void queryClient.invalidateQueries({ queryKey: USER_CHURCH_CLAIMS_QUERY_KEY });
+  void queryClient.invalidateQueries({ queryKey: ADMIN_CHURCH_CLAIMS_QUERY_KEY });
+  void queryClient.invalidateQueries({ queryKey: AUTH_SESSION_QUERY_KEY });
+};
 
 export const useUserChurchClaims = (userId: string | null) => {
   return useQuery<IUserChurchClaimsResponse, Error>({
@@ -36,8 +39,8 @@ export const useUserChurchClaims = (userId: string | null) => {
     queryFn: () => fetchUserChurchClaims(userId!),
     staleTime: STALE_TIME,
     enabled: Boolean(userId),
-  })
-}
+  });
+};
 
 export const useAdminChurchClaims = (enabled: boolean) => {
   return useQuery<IAdminChurchClaimsResponse, Error>({
@@ -45,31 +48,49 @@ export const useAdminChurchClaims = (enabled: boolean) => {
     queryFn: fetchAdminChurchClaims,
     staleTime: STALE_TIME,
     enabled,
-  })
-}
+  });
+};
 
 export const useSubmitChurchClaim = () => {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
-  return useMutation<
-    IViewerChurchClaim & { churchId: string },
-    Error,
-    CreateChurchClaimInput
-  >({
+  return useMutation<IViewerChurchClaim & { churchId: string }, Error, CreateChurchClaimInput>({
     mutationFn: submitChurchClaim,
     onSuccess: () => {
-      invalidateClaimAwareQueries(queryClient)
+      invalidateClaimAwareQueries(queryClient);
     },
-  })
-}
+  });
+};
 
 export const useResolveChurchClaim = () => {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation<ResolveChurchClaimResult, Error, ResolveChurchClaimInput>({
     mutationFn: resolveChurchClaim,
     onSuccess: () => {
-      invalidateClaimAwareQueries(queryClient)
+      invalidateClaimAwareQueries(queryClient);
     },
-  })
-}
+  });
+};
+
+export const CHURCH_ADMINS_QUERY_KEY = ['church-admins'] as const;
+
+export const useChurchAdmins = (churchId: string | null) => {
+  return useQuery<IChurchAdmin[], Error>({
+    queryKey: [...CHURCH_ADMINS_QUERY_KEY, churchId],
+    queryFn: () => fetchChurchAdmins(churchId!),
+    staleTime: STALE_TIME,
+    enabled: Boolean(churchId),
+  });
+};
+
+export const useRemoveChurchAdmin = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { churchId: string; adminUserId: string }>({
+    mutationFn: ({ churchId, adminUserId }) => removeChurchAdminRequest(churchId, adminUserId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: CHURCH_ADMINS_QUERY_KEY });
+    },
+  });
+};

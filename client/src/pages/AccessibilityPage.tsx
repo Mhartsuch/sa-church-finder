@@ -5,6 +5,7 @@ import {
   SupportPageLayout,
   SupportPageSection,
 } from '@/components/support/SupportPageLayout';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const accessibilityCommitments = [
   {
@@ -49,6 +50,13 @@ const planningTips = [
 ] as const;
 
 export const AccessibilityPage = () => {
+  useDocumentHead({
+    title: 'Accessibility',
+    description:
+      'Our commitment to making SA Church Finder accessible to everyone, including keyboard navigation and screen reader support.',
+    canonicalPath: '/accessibility',
+  });
+
   return (
     <SupportPageLayout
       eyebrow="Accessibility"

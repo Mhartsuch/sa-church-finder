@@ -33,6 +33,7 @@ async function main() {
   await prisma.emailVerificationToken.deleteMany()
   await prisma.passwordResetToken.deleteMany()
   await prisma.user.deleteMany()
+  await prisma.ribbonCategory.deleteMany()
   await prisma.church.deleteMany()
 
   // ── Create test users ──
@@ -63,6 +64,26 @@ async function main() {
   //   npm run import:google-churches
   //   npm run enrich:google-ratings
   console.log('\nNo demo churches seeded — use import:google-churches to populate.')
+
+  // ── Seed ribbon categories ──
+  console.log('\nSeeding ribbon categories...')
+  const ribbonCategories = [
+    { label: 'Historic', icon: '🏛️', slug: 'historic', filterType: 'QUERY' as const, filterValue: 'Historic', position: 0 },
+    { label: 'Contemporary', icon: '🎵', slug: 'contemporary', filterType: 'QUERY' as const, filterValue: 'Contemporary', position: 1 },
+    { label: 'Traditional', icon: '🏠', slug: 'traditional', filterType: 'QUERY' as const, filterValue: 'Traditional', position: 2 },
+    { label: 'Community', icon: '💜', slug: 'community', filterType: 'QUERY' as const, filterValue: 'Community', position: 3 },
+    { label: 'Missions', icon: '🏛️', slug: 'missions', filterType: 'QUERY' as const, filterValue: 'Mission', position: 4 },
+    { label: 'Megachurch', icon: '🏢', slug: 'megachurch', filterType: 'QUERY' as const, filterValue: 'Megachurch', position: 5 },
+  ]
+
+  for (const cat of ribbonCategories) {
+    await prisma.ribbonCategory.upsert({
+      where: { slug: cat.slug },
+      update: { label: cat.label, icon: cat.icon, filterType: cat.filterType, filterValue: cat.filterValue, position: cat.position },
+      create: { ...cat, source: 'MANUAL', isVisible: true, isPinned: true },
+    })
+  }
+  console.log(`Seeded ${ribbonCategories.length} ribbon categories`)
 
   console.log('\n✅ Seed completed successfully!')
 }

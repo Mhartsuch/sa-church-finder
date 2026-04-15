@@ -4,6 +4,7 @@ import {
   SupportPageLayout,
   SupportPageSection,
 } from '@/components/support/SupportPageLayout';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const sitemapSections = [
   {
@@ -13,6 +14,7 @@ const sitemapSections = [
       { label: 'Home', to: '/' },
       { label: 'Search churches', to: '/search' },
       { label: 'Compare churches', to: '/compare' },
+      { label: 'Upcoming events', to: '/events' },
     ],
   },
   {
@@ -24,6 +26,11 @@ const sitemapSections = [
       { label: 'Accessibility', to: '/accessibility' },
       { label: 'Report a concern', to: '/report-a-concern' },
     ],
+  },
+  {
+    title: 'Community',
+    description: 'Public spaces for local discussion alongside church discovery.',
+    links: [{ label: 'Forum', to: '/forum' }],
   },
   {
     title: 'Account',
@@ -51,6 +58,12 @@ const contextualRoutes = [
 ] as const;
 
 export const SitemapPage = () => {
+  useDocumentHead({
+    title: 'Sitemap',
+    description: 'Browse all pages on SA Church Finder.',
+    canonicalPath: '/sitemap',
+  });
+
   return (
     <SupportPageLayout
       eyebrow="Site Map"

@@ -9,6 +9,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: 'default' | 'destructive';
   isPending?: boolean;
+  children?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +22,7 @@ export const ConfirmDialog = ({
   cancelLabel = 'Cancel',
   variant = 'default',
   isPending = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
@@ -57,7 +59,7 @@ export const ConfirmDialog = ({
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-desc"
-        className="w-full max-w-md overflow-hidden rounded-2xl bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-modal-slide-up"
+        className="w-full max-w-md overflow-hidden rounded-2xl bg-card p-4 shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-modal-slide-up sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
@@ -76,10 +78,11 @@ export const ConfirmDialog = ({
             >
               {description}
             </p>
+            {children}
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:mt-6 sm:flex-row sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={onCancel}

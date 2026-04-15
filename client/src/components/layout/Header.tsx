@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Church, Heart, Menu, Moon, Scale, Search, Sun, User } from 'lucide-react';
+import { CalendarDays, Church, Heart, Menu, Moon, Scale, Search, Sun, User } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { SearchBar } from '@/components/search/SearchBar';
@@ -25,13 +25,13 @@ export const Header = () => {
   }, [theme]);
 
   const handleSearchSubmit = () => {
-    if (location.pathname !== '/' && location.pathname !== '/search') {
+    if (location.pathname !== '/search') {
       navigate('/search');
     }
   };
 
   const handleOpenFilters = () => {
-    if (location.pathname === '/' || location.pathname === '/search') {
+    if (location.pathname === '/search') {
       navigate(
         {
           pathname: location.pathname,
@@ -66,10 +66,13 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md">
       <div className="mx-auto max-w-[1760px] px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div className="flex min-h-[80px] items-center gap-4">
-          <Link to="/" className="flex flex-shrink-0 items-center gap-2 text-[#FF385C]">
-            <Church className="h-8 w-8" strokeWidth={2.2} />
-            <span className="text-[20px] font-extrabold tracking-[-0.03em]">ChurchFinder</span>
+        <div className="flex min-h-[64px] items-center gap-2 sm:min-h-[80px] sm:gap-4">
+          <Link to="/" className="flex flex-shrink-0 items-center gap-1.5 text-[#FF385C] sm:gap-2">
+            <Church className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.2} />
+            <span className="hidden text-[20px] font-extrabold tracking-[-0.03em] sm:inline">
+              ChurchFinder
+            </span>
+            <span className="text-[17px] font-extrabold tracking-[-0.03em] sm:hidden">CF</span>
           </Link>
 
           <div className="hidden flex-1 justify-center lg:flex">
@@ -83,6 +86,14 @@ export const Header = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/events"
+              className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Events
+            </Link>
+
             <Link
               to="/compare"
               className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-foreground hover:bg-muted"
@@ -110,7 +121,7 @@ export const Header = () => {
 
             <Link
               to={wishlistHref}
-              className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
+              className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
             >
               <Heart className="h-3.5 w-3.5 fill-current" />
               Wishlist

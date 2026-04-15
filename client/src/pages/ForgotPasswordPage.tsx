@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { useRequestPasswordReset } from '@/hooks/useAuth';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { ForgotPasswordResult } from '@/types/auth';
 
 type ForgotPasswordFormState = {
@@ -27,6 +28,8 @@ const validateForm = ({ email }: ForgotPasswordFormState): string | null => {
 };
 
 const ForgotPasswordPage = () => {
+  useDocumentHead({ title: 'Forgot Password', noindex: true });
+
   const requestPasswordResetMutation = useRequestPasswordReset();
   const [formState, setFormState] = useState<ForgotPasswordFormState>({
     email: '',
@@ -127,7 +130,10 @@ const ForgotPasswordPage = () => {
             Email
             <input
               type="email"
+              inputMode="email"
               autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
               value={formState.email}
               onChange={(event) => {
                 setFormState({

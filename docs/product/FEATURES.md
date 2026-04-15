@@ -149,7 +149,7 @@
 **Implementation Notes:**
 
 - Events are church-owned (only church admins can create them)
-- Recurring event support via `rrule` pattern stored in database
+- Recurring event support via an in-house iCal RRULE subset (`FREQ=DAILY|WEEKLY|MONTHLY`, `INTERVAL`, `BYDAY`, `COUNT`, `UNTIL`) parsed on write and expanded into occurrences on read — see `server/src/lib/recurrence.ts` and DEC-023
 - Use `date-fns` for date formatting (avoid moment.js)
 
 ---

@@ -1,23 +1,24 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import { buildCalendarFeed } from '../lib/ics.js'
 import logger from '../lib/logger.js'
 import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
+  ChurchUpdateBody,
+  churchCalendarFeedSchema,
   churchDetailSchema,
   churchEventsSchema,
   churchIdSchema,
   churchSearchSchema,
+  churchUpdateSchema,
 } from '../schemas/church.schema.js'
 import { toggleSavedChurch } from '../services/saved-church.service.js'
-import {
-  searchChurches,
-  getDenominationFamilies,
-  getAvailableLanguages,
-  getAvailableAmenities,
-} from '../services/church.service.js'
+import { searchChurches, getFilterOptions, updateChurch } from '../services/church.service.js'
 import { getChurchDetailsBySlug } from '../services/church-detail.service.js'
-import { listChurchEventsBySlug } from '../services/event.service.js'
+import { getChurchCalendarFeedBySlug, listChurchEventsBySlug } from '../services/event.service.js'
+import { resolvePublicSiteUrl } from '../lib/public-url.js'
 import { ISearchParams } from '../types/church.types.js'
+import { IUpdateChurchInput } from '../services/church.service.js'
 import { ChurchEventType, IChurchEventFilters } from '../types/event.types.js'
 
 const router = Router()
@@ -43,6 +44,15 @@ router.get(
         time: q.time as 'morning' | 'afternoon' | 'evening' | undefined,
         language: q.language as string | undefined,
         amenities: q.amenities as string | undefined,
+        wheelchairAccessible: q.wheelchairAccessible as boolean | undefined,
+        goodForChildren: q.goodForChildren as boolean | undefined,
+        goodForGroups: q.goodForGroups as boolean | undefined,
+        minRating: q.minRating as number | undefined,
+        neighborhood: q.neighborhood as string | undefined,
+        serviceType: q.serviceType as string | undefined,
+        hasPhotos: q.hasPhotos as boolean | undefined,
+        isClaimed: q.isClaimed as boolean | undefined,
+        openNow: q.openNow as boolean | undefined,
         sort: q.sort as 'relevance' | 'distance' | 'rating' | 'name' | undefined,
         page: q.page as number | undefined,
         pageSize: q.pageSize as number | undefined,
@@ -68,15 +78,11 @@ router.get(
  */
 router.get('/filter-options', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [denominations, languages, amenities] = await Promise.all([
-      getDenominationFamilies(),
-      getAvailableLanguages(),
-      getAvailableAmenities(),
-    ])
-
-    res.json({
-      data: { denominations, languages, amenities },
-    })
+    // `getFilterOptions` wraps the five underlying DISTINCT queries in a
+    // 5-minute in-process cache so the common "search page cold load" path
+    // doesn't thrash the database. See church.service.ts for the TTL details.
+    const data = await getFilterOptions()
+    res.json({ data })
     return
   } catch (error) {
     next(error)
@@ -109,6 +115,111 @@ router.post(
   },
 )
 
+/**
+ * PATCH /api/v1/churches/:id
+ * Update editable church listing fields (church_admin or site_admin)
+ */
+router.patch(
+  '/:id',
+  validate(churchUpdateSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+      const body = req.body as ChurchUpdateBody
+
+      logger.info({ churchId: id, userId }, 'Updating church listing')
+
+      const input: IUpdateChurchInput = {
+        ...(body.description !== undefined ? { description: body.description } : {}),
+        ...(body.phone !== undefined ? { phone: body.phone } : {}),
+        ...(body.email !== undefined ? { email: body.email } : {}),
+        ...(body.website !== undefined ? { website: body.website } : {}),
+        ...(body.pastorName !== undefined ? { pastorName: body.pastorName } : {}),
+        ...(body.yearEstablished !== undefined ? { yearEstablished: body.yearEstablished } : {}),
+        ...(body.languages !== undefined ? { languages: body.languages } : {}),
+        ...(body.amenities !== undefined ? { amenities: body.amenities } : {}),
+        ...(body.goodForChildren !== undefined ? { goodForChildren: body.goodForChildren } : {}),
+        ...(body.goodForGroups !== undefined ? { goodForGroups: body.goodForGroups } : {}),
+        ...(body.wheelchairAccessible !== undefined
+          ? { wheelchairAccessible: body.wheelchairAccessible }
+          : {}),
+      }
+
+      const church = await updateChurch(userId, id, input)
+
+      res.json({
+        data: church,
+        message: 'Church updated successfully',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.get(
+  '/:slug/events.ics',
+  validate(churchCalendarFeedSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params
+      const q = req.query as Record<string, unknown>
+      const type = typeof q.type === 'string' ? (q.type as ChurchEventType) : undefined
+
+      logger.info({ slug, type }, 'Generating church calendar feed')
+
+      const feed = await getChurchCalendarFeedBySlug(slug)
+
+      if (!feed) {
+        res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: `Church with slug "${slug}" not found`,
+          },
+        })
+        return
+      }
+
+      const filteredEvents = type
+        ? feed.events.filter((event) => event.eventType === type)
+        : feed.events
+
+      const siteUrl = resolvePublicSiteUrl()
+
+      const ics = buildCalendarFeed({
+        calendarName: feed.calendarName,
+        calendarDescription: feed.calendarDescription,
+        events: filteredEvents.map((event) => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          eventType: event.eventType,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          location: event.locationOverride ?? event.church.address,
+          url: `${siteUrl}/churches/${event.church.slug}`,
+          isRecurring: event.isRecurring,
+          recurrenceRule: event.recurrenceRule,
+          updatedAt: event.updatedAt,
+        })),
+      })
+
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
+      res.setHeader('Content-Disposition', `inline; filename="${slug}-events.ics"`)
+      res.setHeader('Cache-Control', 'public, max-age=300')
+      res.send(ics)
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
 router.get(
   '/:slug/events',
   validate(churchEventsSchema),
@@ -120,6 +231,7 @@ router.get(
         type: q.type as ChurchEventType | undefined,
         from: typeof q.from === 'string' ? new Date(q.from) : undefined,
         to: typeof q.to === 'string' ? new Date(q.to) : undefined,
+        expand: typeof q.expand === 'boolean' ? q.expand : undefined,
       }
 
       logger.info({ slug, filters }, 'Fetching church events')
