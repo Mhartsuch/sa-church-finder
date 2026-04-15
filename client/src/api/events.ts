@@ -40,6 +40,7 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.page && params.page > 1) qs.append('page', String(params.page));
   if (params.pageSize) qs.append('pageSize', String(params.pageSize));
   if (params.savedOnly) qs.append('savedOnly', 'true');
+  if (params.timeOfDay) qs.append('timeOfDay', params.timeOfDay);
 
   const queryStr = qs.toString();
   return queryStr ? `?${queryStr}` : '';

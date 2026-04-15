@@ -326,6 +326,68 @@ describe('EventsDiscoveryPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('reads timeOfDay from the URL and forwards it to the feed hook', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?timeOfDay=morning');
+
+    const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+    expect(filterArgs).toMatchObject({ timeOfDay: 'morning' });
+
+    expect(screen.getByText('Time of day: Morning')).toBeInTheDocument();
+
+    const timeGroup = screen.getByRole('group', { name: 'Time of day' });
+    expect(within(timeGroup).getByRole('button', { name: 'Morning' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('toggles a time-of-day chip into the URL when clicked, and clears it on second click', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    const { getSearch } = renderPage();
+
+    const timeGroup = screen.getByRole('group', { name: 'Time of day' });
+    const eveningButton = within(timeGroup).getByRole('button', { name: 'Evening' });
+    fireEvent.click(eveningButton);
+
+    expect(getSearch()).toContain('timeOfDay=evening');
+
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Time of day' })).getByRole('button', {
+        name: 'Evening',
+      }),
+    );
+
+    expect(getSearch()).not.toContain('timeOfDay=');
+  });
+
+  it('ignores unknown timeOfDay values from the URL', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?timeOfDay=midnight');
+
+    const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+    expect(filterArgs.timeOfDay).toBeUndefined();
+    expect(screen.queryByText(/Time of day:/)).not.toBeInTheDocument();
+  });
+
   it('renders pagination and advances to the next page', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([makeEvent()], { total: 36, totalPages: 3, page: 1, pageSize: 12 }),

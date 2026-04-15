@@ -27,7 +27,14 @@ import {
   matchEventDatePreset,
   resolveEventDatePreset,
 } from '@/lib/event-date-presets';
-import { ChurchEventType, EVENT_TYPES, IAggregatedEvent, IEventsFeedFilters } from '@/types/event';
+import {
+  ChurchEventType,
+  EVENT_TIME_OF_DAY,
+  EVENT_TYPES,
+  EventTimeOfDay,
+  IAggregatedEvent,
+  IEventsFeedFilters,
+} from '@/types/event';
 
 const PAGE_SIZE = 12;
 
@@ -51,6 +58,15 @@ const EVENT_TYPE_BADGE_COLORS: Record<ChurchEventType, string> = {
 
 const isChurchEventType = (value: string | null): value is ChurchEventType =>
   value !== null && (EVENT_TYPES as readonly string[]).includes(value);
+
+const TIME_OF_DAY_LABELS: Record<EventTimeOfDay, string> = {
+  morning: 'Morning',
+  afternoon: 'Afternoon',
+  evening: 'Evening',
+};
+
+const isTimeOfDay = (value: string | null): value is EventTimeOfDay =>
+  value !== null && (EVENT_TIME_OF_DAY as readonly string[]).includes(value);
 
 const formatEventTimeRange = (startTime: string, endTime?: string | null): string => {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -84,6 +100,7 @@ type FeedFormState = {
   fromDate: string;
   toDate: string;
   savedOnly: boolean;
+  timeOfDay: EventTimeOfDay | '';
 };
 
 const EMPTY_FORM: FeedFormState = {
@@ -92,10 +109,12 @@ const EMPTY_FORM: FeedFormState = {
   fromDate: '',
   toDate: '',
   savedOnly: false,
+  timeOfDay: '',
 };
 
 const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
   const rawType = searchParams.get('type');
+  const rawTimeOfDay = searchParams.get('timeOfDay');
 
   return {
     q: searchParams.get('q') ?? '',
@@ -103,6 +122,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     fromDate: toDateInputValue(searchParams.get('from') ?? undefined),
     toDate: toDateInputValue(searchParams.get('to') ?? undefined),
     savedOnly: searchParams.get('saved') === '1',
+    timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : '',
   };
 };
 
@@ -217,6 +237,7 @@ const EventsDiscoveryPage = () => {
 
   const filters: IEventsFeedFilters = useMemo(() => {
     const rawType = searchParams.get('type');
+    const rawTimeOfDay = searchParams.get('timeOfDay');
     const savedOnly = isAuthenticated && searchParams.get('saved') === '1';
 
     return {
@@ -227,6 +248,7 @@ const EventsDiscoveryPage = () => {
       page,
       pageSize: PAGE_SIZE,
       savedOnly: savedOnly || undefined,
+      timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : undefined,
     };
   }, [searchParams, page, isAuthenticated]);
 
@@ -253,8 +275,14 @@ const EventsDiscoveryPage = () => {
     if (filters.savedOnly) {
       chips.push({ key: 'saved', label: 'From saved churches' });
     }
+    if (filters.timeOfDay) {
+      chips.push({
+        key: 'timeOfDay',
+        label: `Time of day: ${TIME_OF_DAY_LABELS[filters.timeOfDay]}`,
+      });
+    }
     return chips;
-  }, [filters.type, filters.q, filters.savedOnly, searchParams]);
+  }, [filters.type, filters.q, filters.savedOnly, filters.timeOfDay, searchParams]);
 
   const updateUrlParams = (
     nextForm: FeedFormState,
@@ -267,6 +295,7 @@ const EventsDiscoveryPage = () => {
     if (nextForm.fromDate) next.set('from', nextForm.fromDate);
     if (nextForm.toDate) next.set('to', nextForm.toDate);
     if (nextForm.savedOnly) next.set('saved', '1');
+    if (nextForm.timeOfDay) next.set('timeOfDay', nextForm.timeOfDay);
 
     const nextPage = overrides.page === undefined ? page : overrides.page;
     if (nextPage && nextPage > 1) {
@@ -288,6 +317,7 @@ const EventsDiscoveryPage = () => {
     if (key === 'from') nextForm.fromDate = '';
     if (key === 'to') nextForm.toDate = '';
     if (key === 'saved') nextForm.savedOnly = false;
+    if (key === 'timeOfDay') nextForm.timeOfDay = '';
 
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
@@ -320,6 +350,14 @@ const EventsDiscoveryPage = () => {
 
     const { from, to } = resolveEventDatePreset(presetId);
     const nextForm: FeedFormState = { ...form, fromDate: from, toDate: to };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleSelectTimeOfDay = (bucket: EventTimeOfDay): void => {
+    // Toggle off when the same bucket is reselected.
+    const nextValue: EventTimeOfDay | '' = form.timeOfDay === bucket ? '' : bucket;
+    const nextForm: FeedFormState = { ...form, timeOfDay: nextValue };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -414,6 +452,34 @@ const EventsDiscoveryPage = () => {
               From saved churches
             </button>
           ) : null}
+        </div>
+
+        <div
+          className="mt-3 flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Time of day"
+        >
+          <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Time of day
+          </span>
+          {EVENT_TIME_OF_DAY.map((bucket) => {
+            const isActive = form.timeOfDay === bucket;
+            return (
+              <button
+                key={bucket}
+                type="button"
+                onClick={() => handleSelectTimeOfDay(bucket)}
+                aria-pressed={isActive}
+                className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                  isActive
+                    ? 'border-foreground bg-foreground text-white'
+                    : 'border-border bg-card text-foreground hover:border-foreground'
+                }`}
+              >
+                {TIME_OF_DAY_LABELS[bucket]}
+              </button>
+            );
+          })}
         </div>
 
         <form

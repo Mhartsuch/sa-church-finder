@@ -2,6 +2,10 @@ export const EVENT_TYPES = ['service', 'community', 'volunteer', 'study', 'youth
 
 export type ChurchEventType = (typeof EVENT_TYPES)[number]
 
+export const EVENT_TIME_OF_DAY = ['morning', 'afternoon', 'evening'] as const
+
+export type EventTimeOfDay = (typeof EVENT_TIME_OF_DAY)[number]
+
 export interface IChurchEvent {
   id: string
   /**
@@ -122,6 +126,15 @@ export interface IEventsFeedFilters {
    * trusts a client-supplied user id directly.
    */
   savedByUserId?: string
+  /**
+   * Restrict the feed to event occurrences whose start time falls inside the
+   * named bucket of the day, evaluated in San Antonio local time
+   * (America/Chicago):
+   *   - morning   05:00–11:59
+   *   - afternoon 12:00–16:59
+   *   - evening   17:00–21:59
+   */
+  timeOfDay?: EventTimeOfDay
 }
 
 export interface IEventsFeedResponse {
@@ -137,6 +150,7 @@ export interface IEventsFeedResponse {
       to: Date
       q?: string
       savedOnly?: boolean
+      timeOfDay?: EventTimeOfDay
     }
   }
 }

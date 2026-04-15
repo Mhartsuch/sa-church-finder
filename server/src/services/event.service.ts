@@ -11,6 +11,7 @@ import {
 import { AppError, NotFoundError, ValidationError } from '../middleware/error-handler.js'
 import {
   ChurchEventType,
+  EventTimeOfDay,
   IAggregatedEvent,
   ICreateChurchEventInput,
   IChurchEvent,
@@ -93,6 +94,44 @@ export interface ICalendarFeedPayload {
 
 const buildOccurrenceId = (id: string, startTime: Date): string =>
   `${id}::${startTime.toISOString()}`
+
+/**
+ * Time-of-day buckets evaluated in San Antonio local time. Half-open ranges
+ * `[startHour, endHour)` so a 12:00 event is "afternoon", a 17:00 event is
+ * "evening", etc. Events outside any bucket (overnight 22:00–04:59) are
+ * excluded by every named filter.
+ */
+const TIME_OF_DAY_RANGES: Record<EventTimeOfDay, { startHour: number; endHour: number }> = {
+  morning: { startHour: 5, endHour: 12 },
+  afternoon: { startHour: 12, endHour: 17 },
+  evening: { startHour: 17, endHour: 22 },
+}
+
+const SAN_ANTONIO_TIME_ZONE = 'America/Chicago'
+
+const localHourFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: SAN_ANTONIO_TIME_ZONE,
+  hour: 'numeric',
+  hour12: false,
+})
+
+/**
+ * Returns the hour of the day (0-23) that `date` represents in San Antonio
+ * local time, regardless of how the underlying UTC instant looks.
+ */
+export function getLocalHour(date: Date): number {
+  // `Intl.DateTimeFormat` with `hour12: false` returns "24" at midnight on
+  // some runtimes; normalize that back to 0.
+  const raw = parseInt(localHourFormatter.format(date), 10)
+  if (Number.isNaN(raw)) return 0
+  return raw === 24 ? 0 : raw
+}
+
+export function matchesTimeOfDay(date: Date, bucket: EventTimeOfDay): boolean {
+  const hour = getLocalHour(date)
+  const { startHour, endHour } = TIME_OF_DAY_RANGES[bucket]
+  return hour >= startHour && hour < endHour
+}
 
 function mapEventRow(event: Event): IChurchEvent {
   return {
@@ -373,15 +412,20 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
 
   const expanded = mapped.flatMap((event) => expandEventIntoWindow(event, from, to))
 
-  expanded.sort((a, b) => {
+  const timeOfDay = filters.timeOfDay
+  const filtered = timeOfDay
+    ? expanded.filter((event) => matchesTimeOfDay(event.startTime, timeOfDay))
+    : expanded
+
+  filtered.sort((a, b) => {
     const diff = a.startTime.getTime() - b.startTime.getTime()
     return diff !== 0 ? diff : a.title.localeCompare(b.title)
   })
 
-  const total = expanded.length
+  const total = filtered.length
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize)
   const skip = (page - 1) * pageSize
-  const paged = expanded.slice(skip, skip + pageSize)
+  const paged = filtered.slice(skip, skip + pageSize)
 
   return {
     data: paged,
@@ -396,6 +440,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
         to,
         q: hasQuery ? trimmedQuery : undefined,
         savedOnly: savedByUserId ? true : undefined,
+        timeOfDay,
       },
     },
   }

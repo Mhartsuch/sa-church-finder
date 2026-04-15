@@ -635,6 +635,122 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     expect(baseQueryFilters).not.toHaveProperty('church')
   })
 
+  describe('timeOfDay filter (San Antonio local time)', () => {
+    // San Antonio is America/Chicago — CDT (UTC-5) in May/June.
+    // 09:00 CDT  -> 14:00 UTC (morning)
+    // 13:00 CDT  -> 18:00 UTC (afternoon)
+    // 18:30 CDT  -> 23:30 UTC (evening)
+    // 23:00 CDT  -> 04:00 UTC next day (overnight, no bucket)
+    const morningRecord = {
+      ...baseEventRecord,
+      id: 'event-morning',
+      title: 'Morning Service',
+      startTime: new Date('2026-05-03T14:00:00.000Z'),
+      endTime: new Date('2026-05-03T15:00:00.000Z'),
+      church: churchSummary,
+    }
+    const afternoonRecord = {
+      ...baseEventRecord,
+      id: 'event-afternoon',
+      title: 'Afternoon Study',
+      startTime: new Date('2026-05-03T18:00:00.000Z'),
+      endTime: new Date('2026-05-03T19:00:00.000Z'),
+      church: churchSummary,
+    }
+    const eveningRecord = {
+      ...baseEventRecord,
+      id: 'event-evening',
+      title: 'Evening Group',
+      startTime: new Date('2026-05-03T23:30:00.000Z'),
+      endTime: new Date('2026-05-04T00:30:00.000Z'),
+      church: churchSummary,
+    }
+    const overnightRecord = {
+      ...baseEventRecord,
+      id: 'event-overnight',
+      title: 'Overnight Vigil',
+      startTime: new Date('2026-05-04T04:00:00.000Z'),
+      endTime: new Date('2026-05-04T05:00:00.000Z'),
+      church: churchSummary,
+    }
+
+    it('includes only morning occurrences when timeOfDay=morning', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        morningRecord,
+        afternoonRecord,
+        eveningRecord,
+        overnightRecord,
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-10T00:00:00.000Z',
+        timeOfDay: 'morning',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual(['event-morning'])
+      expect(response.body.meta.filters.timeOfDay).toBe('morning')
+    })
+
+    it('includes only afternoon occurrences when timeOfDay=afternoon', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        morningRecord,
+        afternoonRecord,
+        eveningRecord,
+        overnightRecord,
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-10T00:00:00.000Z',
+        timeOfDay: 'afternoon',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual([
+        'event-afternoon',
+      ])
+    })
+
+    it('includes only evening occurrences when timeOfDay=evening', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        morningRecord,
+        afternoonRecord,
+        eveningRecord,
+        overnightRecord,
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-10T00:00:00.000Z',
+        timeOfDay: 'evening',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual(['event-evening'])
+    })
+
+    it('rejects unknown timeOfDay buckets with a 400', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ timeOfDay: 'midnight' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+
+    it('omits the timeOfDay meta when no bucket is requested', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.timeOfDay).toBeUndefined()
+    })
+  })
+
   describe('GET /events.ics aggregated calendar feed', () => {
     it('returns a text/calendar feed combining events across churches', async () => {
       mockedPrisma.event.findMany.mockResolvedValueOnce([

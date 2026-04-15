@@ -334,15 +334,16 @@ by `startTime` ascending and paginated. Recurring events are expanded server-sid
 occurrences that intersect the requested window; each occurrence is returned as a separate item
 with a unique `occurrenceId` while `id` still points back to the stored series row.
 
-| Param     | Type    | Required | Notes                                                                                            |
-| --------- | ------- | -------- | ------------------------------------------------------------------------------------------------ |
-| type      | string  | No       | Filter by event_type                                                                             |
-| from      | string  | No       | ISO 8601 datetime (default: now — only future events)                                            |
-| to        | string  | No       | ISO 8601 datetime; must be on or after `from` (defaults to `from + 90 days` when omitted)        |
-| q         | string  | No       | Case-insensitive search over title, description, and church name                                 |
-| page      | integer | No       | 1-indexed (default: 1)                                                                           |
-| pageSize  | integer | No       | Default 20, maximum 50                                                                           |
-| savedOnly | boolean | No       | When `true`, restricts the feed to churches saved by the authenticated user. Requires a session. |
+| Param     | Type    | Required | Notes                                                                                                                                                                                  |
+| --------- | ------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type      | string  | No       | Filter by event_type                                                                                                                                                                   |
+| from      | string  | No       | ISO 8601 datetime (default: now — only future events)                                                                                                                                  |
+| to        | string  | No       | ISO 8601 datetime; must be on or after `from` (defaults to `from + 90 days` when omitted)                                                                                              |
+| q         | string  | No       | Case-insensitive search over title, description, and church name                                                                                                                       |
+| page      | integer | No       | 1-indexed (default: 1)                                                                                                                                                                 |
+| pageSize  | integer | No       | Default 20, maximum 50                                                                                                                                                                 |
+| savedOnly | boolean | No       | When `true`, restricts the feed to churches saved by the authenticated user. Requires a session.                                                                                       |
+| timeOfDay | string  | No       | One of `morning` (05:00–11:59), `afternoon` (12:00–16:59), or `evening` (17:00–21:59), San Antonio local time. Filters expanded occurrences whose `startTime` falls inside the bucket. |
 
 **Response:**
 
@@ -383,7 +384,8 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
       "from": "...",
       "to": "...",
       "q": "...",
-      "savedOnly": true
+      "savedOnly": true,
+      "timeOfDay": "morning"
     }
   }
 }

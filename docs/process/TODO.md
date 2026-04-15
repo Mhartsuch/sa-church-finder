@@ -162,4 +162,4 @@
 
 ---
 
-_Last updated: 2026-04-15 (events discovery feed now supports a signed-in "From saved churches" filter — `GET /api/v1/events?savedOnly=true` and a toggle on `/events`; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_
+_Last updated: 2026-04-15 (events discovery feed now supports a `timeOfDay` filter — `GET /api/v1/events?timeOfDay=morning|afternoon|evening` evaluated in San Antonio local time and a chip group on `/events`; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_

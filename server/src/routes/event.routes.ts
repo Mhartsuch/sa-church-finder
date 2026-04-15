@@ -24,6 +24,7 @@ import {
 } from '../services/event.service.js'
 import {
   ChurchEventType,
+  EventTimeOfDay,
   ICreateChurchEventInput,
   IEventsFeedFilters,
   IUpdateChurchEventInput,
@@ -99,6 +100,7 @@ router.get(
         page: typeof q.page === 'number' ? q.page : undefined,
         pageSize: typeof q.pageSize === 'number' ? q.pageSize : undefined,
         savedByUserId: savedOnly ? req.session.userId : undefined,
+        timeOfDay: typeof q.timeOfDay === 'string' ? (q.timeOfDay as EventTimeOfDay) : undefined,
       }
 
       logger.info({ filters }, 'Fetching aggregated events feed')

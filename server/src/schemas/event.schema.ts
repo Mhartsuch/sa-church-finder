@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { EVENT_TYPES } from '../types/event.types.js'
+import { EVENT_TIME_OF_DAY, EVENT_TYPES } from '../types/event.types.js'
 
 const dateTimeSchema = z
   .string()
@@ -107,6 +107,7 @@ export const eventsFeedSchema = z.object({
       page: z.coerce.number().int().positive().optional(),
       pageSize: z.coerce.number().int().positive().max(50).optional(),
       savedOnly: booleanishFlag,
+      timeOfDay: z.enum(EVENT_TIME_OF_DAY).optional(),
     })
     .passthrough()
     .refine(

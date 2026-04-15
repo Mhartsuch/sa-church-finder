@@ -15,6 +15,28 @@
 
 ## Log
 
+### 2026-04-15 - Time-Of-Day Filter For Events Discovery
+
+**Focus:** Let visitors narrow the aggregated events feed to morning, afternoon, or evening services without scrolling through a full day's worth of gatherings — especially useful for visitors looking for "Sunday morning" services or evening study groups.
+
+**Completed:**
+
+- **Server filter:** Added an `EventTimeOfDay` enum (`morning` | `afternoon` | `evening`) and a `timeOfDay` field to `IEventsFeedFilters`. Buckets are evaluated in San Antonio local time (`America/Chicago`) using a small `getLocalHour` / `matchesTimeOfDay` helper backed by `Intl.DateTimeFormat`, with half-open ranges 05–12 / 12–17 / 17–22. The filter is applied **after** RRULE expansion in `listEventsFeed`, so a recurring weekly Sunday service still correctly classifies each occurrence by its local start hour. Overnight events (22:00–04:59 CT) are intentionally excluded from every bucket.
+- **Schema + route:** Added `timeOfDay: z.enum(EVENT_TIME_OF_DAY).optional()` to the `eventsFeedSchema` Zod validator and forwarded the parsed value through `event.routes.ts` into the service. `meta.filters.timeOfDay` echoes the applied bucket back so clients can verify the active filter.
+- **Client types + API client:** Mirrored `EVENT_TIME_OF_DAY` / `EventTimeOfDay` on the client and added the `timeOfDay` field to `IEventsFeedFilters` and `IEventsFeedResponse['meta']['filters']`. `buildFeedQueryString` now appends `timeOfDay` to outgoing URLs.
+- **EventsDiscoveryPage UI:** Added a "Time of day" chip group below the existing date-preset chips. Chips toggle on/off, sync to a `?timeOfDay=` URL param (with browser back/forward support), surface as a removable active-filter chip ("Time of day: Morning"), and reset alongside other filters via "Clear all". Unknown URL values are ignored.
+- **Tests:** Added 5 server tests covering each bucket's filtering behavior (with explicit UTC ↔ CDT timestamps), an unknown-bucket validation rejection, and the `meta.filters.timeOfDay` round-trip. Added 3 client tests covering URL → hook forwarding, chip toggle behavior, and tolerance for invalid URL values.
+- **Docs:** Documented `timeOfDay` in `docs/engineering/API_SPEC.md` (`GET /events`) including the bucket definitions and the local-time semantics.
+
+**Verification:**
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npm run test` — 359 client + 529 server tests pass.
+- `npm run build` — client + server build successfully.
+
+---
+
 ### 2026-04-15 - Share Button For Churches And Events
 
 **Focus:** Give members a real "Share" affordance on church profiles and event cards so they can push a link to friends without manually copying the URL.
