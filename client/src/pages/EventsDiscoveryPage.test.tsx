@@ -113,9 +113,7 @@ describe('EventsDiscoveryPage', () => {
 
     renderPage();
 
-    expect(
-      screen.getByRole('heading', { name: 'Upcoming community events' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Upcoming community events' })).toBeInTheDocument();
     expect(screen.getByText('1 upcoming event')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Easter Sunrise Service' })).toBeInTheDocument();
 
@@ -178,6 +176,46 @@ describe('EventsDiscoveryPage', () => {
     fireEvent.click(applyButton);
 
     expect(getSearch()).toContain('type=community');
+  });
+
+  it('applies a date preset to the URL when clicked, and toggles it off on second click', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    const { getSearch } = renderPage();
+
+    const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+    const todayButton = within(presetGroup).getByRole('button', { name: 'Today' });
+
+    expect(todayButton).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(todayButton);
+
+    const search = getSearch();
+    expect(search).toContain('from=');
+    expect(search).toContain('to=');
+
+    // Button reflects active state
+    expect(
+      within(screen.getByRole('group', { name: 'Quick date ranges' })).getByRole('button', {
+        name: 'Today',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    // Clicking the same preset again clears the range
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Quick date ranges' })).getByRole('button', {
+        name: 'Today',
+      }),
+    );
+
+    const cleared = getSearch();
+    expect(cleared).not.toContain('from=');
+    expect(cleared).not.toContain('to=');
   });
 
   it('renders pagination and advances to the next page', () => {

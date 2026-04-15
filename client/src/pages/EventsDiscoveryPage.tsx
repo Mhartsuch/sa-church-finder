@@ -18,6 +18,12 @@ import { EventListJsonLd } from '@/components/seo/JsonLd';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useEventsFeed } from '@/hooks/useEvents';
 import { buildAggregatedEventsFeedUrl } from '@/lib/calendar-feed-url';
+import {
+  EVENT_DATE_PRESETS,
+  EventDatePresetId,
+  matchEventDatePreset,
+  resolveEventDatePreset,
+} from '@/lib/event-date-presets';
 import { ChurchEventType, EVENT_TYPES, IAggregatedEvent, IEventsFeedFilters } from '@/types/event';
 
 const PAGE_SIZE = 12;
@@ -265,6 +271,26 @@ const EventsDiscoveryPage = () => {
     updateUrlParams(EMPTY_FORM, { page: 1 });
   };
 
+  const activePreset: EventDatePresetId | null = useMemo(
+    () => matchEventDatePreset(form.fromDate, form.toDate),
+    [form.fromDate, form.toDate],
+  );
+
+  const handleApplyPreset = (presetId: EventDatePresetId): void => {
+    // Toggle off: if the same preset is already applied, clear the date range.
+    if (activePreset === presetId) {
+      const nextForm: FeedFormState = { ...form, fromDate: '', toDate: '' };
+      setForm(nextForm);
+      updateUrlParams(nextForm, { page: 1 });
+      return;
+    }
+
+    const { from, to } = resolveEventDatePreset(presetId);
+    const nextForm: FeedFormState = { ...form, fromDate: from, toDate: to };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
   const goToPage = (nextPage: number): void => {
     if (nextPage < 1 || (totalPages > 0 && nextPage > totalPages)) return;
     updateUrlParams(form, { page: nextPage });
@@ -313,9 +339,34 @@ const EventsDiscoveryPage = () => {
           />
         </div>
 
+        <div
+          className="mt-6 flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Quick date ranges"
+        >
+          {EVENT_DATE_PRESETS.map((preset) => {
+            const isActive = activePreset === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleApplyPreset(preset.id)}
+                aria-pressed={isActive}
+                className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                  isActive
+                    ? 'border-foreground bg-foreground text-white'
+                    : 'border-border bg-card text-foreground hover:border-foreground'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+
         <form
           onSubmit={handleApplyFilters}
-          className="mt-8 rounded-[20px] border border-border bg-card p-5 shadow-airbnb-subtle"
+          className="mt-4 rounded-[20px] border border-border bg-card p-5 shadow-airbnb-subtle"
           aria-label="Event filters"
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr),minmax(0,1fr)]">
