@@ -13,6 +13,7 @@ import EventsDiscoveryPage from './EventsDiscoveryPage';
 
 const useEventsFeedMock = vi.fn();
 const useAuthSessionMock = vi.fn();
+const useFilterOptionsMock = vi.fn();
 
 vi.mock('@/hooks/useEvents', () => ({
   useEventsFeed: (...args: unknown[]) => useEventsFeedMock(...args),
@@ -20,6 +21,10 @@ vi.mock('@/hooks/useEvents', () => ({
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuthSession: () => useAuthSessionMock(),
+}));
+
+vi.mock('@/hooks/useChurches', () => ({
+  useFilterOptions: () => useFilterOptionsMock(),
 }));
 
 const makeEvent = (overrides: Partial<IAggregatedEvent> = {}): IAggregatedEvent => ({
@@ -45,6 +50,7 @@ const makeEvent = (overrides: Partial<IAggregatedEvent> = {}): IAggregatedEvent 
     name: 'San Fernando Cathedral',
     city: 'San Antonio',
     denomination: 'Catholic',
+    neighborhood: 'Downtown',
     coverImageUrl: null,
   },
   ...overrides,
@@ -111,6 +117,16 @@ describe('EventsDiscoveryPage', () => {
     useEventsFeedMock.mockReset();
     useAuthSessionMock.mockReset();
     useAuthSessionMock.mockReturnValue({ user: null, isAuthenticated: false });
+    useFilterOptionsMock.mockReset();
+    useFilterOptionsMock.mockReturnValue({
+      data: {
+        denominations: [],
+        languages: [],
+        amenities: [],
+        neighborhoods: ['Alamo Heights', 'Downtown', 'Southtown'],
+        serviceTypes: [],
+      },
+    });
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
   });
 
@@ -539,6 +555,89 @@ describe('EventsDiscoveryPage', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('populates the neighborhood select with options from the filter-options endpoint', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage();
+
+    const select = screen.getByLabelText('Filter events by neighborhood') as HTMLSelectElement;
+    const optionLabels = Array.from(select.options).map((option) => option.textContent);
+
+    expect(optionLabels).toEqual(['All neighborhoods', 'Alamo Heights', 'Downtown', 'Southtown']);
+  });
+
+  it('writes the selected neighborhood to the URL and to the feed filters', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    const { getSearch } = renderPage();
+
+    const select = screen.getByLabelText('Filter events by neighborhood');
+    fireEvent.change(select, { target: { value: 'Downtown' } });
+
+    expect(getSearch()).toContain('neighborhood=Downtown');
+
+    // React Query reruns the feed hook with the new filter applied.
+    const calls = useEventsFeedMock.mock.calls;
+    const lastCallArgs = calls[calls.length - 1]?.[0];
+    expect(lastCallArgs).toMatchObject({ neighborhood: 'Downtown' });
+
+    // Active-filter chip renders so the user can see + remove the selection.
+    expect(screen.getByText('Neighborhood: Downtown')).toBeInTheDocument();
+  });
+
+  it('removes the neighborhood from the URL when its chip is cleared', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    const { getSearch } = renderPage('/events?neighborhood=Southtown');
+
+    // Chip is visible on mount and clicking it clears the filter.
+    const chip = screen.getByRole('button', { name: /Neighborhood: Southtown/ });
+    fireEvent.click(chip);
+
+    expect(getSearch()).not.toContain('neighborhood=');
+  });
+
+  it('preserves a URL-supplied neighborhood even when it is missing from the options list', () => {
+    useFilterOptionsMock.mockReturnValue({
+      data: {
+        denominations: [],
+        languages: [],
+        amenities: [],
+        neighborhoods: ['Downtown'],
+        serviceTypes: [],
+      },
+    });
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?neighborhood=Stone%20Oak');
+
+    const select = screen.getByLabelText('Filter events by neighborhood') as HTMLSelectElement;
+    // The URL-supplied value is still the selected option even though it's
+    // not in the filter-options cache, so users can see and clear it.
+    expect(select.value).toBe('Stone Oak');
+    expect(screen.getByText('Neighborhood: Stone Oak')).toBeInTheDocument();
   });
 
   it('renders pagination and advances to the next page', () => {

@@ -49,6 +49,7 @@ type EventWithChurch = Event & {
     name: string
     city: string
     denomination: string | null
+    neighborhood: string | null
     coverImageUrl: string | null
   }
 }
@@ -163,6 +164,7 @@ function mapEventRowWithChurch(event: EventWithChurch): IAggregatedEvent {
       name: event.church.name,
       city: event.church.city,
       denomination: event.church.denomination,
+      neighborhood: event.church.neighborhood,
       coverImageUrl: event.church.coverImageUrl,
     },
   }
@@ -355,15 +357,28 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const trimmedQuery = filters.q?.trim()
   const hasQuery = Boolean(trimmedQuery)
   const savedByUserId = filters.savedByUserId
+  const trimmedNeighborhood = filters.neighborhood?.trim()
+  const hasNeighborhood = Boolean(trimmedNeighborhood)
 
   // Multi-select event type. A single value collapses into a one-element `in`
   // clause, which Prisma is happy to translate; an empty array is treated as
   // "no filter" so callers can default-construct the array safely.
   const eventTypes = filters.type && filters.type.length > 0 ? filters.type : undefined
 
+  // Combine the saved-by-user and neighborhood filters (both live on the
+  // related church) into a single nested `church` clause so Prisma emits one
+  // JOIN rather than conflicting top-level church clauses.
+  const churchClause: Prisma.ChurchWhereInput = {
+    ...(savedByUserId ? { savedByUsers: { some: { userId: savedByUserId } } } : {}),
+    ...(hasNeighborhood
+      ? { neighborhood: { equals: trimmedNeighborhood!, mode: Prisma.QueryMode.insensitive } }
+      : {}),
+  }
+  const hasChurchClause = Object.keys(churchClause).length > 0
+
   const baseQueryFilters: Prisma.EventWhereInput = {
     ...(eventTypes ? { eventType: { in: eventTypes } } : {}),
-    ...(savedByUserId ? { church: { savedByUsers: { some: { userId: savedByUserId } } } } : {}),
+    ...(hasChurchClause ? { church: churchClause } : {}),
     ...(hasQuery
       ? {
           OR: [
@@ -405,6 +420,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
           name: true,
           city: true,
           denomination: true,
+          neighborhood: true,
           coverImageUrl: true,
         },
       },
@@ -446,6 +462,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
         q: hasQuery ? trimmedQuery : undefined,
         savedOnly: savedByUserId ? true : undefined,
         timeOfDay,
+        neighborhood: hasNeighborhood ? trimmedNeighborhood : undefined,
       },
     },
   }

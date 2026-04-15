@@ -149,6 +149,13 @@ export const eventsFeedSchema = z.object({
       pageSize: z.coerce.number().int().positive().max(50).optional(),
       savedOnly: booleanishFlag,
       timeOfDay: z.enum(EVENT_TIME_OF_DAY).optional(),
+      neighborhood: z
+        .string()
+        .trim()
+        .min(1)
+        .max(120)
+        .optional()
+        .transform((value) => (value && value.length > 0 ? value : undefined)),
     })
     .passthrough()
     .refine(

@@ -111,6 +111,7 @@ export interface IEventChurchSummary {
   name: string;
   city: string;
   denomination: string | null;
+  neighborhood: string | null;
   coverImageUrl: string | null;
 }
 
@@ -145,6 +146,13 @@ export interface IEventsFeedFilters {
    *   - evening   17:00–21:59
    */
   timeOfDay?: EventTimeOfDay;
+  /**
+   * Restrict the feed to events from churches in the given San Antonio
+   * neighborhood (case-insensitive match against the church's stored
+   * `neighborhood` column). Source the list of valid options from the
+   * `/churches/filter-options` endpoint.
+   */
+  neighborhood?: string;
 }
 
 export interface IEventsFeedResponse {
@@ -161,6 +169,7 @@ export interface IEventsFeedResponse {
       q?: string;
       savedOnly?: boolean;
       timeOfDay?: EventTimeOfDay;
+      neighborhood?: string;
     };
   };
 }

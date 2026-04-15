@@ -103,6 +103,10 @@ router.get(
         pageSize: typeof q.pageSize === 'number' ? q.pageSize : undefined,
         savedByUserId: savedOnly ? req.session.userId : undefined,
         timeOfDay: typeof q.timeOfDay === 'string' ? (q.timeOfDay as EventTimeOfDay) : undefined,
+        neighborhood:
+          typeof q.neighborhood === 'string' && q.neighborhood.trim().length > 0
+            ? q.neighborhood.trim()
+            : undefined,
       }
 
       logger.info({ filters }, 'Fetching aggregated events feed')

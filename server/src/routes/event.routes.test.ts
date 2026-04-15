@@ -409,6 +409,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     name: 'Grace Church',
     city: 'San Antonio',
     denomination: 'Non-denominational',
+    neighborhood: 'Downtown',
     coverImageUrl: 'https://example.com/grace.jpg',
   }
 
@@ -680,6 +681,83 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     }
     const baseQueryFilters = whereArg.AND[0]!
     expect(baseQueryFilters).not.toHaveProperty('church')
+  })
+
+  describe('neighborhood filter', () => {
+    it('filters the feed to a specific neighborhood (case-insensitive)', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ neighborhood: 'Downtown' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+        },
+      })
+    })
+
+    it('trims whitespace and omits the filter when the value is empty', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ neighborhood: '   ' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+
+    it('omits the neighborhood meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.neighborhood).toBeUndefined()
+    })
+
+    it('combines the neighborhood filter with savedOnly into a single church clause', async () => {
+      const agent = await buildLoginAgent()
+
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await agent
+        .get('/api/v1/events')
+        .query({ neighborhood: 'Alamo Heights', savedOnly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.neighborhood).toBe('Alamo Heights')
+      expect(response.body.meta.filters.savedOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          savedByUsers: { some: { userId: 'user-admin-1' } },
+          neighborhood: { equals: 'Alamo Heights', mode: 'insensitive' },
+        },
+      })
+    })
+
+    it('rejects neighborhood values that exceed the maximum length', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ neighborhood: 'x'.repeat(121) })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
   })
 
   describe('timeOfDay filter (San Antonio local time)', () => {

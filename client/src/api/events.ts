@@ -46,6 +46,9 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.pageSize) qs.append('pageSize', String(params.pageSize));
   if (params.savedOnly) qs.append('savedOnly', 'true');
   if (params.timeOfDay) qs.append('timeOfDay', params.timeOfDay);
+  if (params.neighborhood && params.neighborhood.trim()) {
+    qs.append('neighborhood', params.neighborhood.trim());
+  }
 
   const queryStr = qs.toString();
   return queryStr ? `?${queryStr}` : '';

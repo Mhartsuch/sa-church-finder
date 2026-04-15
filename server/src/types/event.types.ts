@@ -105,6 +105,7 @@ export interface IEventChurchSummary {
   name: string
   city: string
   denomination: string | null
+  neighborhood: string | null
   coverImageUrl: string | null
 }
 
@@ -140,6 +141,13 @@ export interface IEventsFeedFilters {
    *   - evening   17:00–21:59
    */
   timeOfDay?: EventTimeOfDay
+  /**
+   * Restrict the feed to events belonging to churches in the given
+   * neighborhood. Matching is case-insensitive against the church's stored
+   * `neighborhood` value. Callers typically source the list of valid options
+   * from `GET /api/v1/churches/filter-options`.
+   */
+  neighborhood?: string
 }
 
 export interface IEventsFeedResponse {
@@ -156,6 +164,7 @@ export interface IEventsFeedResponse {
       q?: string
       savedOnly?: boolean
       timeOfDay?: EventTimeOfDay
+      neighborhood?: string
     }
   }
 }

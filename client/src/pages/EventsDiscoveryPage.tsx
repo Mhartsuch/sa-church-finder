@@ -18,6 +18,7 @@ import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalend
 import { ShareButton } from '@/components/layout/ShareButton';
 import { EventListJsonLd } from '@/components/seo/JsonLd';
 import { useAuthSession } from '@/hooks/useAuth';
+import { useFilterOptions } from '@/hooks/useChurches';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useEventsFeed } from '@/hooks/useEvents';
 import { buildAggregatedEventsFeedUrl } from '@/lib/calendar-feed-url';
@@ -106,6 +107,7 @@ type FeedFormState = {
   toDate: string;
   savedOnly: boolean;
   timeOfDay: EventTimeOfDay | '';
+  neighborhood: string;
 };
 
 const EMPTY_FORM: FeedFormState = {
@@ -115,6 +117,7 @@ const EMPTY_FORM: FeedFormState = {
   toDate: '',
   savedOnly: false,
   timeOfDay: '',
+  neighborhood: '',
 };
 
 const parseTypeParam = (raw: string | null): ChurchEventType[] => {
@@ -141,6 +144,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     toDate: toDateInputValue(searchParams.get('to') ?? undefined),
     savedOnly: searchParams.get('saved') === '1',
     timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : '',
+    neighborhood: searchParams.get('neighborhood') ?? '',
   };
 };
 
@@ -243,6 +247,7 @@ const EventsDiscoveryPage = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuthSession();
+  const { data: filterOptions } = useFilterOptions();
   const [form, setForm] = useState<FeedFormState>(() => readFormFromParams(searchParams));
 
   // Keep local form in sync when URL changes (e.g. back/forward navigation).
@@ -257,6 +262,7 @@ const EventsDiscoveryPage = () => {
     const rawTimeOfDay = searchParams.get('timeOfDay');
     const savedOnly = isAuthenticated && searchParams.get('saved') === '1';
     const types = parseTypeParam(searchParams.get('type'));
+    const neighborhood = searchParams.get('neighborhood')?.trim() || undefined;
 
     return {
       type: types.length > 0 ? types : undefined,
@@ -267,6 +273,7 @@ const EventsDiscoveryPage = () => {
       pageSize: PAGE_SIZE,
       savedOnly: savedOnly || undefined,
       timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : undefined,
+      neighborhood,
     };
   }, [searchParams, page, isAuthenticated]);
 
@@ -304,8 +311,18 @@ const EventsDiscoveryPage = () => {
         label: `Time of day: ${TIME_OF_DAY_LABELS[filters.timeOfDay]}`,
       });
     }
+    if (filters.neighborhood) {
+      chips.push({ key: 'neighborhood', label: `Neighborhood: ${filters.neighborhood}` });
+    }
     return chips;
-  }, [filters.type, filters.q, filters.savedOnly, filters.timeOfDay, searchParams]);
+  }, [
+    filters.type,
+    filters.q,
+    filters.savedOnly,
+    filters.timeOfDay,
+    filters.neighborhood,
+    searchParams,
+  ]);
 
   const updateUrlParams = (
     nextForm: FeedFormState,
@@ -319,6 +336,7 @@ const EventsDiscoveryPage = () => {
     if (nextForm.toDate) next.set('to', nextForm.toDate);
     if (nextForm.savedOnly) next.set('saved', '1');
     if (nextForm.timeOfDay) next.set('timeOfDay', nextForm.timeOfDay);
+    if (nextForm.neighborhood.trim()) next.set('neighborhood', nextForm.neighborhood.trim());
 
     const nextPage = overrides.page === undefined ? page : overrides.page;
     if (nextPage && nextPage > 1) {
@@ -344,6 +362,7 @@ const EventsDiscoveryPage = () => {
     if (key === 'to') nextForm.toDate = '';
     if (key === 'saved') nextForm.savedOnly = false;
     if (key === 'timeOfDay') nextForm.timeOfDay = '';
+    if (key === 'neighborhood') nextForm.neighborhood = '';
 
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
@@ -397,6 +416,14 @@ const EventsDiscoveryPage = () => {
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
+
+  const handleSelectNeighborhood = (value: string): void => {
+    const nextForm: FeedFormState = { ...form, neighborhood: value };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const neighborhoodOptions = filterOptions?.neighborhoods ?? [];
 
   const goToPage = (nextPage: number): void => {
     if (nextPage < 1 || (totalPages > 0 && nextPage > totalPages)) return;
@@ -602,6 +629,35 @@ const EventsDiscoveryPage = () => {
                 onChange={(event) => setForm((prev) => ({ ...prev, toDate: event.target.value }))}
                 className="w-full rounded-[10px] border border-border bg-background px-3 py-2.5 text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
               />
+            </label>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)]">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Neighborhood
+              </span>
+              <select
+                value={form.neighborhood}
+                onChange={(event) => handleSelectNeighborhood(event.target.value)}
+                aria-label="Filter events by neighborhood"
+                className="w-full rounded-[10px] border border-border bg-background px-3 py-2.5 text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
+              >
+                <option value="">All neighborhoods</option>
+                {neighborhoodOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                {form.neighborhood && !neighborhoodOptions.includes(form.neighborhood) ? (
+                  // Preserve the active URL value even if the filter-options
+                  // cache hasn't hydrated yet or the neighborhood was removed
+                  // server-side — users can still see and clear their chip.
+                  <option key={form.neighborhood} value={form.neighborhood}>
+                    {form.neighborhood}
+                  </option>
+                ) : null}
+              </select>
             </label>
           </div>
 

@@ -344,6 +344,7 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
 | pageSize  | integer | No       | Default 20, maximum 50                                                                                                                                                                                                                                                                          |
 | savedOnly | boolean | No       | When `true`, restricts the feed to churches saved by the authenticated user. Requires a session.                                                                                                                                                                                                |
 | timeOfDay | string  | No       | One of `morning` (05:00–11:59), `afternoon` (12:00–16:59), or `evening` (17:00–21:59), San Antonio local time. Filters expanded occurrences whose `startTime` falls inside the bucket.                                                                                                          |
+| neighborhood | string | No       | Restricts the feed to events from churches whose `neighborhood` matches the value (case-insensitive). Values typically come from `/churches/filter-options`. Max length 120.                                                                                                                      |
 
 **Response:**
 
@@ -370,6 +371,7 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
         "name": "Grace Church",
         "city": "San Antonio",
         "denomination": "Non-denominational",
+        "neighborhood": "Downtown",
         "coverImageUrl": "https://..."
       }
     }
@@ -385,7 +387,8 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
       "to": "...",
       "q": "...",
       "savedOnly": true,
-      "timeOfDay": "morning"
+      "timeOfDay": "morning",
+      "neighborhood": "Downtown"
     }
   }
 }
