@@ -15,6 +15,56 @@
 
 ## Log
 
+### 2026-04-15 - Add-to-Calendar For Events
+
+**Focus:** Let members export any event they discover on the site straight into their own calendar apps without leaving the page.
+
+**Completed:**
+
+- **Calendar link utilities:** Added `client/src/lib/calendar-links.ts` with pure helpers to build a Google Calendar `action=TEMPLATE` URL, an Outlook.com `compose` deep link, and a self-contained RFC 5545 ICS body (plus a slugified `.ics` filename and a `data:` URI download). Times are rendered in UTC basic-format (`YYYYMMDDTHHMMSSZ`), optional description/url are folded into the calendar details, and invalid/missing end times fall back to a 1-hour block after start. Escaping covers commas, semicolons, backslashes, and newlines per RFC 5545.
+- **AddToCalendarButton:** New `client/src/components/events/AddToCalendarButton.tsx` renders an accessible menu (`role="menu"` + `menuitem` links) with Google / Outlook / Apple (.ics) choices, closes on Escape, outside click, and after an item is chosen, and supports `subtle` and `pill` visual variants.
+- **Integrations:** Wired the new button into every public event card — the Events Discovery page (`EventsDiscoveryPage.tsx`) passes a church-profile URL so the calendar entry links back to the church, and the Church Profile event list now shows it alongside the existing date/time/location panel with the event title prefixed by the church name.
+- **Tests:** Added `calendar-links.test.ts` (14 cases across Google URL params, Outlook deep-link params, ICS escaping, ICS defaults, data URI roundtrip, filename slugification, and invalid-start rejection) and `AddToCalendarButton.test.tsx` (6 cases covering the closed-by-default state, the three calendar choices, Google href composition, ICS download filename + data URI, Escape to close, and outside-click to close).
+
+**Verification:**
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npm run test` — 315 client + 501 server tests pass.
+- `npm run build` — client + server build successfully.
+
+---
+
+### 2026-04-11 - Recurring-Event RRULE Expansion
+
+**Focus:** Turned the previously inert `recurrenceRule` metadata into real, occurrence-aware event payloads so a weekly Sunday service shows up on every upcoming Sunday in both the per-church events list and the aggregated public events feed.
+
+**Completed:**
+
+- **Recurrence library:** Added `server/src/lib/recurrence.ts` with a focused iCal RRULE parser/expander supporting `FREQ=DAILY|WEEKLY|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`, plus `parseRRule`, `validateAndNormalizeRRule`, `expandOccurrences`, and `nextOccurrence` helpers. Covered by 32 unit tests in `recurrence.test.ts` across parsing, normalization, expansion across DAILY/WEEKLY/MONTHLY frequencies, BYDAY iteration, COUNT/UNTIL semantics, and edge cases (skipped months where the day-of-month does not exist).
+- **Write-time validation:** `event.service.ts` now validates `recurrenceRule` against the parser on create/update, rejects malformed rules with a 400 `VALIDATION_ERROR`, enforces the `isRecurring` ↔ `recurrenceRule` invariants, and persists the canonical form returned by `validateAndNormalizeRRule`.
+- **Read-time expansion:** `listChurchEventsBySlug` and `listEventsFeed` now fetch non-recurring + candidate recurring rows with a two-branch `OR` query, expand them in-memory via `expandEventIntoWindow`, re-sort, and paginate the expanded list (bounded by `MAX_OCCURRENCES_PER_SERIES=366` and `MAX_CANDIDATE_EVENTS=1000`). A new `expand=false` query flag on `GET /churches/:slug/events` lets admin/editor surfaces opt out and see the raw series rows.
+- **Response shape:** Event payloads now include `occurrenceId` (unique per occurrence, e.g. `<id>::<iso>`), `seriesStartTime` (original DTSTART), and `isOccurrence` so clients can key React lists safely when a single series renders as many rows, while `id` still points back to the stored template for edit/delete.
+- **Client surfaces:** `IChurchEvent` and `IAggregatedEvent` types gained the new fields; `ChurchProfilePage`, `EventsDiscoveryPage`, and `EventManager` all key by `occurrenceId`; `EventManager` now shows a "Recurring" badge; the Leaders Portal fetches with `expand=false` so admins still manage the single series template.
+- **Recurrence picker UI:** `EventForm` gained a "Repeats" fieldset with a pattern selector (Does-not-repeat / Daily / Weekly / Monthly), interval input, weekday toggles (for weekly), and an optional "Ends on" datetime. Selections are serialized into a server-ready RRULE on submit; existing recurring events pre-populate the form from the stored rule.
+- **Test coverage:** Updated `church.routes.test.ts` (new `OR` where shape + expansion + `expand=false` fixtures), `event.routes.test.ts` (new validation failures, recurring creation canonicalization, aggregated feed expansion + pagination over expanded occurrences), `EventManager.test.tsx` (new recurrence submission scenario), `EventsDiscoveryPage.test.tsx` and `LeadersPortalPage.test.tsx` (added the new required event fields to fixtures).
+- **Docs:** Updated `docs/engineering/API_SPEC.md` with the occurrence-aware response shape, the supported RRULE subset, and the new `expand` flag; updated `docs/engineering/DATA_MODELS.md` with the supported RRULE subset note; marked the P2 task done in `docs/process/TODO.md`; added a decision entry below.
+
+**Remaining Notes:**
+
+- Recurring events still use a single `recurrenceRule` per row — per-occurrence overrides/cancellations (e.g. "skip Christmas Eve") are not yet supported.
+- The expansion path is in-memory, so total recurring-event counts in the aggregated feed are bounded by `MAX_OCCURRENCES_PER_SERIES × MAX_CANDIDATE_EVENTS`. At the current MVP scale this is trivially fine but will need a SQL-native approach before the app opens to many more churches.
+- The deployed app still needs the separate backend redeploy for the Prisma-backed session-store auth fix before live auth/save/review flows can be re-smoked on `https://sachurchfinder.com`.
+
+**Verification:**
+
+- `npm run lint` — 0 errors (71 pre-existing warnings).
+- `npm run typecheck` — clean.
+- `npm run test` — 115 server tests + 64 client tests (179 total) pass.
+- `npm run build` — client + server build successfully.
+
+---
+
 ### 2026-03-31 - Milestone 3 Roadmap Restored And Church Claim Flow Landed
 
 **Focus:** Dropped the temporary MVP-first task track, returned the repo to the original Milestone 3 roadmap, and implemented the first ownership workflow slice so church reps can claim listings.
@@ -349,7 +399,7 @@
 **Remaining Notes:**
 
 - Church events are currently read-only in the product; church claim requests and admin event management are still the next major Milestone 3 follow-ups.
-- Recurring-event metadata is stored and surfaced, but the app does not yet expand RRULEs into generated future occurrences.
+- Recurring-event RRULEs are now parsed on write and expanded into concrete occurrences on read for both the per-church feed and the aggregated `/events` feed (2026-04-11).
 - Google OAuth and optional Sentry still depend on environment-specific live credentials where they should be active.
 
 **Verification:**

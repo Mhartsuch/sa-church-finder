@@ -21,6 +21,16 @@
 - Use subagents for bounded parallel work: exploration, test writing, file-by-file sweeps.
 - Keep the main thread on the core objective.
 
+## Git workflow
+
+- You have standing permission to push to `main` — no need to ask first.
+- After merging or pushing changes to `main`, always delete the feature branch (both local and remote):
+  ```
+  git branch -d <branch-name>
+  git push origin --delete <branch-name>
+  ```
+- Do not leave stale branches behind. Clean up every branch you create once its work is on `main`.
+
 ## Rules
 
 Path-scoped rules are in `.claude/rules/` — they load automatically for matching files.

@@ -29,8 +29,8 @@
 
 ### P1 - High
 
-- [ ] Build church-admin event creation/edit tools now that approved claims can establish church-admin ownership
-- [ ] Add aggregated events discovery/feed page after church-admin event tools are live
+- [x] Build church-admin event creation/edit tools now that approved claims can establish church-admin ownership - church admins and site admins can now create, update, and delete events for churches they manage via the Leaders Portal, backed by new `/api/v1/churches/:churchId/events` POST and `/api/v1/events/:id` PATCH/DELETE endpoints (2026-04-11)
+- [x] Add aggregated events discovery/feed page after church-admin event tools are live - added `GET /api/v1/events` aggregated feed with type/date/keyword filters, pagination, and church info joins, plus a public `/events` discovery page with URL-synced filters, empty/loading/error states, pagination, and new Header + Footer + Sitemap nav entries (2026-04-11)
 - [x] Build Milestone 3 church claim request flow - added member-facing claim submission on unclaimed church profiles, account-page claim history, a site-admin approval queue, and server/client coverage (2026-03-31)
 - [ ] Smoke test the current live flows end to end on the deployed app (search, profile, auth, saves, reviews, events)
 - [x] Curate a gold set of 12 real San Antonio churches for the polished MVP dataset - the seed now uses a curated 12-church hero set with real cover images and only high-confidence profiles (2026-03-30)
@@ -53,7 +53,7 @@
 ### P2 - Medium
 
 - [x] Configure real SMTP provider credentials in each live environment so auth emails send outside local development - user confirmed live setup completed 2026-03-30
-- [ ] Expand recurring-event handling beyond stored RRULE metadata
+- [x] Expand recurring-event handling beyond stored RRULE metadata - added an in-house RRULE parser/expander (`server/src/lib/recurrence.ts`) that supports `FREQ=DAILY|WEEKLY|MONTHLY`, `INTERVAL`, `BYDAY`, `COUNT`, and `UNTIL`; events are validated and canonicalized on write and expanded into per-occurrence payloads (with new `occurrenceId` / `seriesStartTime` / `isOccurrence` fields) on read for both the church profile feed and the aggregated `/events` feed, plus a recurrence picker on the admin Event form and `expand=false` for the Leaders Portal series view (2026-04-11)
 - [x] Launch church events foundation on church profile pages (public events API, type/date filters, upcoming-this-week summary, and seeded sample events) - completed 2026-03-30
 - [x] Refresh account page UX copy and empty states so the signed-in experience feels member-facing instead of reading like an internal milestone checklist - completed 2026-03-29
 - [x] Add responsive layout (mobile tabs for map/list) - completed 2026-03-27
@@ -75,6 +75,9 @@
 
 ### Completed
 
+- [x] Recurring-event RRULE expansion - added `server/src/lib/recurrence.ts` with a focused iCal parser/expander, write-time validation and canonicalization inside `event.service.ts`, occurrence-aware read paths for `GET /api/v1/churches/:slug/events` and `GET /api/v1/events` (with an `expand=false` escape hatch for admins managing the series template), new `occurrenceId` / `seriesStartTime` / `isOccurrence` fields on event payloads, a recurrence picker on the Leaders Portal event form, and Jest/Vitest coverage for the library, route expansion, and UI submission (2026-04-11)
+- [x] Aggregated events discovery feed - added `GET /api/v1/events` with type/date/keyword filters, pagination, and church join data; a public `/events` page with URL-synced filters, pagination, event cards linking to church profiles, empty/loading/error states, new Header + Footer + Sitemap entry points, and Jest/Vitest coverage (2026-04-11)
+- [x] Milestone 3 church-admin event tools - added `POST /api/v1/churches/:churchId/events`, `PATCH /api/v1/events/:id`, `DELETE /api/v1/events/:id` with church-admin/site-admin authorization, an EventManager component on the Leaders Portal, new React Query mutations + toasts, Jest/Vitest coverage, and updated API spec (2026-04-11)
 - [x] Milestone 3 church claim request flow - added `POST /api/v1/churches/:id/claim`, `GET /api/v1/users/:id/claims`, `GET/PATCH /api/v1/admin/claims`, church-profile claim UI, account-page claim history, site-admin approval actions, and focused server/client test coverage (2026-03-31)
 - [x] MVP dataset narrowed to a 12-church gold set - replaced the broad shortlist with 12 high-confidence San Antonio churches, seeded real cover images for every profile, and stopped seeding synthetic reviews/events so the demo data stays trustworthy (2026-03-30)
 - [x] Milestone 3 events foundation - added a public `/api/v1/churches/:slug/events` endpoint with type/date filtering, seeded upcoming events, and a church-profile events section with upcoming-this-week and next-gathering summaries (2026-03-30)
@@ -159,4 +162,4 @@
 
 ---
 
-_Last updated: 2026-03-31 (roadmap focus returned to Milestone 3; church claim requests are now live in-app; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_
+_Last updated: 2026-04-11 (Milestone 3 church-admin event tools, the aggregated public events discovery feed, and recurring-event RRULE expansion are all live; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_
