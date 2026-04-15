@@ -153,6 +153,14 @@ export interface IEventsFeedFilters {
    * `/churches/filter-options` endpoint.
    */
   neighborhood?: string;
+  /**
+   * Multi-select denomination family filter (e.g. `["Baptist", "Methodist"]`).
+   * The wire format is a comma-separated `denomination` query param matching
+   * the church search endpoint. Matching is case-insensitive against
+   * `church.denominationFamily`. Source the list of valid options from the
+   * `/churches/filter-options` endpoint (`denominations[].value`).
+   */
+  denomination?: string[];
 }
 
 export interface IEventsFeedResponse {
@@ -170,6 +178,7 @@ export interface IEventsFeedResponse {
       savedOnly?: boolean;
       timeOfDay?: EventTimeOfDay;
       neighborhood?: string;
+      denomination?: string[];
     };
   };
 }

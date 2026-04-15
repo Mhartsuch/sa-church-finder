@@ -640,6 +640,149 @@ describe('EventsDiscoveryPage', () => {
     expect(screen.getByText('Neighborhood: Stone Oak')).toBeInTheDocument();
   });
 
+  describe('denomination filter', () => {
+    const denominationOptionsResponse = {
+      data: {
+        denominations: [
+          { value: 'Catholic', count: 24 },
+          { value: 'Baptist', count: 18 },
+          { value: 'Methodist', count: 9 },
+        ],
+        languages: [],
+        amenities: [],
+        neighborhoods: ['Alamo Heights', 'Downtown', 'Southtown'],
+        serviceTypes: [],
+      },
+    };
+
+    it('renders a chip for each available denomination family', () => {
+      useFilterOptionsMock.mockReturnValue(denominationOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const group = screen.getByRole('group', { name: 'Denomination' });
+      expect(within(group).getByRole('button', { name: 'Catholic' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Baptist' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Methodist' })).toBeInTheDocument();
+    });
+
+    it('hides the denomination row entirely when no families are available', () => {
+      // Default mock in beforeEach returns no denominations.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.queryByRole('group', { name: 'Denomination' })).not.toBeInTheDocument();
+    });
+
+    it('toggles the URL and feed filter when a denomination chip is clicked', () => {
+      useFilterOptionsMock.mockReturnValue(denominationOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const baptistChip = screen.getByRole('button', { name: 'Baptist' });
+      fireEvent.click(baptistChip);
+
+      expect(getSearch()).toContain('denomination=Baptist');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ denomination: ['Baptist'] });
+
+      // Active-filter chip surfaces in the chip rail so the user can clear it.
+      expect(screen.getByText('Denomination: Baptist')).toBeInTheDocument();
+    });
+
+    it('supports selecting multiple denomination families and serializes them with commas', () => {
+      useFilterOptionsMock.mockReturnValue(denominationOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Baptist' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Methodist' }));
+
+      // Order matches the click order so the URL is stable across re-renders.
+      expect(getSearch()).toContain('denomination=Baptist%2CMethodist');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ denomination: ['Baptist', 'Methodist'] });
+    });
+
+    it('removes a single denomination via the chip without clearing the others', () => {
+      useFilterOptionsMock.mockReturnValue(denominationOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?denomination=Baptist,Methodist');
+
+      // Both chips render initially.
+      expect(screen.getByText('Denomination: Baptist')).toBeInTheDocument();
+      expect(screen.getByText('Denomination: Methodist')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Denomination: Baptist/ }));
+
+      // Methodist remains; URL drops Baptist.
+      expect(getSearch()).toContain('denomination=Methodist');
+      expect(getSearch()).not.toContain('Baptist');
+      expect(screen.getByText('Denomination: Methodist')).toBeInTheDocument();
+    });
+
+    it('keeps a URL-supplied denomination clickable even when it is missing from the options list', () => {
+      useFilterOptionsMock.mockReturnValue({
+        data: {
+          denominations: [{ value: 'Baptist', count: 18 }],
+          languages: [],
+          amenities: [],
+          neighborhoods: [],
+          serviceTypes: [],
+        },
+      });
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?denomination=Pentecostal');
+
+      // The unknown family pins to the front of the chip row so it can still
+      // be toggled off.
+      const group = screen.getByRole('group', { name: 'Denomination' });
+      const pentecostalChip = within(group).getByRole('button', { name: 'Pentecostal' });
+      expect(pentecostalChip).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('Denomination: Pentecostal')).toBeInTheDocument();
+    });
+  });
+
   it('renders pagination and advances to the next page', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([makeEvent()], { total: 36, totalPages: 3, page: 1, pageSize: 12 }),

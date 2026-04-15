@@ -365,13 +365,41 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   // "no filter" so callers can default-construct the array safely.
   const eventTypes = filters.type && filters.type.length > 0 ? filters.type : undefined
 
-  // Combine the saved-by-user and neighborhood filters (both live on the
-  // related church) into a single nested `church` clause so Prisma emits one
-  // JOIN rather than conflicting top-level church clauses.
+  // Multi-select denomination family. Normalized to a deduplicated, lower-case
+  // list so the Prisma `in` clause matches the casing used by the
+  // `denominationFamily` column for "Baptist" vs "baptist" lookups. Empty or
+  // undefined values mean "no filter".
+  const denominationList =
+    filters.denomination && filters.denomination.length > 0
+      ? Array.from(
+          new Set(
+            filters.denomination
+              .map((value) => value.trim().toLowerCase())
+              .filter((value) => value.length > 0),
+          ),
+        )
+      : []
+  const hasDenomination = denominationList.length > 0
+
+  // Combine the saved-by-user, neighborhood, and denomination filters (all
+  // live on the related church) into a single nested `church` clause so
+  // Prisma emits one JOIN rather than conflicting top-level church clauses.
+  // `in` does not honour `mode: insensitive`, so multi-select denomination
+  // matching is expressed as an `OR` of case-insensitive equality clauses.
   const churchClause: Prisma.ChurchWhereInput = {
     ...(savedByUserId ? { savedByUsers: { some: { userId: savedByUserId } } } : {}),
     ...(hasNeighborhood
       ? { neighborhood: { equals: trimmedNeighborhood!, mode: Prisma.QueryMode.insensitive } }
+      : {}),
+    ...(hasDenomination
+      ? {
+          OR: denominationList.map((value) => ({
+            denominationFamily: {
+              equals: value,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          })),
+        }
       : {}),
   }
   const hasChurchClause = Object.keys(churchClause).length > 0
@@ -463,6 +491,18 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
         savedOnly: savedByUserId ? true : undefined,
         timeOfDay,
         neighborhood: hasNeighborhood ? trimmedNeighborhood : undefined,
+        // Echo the original (non-lowercased) denomination strings supplied by
+        // the caller so chip labels and round-tripping stay stable.
+        denomination:
+          filters.denomination && filters.denomination.length > 0
+            ? Array.from(
+                new Set(
+                  filters.denomination
+                    .map((value) => value.trim())
+                    .filter((value) => value.length > 0),
+                ),
+              )
+            : undefined,
       },
     },
   }
