@@ -204,7 +204,12 @@ export const aggregatedCalendarFeedSchema = z.object({
   params: z.object({}).passthrough(),
   query: z
     .object({
-      type: z.enum(EVENT_TYPES).optional(),
+      // Multi-select event type filter. Matches the wire format of the JSON
+      // aggregated feed (`type=service,community` or repeated `type=` params)
+      // so visitors who narrow the discovery page to several types can
+      // subscribe to a calendar scoped to exactly that selection. Leave
+      // unset to subscribe to every event type.
+      type: eventTypesQueryParam,
     })
     .passthrough(),
   body: z.object({}).passthrough(),

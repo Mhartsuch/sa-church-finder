@@ -861,6 +861,68 @@ describe('EventsDiscoveryPage', () => {
     });
   });
 
+  describe('subscribe-to-calendar button', () => {
+    // The subscribe button's label and feed URL reflect the active `type`
+    // chips so visitors can subscribe to a calendar scoped to exactly the
+    // selection they have made on the discovery page.
+    it('points at the city feed and uses the generic label when no types are selected', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const trigger = screen.getByRole('button', { name: /Subscribe to the city events feed/ });
+      fireEvent.click(trigger);
+
+      // The Apple Calendar item swaps the https:// scheme for webcal://, so
+      // asserting against that href is the cleanest way to read back the
+      // feed URL the button was rendered with.
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/\/api\/v1\/events\.ics$/);
+    });
+
+    it('names the single active type in the label and feed URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?type=service');
+
+      const trigger = screen.getByRole('button', { name: /Subscribe to Service events/ });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?type=service$/);
+    });
+
+    it('encodes every selected type into the feed URL and counts them in the label', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?type=service,community');
+
+      const trigger = screen.getByRole('button', { name: /Subscribe to 2 event-type feeds/ });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      // URL-encoded comma (%2C) — the server normalizes this back into a
+      // deduped `ChurchEventType[]` via the shared `eventTypesQueryParam`
+      // schema, so visitors subscribe to a calendar scoped to both chips.
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?type=service%2Ccommunity$/);
+    });
+  });
+
   it('renders pagination and advances to the next page', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([makeEvent()], { total: 36, totalPages: 3, page: 1, pageSize: 12 }),

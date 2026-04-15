@@ -576,21 +576,29 @@ const EventsDiscoveryPage = () => {
         </p>
         <div className="mt-4">
           {/*
-            The aggregated calendar feed currently supports a single event-type
-            filter per subscription URL. When the user has narrowed to exactly
-            one type we point the feed at it; otherwise we offer the city-wide
-            feed so the subscribe action stays useful for any selection.
+            The aggregated calendar feed honors the same multi-select type
+            filter as the JSON feed, so the subscribe URL reflects exactly
+            the chips the user has toggled. When no types are active we fall
+            back to the city-wide feed so the subscribe action stays useful
+            for any selection. The label follows the same pattern: one type
+            names the type ("Subscribe to Service events"), multiple types
+            count them ("Subscribe to 3 event-type feeds"), and an empty
+            selection points at the city feed.
           */}
           {(() => {
-            const onlyType = filters.type && filters.type.length === 1 ? filters.type[0] : null;
+            const selectedTypes = filters.type ?? [];
+            const label =
+              selectedTypes.length === 0
+                ? 'Subscribe to the city events feed'
+                : selectedTypes.length === 1
+                  ? `Subscribe to ${EVENT_TYPE_LABELS[selectedTypes[0]]} events`
+                  : `Subscribe to ${selectedTypes.length} event-type feeds`;
             return (
               <SubscribeToCalendarButton
-                feedUrl={buildAggregatedEventsFeedUrl({ type: onlyType })}
-                label={
-                  onlyType
-                    ? `Subscribe to ${EVENT_TYPE_LABELS[onlyType]} events`
-                    : 'Subscribe to the city events feed'
-                }
+                feedUrl={buildAggregatedEventsFeedUrl({
+                  type: selectedTypes.length > 0 ? selectedTypes : null,
+                })}
+                label={label}
               />
             );
           })()}

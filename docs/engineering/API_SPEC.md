@@ -484,12 +484,13 @@ Aggregated **iCalendar (RFC 5545)** feed for every church. Designed to be subscr
 calendar app (Apple Calendar, Google Calendar, Outlook) so upcoming events stay in sync with a
 user's personal calendar.
 
-| Param | Type   | Required | Notes                                       |
-| ----- | ------ | -------- | ------------------------------------------- |
-| type  | string | No       | Filter by event type, same values as above. |
+| Param | Type           | Required | Notes                                                                                                                                                                                              |
+| ----- | -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type  | string\|string[] | No     | Multi-select event-type filter. Accepts a single value (`type=service`), a comma-separated list (`type=service,community`), or repeated params (`type=service&type=community`). Values are deduped. |
 
 **Response headers:** `Content-Type: text/calendar; charset=utf-8`,
-`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder-events.ics"`.
+`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder<-type[-type…]>-events.ics"`.
+Selected types are enumerated in the filename (e.g. `sa-church-finder-service-community-events.ics`) so downloaded feeds stay self-describing.
 
 The document emits one `VEVENT` per stored row. Recurring series pass their canonical `RRULE`
 straight through so calendar clients expand occurrences natively. Non-recurring events that

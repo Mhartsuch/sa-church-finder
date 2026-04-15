@@ -50,4 +50,25 @@ describe('calendar-feed-url helpers', () => {
       'https://api.sachurchfinder.com/api/v1/events.ics',
     );
   });
+
+  it('joins a multi-type array with commas on the aggregated feed', () => {
+    // Mirrors the wire format the server schema normalizes back into a
+    // deduped `ChurchEventType[]` so the subscribe button can reflect the
+    // exact chips the user toggled on the discovery page.
+    expect(buildAggregatedEventsFeedUrl({ type: ['service', 'community'] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service%2Ccommunity',
+    );
+  });
+
+  it('trims and drops empty entries from a multi-type array', () => {
+    expect(buildAggregatedEventsFeedUrl({ type: ['  service  ', '', 'community'] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service%2Ccommunity',
+    );
+  });
+
+  it('omits the type param when the array is empty', () => {
+    expect(buildAggregatedEventsFeedUrl({ type: [] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
 });

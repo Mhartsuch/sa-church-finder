@@ -604,18 +604,50 @@ export async function getChurchCalendarFeedBySlug(
 
 /**
  * Fetch events across every church for the aggregated calendar feed. Supports
- * the same event-type filter as the JSON aggregated feed.
+ * the same multi-select event-type filter as the JSON aggregated feed so
+ * visitors can subscribe to a calendar scoped to exactly the chips they have
+ * toggled on the discovery page.
+ *
+ * `type` accepts either a single `ChurchEventType` (legacy callers) or an
+ * array of types. An empty array is treated as "no filter" so callers can
+ * default-construct without guarding.
  */
 export async function getAggregatedCalendarFeed(options: {
-  type?: ChurchEventType
+  type?: ChurchEventType | ChurchEventType[]
   now?: Date
 }): Promise<ICalendarFeedPayload> {
   const now = options.now ?? new Date()
   const from = resolveFeedFrom(now)
 
+  // Normalize the incoming `type` option into a deduplicated, order-preserving
+  // array so downstream code has a single shape to reason about.
+  const types: ChurchEventType[] = (() => {
+    if (options.type === undefined) return []
+    const list = Array.isArray(options.type) ? options.type : [options.type]
+    const seen = new Set<ChurchEventType>()
+    const ordered: ChurchEventType[] = []
+    for (const entry of list) {
+      if (!seen.has(entry)) {
+        seen.add(entry)
+        ordered.push(entry)
+      }
+    }
+    return ordered
+  })()
+
+  // A single-type filter collapses to `eventType: value` so the emitted SQL
+  // stays identical to the pre-multi-type implementation; multiple types use
+  // an `in` clause, which Prisma translates to a single `IN (...)` predicate.
+  const eventTypeClause =
+    types.length === 0
+      ? {}
+      : types.length === 1
+        ? { eventType: types[0] }
+        : { eventType: { in: types } }
+
   const rows = (await prisma.event.findMany({
     where: {
-      ...(options.type ? { eventType: options.type } : {}),
+      ...eventTypeClause,
       OR: [{ isRecurring: true }, { isRecurring: false, startTime: { gte: from } }],
     },
     include: {
@@ -633,7 +665,7 @@ export async function getAggregatedCalendarFeed(options: {
     take: MAX_FEED_EVENTS,
   })) as FeedEventRow[]
 
-  const typeSuffix = options.type ? ` (${options.type})` : ''
+  const typeSuffix = types.length > 0 ? ` (${types.join(', ')})` : ''
 
   return {
     calendarName: `SA Church Finder — Events${typeSuffix}`,

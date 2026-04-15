@@ -1183,5 +1183,104 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.status).toBe(400)
       expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
     })
+
+    it('accepts a comma-separated multi-type filter and reflects every type in the filename', async () => {
+      // Prisma gets an `in` clause for the two selected types; the ICS
+      // response's filename enumerates both so downloaded files stay
+      // self-describing when visitors mix chips on the discovery page.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        {
+          id: 'event-a',
+          churchId: 'church-1',
+          title: 'Sunday Worship',
+          description: null,
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+        {
+          id: 'event-b',
+          churchId: 'church-2',
+          title: 'Food Drive',
+          description: null,
+          eventType: 'community',
+          startTime: new Date('2026-05-04T16:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u2',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          church: {
+            id: 'church-2',
+            slug: 'northside-chapel',
+            name: 'Northside Chapel',
+            city: 'San Antonio',
+            address: '999 Evers',
+          },
+        },
+      ])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service,community' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-community-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: { in: ['service', 'community'] },
+          }),
+        }),
+      )
+    })
+
+    it('accepts repeated type query params and dedupes them', async () => {
+      // Express surfaces `?type=service&type=community&type=service` as an
+      // array; the schema dedupes so downstream consumers only see each type
+      // once. This protects against a user bookmarking a URL with duplicates.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics?type=service&type=community&type=service')
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-community-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: { in: ['service', 'community'] },
+          }),
+        }),
+      )
+    })
+
+    it('rejects a multi-type filter when any entry is unknown', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service,bogus' })
+
+      expect(response.status).toBe(400)
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
   })
 })

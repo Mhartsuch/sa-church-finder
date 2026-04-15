@@ -38,11 +38,15 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const q = req.query as Record<string, unknown>
-      const type = typeof q.type === 'string' ? (q.type as ChurchEventType) : undefined
+      // The Zod schema normalizes single, comma-separated, and repeated
+      // `type` query params into a deduped `ChurchEventType[]`. An empty
+      // list / missing param means "no filter" — matches the wire format of
+      // the JSON aggregated feed (`GET /events`).
+      const types = Array.isArray(q.type) ? (q.type as ChurchEventType[]) : undefined
 
-      logger.info({ type }, 'Generating aggregated calendar feed')
+      logger.info({ types }, 'Generating aggregated calendar feed')
 
-      const feed = await getAggregatedCalendarFeed({ type })
+      const feed = await getAggregatedCalendarFeed({ type: types })
       const siteUrl = resolvePublicSiteUrl()
 
       const ics = buildCalendarFeed({
@@ -63,7 +67,11 @@ router.get(
         })),
       })
 
-      const filenameSuffix = type ? `-${type}` : ''
+      // Filename surfaces the chosen types so downloads stay self-descriptive
+      // (`sa-church-finder-service-community-events.ics`). The join order
+      // follows the deduped list the Zod schema returns, which preserves the
+      // user's chip-selection order from the discovery page.
+      const filenameSuffix = types && types.length > 0 ? `-${types.join('-')}` : ''
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
       res.setHeader(
