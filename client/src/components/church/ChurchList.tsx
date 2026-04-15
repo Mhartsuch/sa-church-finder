@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -62,7 +62,7 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
     });
   }, [page]);
 
-  const churches = data?.data || [];
+  const churches = useMemo(() => data?.data ?? [], [data?.data]);
   const meta = data?.meta;
   const totalPages = meta?.totalPages || 1;
 
@@ -111,24 +111,27 @@ export const ChurchList = ({ variant = 'sidebar' }: ChurchListProps) => {
         });
       }
     },
-    [addToast, churches, location.pathname, location.search, navigate, toggleSavedChurchMutation, user],
+    [
+      addToast,
+      churches,
+      location.pathname,
+      location.search,
+      navigate,
+      toggleSavedChurchMutation,
+      user,
+    ],
   );
 
   // Stable references for ChurchCard memoization — inline arrow functions
   // would invalidate React.memo on every parent render.
-  const handleCardClick = useCallback(
-    (slug: string) => navigate(`/churches/${slug}`),
-    [navigate],
-  );
+  const handleCardClick = useCallback((slug: string) => navigate(`/churches/${slug}`), [navigate]);
 
   const handleToggleCompare = useCallback(
     (c: IChurchSummary) => {
       const wasCompared = selectedChurches.some((s) => s.id === c.id);
       toggleChurch(c);
       addToast({
-        message: wasCompared
-          ? `${c.name} removed from compare`
-          : `${c.name} added to compare`,
+        message: wasCompared ? `${c.name} removed from compare` : `${c.name} added to compare`,
         variant: 'info',
       });
     },

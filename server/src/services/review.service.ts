@@ -3,7 +3,10 @@ import { ClaimStatus, Prisma, Role } from '@prisma/client'
 import prisma from '../lib/prisma.js'
 import logger from '../lib/logger.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
-import { sendNewReviewNotification } from './notification-email.service.js'
+import {
+  sendNewReviewNotification,
+  sendReviewResponseNotification,
+} from './notification-email.service.js'
 import {
   ICreateReviewInput,
   IFlaggedReview,
@@ -770,7 +773,13 @@ export async function respondToReview(
 ): Promise<IReviewResponseResult> {
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
-    select: { id: true, churchId: true },
+    select: {
+      id: true,
+      churchId: true,
+      responseBody: true,
+      user: { select: { email: true, name: true } },
+      church: { select: { name: true, slug: true } },
+    },
   })
 
   if (!review) {
@@ -779,19 +788,52 @@ export async function respondToReview(
 
   await authorizeReviewResponder(userId, review.churchId)
 
+  const trimmedBody = input.body.trim()
   const now = new Date()
   await prisma.review.update({
     where: { id: reviewId },
     data: {
-      responseBody: input.body.trim(),
+      responseBody: trimmedBody,
       respondedAt: now,
     },
   })
 
+  // Fire-and-forget: notify the reviewer only the first time a response
+  // is posted. Editing an existing response does not re-notify.
+  if (!review.responseBody) {
+    void notifyReviewerOfResponse(
+      review.user.email,
+      review.user.name,
+      review.church.name,
+      review.church.slug,
+      trimmedBody,
+    )
+  }
+
   return {
     reviewId,
-    responseBody: input.body.trim(),
+    responseBody: trimmedBody,
     respondedAt: now,
+  }
+}
+
+async function notifyReviewerOfResponse(
+  reviewerEmail: string,
+  reviewerName: string | null,
+  churchName: string,
+  churchSlug: string,
+  responseExcerpt: string,
+): Promise<void> {
+  try {
+    await sendReviewResponseNotification({
+      reviewerEmail,
+      reviewerName,
+      churchName,
+      churchSlug,
+      responseExcerpt,
+    })
+  } catch (error) {
+    logger.error({ error, reviewerEmail }, 'Failed to notify reviewer of response')
   }
 }
 

@@ -174,6 +174,71 @@ export async function sendClaimStatusEmail(input: ClaimStatusEmailInput): Promis
   }
 }
 
+// ── Review response notification ──
+
+interface ReviewResponseEmailInput {
+  reviewerEmail: string
+  reviewerName: string | null
+  churchName: string
+  churchSlug: string
+  responseExcerpt: string
+}
+
+export async function sendReviewResponseNotification(
+  input: ReviewResponseEmailInput,
+): Promise<void> {
+  if (!isEmailDeliveryConfigured()) return
+
+  const greetingName = resolveGreetingName(input.reviewerName)
+  const escapedName = escapeHtml(greetingName)
+  const escapedChurchName = escapeHtml(input.churchName)
+  const escapedExcerpt = escapeHtml(input.responseExcerpt.slice(0, 280))
+  const truncated = input.responseExcerpt.length > 280
+  const profileUrl = escapeHtml(`${BASE_URL}/churches/${input.churchSlug}`)
+
+  try {
+    await sendEmail({
+      to: input.reviewerEmail,
+      subject: `${input.churchName} replied to your review`,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+          <p>Hi ${escapedName},</p>
+          <p><strong>${escapedChurchName}</strong> replied to the review you left on ${APP_NAME}:</p>
+          <div style="background: #f9fafb; border-left: 4px solid #0f766e; padding: 12px 16px; margin: 16px 0; border-radius: 4px; color: #4b5563;">
+            ${escapedExcerpt}${truncated ? '...' : ''}
+          </div>
+          <p>
+            <a
+              href="${profileUrl}"
+              style="display: inline-block; padding: 12px 18px; background: #0f766e; color: #ffffff; text-decoration: none; border-radius: 8px;"
+            >
+              View the reply
+            </a>
+          </p>
+          <p>Thanks,<br />${APP_NAME}</p>
+        </div>
+      `.trim(),
+      text: [
+        `Hi ${greetingName},`,
+        '',
+        `${input.churchName} replied to the review you left on ${APP_NAME}:`,
+        '',
+        input.responseExcerpt.slice(0, 280) + (truncated ? '...' : ''),
+        '',
+        `View the reply: ${BASE_URL}/churches/${input.churchSlug}`,
+        '',
+        'Thanks,',
+        APP_NAME,
+      ].join('\n'),
+    })
+  } catch (error) {
+    logger.error(
+      { error, reviewerEmail: input.reviewerEmail },
+      'Failed to send review response notification',
+    )
+  }
+}
+
 // ── New review notification ──
 
 interface NewReviewEmailInput {
