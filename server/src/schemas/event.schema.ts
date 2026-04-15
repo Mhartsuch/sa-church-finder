@@ -82,6 +82,20 @@ export const eventIdSchema = z.object({
   body: z.object({}).passthrough(),
 })
 
+const booleanishFlag = z
+  .union([
+    z.boolean(),
+    z
+      .string()
+      .transform((value) => value.trim().toLowerCase())
+      .refine(
+        (value) => ['true', 'false', '1', '0', 'yes', 'no'].includes(value),
+        'Must be true, false, 1, or 0',
+      )
+      .transform((value) => value === 'true' || value === '1' || value === 'yes'),
+  ])
+  .optional()
+
 export const eventsFeedSchema = z.object({
   params: z.object({}).passthrough(),
   query: z
@@ -92,6 +106,7 @@ export const eventsFeedSchema = z.object({
       q: z.string().trim().max(200).optional(),
       page: z.coerce.number().int().positive().optional(),
       pageSize: z.coerce.number().int().positive().max(50).optional(),
+      savedOnly: booleanishFlag,
     })
     .passthrough()
     .refine(

@@ -39,6 +39,7 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.q && params.q.trim()) qs.append('q', params.q.trim());
   if (params.page && params.page > 1) qs.append('page', String(params.page));
   if (params.pageSize) qs.append('pageSize', String(params.pageSize));
+  if (params.savedOnly) qs.append('savedOnly', 'true');
 
   const queryStr = qs.toString();
   return queryStr ? `?${queryStr}` : '';
@@ -53,9 +54,7 @@ export const fetchChurchEvents = async (
   );
 };
 
-export const fetchEventsFeed = async (
-  params: IEventsFeedFilters,
-): Promise<IEventsFeedResponse> => {
+export const fetchEventsFeed = async (params: IEventsFeedFilters): Promise<IEventsFeedResponse> => {
   return apiRequest<IEventsFeedResponse>(`/events${buildFeedQueryString(params)}`);
 };
 

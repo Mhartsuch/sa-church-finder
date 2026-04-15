@@ -115,6 +115,13 @@ export interface IEventsFeedFilters {
   q?: string
   page?: number
   pageSize?: number
+  /**
+   * When provided, restricts the feed to events belonging to churches saved by
+   * the given user. The route layer populates this from the authenticated
+   * session when the caller sets `savedOnly=true`; the service layer never
+   * trusts a client-supplied user id directly.
+   */
+  savedByUserId?: string
 }
 
 export interface IEventsFeedResponse {
@@ -129,6 +136,7 @@ export interface IEventsFeedResponse {
       from: Date
       to: Date
       q?: string
+      savedOnly?: boolean
     }
   }
 }

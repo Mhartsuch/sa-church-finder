@@ -3,6 +3,7 @@ import { NextFunction, Request, Response, Router } from 'express'
 import { buildCalendarFeed } from '../lib/ics.js'
 import logger from '../lib/logger.js'
 import { resolvePublicSiteUrl } from '../lib/public-url.js'
+import { AuthError } from '../middleware/error-handler.js'
 import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
@@ -84,6 +85,12 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const q = req.query as Record<string, unknown>
+      const savedOnly = q.savedOnly === true
+
+      if (savedOnly && !req.session.userId) {
+        throw new AuthError('Sign in to filter events by your saved churches')
+      }
+
       const filters: IEventsFeedFilters = {
         type: typeof q.type === 'string' ? (q.type as ChurchEventType) : undefined,
         from: typeof q.from === 'string' ? new Date(q.from) : undefined,
@@ -91,6 +98,7 @@ router.get(
         q: typeof q.q === 'string' && q.q.trim().length > 0 ? q.q.trim() : undefined,
         page: typeof q.page === 'number' ? q.page : undefined,
         pageSize: typeof q.pageSize === 'number' ? q.pageSize : undefined,
+        savedByUserId: savedOnly ? req.session.userId : undefined,
       }
 
       logger.info({ filters }, 'Fetching aggregated events feed')

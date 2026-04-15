@@ -334,14 +334,15 @@ by `startTime` ascending and paginated. Recurring events are expanded server-sid
 occurrences that intersect the requested window; each occurrence is returned as a separate item
 with a unique `occurrenceId` while `id` still points back to the stored series row.
 
-| Param    | Type    | Required | Notes                                                                                     |
-| -------- | ------- | -------- | ----------------------------------------------------------------------------------------- |
-| type     | string  | No       | Filter by event_type                                                                      |
-| from     | string  | No       | ISO 8601 datetime (default: now — only future events)                                     |
-| to       | string  | No       | ISO 8601 datetime; must be on or after `from` (defaults to `from + 90 days` when omitted) |
-| q        | string  | No       | Case-insensitive search over title, description, and church name                          |
-| page     | integer | No       | 1-indexed (default: 1)                                                                    |
-| pageSize | integer | No       | Default 20, maximum 50                                                                    |
+| Param     | Type    | Required | Notes                                                                                            |
+| --------- | ------- | -------- | ------------------------------------------------------------------------------------------------ |
+| type      | string  | No       | Filter by event_type                                                                             |
+| from      | string  | No       | ISO 8601 datetime (default: now — only future events)                                            |
+| to        | string  | No       | ISO 8601 datetime; must be on or after `from` (defaults to `from + 90 days` when omitted)        |
+| q         | string  | No       | Case-insensitive search over title, description, and church name                                 |
+| page      | integer | No       | 1-indexed (default: 1)                                                                           |
+| pageSize  | integer | No       | Default 20, maximum 50                                                                           |
+| savedOnly | boolean | No       | When `true`, restricts the feed to churches saved by the authenticated user. Requires a session. |
 
 **Response:**
 
@@ -377,7 +378,13 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
     "page": 1,
     "pageSize": 20,
     "totalPages": 3,
-    "filters": { "type": "service", "from": "...", "to": "...", "q": "..." }
+    "filters": {
+      "type": "service",
+      "from": "...",
+      "to": "...",
+      "q": "...",
+      "savedOnly": true
+    }
   }
 }
 ```
@@ -388,6 +395,7 @@ event rows, so pagination operates on the post-expansion list.
 **Errors:**
 
 - `400 VALIDATION_ERROR` — invalid `type`, malformed ISO dates, or `to` before `from`.
+- `401 AUTH_ERROR` — `savedOnly=true` was sent without an authenticated session.
 
 ---
 

@@ -315,9 +315,11 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
 
   const trimmedQuery = filters.q?.trim()
   const hasQuery = Boolean(trimmedQuery)
+  const savedByUserId = filters.savedByUserId
 
   const baseQueryFilters: Prisma.EventWhereInput = {
     ...(filters.type ? { eventType: filters.type } : {}),
+    ...(savedByUserId ? { church: { savedByUsers: { some: { userId: savedByUserId } } } } : {}),
     ...(hasQuery
       ? {
           OR: [
@@ -393,6 +395,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
         from,
         to,
         q: hasQuery ? trimmedQuery : undefined,
+        savedOnly: savedByUserId ? true : undefined,
       },
     },
   }

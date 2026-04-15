@@ -589,6 +589,52 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
   })
 
+  it('requires authentication when savedOnly=true is requested', async () => {
+    const response = await request(createApp()).get('/api/v1/events').query({ savedOnly: 'true' })
+
+    expect(response.status).toBe(401)
+    expect(response.body.error.code).toBe('AUTH_ERROR')
+    expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+  })
+
+  it('restricts the feed to churches saved by the authenticated user when savedOnly=true', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await agent.get('/api/v1/events').query({ savedOnly: 'true' })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.savedOnly).toBe(true)
+
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              church: { savedByUsers: { some: { userId: 'user-admin-1' } } },
+            }),
+          ]),
+        }),
+      }),
+    )
+  })
+
+  it('ignores savedOnly=false and does not add the saved-church filter', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await request(createApp()).get('/api/v1/events').query({ savedOnly: 'false' })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.savedOnly).toBeUndefined()
+
+    const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+      AND: Array<Record<string, unknown>>
+    }
+    const baseQueryFilters = whereArg.AND[0]!
+    expect(baseQueryFilters).not.toHaveProperty('church')
+  })
+
   describe('GET /events.ics aggregated calendar feed', () => {
     it('returns a text/calendar feed combining events across churches', async () => {
       mockedPrisma.event.findMany.mockResolvedValueOnce([

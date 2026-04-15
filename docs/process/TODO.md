@@ -162,4 +162,4 @@
 
 ---
 
-_Last updated: 2026-04-11 (Milestone 3 church-admin event tools, the aggregated public events discovery feed, and recurring-event RRULE expansion are all live; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_
+_Last updated: 2026-04-15 (events discovery feed now supports a signed-in "From saved churches" filter — `GET /api/v1/events?savedOnly=true` and a toggle on `/events`; `sachurchfinder.com` still needs a backend redeploy for the Prisma session-store auth fix)_

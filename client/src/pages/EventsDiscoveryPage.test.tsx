@@ -12,9 +12,14 @@ import { ToastProvider } from '@/hooks/ToastProvider';
 import EventsDiscoveryPage from './EventsDiscoveryPage';
 
 const useEventsFeedMock = vi.fn();
+const useAuthSessionMock = vi.fn();
 
 vi.mock('@/hooks/useEvents', () => ({
   useEventsFeed: (...args: unknown[]) => useEventsFeedMock(...args),
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuthSession: () => useAuthSessionMock(),
 }));
 
 const makeEvent = (overrides: Partial<IAggregatedEvent> = {}): IAggregatedEvent => ({
@@ -104,6 +109,8 @@ const renderPage = (initialEntry = '/events') => {
 describe('EventsDiscoveryPage', () => {
   beforeEach(() => {
     useEventsFeedMock.mockReset();
+    useAuthSessionMock.mockReset();
+    useAuthSessionMock.mockReturnValue({ user: null, isAuthenticated: false });
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
   });
 
@@ -220,6 +227,103 @@ describe('EventsDiscoveryPage', () => {
     const cleared = getSearch();
     expect(cleared).not.toContain('from=');
     expect(cleared).not.toContain('to=');
+  });
+
+  it('hides the "From saved churches" toggle for signed-out visitors', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.queryByRole('button', { name: /From saved churches/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the saved-only toggle for signed-in users and reflects it in the URL when pressed', () => {
+    useAuthSessionMock.mockReturnValue({
+      user: { id: 'user-1' },
+      isAuthenticated: true,
+    });
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    const { getSearch } = renderPage();
+
+    const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+    const toggle = within(presetGroup).getByRole('button', { name: /From saved churches/i });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(toggle);
+
+    expect(getSearch()).toContain('saved=1');
+    expect(
+      within(screen.getByRole('group', { name: 'Quick date ranges' })).getByRole('button', {
+        name: /From saved churches/i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    // Both the toggle and the active-filter chip now exist
+    const matches = screen.getAllByRole('button', { name: /From saved churches/i });
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('passes savedOnly=true to the feed hook when the URL carries saved=1 and the user is signed in', () => {
+    useAuthSessionMock.mockReturnValue({
+      user: { id: 'user-1' },
+      isAuthenticated: true,
+    });
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?saved=1');
+
+    const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+    expect(filterArgs).toMatchObject({ savedOnly: true });
+  });
+
+  it('does not forward savedOnly when the visitor is signed out, even if saved=1 is in the URL', () => {
+    useAuthSessionMock.mockReturnValue({ user: null, isAuthenticated: false });
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?saved=1');
+
+    const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+    expect(filterArgs.savedOnly).toBeUndefined();
+  });
+
+  it('shows a saved-churches-specific empty state copy when the filter is active but no events come back', () => {
+    useAuthSessionMock.mockReturnValue({
+      user: { id: 'user-1' },
+      isAuthenticated: true,
+    });
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([], { total: 0, totalPages: 0 }),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    renderPage('/events?saved=1');
+
+    expect(
+      screen.getByText('None of your saved churches have upcoming events yet.'),
+    ).toBeInTheDocument();
   });
 
   it('renders pagination and advances to the next page', () => {

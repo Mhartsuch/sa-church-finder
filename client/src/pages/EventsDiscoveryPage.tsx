@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Heart,
   MapPin,
   Search,
   Sparkles,
@@ -16,6 +17,7 @@ import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
 import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalendarButton';
 import { ShareButton } from '@/components/layout/ShareButton';
 import { EventListJsonLd } from '@/components/seo/JsonLd';
+import { useAuthSession } from '@/hooks/useAuth';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useEventsFeed } from '@/hooks/useEvents';
 import { buildAggregatedEventsFeedUrl } from '@/lib/calendar-feed-url';
@@ -81,6 +83,7 @@ type FeedFormState = {
   type: ChurchEventType | '';
   fromDate: string;
   toDate: string;
+  savedOnly: boolean;
 };
 
 const EMPTY_FORM: FeedFormState = {
@@ -88,6 +91,7 @@ const EMPTY_FORM: FeedFormState = {
   type: '',
   fromDate: '',
   toDate: '',
+  savedOnly: false,
 };
 
 const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
@@ -98,6 +102,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     type: isChurchEventType(rawType) ? rawType : '',
     fromDate: toDateInputValue(searchParams.get('from') ?? undefined),
     toDate: toDateInputValue(searchParams.get('to') ?? undefined),
+    savedOnly: searchParams.get('saved') === '1',
   };
 };
 
@@ -199,6 +204,7 @@ const EventsDiscoveryPage = () => {
   });
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isAuthenticated } = useAuthSession();
   const [form, setForm] = useState<FeedFormState>(() => readFormFromParams(searchParams));
 
   // Keep local form in sync when URL changes (e.g. back/forward navigation).
@@ -211,6 +217,7 @@ const EventsDiscoveryPage = () => {
 
   const filters: IEventsFeedFilters = useMemo(() => {
     const rawType = searchParams.get('type');
+    const savedOnly = isAuthenticated && searchParams.get('saved') === '1';
 
     return {
       type: isChurchEventType(rawType) ? rawType : undefined,
@@ -219,8 +226,9 @@ const EventsDiscoveryPage = () => {
       to: toIsoFromDateInput(searchParams.get('to') ?? '', true),
       page,
       pageSize: PAGE_SIZE,
+      savedOnly: savedOnly || undefined,
     };
-  }, [searchParams, page]);
+  }, [searchParams, page, isAuthenticated]);
 
   const { data, isLoading, isFetching, error } = useEventsFeed(filters);
 
@@ -242,8 +250,11 @@ const EventsDiscoveryPage = () => {
     if (searchParams.get('to')) {
       chips.push({ key: 'to', label: `To: ${searchParams.get('to')}` });
     }
+    if (filters.savedOnly) {
+      chips.push({ key: 'saved', label: 'From saved churches' });
+    }
     return chips;
-  }, [filters.type, filters.q, searchParams]);
+  }, [filters.type, filters.q, filters.savedOnly, searchParams]);
 
   const updateUrlParams = (
     nextForm: FeedFormState,
@@ -255,6 +266,7 @@ const EventsDiscoveryPage = () => {
     if (nextForm.type) next.set('type', nextForm.type);
     if (nextForm.fromDate) next.set('from', nextForm.fromDate);
     if (nextForm.toDate) next.set('to', nextForm.toDate);
+    if (nextForm.savedOnly) next.set('saved', '1');
 
     const nextPage = overrides.page === undefined ? page : overrides.page;
     if (nextPage && nextPage > 1) {
@@ -275,7 +287,14 @@ const EventsDiscoveryPage = () => {
     if (key === 'q') nextForm.q = '';
     if (key === 'from') nextForm.fromDate = '';
     if (key === 'to') nextForm.toDate = '';
+    if (key === 'saved') nextForm.savedOnly = false;
 
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleSavedOnly = (): void => {
+    const nextForm: FeedFormState = { ...form, savedOnly: !form.savedOnly };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -376,6 +395,25 @@ const EventsDiscoveryPage = () => {
               </button>
             );
           })}
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleToggleSavedOnly}
+              aria-pressed={form.savedOnly}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                form.savedOnly
+                  ? 'border-[#FF385C] bg-[#FF385C] text-white'
+                  : 'border-border bg-card text-foreground hover:border-foreground'
+              }`}
+            >
+              <Heart
+                className="h-3.5 w-3.5"
+                fill={form.savedOnly ? 'currentColor' : 'none'}
+                strokeWidth={form.savedOnly ? 0 : 2}
+              />
+              From saved churches
+            </button>
+          ) : null}
         </div>
 
         <form
@@ -517,10 +555,14 @@ const EventsDiscoveryPage = () => {
             <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
               <Calendar className="mx-auto h-10 w-10 text-muted-foreground" />
               <p className="mt-3 text-[15px] font-semibold text-foreground">
-                No events match those filters yet.
+                {filters.savedOnly
+                  ? 'None of your saved churches have upcoming events yet.'
+                  : 'No events match those filters yet.'}
               </p>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                Try widening your date range or clearing the event type.
+                {filters.savedOnly
+                  ? 'Try clearing the saved-churches filter, widening your date range, or saving more churches.'
+                  : 'Try widening your date range or clearing the event type.'}
               </p>
               {appliedChips.length > 0 ? (
                 <button

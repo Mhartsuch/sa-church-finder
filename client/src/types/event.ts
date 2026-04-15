@@ -121,6 +121,12 @@ export interface IEventsFeedFilters {
   q?: string;
   page?: number;
   pageSize?: number;
+  /**
+   * When true, the server restricts the feed to events from churches the
+   * authenticated user has saved. Requires an active session — the request
+   * will fail with 401 otherwise.
+   */
+  savedOnly?: boolean;
 }
 
 export interface IEventsFeedResponse {
@@ -135,6 +141,7 @@ export interface IEventsFeedResponse {
       from: string;
       to?: string;
       q?: string;
+      savedOnly?: boolean;
     };
   };
 }
