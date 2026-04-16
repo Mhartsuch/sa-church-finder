@@ -46,8 +46,17 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.pageSize) qs.append('pageSize', String(params.pageSize));
   if (params.savedOnly) qs.append('savedOnly', 'true');
   if (params.timeOfDay) qs.append('timeOfDay', params.timeOfDay);
-  if (params.neighborhood && params.neighborhood.trim()) {
-    qs.append('neighborhood', params.neighborhood.trim());
+  // Neighborhoods are multi-select and OR-combined on the backend. Match the
+  // shared wire format (`?neighborhood=Downtown,Alamo%20Heights`) used by the
+  // other multi-select chip filters (`denomination`, `language`) so cached
+  // state can round-trip cleanly.
+  if (params.neighborhood && params.neighborhood.length > 0) {
+    const cleaned = Array.from(
+      new Set(params.neighborhood.map((value) => value.trim()).filter((value) => value.length > 0)),
+    );
+    if (cleaned.length > 0) {
+      qs.append('neighborhood', cleaned.join(','));
+    }
   }
   // Denomination families are multi-select and OR-combined on the backend.
   // Match the shared wire format (`?denomination=Baptist,Methodist`) used by

@@ -123,7 +123,12 @@ type FeedFormState = {
   toDate: string;
   savedOnly: boolean;
   timeOfDay: EventTimeOfDay | '';
-  neighborhood: string;
+  /**
+   * Multi-select neighborhood filter. Selection order is preserved so the
+   * serialized URL string stays stable across re-renders (mirroring how
+   * `types`, `denominations`, and `languages` are handled elsewhere).
+   */
+  neighborhoods: string[];
   /**
    * Multi-select denomination-family filter. The selection order is
    * preserved so the serialized URL string stays stable across re-renders
@@ -165,7 +170,7 @@ const EMPTY_FORM: FeedFormState = {
   toDate: '',
   savedOnly: false,
   timeOfDay: '',
-  neighborhood: '',
+  neighborhoods: [],
   denominations: [],
   accessibleOnly: false,
   familyFriendly: false,
@@ -227,6 +232,26 @@ const parseLanguageParam = (raw: string | null): string[] => {
   return ordered;
 };
 
+/**
+ * Parse the comma-separated `neighborhood` URL param into a deduplicated,
+ * order-preserving list of neighborhood names. Mirrors
+ * `parseDenominationParam` / `parseLanguageParam` so every multi-select
+ * chip filter shares the same wire contract.
+ */
+const parseNeighborhoodParam = (raw: string | null): string[] => {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim();
+    if (trimmed.length > 0 && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      ordered.push(trimmed);
+    }
+  }
+  return ordered;
+};
+
 const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
   const rawTimeOfDay = searchParams.get('timeOfDay');
   const rawSort = searchParams.get('sort');
@@ -238,7 +263,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     toDate: toDateInputValue(searchParams.get('to') ?? undefined),
     savedOnly: searchParams.get('saved') === '1',
     timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : '',
-    neighborhood: searchParams.get('neighborhood') ?? '',
+    neighborhoods: parseNeighborhoodParam(searchParams.get('neighborhood')),
     denominations: parseDenominationParam(searchParams.get('denomination')),
     accessibleOnly: searchParams.get('accessible') === '1',
     familyFriendly: searchParams.get('family') === '1',
@@ -363,7 +388,7 @@ const EventsDiscoveryPage = () => {
     const rawSort = searchParams.get('sort');
     const savedOnly = isAuthenticated && searchParams.get('saved') === '1';
     const types = parseTypeParam(searchParams.get('type'));
-    const neighborhood = searchParams.get('neighborhood')?.trim() || undefined;
+    const neighborhoods = parseNeighborhoodParam(searchParams.get('neighborhood'));
     const denominations = parseDenominationParam(searchParams.get('denomination'));
     const accessibleOnly = searchParams.get('accessible') === '1';
     const familyFriendly = searchParams.get('family') === '1';
@@ -380,7 +405,7 @@ const EventsDiscoveryPage = () => {
       pageSize: PAGE_SIZE,
       savedOnly: savedOnly || undefined,
       timeOfDay: isTimeOfDay(rawTimeOfDay) ? rawTimeOfDay : undefined,
-      neighborhood,
+      neighborhood: neighborhoods.length > 0 ? neighborhoods : undefined,
       denomination: denominations.length > 0 ? denominations : undefined,
       accessibleOnly: accessibleOnly || undefined,
       familyFriendly: familyFriendly || undefined,
@@ -427,7 +452,11 @@ const EventsDiscoveryPage = () => {
       });
     }
     if (filters.neighborhood) {
-      chips.push({ key: 'neighborhood', label: `Neighborhood: ${filters.neighborhood}` });
+      // Each selected neighborhood gets its own removable chip so users can
+      // peel them off one at a time without clearing the whole multi-select.
+      for (const name of filters.neighborhood) {
+        chips.push({ key: `neighborhood:${name}`, label: `Neighborhood: ${name}` });
+      }
     }
     if (filters.denomination) {
       // Each selected denomination family gets its own removable chip so users
@@ -479,7 +508,9 @@ const EventsDiscoveryPage = () => {
     if (nextForm.toDate) next.set('to', nextForm.toDate);
     if (nextForm.savedOnly) next.set('saved', '1');
     if (nextForm.timeOfDay) next.set('timeOfDay', nextForm.timeOfDay);
-    if (nextForm.neighborhood.trim()) next.set('neighborhood', nextForm.neighborhood.trim());
+    if (nextForm.neighborhoods.length > 0) {
+      next.set('neighborhood', nextForm.neighborhoods.join(','));
+    }
     if (nextForm.denominations.length > 0) {
       next.set('denomination', nextForm.denominations.join(','));
     }
@@ -512,6 +543,7 @@ const EventsDiscoveryPage = () => {
       types: [...form.types],
       denominations: [...form.denominations],
       languages: [...form.languages],
+      neighborhoods: [...form.neighborhoods],
     };
     if (key.startsWith('type:')) {
       const removed = key.slice('type:'.length);
@@ -525,12 +557,15 @@ const EventsDiscoveryPage = () => {
       const removed = key.slice('language:'.length);
       nextForm.languages = nextForm.languages.filter((lang) => lang !== removed);
     }
+    if (key.startsWith('neighborhood:')) {
+      const removed = key.slice('neighborhood:'.length);
+      nextForm.neighborhoods = nextForm.neighborhoods.filter((name) => name !== removed);
+    }
     if (key === 'q') nextForm.q = '';
     if (key === 'from') nextForm.fromDate = '';
     if (key === 'to') nextForm.toDate = '';
     if (key === 'saved') nextForm.savedOnly = false;
     if (key === 'timeOfDay') nextForm.timeOfDay = '';
-    if (key === 'neighborhood') nextForm.neighborhood = '';
     if (key === 'accessible') nextForm.accessibleOnly = false;
     if (key === 'family') nextForm.familyFriendly = false;
     if (key === 'groups') nextForm.groupFriendly = false;
@@ -626,8 +661,12 @@ const EventsDiscoveryPage = () => {
     updateUrlParams(nextForm, { page: 1 });
   };
 
-  const handleSelectNeighborhood = (value: string): void => {
-    const nextForm: FeedFormState = { ...form, neighborhood: value };
+  const handleToggleNeighborhood = (name: string): void => {
+    const isSelected = form.neighborhoods.includes(name);
+    const nextNeighborhoods = isSelected
+      ? form.neighborhoods.filter((existing) => existing !== name)
+      : [...form.neighborhoods, name];
+    const nextForm: FeedFormState = { ...form, neighborhoods: nextNeighborhoods };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -639,7 +678,34 @@ const EventsDiscoveryPage = () => {
     updateUrlParams(nextForm, { page: 1 });
   };
 
-  const neighborhoodOptions = filterOptions?.neighborhoods ?? [];
+  // Surface up to MAX_NEIGHBORHOOD_CHIPS neighborhoods as quick chips, but
+  // always include any currently-selected neighborhood even when it falls
+  // outside the slice (so URL-supplied selections stay clickable instead of
+  // silently disappearing). Selected neighborhoods are pinned to the front so
+  // active state is easy to scan. Mirrors `visibleDenominationFamilies` and
+  // `visibleLanguages` so every multi-select chip rail behaves the same way.
+  const MAX_NEIGHBORHOOD_CHIPS = 8;
+  const visibleNeighborhoods: string[] = useMemo(() => {
+    const ordered: string[] = [];
+    const seen = new Set<string>();
+
+    for (const name of form.neighborhoods) {
+      if (!seen.has(name)) {
+        seen.add(name);
+        ordered.push(name);
+      }
+    }
+
+    for (const option of filterOptions?.neighborhoods ?? []) {
+      if (ordered.length >= MAX_NEIGHBORHOOD_CHIPS) break;
+      if (!seen.has(option)) {
+        seen.add(option);
+        ordered.push(option);
+      }
+    }
+
+    return ordered;
+  }, [filterOptions?.neighborhoods, form.neighborhoods]);
 
   // Surface up to MAX_LANGUAGE_CHIPS languages as quick chips, but always
   // include any currently-selected language even when it falls outside the
@@ -956,6 +1022,37 @@ const EventsDiscoveryPage = () => {
           </div>
         ) : null}
 
+        {visibleNeighborhoods.length > 0 ? (
+          <div
+            className="mt-3 flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Neighborhood"
+          >
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" />
+              Neighborhood
+            </span>
+            {visibleNeighborhoods.map((name) => {
+              const isActive = form.neighborhoods.includes(name);
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => handleToggleNeighborhood(name)}
+                  aria-pressed={isActive}
+                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                    isActive
+                      ? 'border-foreground bg-foreground text-white'
+                      : 'border-border bg-card text-foreground hover:border-foreground'
+                  }`}
+                >
+                  {name}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         <div
           className="mt-3 flex flex-wrap items-center gap-2"
           role="group"
@@ -1029,35 +1126,6 @@ const EventsDiscoveryPage = () => {
                 onChange={(event) => setForm((prev) => ({ ...prev, toDate: event.target.value }))}
                 className="w-full rounded-[10px] border border-border bg-background px-3 py-2.5 text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
               />
-            </label>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)]">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Neighborhood
-              </span>
-              <select
-                value={form.neighborhood}
-                onChange={(event) => handleSelectNeighborhood(event.target.value)}
-                aria-label="Filter events by neighborhood"
-                className="w-full rounded-[10px] border border-border bg-background px-3 py-2.5 text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
-              >
-                <option value="">All neighborhoods</option>
-                {neighborhoodOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-                {form.neighborhood && !neighborhoodOptions.includes(form.neighborhood) ? (
-                  // Preserve the active URL value even if the filter-options
-                  // cache hasn't hydrated yet or the neighborhood was removed
-                  // server-side — users can still see and clear their chip.
-                  <option key={form.neighborhood} value={form.neighborhood}>
-                    {form.neighborhood}
-                  </option>
-                ) : null}
-              </select>
             </label>
           </div>
 
