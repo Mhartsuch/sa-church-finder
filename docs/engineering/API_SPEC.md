@@ -347,6 +347,7 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
 | neighborhood   | string  | No       | Restricts the feed to events from churches whose `neighborhood` matches the value (case-insensitive). Values typically come from `/churches/filter-options`. Max length 120.                                                                                                                                                                                                             |
 | denomination   | string  | No       | Multi-select denomination-family filter, OR-combined. Accepts a single value (`denomination=Baptist`), a comma-separated list (`denomination=Baptist,Methodist`), or repeated `denomination=` query params. Matching is case-insensitive against `church.denominationFamily`. Values typically come from `/churches/filter-options` (`denominations[].value`). Max length 120 per token. |
 | accessibleOnly | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as wheelchair accessible (`church.wheelchairAccessible = true`). Churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                                              |
+| familyFriendly | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as good for children (`church.goodForChildren = true`). Mirrors `accessibleOnly` — churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                            |
 
 **Response:**
 
@@ -392,7 +393,8 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
       "timeOfDay": "morning",
       "neighborhood": "Downtown",
       "denomination": ["Baptist", "Methodist"],
-      "accessibleOnly": true
+      "accessibleOnly": true,
+      "familyFriendly": true
     }
   }
 }

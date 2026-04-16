@@ -361,6 +361,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const trimmedNeighborhood = filters.neighborhood?.trim()
   const hasNeighborhood = Boolean(trimmedNeighborhood)
   const accessibleOnly = filters.accessibleOnly === true
+  const familyFriendly = filters.familyFriendly === true
 
   // Multi-select event type. A single value collapses into a one-element `in`
   // clause, which Prisma is happy to translate; an empty array is treated as
@@ -407,6 +408,11 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
     // Requiring `equals: true` filters out both `false` and `null` churches
     // so visitors can trust the narrowed result set.
     ...(accessibleOnly ? { wheelchairAccessible: true } : {}),
+    // `goodForChildren` is also a nullable boolean — same semantics: requiring
+    // `true` excludes both `false` and `null` (unknown) churches so families
+    // can trust that the narrowed list of events is hosted somewhere flagged
+    // as kid-friendly.
+    ...(familyFriendly ? { goodForChildren: true } : {}),
   }
   const hasChurchClause = Object.keys(churchClause).length > 0
 
@@ -525,6 +531,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
               )
             : undefined,
         accessibleOnly: accessibleOnly ? true : undefined,
+        familyFriendly: familyFriendly ? true : undefined,
         // Only echo `sort` when the caller explicitly narrowed it — omitting
         // the key on the default keeps the `soonest` contract out of the
         // response envelope and avoids surfacing internal defaults to clients.

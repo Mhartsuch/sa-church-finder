@@ -142,6 +142,7 @@ router.get(
         // `denomination` query params into a deduped `string[]`.
         denomination: Array.isArray(q.denomination) ? (q.denomination as string[]) : undefined,
         accessibleOnly: q.accessibleOnly === true ? true : undefined,
+        familyFriendly: q.familyFriendly === true ? true : undefined,
         sort: typeof q.sort === 'string' ? (q.sort as EventSortOption) : undefined,
       }
 

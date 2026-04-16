@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Accessibility,
+  Baby,
   Calendar,
   CalendarDays,
   ChevronLeft,
@@ -133,6 +134,11 @@ type FeedFormState = {
    */
   accessibleOnly: boolean;
   /**
+   * When true, limit the feed to events hosted by churches flagged as good
+   * for children (`church.goodForChildren = true`). Mirrors `accessibleOnly`.
+   */
+  familyFriendly: boolean;
+  /**
    * Feed ordering. `soonest` is the historical default (chronological);
    * `recent` reorders the feed by most-recently-announced events.
    */
@@ -149,6 +155,7 @@ const EMPTY_FORM: FeedFormState = {
   neighborhood: '',
   denominations: [],
   accessibleOnly: false,
+  familyFriendly: false,
   sort: DEFAULT_SORT,
 };
 
@@ -200,6 +207,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     neighborhood: searchParams.get('neighborhood') ?? '',
     denominations: parseDenominationParam(searchParams.get('denomination')),
     accessibleOnly: searchParams.get('accessible') === '1',
+    familyFriendly: searchParams.get('family') === '1',
     sort: isSortOption(rawSort) ? rawSort : DEFAULT_SORT,
   };
 };
@@ -322,6 +330,7 @@ const EventsDiscoveryPage = () => {
     const neighborhood = searchParams.get('neighborhood')?.trim() || undefined;
     const denominations = parseDenominationParam(searchParams.get('denomination'));
     const accessibleOnly = searchParams.get('accessible') === '1';
+    const familyFriendly = searchParams.get('family') === '1';
     const sort: EventSortOption | undefined = isSortOption(rawSort) ? rawSort : undefined;
 
     return {
@@ -336,6 +345,7 @@ const EventsDiscoveryPage = () => {
       neighborhood,
       denomination: denominations.length > 0 ? denominations : undefined,
       accessibleOnly: accessibleOnly || undefined,
+      familyFriendly: familyFriendly || undefined,
       // Only forward a non-default sort so the query string (and cached
       // response) stays clean for the most common case.
       sort: sort && sort !== DEFAULT_SORT ? sort : undefined,
@@ -389,6 +399,9 @@ const EventsDiscoveryPage = () => {
     if (filters.accessibleOnly) {
       chips.push({ key: 'accessible', label: 'Wheelchair accessible' });
     }
+    if (filters.familyFriendly) {
+      chips.push({ key: 'family', label: 'Good for kids' });
+    }
     return chips;
   }, [
     filters.type,
@@ -398,6 +411,7 @@ const EventsDiscoveryPage = () => {
     filters.neighborhood,
     filters.denomination,
     filters.accessibleOnly,
+    filters.familyFriendly,
     searchParams,
   ]);
 
@@ -418,6 +432,7 @@ const EventsDiscoveryPage = () => {
       next.set('denomination', nextForm.denominations.join(','));
     }
     if (nextForm.accessibleOnly) next.set('accessible', '1');
+    if (nextForm.familyFriendly) next.set('family', '1');
     // Keep the URL clean for the default ordering — only emit `sort=` when
     // the user has explicitly chosen a non-default option.
     if (nextForm.sort !== DEFAULT_SORT) next.set('sort', nextForm.sort);
@@ -456,6 +471,7 @@ const EventsDiscoveryPage = () => {
     if (key === 'timeOfDay') nextForm.timeOfDay = '';
     if (key === 'neighborhood') nextForm.neighborhood = '';
     if (key === 'accessible') nextForm.accessibleOnly = false;
+    if (key === 'family') nextForm.familyFriendly = false;
 
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
@@ -489,6 +505,12 @@ const EventsDiscoveryPage = () => {
 
   const handleToggleAccessibleOnly = (): void => {
     const nextForm: FeedFormState = { ...form, accessibleOnly: !form.accessibleOnly };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleFamilyFriendly = (): void => {
+    const nextForm: FeedFormState = { ...form, familyFriendly: !form.familyFriendly };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -707,6 +729,20 @@ const EventsDiscoveryPage = () => {
           >
             <Accessibility className="h-3.5 w-3.5" />
             Wheelchair accessible
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleFamilyFriendly}
+            aria-pressed={form.familyFriendly}
+            aria-label="Show only events at churches that are good for kids"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+              form.familyFriendly
+                ? 'border-foreground bg-foreground text-white'
+                : 'border-border bg-card text-foreground hover:border-foreground'
+            }`}
+          >
+            <Baby className="h-3.5 w-3.5" />
+            Good for kids
           </button>
         </div>
 

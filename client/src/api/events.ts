@@ -63,6 +63,9 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.accessibleOnly) {
     qs.append('accessibleOnly', 'true');
   }
+  if (params.familyFriendly) {
+    qs.append('familyFriendly', 'true');
+  }
   // Only send `sort` when the caller explicitly narrowed it — omitting the
   // param keeps the URL clean for the default (`soonest`) ordering and lets
   // the server's default travel with the request.

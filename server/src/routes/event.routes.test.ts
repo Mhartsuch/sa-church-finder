@@ -955,6 +955,86 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     })
   })
 
+  describe('familyFriendly filter', () => {
+    it('filters the feed to good-for-children churches when enabled', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ familyFriendly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.familyFriendly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // Matching `equals: true` excludes both `false` and `null` churches so
+      // families can trust that the narrowed result set is kid-friendly.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: { goodForChildren: true },
+      })
+    })
+
+    it('omits the familyFriendly meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.familyFriendly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('treats familyFriendly=false as no filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ familyFriendly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.familyFriendly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('combines familyFriendly with accessibleOnly and neighborhood in one church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        familyFriendly: 'true',
+        accessibleOnly: 'true',
+        neighborhood: 'Downtown',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.familyFriendly).toBe(true)
+      expect(response.body.meta.filters.accessibleOnly).toBe(true)
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          wheelchairAccessible: true,
+          goodForChildren: true,
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+        },
+      })
+    })
+  })
+
   describe('timeOfDay filter (San Antonio local time)', () => {
     // San Antonio is America/Chicago — CDT (UTC-5) in May/June.
     // 09:00 CDT  -> 14:00 UTC (morning)

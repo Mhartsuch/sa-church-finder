@@ -199,6 +199,11 @@ export const eventsFeedSchema = z.object({
       // accessible. Reuses the same boolean-ish parser as `savedOnly` so
       // `?accessibleOnly=true`, `=1`, and `=yes` all work for URL share-links.
       accessibleOnly: booleanishFlag,
+      // Restrict the feed to events at churches flagged as good for children
+      // (`church.goodForChildren = true`). Reuses the same boolean-ish parser
+      // as `accessibleOnly` so URL share-links can carry `?familyFriendly=true`,
+      // `=1`, or `=yes` interchangeably.
+      familyFriendly: booleanishFlag,
       // Feed ordering. `soonest` (default) is chronological ascending by
       // occurrence start time. `recent` reorders by `createdAt` descending so
       // newly announced events lead the feed, with start time as the stable

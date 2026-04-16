@@ -176,6 +176,13 @@ export interface IEventsFeedFilters {
    */
   accessibleOnly?: boolean
   /**
+   * Restrict the feed to events hosted by churches flagged as good for
+   * children / family-friendly (`church.goodForChildren = true`). Mirrors
+   * `accessibleOnly` — churches where the underlying field is `false` or
+   * `null` (unknown) are excluded so families can trust the narrowed list.
+   */
+  familyFriendly?: boolean
+  /**
    * Choose how the feed is ordered. Defaults to `soonest` (ascending
    * `startTime`). `recent` surfaces newly announced events first by sorting
    * by `createdAt` descending with `startTime` as a stable tiebreaker.
@@ -200,6 +207,7 @@ export interface IEventsFeedResponse {
       neighborhood?: string
       denomination?: string[]
       accessibleOnly?: boolean
+      familyFriendly?: boolean
       sort?: EventSortOption
     }
   }

@@ -899,6 +899,107 @@ describe('EventsDiscoveryPage', () => {
     });
   });
 
+  describe('family-friendly filter', () => {
+    it('renders the good-for-kids toggle chip regardless of auth state', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      // Scope to the quick-filter rail so the toggle is the only candidate —
+      // when the filter is active there is also an "applied" chip with the
+      // same label in the chip rail below.
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for kids/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('writes family=1 to the URL and passes familyFriendly to the feed filters', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for kids/i });
+      fireEvent.click(chip);
+
+      expect(getSearch()).toContain('family=1');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ familyFriendly: true });
+
+      // Two instances of the label appear once the filter is on: the toggle
+      // chip above the form (now in its active state) and the applied chip in
+      // the chip rail below.
+      expect(screen.getAllByText('Good for kids')).toHaveLength(2);
+    });
+
+    it('reflects the active state on the toggle when seeded from the URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?family=1');
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for kids/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('removes family=1 from the URL when the filter chip is cleared', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?family=1');
+
+      const filterChips = screen.getAllByText('Good for kids');
+      // Second occurrence lives in the applied-chips rail (the first is on the
+      // toggle chip above the form). Clicking it removes the filter via the
+      // shared clear-chip flow.
+      const clearChip = filterChips[filterChips.length - 1]!.closest('button');
+      expect(clearChip).not.toBeNull();
+      fireEvent.click(clearChip!);
+
+      expect(getSearch()).not.toContain('family=');
+    });
+
+    it('preserves family=1 alongside other filters when toggled together', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?accessible=1');
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for kids/i });
+      fireEvent.click(chip);
+
+      const search = getSearch();
+      expect(search).toContain('accessible=1');
+      expect(search).toContain('family=1');
+    });
+  });
+
   describe('subscribe-to-calendar button', () => {
     // The subscribe button's label and feed URL reflect the active `type`
     // chips so visitors can subscribe to a calendar scoped to exactly the
