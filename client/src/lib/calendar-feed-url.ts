@@ -83,6 +83,14 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    * `familyFriendly=true` to match the JSON feed (`?familyFriendly=true`).
    */
   familyFriendly?: boolean | null;
+  /**
+   * Group-friendly toggle. Mirrors the discovery page's "Good for groups"
+   * chip — when `true` the calendar feed is restricted to events at churches
+   * flagged as good for groups. `false` / `null` / `undefined` omits the
+   * param so the server skips the filter. The serialized wire format is
+   * `groupFriendly=true` to match the JSON feed (`?groupFriendly=true`).
+   */
+  groupFriendly?: boolean | null;
 }): string =>
   buildFeedUrl('/events.ics', {
     type: serializeListParam(params?.type),
@@ -91,4 +99,5 @@ export const buildAggregatedEventsFeedUrl = (params?: {
     language: serializeListParam(params?.language),
     accessibleOnly: params?.accessibleOnly === true ? 'true' : undefined,
     familyFriendly: params?.familyFriendly === true ? 'true' : undefined,
+    groupFriendly: params?.groupFriendly === true ? 'true' : undefined,
   });

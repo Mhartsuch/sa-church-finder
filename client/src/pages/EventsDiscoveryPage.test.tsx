@@ -1645,6 +1645,53 @@ describe('EventsDiscoveryPage', () => {
         /events\.ics\?accessibleOnly=true&familyFriendly=true$/,
       );
     });
+
+    it('labels the group-friendly feed and serializes groupFriendly into the URL', () => {
+      // Group-friendly-only narrowing reads naturally ("Subscribe to
+      // group-friendly events") and the feed URL carries `groupFriendly=true`
+      // so the iCal subscription resolves the same way the chip narrows the
+      // discovery feed.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?groups=1');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to group-friendly events/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?groupFriendly=true$/);
+    });
+
+    it('uses the generic label and combines groupFriendly with another axis in the URL', () => {
+      // Once a second axis is narrowed (groups + family), the label collapses
+      // to the generic wording and the URL chains every active param so the
+      // saved filename surfaces the specifics.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?family=1&groups=1');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(
+        /events\.ics\?familyFriendly=true&groupFriendly=true$/,
+      );
+    });
   });
 
   describe('sort control', () => {

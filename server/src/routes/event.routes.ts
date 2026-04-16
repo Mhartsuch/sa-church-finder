@@ -70,9 +70,22 @@ router.get(
       // `family=1` URL param and a hand-typed `familyFriendly=true`
       // subscription resolve identically.
       const familyFriendly = q.familyFriendly === true
+      // Group-friendly narrowing mirrors the JSON feed's `groupFriendly`
+      // boolean — same `booleanishFlag` parser so the discovery page's
+      // `groups=1` URL param and a hand-typed `groupFriendly=true`
+      // subscription resolve identically.
+      const groupFriendly = q.groupFriendly === true
 
       logger.info(
-        { types, denominations, neighborhoods, languages, accessibleOnly, familyFriendly },
+        {
+          types,
+          denominations,
+          neighborhoods,
+          languages,
+          accessibleOnly,
+          familyFriendly,
+          groupFriendly,
+        },
         'Generating aggregated calendar feed',
       )
 
@@ -83,6 +96,7 @@ router.get(
         language: languages,
         accessibleOnly: accessibleOnly || undefined,
         familyFriendly: familyFriendly || undefined,
+        groupFriendly: groupFriendly || undefined,
       })
       const siteUrl = resolvePublicSiteUrl()
 
@@ -139,6 +153,10 @@ router.get(
       // static `family-friendly` segment when the narrowing is on, so the
       // saved filename surfaces the chip without needing a per-value list.
       if (familyFriendly) filenameParts.push('family-friendly')
+      // Group-friendly mirrors the family-friendly pattern: a single static
+      // `group-friendly` segment when the narrowing is on, so the saved
+      // filename surfaces the chip without needing a per-value list.
+      if (groupFriendly) filenameParts.push('group-friendly')
       const filenameSuffix = filenameParts.length > 0 ? `-${filenameParts.join('-')}` : ''
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8')

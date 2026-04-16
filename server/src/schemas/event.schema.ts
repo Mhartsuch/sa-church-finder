@@ -350,6 +350,15 @@ export const aggregatedCalendarFeedSchema = z.object({
       // and `null` (unknown) churches so families can trust the
       // subscribed calendar.
       familyFriendly: booleanishFlag,
+      // Restrict the calendar feed to events at churches flagged as good
+      // for groups. Mirrors the JSON feed's `groupFriendly` wire format
+      // (`?groupFriendly=true|1|yes`) so a small-group leader, Bible-study
+      // organizer, or volunteer coordinator who has toggled the "Good for
+      // groups" chip on the discovery page can subscribe to a calendar
+      // scoped to exactly that narrowing. The service layer requires
+      // `church.goodForGroups = true`, excluding both `false` and `null`
+      // (unknown) churches so subscribers can trust the subscribed calendar.
+      groupFriendly: booleanishFlag,
     })
     .passthrough(),
   body: z.object({}).passthrough(),
