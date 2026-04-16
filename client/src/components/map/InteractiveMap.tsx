@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, Search, Star } from 'lucide-react';
 import MapGL, {
   GeolocateControl,
   MapRef,
@@ -11,9 +11,19 @@ import MapGL, {
 import { useNavigate } from 'react-router-dom';
 
 import { loadMapboxGl } from '@/lib/load-mapbox-gl';
-import { useSearchStore } from '@/stores/search-store';
+import { MapBounds, useSearchStore } from '@/stores/search-store';
 import { IChurchSummary } from '@/types/church';
 import { formatDistance, formatRating, getNextService } from '@/utils/format';
+
+// Bounds are considered "the same" within this tolerance — avoids showing the
+// "Search this area" button for trivial wobble from click events or pixel rounding.
+const BOUNDS_EQUAL_THRESHOLD = 0.0005;
+
+const boundsRoughlyEqual = (a: MapBounds, b: MapBounds) =>
+  Math.abs(a.swLat - b.swLat) < BOUNDS_EQUAL_THRESHOLD &&
+  Math.abs(a.swLng - b.swLng) < BOUNDS_EQUAL_THRESHOLD &&
+  Math.abs(a.neLat - b.neLat) < BOUNDS_EQUAL_THRESHOLD &&
+  Math.abs(a.neLng - b.neLng) < BOUNDS_EQUAL_THRESHOLD;
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 const mapboxGlPromise = loadMapboxGl() as NonNullable<ComponentProps<typeof MapGL>['mapLib']>;
@@ -39,6 +49,7 @@ export const InteractiveMap = ({ churches }: InteractiveMapProps) => {
 
   const mapCenter = useSearchStore((state) => state.mapCenter);
   const mapZoom = useSearchStore((state) => state.mapZoom);
+  const mapBounds = useSearchStore((state) => state.mapBounds);
   const hoveredChurchId = useSearchStore((state) => state.hoveredChurchId);
   const selectedChurchId = useSearchStore((state) => state.selectedChurchId);
 
@@ -49,6 +60,12 @@ export const InteractiveMap = ({ churches }: InteractiveMapProps) => {
   const setSelectedChurch = useSearchStore((state) => state.setSelectedChurch);
 
   const [popupChurch, setPopupChurch] = useState<IChurchSummary | null>(null);
+  // Bounds the user has panned/zoomed to but not yet applied.
+  // When non-null, a "Search this area" button is shown.
+  const [pendingBounds, setPendingBounds] = useState<MapBounds | null>(null);
+  // Center/zoom captured alongside the pending bounds, so applying restores
+  // the viewport the user was actually looking at even after remount.
+  const pendingViewRef = useRef<{ lat: number; lng: number; zoom: number } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -65,6 +82,20 @@ export const InteractiveMap = ({ churches }: InteractiveMapProps) => {
     }
   }, [churches, popupChurch, setSelectedChurch]);
 
+  const readCurrentBounds = useCallback((): MapBounds | null => {
+    const map = mapRef.current?.getMap();
+    const bounds = map?.getBounds();
+    if (!bounds) {
+      return null;
+    }
+    return {
+      swLat: bounds.getSouthWest().lat,
+      swLng: bounds.getSouthWest().lng,
+      neLat: bounds.getNorthEast().lat,
+      neLng: bounds.getNorthEast().lng,
+    };
+  }, []);
+
   const handleMoveEnd = useCallback(
     (event: ViewStateChangeEvent) => {
       const { latitude, longitude, zoom } = event.viewState;
@@ -77,45 +108,54 @@ export const InteractiveMap = ({ churches }: InteractiveMapProps) => {
         setMapCenter(latitude, longitude);
         setMapZoom(zoom);
 
-        const map = mapRef.current?.getMap();
-        if (!map) {
+        const nextBounds = readCurrentBounds();
+        if (!nextBounds) {
           return;
         }
 
-        const bounds = map.getBounds();
-        if (!bounds) {
+        // If the new bounds roughly match the applied bounds, the user has
+        // panned back — no need to offer a "Search this area" button.
+        if (mapBounds && boundsRoughlyEqual(nextBounds, mapBounds)) {
+          pendingViewRef.current = null;
+          setPendingBounds(null);
           return;
         }
 
-        setMapBounds({
-          swLat: bounds.getSouthWest().lat,
-          swLng: bounds.getSouthWest().lng,
-          neLat: bounds.getNorthEast().lat,
-          neLng: bounds.getNorthEast().lng,
-        });
-      }, 400);
+        pendingViewRef.current = { lat: latitude, lng: longitude, zoom };
+        setPendingBounds(nextBounds);
+      }, 300);
     },
-    [setMapBounds, setMapCenter, setMapZoom],
+    [mapBounds, readCurrentBounds, setMapCenter, setMapZoom],
   );
 
   const handleLoad = useCallback(() => {
-    const map = mapRef.current?.getMap();
-    if (!map) {
+    const nextBounds = readCurrentBounds();
+    if (!nextBounds) {
       return;
     }
 
-    const bounds = map.getBounds();
-    if (!bounds) {
+    // On first mount, always apply the initial bounds so the list reflects
+    // exactly what's shown on the map — even if the user never interacts with it.
+    setMapBounds(nextBounds);
+    pendingViewRef.current = null;
+    setPendingBounds(null);
+  }, [readCurrentBounds, setMapBounds]);
+
+  const handleSearchThisArea = useCallback(() => {
+    if (!pendingBounds) {
       return;
     }
 
-    setMapBounds({
-      swLat: bounds.getSouthWest().lat,
-      swLng: bounds.getSouthWest().lng,
-      neLat: bounds.getNorthEast().lat,
-      neLng: bounds.getNorthEast().lng,
-    });
-  }, [setMapBounds]);
+    const view = pendingViewRef.current;
+    if (view) {
+      setMapCenter(view.lat, view.lng);
+      setMapZoom(view.zoom);
+    }
+
+    setMapBounds(pendingBounds);
+    pendingViewRef.current = null;
+    setPendingBounds(null);
+  }, [pendingBounds, setMapBounds, setMapCenter, setMapZoom]);
 
   return (
     <div className="relative h-full w-full">
@@ -230,6 +270,20 @@ export const InteractiveMap = ({ churches }: InteractiveMapProps) => {
           </Popup>
         )}
       </MapGL>
+
+      {pendingBounds ? (
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center px-4">
+          <button
+            type="button"
+            onClick={handleSearchThisArea}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-[13px] font-semibold text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.18)] transition-colors hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#222] focus-visible:ring-offset-2"
+            aria-label="Search churches in this map area"
+          >
+            <Search className="h-4 w-4" />
+            Search this area
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 };

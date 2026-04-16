@@ -1,22 +1,37 @@
-import { MapPin, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
+import { Map as MapIcon, MapPin, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 
-import { DAY_OPTIONS } from '@/constants';
+import { DAY_OPTIONS, TIME_OPTIONS } from '@/constants';
+import { countActiveFilters } from '@/lib/search-state';
 import { useSearchStore } from '@/stores/search-store';
+
+interface Suggestion {
+  label: string;
+  action: () => void;
+  icon: React.ReactNode;
+}
+
+const dayLabelFor = (day: number): string =>
+  DAY_OPTIONS.find((option) => option.value === day)?.label ?? `day ${day}`;
+
+const timeLabelFor = (time: string): string =>
+  TIME_OPTIONS.find((option) => option.value === time)?.label ?? time;
 
 export const NoResults = () => {
   const query = useSearchStore((s) => s.query);
   const filters = useSearchStore((s) => s.filters);
+  const mapBounds = useSearchStore((s) => s.mapBounds);
   const clearFilters = useSearchStore((s) => s.clearFilters);
   const setQuery = useSearchStore((s) => s.setQuery);
   const setFilter = useSearchStore((s) => s.setFilter);
+  const setMapBounds = useSearchStore((s) => s.setMapBounds);
+  const toggleAmenity = useSearchStore((s) => s.toggleAmenity);
+  const toggleLanguage = useSearchStore((s) => s.toggleLanguage);
+  const toggleDenomination = useSearchStore((s) => s.toggleDenomination);
 
   const hasQuery = query.trim().length > 0;
-  const activeFilterKeys = Object.entries(filters)
-    .filter(([, value]) => value !== undefined && value !== '')
-    .map(([key]) => key);
-  const hasFilters = activeFilterKeys.length > 0;
+  const hasFilters = countActiveFilters(filters, mapBounds) > 0;
 
-  const suggestions: { label: string; action: () => void; icon: React.ReactNode }[] = [];
+  const suggestions: Suggestion[] = [];
 
   if (hasQuery && hasFilters) {
     suggestions.push({
@@ -38,27 +53,132 @@ export const NoResults = () => {
     });
   }
 
+  // A tight map-area bounds is the single most common cause of a zero-result
+  // state for users who have been exploring the map — emit the removal chip
+  // before anything else so it shows up even when the 4-chip visual cap would
+  // otherwise bury it.
+  if (mapBounds) {
+    suggestions.push({
+      label: 'Remove "Map area"',
+      icon: <MapIcon className="h-4 w-4" />,
+      action: () => setMapBounds(null),
+    });
+  }
+
+  // Filter-removal suggestions in priority order — narrow, high-blast-radius
+  // filters first (minRating, neighborhood, serviceType), then structural
+  // facets, then the soft quality toggles. A zero-result state is almost
+  // always caused by one of the top few, so the 4-chip visual cap still
+  // surfaces the likely culprit without scrolling.
   if (hasFilters) {
-    if (filters.denomination) {
+    if (filters.minRating !== undefined && filters.minRating > 0) {
+      const value = filters.minRating;
       suggestions.push({
-        label: `Remove "${filters.denomination}"`,
+        label: `Remove "${value}+ stars"`,
         icon: <RotateCcw className="h-4 w-4" />,
-        action: () => setFilter('denomination', undefined),
+        action: () => setFilter('minRating', undefined),
       });
     }
-    if (filters.day !== undefined) {
-      const dayLabel = DAY_OPTIONS.find((day) => day.value === filters.day)?.label || 'day';
+    if (filters.neighborhood) {
+      const value = filters.neighborhood;
       suggestions.push({
-        label: `Remove "${dayLabel}"`,
+        label: `Remove "${value}"`,
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('neighborhood', undefined),
+      });
+    }
+    if (filters.serviceType) {
+      const value = filters.serviceType;
+      suggestions.push({
+        label: `Remove "${value}"`,
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('serviceType', undefined),
+      });
+    }
+    if (filters.radius !== undefined) {
+      const value = filters.radius;
+      suggestions.push({
+        label: `Widen "${value} mi"`,
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('radius', undefined),
+      });
+    }
+    if (filters.denomination && filters.denomination.length > 0) {
+      for (const denomination of filters.denomination) {
+        suggestions.push({
+          label: `Remove "${denomination}"`,
+          icon: <RotateCcw className="h-4 w-4" />,
+          action: () => toggleDenomination(denomination),
+        });
+      }
+    }
+    if (filters.day !== undefined) {
+      const label = dayLabelFor(filters.day);
+      suggestions.push({
+        label: `Remove "${label}"`,
         icon: <RotateCcw className="h-4 w-4" />,
         action: () => setFilter('day', undefined),
       });
     }
-    if (filters.language) {
+    if (filters.time) {
+      const label = timeLabelFor(filters.time);
       suggestions.push({
-        label: `Remove "${filters.language}"`,
+        label: `Remove "${label}"`,
         icon: <RotateCcw className="h-4 w-4" />,
-        action: () => setFilter('language', undefined),
+        action: () => setFilter('time', undefined),
+      });
+    }
+    if (filters.languages && filters.languages.length > 0) {
+      for (const language of filters.languages) {
+        suggestions.push({
+          label: `Remove "${language}"`,
+          icon: <RotateCcw className="h-4 w-4" />,
+          action: () => toggleLanguage(language),
+        });
+      }
+    }
+    if (filters.amenities && filters.amenities.length > 0) {
+      for (const amenity of filters.amenities) {
+        suggestions.push({
+          label: `Remove "${amenity}"`,
+          icon: <RotateCcw className="h-4 w-4" />,
+          action: () => toggleAmenity(amenity),
+        });
+      }
+    }
+    if (filters.hasPhotos) {
+      suggestions.push({
+        label: 'Remove "Has photos"',
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('hasPhotos', undefined),
+      });
+    }
+    if (filters.isClaimed) {
+      suggestions.push({
+        label: 'Remove "Verified"',
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('isClaimed', undefined),
+      });
+    }
+    if (filters.wheelchairAccessible) {
+      suggestions.push({
+        label: 'Remove "Wheelchair accessible"',
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('wheelchairAccessible', undefined),
+      });
+    }
+    if (filters.goodForChildren) {
+      suggestions.push({
+        label: 'Remove "Family friendly"',
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('goodForChildren', undefined),
+      });
+    }
+    if (filters.goodForGroups) {
+      suggestions.push({
+        label: 'Remove "Good for groups"',
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => setFilter('goodForGroups', undefined),
       });
     }
   }

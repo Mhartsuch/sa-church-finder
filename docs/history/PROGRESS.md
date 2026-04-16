@@ -15,6 +15,98 @@
 
 ## Log
 
+### 2026-04-15 - Time-Of-Day Filter For Events Discovery
+
+**Focus:** Let visitors narrow the aggregated events feed to morning, afternoon, or evening services without scrolling through a full day's worth of gatherings — especially useful for visitors looking for "Sunday morning" services or evening study groups.
+
+**Completed:**
+
+- **Server filter:** Added an `EventTimeOfDay` enum (`morning` | `afternoon` | `evening`) and a `timeOfDay` field to `IEventsFeedFilters`. Buckets are evaluated in San Antonio local time (`America/Chicago`) using a small `getLocalHour` / `matchesTimeOfDay` helper backed by `Intl.DateTimeFormat`, with half-open ranges 05–12 / 12–17 / 17–22. The filter is applied **after** RRULE expansion in `listEventsFeed`, so a recurring weekly Sunday service still correctly classifies each occurrence by its local start hour. Overnight events (22:00–04:59 CT) are intentionally excluded from every bucket.
+- **Schema + route:** Added `timeOfDay: z.enum(EVENT_TIME_OF_DAY).optional()` to the `eventsFeedSchema` Zod validator and forwarded the parsed value through `event.routes.ts` into the service. `meta.filters.timeOfDay` echoes the applied bucket back so clients can verify the active filter.
+- **Client types + API client:** Mirrored `EVENT_TIME_OF_DAY` / `EventTimeOfDay` on the client and added the `timeOfDay` field to `IEventsFeedFilters` and `IEventsFeedResponse['meta']['filters']`. `buildFeedQueryString` now appends `timeOfDay` to outgoing URLs.
+- **EventsDiscoveryPage UI:** Added a "Time of day" chip group below the existing date-preset chips. Chips toggle on/off, sync to a `?timeOfDay=` URL param (with browser back/forward support), surface as a removable active-filter chip ("Time of day: Morning"), and reset alongside other filters via "Clear all". Unknown URL values are ignored.
+- **Tests:** Added 5 server tests covering each bucket's filtering behavior (with explicit UTC ↔ CDT timestamps), an unknown-bucket validation rejection, and the `meta.filters.timeOfDay` round-trip. Added 3 client tests covering URL → hook forwarding, chip toggle behavior, and tolerance for invalid URL values.
+- **Docs:** Documented `timeOfDay` in `docs/engineering/API_SPEC.md` (`GET /events`) including the bucket definitions and the local-time semantics.
+
+**Verification:**
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npm run test` — 359 client + 529 server tests pass.
+- `npm run build` — client + server build successfully.
+
+---
+
+### 2026-04-15 - Share Button For Churches And Events
+
+**Focus:** Give members a real "Share" affordance on church profiles and event cards so they can push a link to friends without manually copying the URL.
+
+**Completed:**
+
+- **Share link helpers:** Added `client/src/lib/share-links.ts` with pure functions for the Twitter/X intent URL, the Facebook sharer URL, the mailto deep link (subject + body with text + URL), a `canUseNativeShare` check that consults `navigator.share` / `navigator.canShare`, and a `copyTextToClipboard` helper that prefers the async Clipboard API and falls back to a hidden-textarea `execCommand('copy')` path for older browsers.
+- **ShareButton component:** New `client/src/components/layout/ShareButton.tsx` renders a trigger that invokes `navigator.share` on devices that support it (with silent handling of `AbortError` when the user dismisses the sheet) and otherwise opens an accessible menu (`role="menu"` + `menuitem` items) with Copy link, Share on X, Share on Facebook, and Share via email. Copy link uses the clipboard helper, flips the menu item to "Copied!" with a check icon for two seconds, raises a success toast via the existing `ToastProvider`, and emits an error toast if copying fails. The menu closes on Escape, outside click, and after any choice is made, and supports `inline`, `subtle`, and `pill` visual variants.
+- **Integrations:** Replaced the placeholder `Share` button in the church-profile hero (`ChurchProfilePage.tsx`) with the real component and added the `subtle` variant alongside the existing "Add to calendar" button on every event card — both on the church profile's event list and on the aggregated events discovery page (`EventsDiscoveryPage.tsx`). Shared URLs point to the canonical church profile (with a `#events` anchor for event shares) so the link lands on the right place.
+- **Tests:** Added `ShareButton.test.tsx` (9 cases covering the URL builders, the closed-by-default state, the menu options, clipboard copy + toast, the native share sheet taking precedence when available, fallback to the menu on non-abort share errors, and Escape to close) and wrapped the `EventsDiscoveryPage` test render in a `ToastProvider` so the new button's toast context is available.
+
+**Verification:**
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npm run test` — 351 client + 521 server tests pass.
+- `npm run build` — client + server build successfully.
+
+---
+
+### 2026-04-15 - Add-to-Calendar For Events
+
+**Focus:** Let members export any event they discover on the site straight into their own calendar apps without leaving the page.
+
+**Completed:**
+
+- **Calendar link utilities:** Added `client/src/lib/calendar-links.ts` with pure helpers to build a Google Calendar `action=TEMPLATE` URL, an Outlook.com `compose` deep link, and a self-contained RFC 5545 ICS body (plus a slugified `.ics` filename and a `data:` URI download). Times are rendered in UTC basic-format (`YYYYMMDDTHHMMSSZ`), optional description/url are folded into the calendar details, and invalid/missing end times fall back to a 1-hour block after start. Escaping covers commas, semicolons, backslashes, and newlines per RFC 5545.
+- **AddToCalendarButton:** New `client/src/components/events/AddToCalendarButton.tsx` renders an accessible menu (`role="menu"` + `menuitem` links) with Google / Outlook / Apple (.ics) choices, closes on Escape, outside click, and after an item is chosen, and supports `subtle` and `pill` visual variants.
+- **Integrations:** Wired the new button into every public event card — the Events Discovery page (`EventsDiscoveryPage.tsx`) passes a church-profile URL so the calendar entry links back to the church, and the Church Profile event list now shows it alongside the existing date/time/location panel with the event title prefixed by the church name.
+- **Tests:** Added `calendar-links.test.ts` (14 cases across Google URL params, Outlook deep-link params, ICS escaping, ICS defaults, data URI roundtrip, filename slugification, and invalid-start rejection) and `AddToCalendarButton.test.tsx` (6 cases covering the closed-by-default state, the three calendar choices, Google href composition, ICS download filename + data URI, Escape to close, and outside-click to close).
+
+**Verification:**
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npm run test` — 315 client + 501 server tests pass.
+- `npm run build` — client + server build successfully.
+
+---
+
+### 2026-04-11 - Recurring-Event RRULE Expansion
+
+**Focus:** Turned the previously inert `recurrenceRule` metadata into real, occurrence-aware event payloads so a weekly Sunday service shows up on every upcoming Sunday in both the per-church events list and the aggregated public events feed.
+
+**Completed:**
+
+- **Recurrence library:** Added `server/src/lib/recurrence.ts` with a focused iCal RRULE parser/expander supporting `FREQ=DAILY|WEEKLY|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`, plus `parseRRule`, `validateAndNormalizeRRule`, `expandOccurrences`, and `nextOccurrence` helpers. Covered by 32 unit tests in `recurrence.test.ts` across parsing, normalization, expansion across DAILY/WEEKLY/MONTHLY frequencies, BYDAY iteration, COUNT/UNTIL semantics, and edge cases (skipped months where the day-of-month does not exist).
+- **Write-time validation:** `event.service.ts` now validates `recurrenceRule` against the parser on create/update, rejects malformed rules with a 400 `VALIDATION_ERROR`, enforces the `isRecurring` ↔ `recurrenceRule` invariants, and persists the canonical form returned by `validateAndNormalizeRRule`.
+- **Read-time expansion:** `listChurchEventsBySlug` and `listEventsFeed` now fetch non-recurring + candidate recurring rows with a two-branch `OR` query, expand them in-memory via `expandEventIntoWindow`, re-sort, and paginate the expanded list (bounded by `MAX_OCCURRENCES_PER_SERIES=366` and `MAX_CANDIDATE_EVENTS=1000`). A new `expand=false` query flag on `GET /churches/:slug/events` lets admin/editor surfaces opt out and see the raw series rows.
+- **Response shape:** Event payloads now include `occurrenceId` (unique per occurrence, e.g. `<id>::<iso>`), `seriesStartTime` (original DTSTART), and `isOccurrence` so clients can key React lists safely when a single series renders as many rows, while `id` still points back to the stored template for edit/delete.
+- **Client surfaces:** `IChurchEvent` and `IAggregatedEvent` types gained the new fields; `ChurchProfilePage`, `EventsDiscoveryPage`, and `EventManager` all key by `occurrenceId`; `EventManager` now shows a "Recurring" badge; the Leaders Portal fetches with `expand=false` so admins still manage the single series template.
+- **Recurrence picker UI:** `EventForm` gained a "Repeats" fieldset with a pattern selector (Does-not-repeat / Daily / Weekly / Monthly), interval input, weekday toggles (for weekly), and an optional "Ends on" datetime. Selections are serialized into a server-ready RRULE on submit; existing recurring events pre-populate the form from the stored rule.
+- **Test coverage:** Updated `church.routes.test.ts` (new `OR` where shape + expansion + `expand=false` fixtures), `event.routes.test.ts` (new validation failures, recurring creation canonicalization, aggregated feed expansion + pagination over expanded occurrences), `EventManager.test.tsx` (new recurrence submission scenario), `EventsDiscoveryPage.test.tsx` and `LeadersPortalPage.test.tsx` (added the new required event fields to fixtures).
+- **Docs:** Updated `docs/engineering/API_SPEC.md` with the occurrence-aware response shape, the supported RRULE subset, and the new `expand` flag; updated `docs/engineering/DATA_MODELS.md` with the supported RRULE subset note; marked the P2 task done in `docs/process/TODO.md`; added a decision entry below.
+
+**Remaining Notes:**
+
+- Recurring events still use a single `recurrenceRule` per row — per-occurrence overrides/cancellations (e.g. "skip Christmas Eve") are not yet supported.
+- The expansion path is in-memory, so total recurring-event counts in the aggregated feed are bounded by `MAX_OCCURRENCES_PER_SERIES × MAX_CANDIDATE_EVENTS`. At the current MVP scale this is trivially fine but will need a SQL-native approach before the app opens to many more churches.
+- The deployed app still needs the separate backend redeploy for the Prisma-backed session-store auth fix before live auth/save/review flows can be re-smoked on `https://sachurchfinder.com`.
+
+**Verification:**
+
+- `npm run lint` — 0 errors (71 pre-existing warnings).
+- `npm run typecheck` — clean.
+- `npm run test` — 115 server tests + 64 client tests (179 total) pass.
+- `npm run build` — client + server build successfully.
+
+---
+
 ### 2026-03-31 - Milestone 3 Roadmap Restored And Church Claim Flow Landed
 
 **Focus:** Dropped the temporary MVP-first task track, returned the repo to the original Milestone 3 roadmap, and implemented the first ownership workflow slice so church reps can claim listings.
@@ -349,7 +441,7 @@
 **Remaining Notes:**
 
 - Church events are currently read-only in the product; church claim requests and admin event management are still the next major Milestone 3 follow-ups.
-- Recurring-event metadata is stored and surfaced, but the app does not yet expand RRULEs into generated future occurrences.
+- Recurring-event RRULEs are now parsed on write and expanded into concrete occurrences on read for both the per-church feed and the aggregated `/events` feed (2026-04-11).
 - Google OAuth and optional Sentry still depend on environment-specific live credentials where they should be active.
 
 **Verification:**

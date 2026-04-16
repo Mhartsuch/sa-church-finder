@@ -19,6 +19,7 @@ import {
   authResetPasswordSchema,
   authVerifyEmailSchema,
 } from '../schemas/auth.schema.js'
+import { changePasswordSchema, ChangePasswordBody } from '../schemas/user.schema.js'
 import {
   authenticateUser,
   authenticateGoogleUser,
@@ -30,6 +31,7 @@ import {
   resetPassword,
   verifyEmail,
 } from '../services/auth.service.js'
+import { changePassword } from '../services/user.service.js'
 
 const router = Router()
 const DEFAULT_AUTH_RETURN_TO = '/account'
@@ -140,10 +142,7 @@ function resolveGoogleCallbackUrl(req: Request): string {
     return configuredCallbackUrl
   }
 
-  return new URL(
-    '/api/v1/auth/google/callback',
-    `${req.protocol}://${req.get('host')}`,
-  ).toString()
+  return new URL('/api/v1/auth/google/callback', `${req.protocol}://${req.get('host')}`).toString()
 }
 
 function buildGoogleAuthorizationUrl(req: Request, state: string): string {
@@ -195,11 +194,7 @@ async function consumeGoogleOAuthRequest(req: Request): Promise<{
   }
 }
 
-function redirectToLoginWithGoogleError(
-  res: Response,
-  authError: string,
-  returnTo: string,
-): void {
+function redirectToLoginWithGoogleError(res: Response, authError: string, returnTo: string): void {
   res.redirect(
     buildClientRedirectUrl('/login', {
       authError,
@@ -235,8 +230,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
   try {
     const storedOAuthRequest = await consumeGoogleOAuthRequest(req)
-    const googleError =
-      typeof req.query.error === 'string' ? req.query.error : null
+    const googleError = typeof req.query.error === 'string' ? req.query.error : null
     const state = typeof req.query.state === 'string' ? req.query.state : null
     const code = typeof req.query.code === 'string' ? req.query.code : null
 
@@ -411,6 +405,31 @@ router.post(
       res.json({
         data: user,
         message: 'Login successful',
+      })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+router.post(
+  '/change-password',
+  validate(changePasswordSchema),
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.session.userId!
+      const input = req.body as ChangePasswordBody
+
+      logger.info({ userId }, 'Password change request')
+
+      await changePassword(userId, input)
+
+      res.json({
+        data: null,
+        message: 'Password changed successfully.',
       })
       return
     } catch (error) {

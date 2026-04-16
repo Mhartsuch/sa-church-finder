@@ -23,6 +23,7 @@ jest.mock('../lib/prisma.js', () => ({
       create: jest.fn(),
       delete: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
     },
   },
 }))
@@ -39,6 +40,7 @@ type MockedPrisma = {
     create: jest.Mock
     delete: jest.Mock
     findMany: jest.Mock
+    count: jest.Mock
   }
 }
 
@@ -137,6 +139,7 @@ describe('saved church routes', () => {
   it('returns the signed-in users saved churches and rejects other profile access', async () => {
     const agent = await loginAgent()
 
+    mockedPrisma.userSavedChurch.count.mockResolvedValue(1)
     mockedPrisma.userSavedChurch.findMany.mockResolvedValue([
       {
         savedAt: new Date('2026-03-28T12:00:00.000Z'),
@@ -176,6 +179,12 @@ describe('saved church routes', () => {
       id: 'church-1',
       name: 'Grace Fellowship',
       isSaved: true,
+    })
+    expect(ownSavedResponse.body.meta).toMatchObject({
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      totalPages: 1,
     })
 
     const otherSavedResponse = await agent.get('/api/v1/users/user-2/saved')

@@ -6,8 +6,9 @@
  * bounding box filtering).
  */
 
-import { Prisma } from '@prisma/client'
+import { ClaimStatus, Prisma, Role } from '@prisma/client'
 import prisma from '../lib/prisma.js'
+import { AppError } from '../middleware/error-handler.js'
 import { getViewerClaimForChurch } from './church-claim.service.js'
 import {
   IBounds,
@@ -246,7 +247,11 @@ export async function searchChurches(
   const centerLng = params.lng ?? DEFAULT_CENTER_LNG
   const radius = params.radius ?? DEFAULT_RADIUS
   const page = Math.max(1, params.page ?? DEFAULT_PAGE)
-  const pageSize = Math.min(100, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
+  // pageSize is clamped to 50 to match the documented API contract. Callers
+  // that used to request up to 100 rows per page will quietly receive 50 —
+  // the Zod schema also rejects values > 50 at the edge so this is a
+  // belt-and-braces safeguard.
+  const pageSize = Math.min(50, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
   const offset = (page - 1) * pageSize
   const sortBy = params.sort ?? 'relevance'
 
@@ -294,27 +299,100 @@ export async function searchChurches(
     )`)
   }
 
-  // Denomination
+  // Denomination — accepts a single value or a comma-separated list. Multiple
+  // values are OR-combined so "Baptist,Methodist" matches any church in
+  // either family. Matching is case-insensitive. Single-value callers
+  // (`?denomination=Baptist`) go through the same path as a one-element list,
+  // so legacy behaviour is preserved.
   if (params.denomination?.trim()) {
-    const denom = params.denomination.toLowerCase()
-    conditions.push(Prisma.sql`LOWER(c."denominationFamily") = ${denom}`)
+    const denominationList = params.denomination
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+    if (denominationList.length > 0) {
+      conditions.push(Prisma.sql`LOWER(c."denominationFamily") = ANY(${denominationList}::text[])`)
+    }
   }
 
-  // Language
+  // Language — accepts a single value or a comma-separated list. Multiple
+  // values are OR-combined so "English,Spanish" matches any church that holds
+  // services in at least one of them. Matching is case-insensitive.
   if (params.language?.trim()) {
-    const lang = params.language
-    conditions.push(Prisma.sql`${lang} = ANY(c."languages")`)
+    const languageList = params.language
+      .split(',')
+      .map((l) => l.trim().toLowerCase())
+      .filter(Boolean)
+    if (languageList.length > 0) {
+      conditions.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM unnest(c."languages") AS lang
+        WHERE LOWER(lang) = ANY(${languageList}::text[])
+      )`)
+    }
   }
 
-  // Amenities (all must match)
+  // Amenities (all must match). Matching is case-insensitive and exact —
+  // earlier code used `ILIKE ANY(c."amenities")` which treats array elements
+  // as LIKE patterns and allowed spurious wildcard behaviour.
   if (params.amenities?.trim()) {
     const amenityList = params.amenities
       .split(',')
-      .map((a) => a.trim())
+      .map((a) => a.trim().toLowerCase())
       .filter(Boolean)
     for (const amenity of amenityList) {
-      conditions.push(Prisma.sql`${amenity} ILIKE ANY(c."amenities")`)
+      conditions.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM unnest(c."amenities") AS amenity
+        WHERE LOWER(amenity) = ${amenity}
+      )`)
     }
+  }
+
+  // Accessibility & community boolean flags — only applied when the caller
+  // explicitly passes `true`. A NULL value on the church row means "unknown"
+  // and should NOT satisfy the filter, so we compare to `true` directly.
+  if (params.wheelchairAccessible === true) {
+    conditions.push(Prisma.sql`c."wheelchairAccessible" = true`)
+  }
+  if (params.goodForChildren === true) {
+    conditions.push(Prisma.sql`c."goodForChildren" = true`)
+  }
+  if (params.goodForGroups === true) {
+    conditions.push(Prisma.sql`c."goodForGroups" = true`)
+  }
+
+  // Quality / trust filters
+  if (params.hasPhotos === true) {
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_photos" cp WHERE cp."churchId" = c."id"
+    )`)
+  }
+  if (params.isClaimed === true) {
+    conditions.push(Prisma.sql`c."isClaimed" = true`)
+  }
+
+  // Minimum effective rating. "Effective" means local avgRating when the
+  // church has any reviews, otherwise the Google-imported rating. Churches
+  // with no reviews on either side are excluded by the floor, which matches
+  // how the ranking score treats them.
+  if (typeof params.minRating === 'number' && params.minRating > 0) {
+    conditions.push(Prisma.sql`(
+      CASE WHEN c."reviewCount" > 0 THEN c."avgRating" ELSE COALESCE(c."googleRating", 0) END
+    ) >= ${params.minRating}`)
+  }
+
+  // Neighborhood — case-insensitive exact match
+  if (params.neighborhood?.trim()) {
+    const neighborhood = params.neighborhood.trim().toLowerCase()
+    conditions.push(Prisma.sql`LOWER(c."neighborhood") = ${neighborhood}`)
+  }
+
+  // Service type — any service on this church matches (case-insensitive)
+  if (params.serviceType?.trim()) {
+    const serviceType = params.serviceType.trim().toLowerCase()
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_services" cs
+      WHERE cs."churchId" = c."id"
+        AND LOWER(cs."serviceType") = ${serviceType}
+    )`)
   }
 
   // Service day filter — requires a subquery
@@ -332,6 +410,22 @@ export async function searchChurches(
       WHERE cs."churchId" = c."id"
         AND cs."startTime" >= ${startRange}
         AND cs."startTime" < ${endRange}
+    )`)
+  }
+
+  // "Open now" — match churches with a service happening at the current
+  // day-of-week and time in America/Chicago (San Antonio's timezone).
+  if (params.openNow === true) {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }))
+    const currentDay = now.getDay() // 0=Sunday
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "church_services" cs
+      WHERE cs."churchId" = c."id"
+        AND cs."dayOfWeek" = ${currentDay}
+        AND cs."startTime" <= ${currentTime}
+        AND (cs."endTime" IS NOT NULL AND cs."endTime" > ${currentTime})
     )`)
   }
 
@@ -656,14 +750,46 @@ export async function getChurchById(id: string, userId?: string): Promise<IChurc
 
 // ── Filter option queries ──
 
-export async function getDenominationFamilies(): Promise<string[]> {
-  const result = await prisma.church.findMany({
-    where: { denominationFamily: { not: null } },
-    select: { denominationFamily: true },
-    distinct: ['denominationFamily'],
-    orderBy: { denominationFamily: 'asc' },
+export interface IDenominationOption {
+  value: string
+  count: number
+}
+
+export interface IFilterOptionsPayload {
+  denominations: IDenominationOption[]
+  languages: string[]
+  amenities: string[]
+  neighborhoods: string[]
+  serviceTypes: string[]
+}
+
+/**
+ * Returns every denomination family that has at least one operational
+ * church, paired with the count of churches in that family. Results are
+ * sorted by count descending, then alphabetical as a tiebreaker, so the
+ * UI can pin the most common traditions first.
+ *
+ * Closed-permanently churches are excluded from the counts to match the
+ * list-view behaviour in `searchChurches` — a user who selects
+ * "Baptist · 42" should get 42 results, not 38.
+ */
+export async function getAvailableDenominations(): Promise<IDenominationOption[]> {
+  const rows = await prisma.church.groupBy({
+    by: ['denominationFamily'],
+    where: {
+      denominationFamily: { not: null },
+      businessStatus: { not: 'CLOSED_PERMANENTLY' },
+    },
+    _count: { _all: true },
   })
-  return result.map((r) => r.denominationFamily!).filter(Boolean)
+
+  return rows
+    .map((row) => ({
+      value: row.denominationFamily ?? '',
+      count: row._count._all,
+    }))
+    .filter((row) => row.value.trim().length > 0)
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
 }
 
 export async function getAvailableLanguages(): Promise<string[]> {
@@ -678,4 +804,245 @@ export async function getAvailableAmenities(): Promise<string[]> {
     SELECT DISTINCT unnest("amenities") as amenity FROM "churches" ORDER BY amenity
   `
   return rows.map((r) => r.amenity)
+}
+
+export async function getAvailableNeighborhoods(): Promise<string[]> {
+  const result = await prisma.church.findMany({
+    where: {
+      neighborhood: { not: null },
+      businessStatus: { not: 'CLOSED_PERMANENTLY' },
+    },
+    select: { neighborhood: true },
+    distinct: ['neighborhood'],
+    orderBy: { neighborhood: 'asc' },
+  })
+  return result
+    .map((r) => r.neighborhood!)
+    .filter((n): n is string => typeof n === 'string' && n.trim().length > 0)
+}
+
+export async function getAvailableServiceTypes(): Promise<string[]> {
+  // Service types come from the denormalised `church_services` table, so use
+  // a raw DISTINCT query rather than Prisma's distinct-on (which would need a
+  // compound key). Results are deduped case-insensitively so "Traditional"
+  // and "traditional" collapse to a single option.
+  const rows = await prisma.$queryRaw<Array<{ service_type: string }>>`
+    SELECT DISTINCT ON (LOWER("serviceType")) "serviceType" AS service_type
+    FROM "church_services"
+    WHERE "serviceType" IS NOT NULL AND "serviceType" <> ''
+    ORDER BY LOWER("serviceType") ASC
+  `
+  return rows.map((r) => r.service_type)
+}
+
+// ── Filter options cache ──
+//
+// `/api/v1/churches/filter-options` runs five independent DISTINCT queries on
+// every call. The underlying data only changes when a church is added, edited,
+// or removed, so a short in-process TTL cache cuts the per-request cost to
+// zero for the common case (the search page load) without risking meaningfully
+// stale chips. 5 minutes matches the TTL the frontend React Query layer
+// already applies via `FILTER_OPTIONS_STALE_TIME`, so the two layers line up.
+//
+// The cache is intentionally process-local (single Node instance) — we don't
+// need Redis for this. If the API ever runs multi-instance, each instance
+// gets its own copy and they expire independently, which is fine for
+// read-only filter options.
+const FILTER_OPTIONS_CACHE_TTL_MS = 5 * 60 * 1000
+
+let filterOptionsCache: { payload: IFilterOptionsPayload; expiresAt: number } | null = null
+
+/**
+ * Returns the full filter-options payload used by the search page's filter
+ * panel. Cached for 5 minutes to avoid running five DISTINCT queries on every
+ * page load. Call `invalidateFilterOptionsCache()` after any mutation that
+ * could change the distinct set (church create/update/delete, service edits,
+ * etc.) if you want the next request to recompute immediately.
+ */
+export async function getFilterOptions(): Promise<IFilterOptionsPayload> {
+  const now = Date.now()
+
+  if (filterOptionsCache && filterOptionsCache.expiresAt > now) {
+    return filterOptionsCache.payload
+  }
+
+  const [denominations, languages, amenities, neighborhoods, serviceTypes] = await Promise.all([
+    getAvailableDenominations(),
+    getAvailableLanguages(),
+    getAvailableAmenities(),
+    getAvailableNeighborhoods(),
+    getAvailableServiceTypes(),
+  ])
+
+  const payload: IFilterOptionsPayload = {
+    denominations,
+    languages,
+    amenities,
+    neighborhoods,
+    serviceTypes,
+  }
+
+  filterOptionsCache = {
+    payload,
+    expiresAt: now + FILTER_OPTIONS_CACHE_TTL_MS,
+  }
+
+  return payload
+}
+
+/**
+ * Clears the in-process filter-options cache. Test suites call this between
+ * cases so stale fixtures don't leak across `it()` blocks; production code
+ * calls it from mutation paths that could change the distinct sets.
+ */
+export function invalidateFilterOptionsCache(): void {
+  filterOptionsCache = null
+}
+
+// ── Church update ──
+
+export interface IUpdateChurchInput {
+  description?: string | null
+  phone?: string | null
+  email?: string | null
+  website?: string | null
+  pastorName?: string | null
+  yearEstablished?: number | null
+  languages?: string[]
+  amenities?: string[]
+  goodForChildren?: boolean | null
+  goodForGroups?: boolean | null
+  wheelchairAccessible?: boolean | null
+}
+
+/**
+ * Authorizes that the given user can manage the given church. Site admins
+ * can manage any church; church admins can manage churches they have an
+ * approved claim for (supports multiple admins per church).
+ */
+const authorizeChurchManager = async (userId: string, churchId: string): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
+  })
+
+  if (!user) {
+    throw new AppError(401, 'AUTH_ERROR', 'Not authenticated')
+  }
+
+  if (user.role === Role.SITE_ADMIN) {
+    return
+  }
+
+  if (user.role === Role.CHURCH_ADMIN) {
+    const approvedClaim = await prisma.churchClaim.findFirst({
+      where: {
+        churchId,
+        userId,
+        status: ClaimStatus.APPROVED,
+      },
+      select: { id: true },
+    })
+
+    if (approvedClaim) {
+      return
+    }
+  }
+
+  throw new AppError(403, 'FORBIDDEN', 'You do not have permission to edit this church')
+}
+
+/**
+ * Update editable fields on a church listing. Only the fields present in the
+ * input are changed — omitted keys are left untouched (PATCH semantics).
+ *
+ * After a successful update the filter-options cache is invalidated so the
+ * search page picks up any new languages, amenities, etc.
+ */
+export async function updateChurch(
+  userId: string,
+  churchId: string,
+  input: IUpdateChurchInput,
+): Promise<IChurch> {
+  await authorizeChurchManager(userId, churchId)
+
+  const data: Prisma.ChurchUpdateInput = {}
+
+  if (input.description !== undefined) {
+    data.description = input.description?.trim() || null
+  }
+  if (input.phone !== undefined) {
+    data.phone = input.phone?.trim() || null
+  }
+  if (input.email !== undefined) {
+    data.email = input.email?.trim() || null
+  }
+  if (input.website !== undefined) {
+    data.website = input.website?.trim() || null
+  }
+  if (input.pastorName !== undefined) {
+    data.pastorName = input.pastorName?.trim() || null
+  }
+  if (input.yearEstablished !== undefined) {
+    data.yearEstablished = input.yearEstablished
+  }
+  if (input.languages !== undefined) {
+    data.languages = input.languages
+  }
+  if (input.amenities !== undefined) {
+    data.amenities = input.amenities
+  }
+  if (input.goodForChildren !== undefined) {
+    data.goodForChildren = input.goodForChildren
+  }
+  if (input.goodForGroups !== undefined) {
+    data.goodForGroups = input.goodForGroups
+  }
+  if (input.wheelchairAccessible !== undefined) {
+    data.wheelchairAccessible = input.wheelchairAccessible
+  }
+
+  const church = await prisma.church.update({
+    where: { id: churchId },
+    data,
+    include: {
+      services: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+      photos: { orderBy: { displayOrder: 'asc' } },
+    },
+  })
+
+  // Invalidate filter-options cache so new languages/amenities show up
+  invalidateFilterOptionsCache()
+
+  const savedChurch = await prisma.userSavedChurch.findUnique({
+    where: {
+      userId_churchId: {
+        userId,
+        churchId: church.id,
+      },
+    },
+    select: { churchId: true },
+  })
+
+  const viewerClaim = await getViewerClaimForChurch(church.id, userId)
+
+  const photos: IChurchPhoto[] = church.photos.map((p) => ({
+    id: p.id,
+    url: p.url,
+    altText: p.altText,
+    displayOrder: p.displayOrder,
+  }))
+
+  return {
+    ...church,
+    latitude: toNumber(church.latitude),
+    longitude: toNumber(church.longitude),
+    avgRating: toNumber(church.avgRating),
+    googleRating: church.googleRating != null ? toNumber(church.googleRating) : null,
+    googleReviewCount: church.googleReviewCount ?? null,
+    isSaved: Boolean(savedChurch),
+    viewerClaim,
+    services: church.services,
+    photos,
+  }
 }

@@ -14,21 +14,24 @@ http://localhost:3001/api/v1/churches
 
 #### Query Parameters
 
-| Parameter      | Type         | Default  | Description                                       |
-| -------------- | ------------ | -------- | ------------------------------------------------- |
-| `lat`          | number       | 29.4241  | Latitude of search center (San Antonio)           |
-| `lng`          | number       | -98.4936 | Longitude of search center                        |
-| `radius`       | number       | 10       | Search radius in miles                            |
-| `q`            | string       | -        | Text search in church name/description            |
-| `denomination` | string       | -        | Filter by denomination family                     |
-| `day`          | number (0-6) | -        | Filter by service day (0=Sunday)                  |
-| `time`         | string       | -        | Filter by time: `morning`, `afternoon`, `evening` |
-| `language`     | string       | -        | Filter by service language                        |
-| `amenities`    | string       | -        | Comma-separated amenities (all must match)        |
-| `sort`         | string       | distance | Sort by: `distance`, `rating`, `name`             |
-| `page`         | number       | 1        | Page number for pagination                        |
-| `pageSize`     | number       | 20       | Results per page (max 100)                        |
-| `bounds`       | string       | -        | Bounding box: `sw_lat,sw_lng,ne_lat,ne_lng`       |
+| Parameter              | Type         | Default   | Description                                        |
+| ---------------------- | ------------ | --------- | -------------------------------------------------- |
+| `lat`                  | number       | 29.4241   | Latitude of search center (San Antonio)            |
+| `lng`                  | number       | -98.4936  | Longitude of search center                         |
+| `radius`               | number       | 10        | Search radius in miles                             |
+| `q`                    | string       | -         | Text search in church name/description             |
+| `denomination`         | string       | -         | Filter by denomination family                      |
+| `day`                  | number (0-6) | -         | Filter by service day (0=Sunday)                   |
+| `time`                 | string       | -         | Filter by time: `morning`, `afternoon`, `evening`  |
+| `language`             | string       | -         | Filter by service language                         |
+| `amenities`            | string       | -         | Comma-separated amenities (all must match)         |
+| `wheelchairAccessible` | boolean      | -         | Only confirmed wheelchair accessible churches      |
+| `goodForChildren`      | boolean      | -         | Only confirmed family-friendly churches            |
+| `goodForGroups`        | boolean      | -         | Only confirmed churches suitable for groups        |
+| `sort`                 | string       | relevance | Sort by: `relevance`, `distance`, `rating`, `name` |
+| `page`                 | number       | 1         | Page number for pagination                         |
+| `pageSize`             | number       | 20        | Results per page (max 100)                         |
+| `bounds`               | string       | -         | Bounding box: `sw_lat,sw_lng,ne_lat,ne_lng`        |
 
 #### Example Requests
 
@@ -60,6 +63,12 @@ curl "http://localhost:3001/api/v1/churches?language=Spanish"
 
 ```bash
 curl "http://localhost:3001/api/v1/churches?amenities=Parking,Wheelchair+Accessible"
+```
+
+**Confirmed wheelchair-accessible, family-friendly churches:**
+
+```bash
+curl "http://localhost:3001/api/v1/churches?wheelchairAccessible=true&goodForChildren=true"
 ```
 
 **Search within 5 miles, sort by rating:**

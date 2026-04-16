@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-import { Toast as ToastType, useToast } from '@/hooks/useToast';
+import type { Toast as ToastType } from '@/types/toast';
+import { useToast } from '@/hooks/useToast';
 
 const ICON_MAP = {
   success: CheckCircle,
@@ -51,6 +52,18 @@ const ToastItem = ({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: str
       <p className="flex-1 pt-px text-[14px] font-medium leading-snug text-foreground">
         {toast.message}
       </p>
+      {toast.action && (
+        <button
+          type="button"
+          onClick={() => {
+            toast.action?.onClick();
+            onDismiss(toast.id);
+          }}
+          className="flex-shrink-0 text-[13px] font-bold text-foreground underline underline-offset-2 transition-colors hover:text-muted-foreground"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
@@ -71,7 +84,7 @@ export const ToastContainer = () => {
   }
 
   return createPortal(
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-3">
+    <div className="fixed bottom-20 left-4 right-4 z-[100] flex flex-col-reverse gap-3 sm:bottom-6 sm:left-auto sm:right-6">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={dismissToast} />
       ))}

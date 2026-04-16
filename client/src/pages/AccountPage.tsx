@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowRight,
+  BarChart3,
   Building2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Compass,
   Heart,
   Mail,
   MapPin,
   MessageSquareText,
+  Search,
   ShieldCheck,
   Sparkles,
   Star,
@@ -15,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { AccountSettings } from '@/components/auth/AccountSettings';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth';
 import {
@@ -29,7 +34,9 @@ import {
   useResolveFlaggedReview,
   useUserReviews,
 } from '@/hooks/useReviews';
+import { ISavedChurchesParams, SavedChurchSort } from '@/types/church';
 import { ChurchClaimStatus } from '@/types/church-claim';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useToast } from '@/hooks/useToast';
 import { formatRating } from '@/utils/format';
 
@@ -104,16 +111,46 @@ const getClaimStatusClasses = (status: ChurchClaimStatus): string => {
   }
 };
 
+const SAVED_SORT_OPTIONS: Array<{ value: SavedChurchSort; label: string }> = [
+  { value: 'savedAt', label: 'Recently saved' },
+  { value: 'name', label: 'Name' },
+  { value: 'rating', label: 'Rating' },
+];
+
+const SAVED_PAGE_SIZE = 10;
+
 const AccountPage = () => {
+  useDocumentHead({ title: 'My Account', noindex: true });
+
   const navigate = useNavigate();
   const logoutMutation = useLogout();
   const requestEmailVerificationMutation = useRequestEmailVerification();
   const { user } = useAuthSession();
+
+  // Saved churches search / sort / pagination state
+  const [savedSearch, setSavedSearch] = useState('');
+  const [savedSearchInput, setSavedSearchInput] = useState('');
+  const [savedSort, setSavedSort] = useState<SavedChurchSort>('savedAt');
+  const [savedPage, setSavedPage] = useState(1);
+
+  const savedParams = useMemo<ISavedChurchesParams>(
+    () => ({
+      sort: savedSort,
+      order: savedSort === 'rating' ? 'desc' : savedSort === 'name' ? 'asc' : 'desc',
+      q: savedSearch || undefined,
+      page: savedPage,
+      pageSize: SAVED_PAGE_SIZE,
+    }),
+    [savedSort, savedSearch, savedPage],
+  );
+
   const {
-    data: savedChurches = [],
+    data: savedChurchesResponse,
     isLoading: isSavedChurchesLoading,
     error: savedChurchesError,
-  } = useSavedChurches(user?.id ?? null);
+  } = useSavedChurches(user?.id ?? null, savedParams);
+  const savedChurches = savedChurchesResponse?.data ?? [];
+  const savedMeta = savedChurchesResponse?.meta;
   const {
     data: userReviews = [],
     isLoading: isUserReviewsLoading,
@@ -155,7 +192,7 @@ const AccountPage = () => {
     return null;
   }
 
-  const savedChurchCount = savedChurches.length;
+  const savedChurchCount = savedMeta?.total ?? 0;
   const writtenReviewCount = userReviews.length;
   const claimCount = churchClaims?.meta.total ?? 0;
   const hasLeaderPortalEntry = user.role === 'church_admin' || claimCount > 0;
@@ -239,6 +276,17 @@ const AccountPage = () => {
 
     try {
       await toggleSavedChurchMutation.mutateAsync(churchId);
+      addToast({
+        message: 'Removed from saved churches',
+        variant: 'success',
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            void toggleSavedChurchMutation.mutateAsync(churchId);
+          },
+        },
+        duration: 6000,
+      });
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : 'Unable to update saved churches right now.',
@@ -378,8 +426,20 @@ const AccountPage = () => {
           <section className="rounded-[32px] border border-border bg-card p-6 shadow-airbnb-subtle sm:p-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-foreground text-xl font-bold text-white">
-                  {initials}
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[24px] bg-foreground text-xl font-bold text-white">
+                  {user.avatarUrl ? (
+                    <img
+                      src={
+                        user.avatarUrl.startsWith('http')
+                          ? user.avatarUrl
+                          : `${import.meta.env.VITE_API_URL || ''}${user.avatarUrl}`
+                      }
+                      alt={user.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">{user.name}</h2>
@@ -401,6 +461,24 @@ const AccountPage = () => {
             <p className="mt-6 max-w-3xl text-sm leading-7 text-muted-foreground">
               {dashboardSummary}
             </p>
+
+            <Link
+              to="/passport"
+              className="mt-6 flex items-center justify-between rounded-[28px] border border-[#c9defa] bg-[#f5f9ff] p-5 transition-colors hover:bg-[#eef4ff]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-card text-[#1d4ed8] shadow-airbnb-subtle">
+                  <Compass className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Church Passport</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Track visits, earn awards, and share your church journey
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-[#1d4ed8]" />
+            </Link>
 
             {!user.emailVerified ? (
               <div className="mt-6 rounded-[28px] border border-[#ffc2cc] bg-[#fff0f3] p-5">
@@ -491,6 +569,49 @@ const AccountPage = () => {
                     </p>
                   </div>
                 </div>
+
+                {savedChurchCount > 0 && !savedChurchesError && (
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <form
+                      className="relative flex-1"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        setSavedSearch(savedSearchInput);
+                        setSavedPage(1);
+                      }}
+                    >
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={savedSearchInput}
+                        onChange={(e) => setSavedSearchInput(e.target.value)}
+                        onBlur={() => {
+                          if (savedSearchInput !== savedSearch) {
+                            setSavedSearch(savedSearchInput);
+                            setSavedPage(1);
+                          }
+                        }}
+                        placeholder="Search saved churches..."
+                        className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#FF385C] focus:outline-none focus:ring-1 focus:ring-[#FF385C]"
+                      />
+                    </form>
+                    <select
+                      value={savedSort}
+                      onChange={(e) => {
+                        setSavedSort(e.target.value as SavedChurchSort);
+                        setSavedPage(1);
+                      }}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-[#FF385C] focus:outline-none focus:ring-1 focus:ring-[#FF385C]"
+                    >
+                      {SAVED_SORT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {isSavedChurchesLoading ? (
                   <p className="mt-4 text-sm leading-6 text-muted-foreground">
                     Loading your saved churches...
@@ -499,7 +620,7 @@ const AccountPage = () => {
                   <p className="mt-4 text-sm leading-6 text-[#a8083a]">
                     {savedChurchesError.message}
                   </p>
-                ) : savedChurchCount === 0 ? (
+                ) : savedChurchCount === 0 && !savedSearch ? (
                   <div className="mt-4 rounded-[24px] border border-dashed border-gray-300 bg-background p-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-card text-[#FF385C] shadow-airbnb-subtle">
                       <Compass className="h-5 w-5" />
@@ -516,55 +637,112 @@ const AccountPage = () => {
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
+                ) : savedChurches.length === 0 && savedSearch ? (
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                    No saved churches match &ldquo;{savedSearch}&rdquo;.{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSavedSearch('');
+                        setSavedSearchInput('');
+                        setSavedPage(1);
+                      }}
+                      className="font-semibold text-[#FF385C] hover:underline"
+                    >
+                      Clear search
+                    </button>
+                  </p>
                 ) : (
-                  <div className="mt-4 space-y-3">
-                    {savedChurches.map((church) => {
-                      const isUpdating =
-                        toggleSavedChurchMutation.isPending &&
-                        toggleSavedChurchMutation.variables === church.id;
+                  <>
+                    <div className="mt-4 space-y-3">
+                      {savedChurches.map((church) => {
+                        const isUpdating =
+                          toggleSavedChurchMutation.isPending &&
+                          toggleSavedChurchMutation.variables === church.id;
 
-                      return (
-                        <div
-                          key={church.id}
-                          className="rounded-2xl border border-border bg-background p-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <Link
-                                to={`/churches/${church.slug}`}
-                                className="text-sm font-semibold text-foreground hover:underline"
+                        return (
+                          <div
+                            key={church.id}
+                            className="rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/30"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <Link
+                                  to={`/churches/${church.slug}`}
+                                  className="text-sm font-semibold text-foreground hover:underline"
+                                >
+                                  {church.name}
+                                </Link>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {church.denomination || 'Church listing'}
+                                </p>
+                                <div className="mt-2 flex flex-wrap items-center gap-3">
+                                  <p className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                                    <MapPin className="h-3.5 w-3.5" />
+                                    {church.neighborhood || church.city}
+                                  </p>
+                                  {church.avgRating > 0 && (
+                                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                      {formatRating(church.avgRating)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void handleToggleSavedChurch(church.id);
+                                }}
+                                disabled={isUpdating}
+                                className="rounded-full border border-[#ffc2cc] bg-card px-3 py-1.5 text-xs font-semibold text-[#FF385C] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
                               >
-                                {church.name}
-                              </Link>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {church.denomination || 'Church listing'}
-                              </p>
-                              <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                                <MapPin className="h-3.5 w-3.5" />
-                                {church.neighborhood || church.city}
-                              </p>
+                                {isUpdating ? 'Removing...' : 'Remove'}
+                              </button>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void handleToggleSavedChurch(church.id);
-                              }}
-                              disabled={isUpdating}
-                              className="rounded-full border border-[#ffc2cc] bg-card px-3 py-1.5 text-xs font-semibold text-[#FF385C] transition-colors hover:bg-[#fff0f3] disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                              {isUpdating ? 'Updating...' : 'Remove save'}
-                            </button>
+                            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                              <span>Saved {formatSavedDate(church.savedAt)}</span>
+                              <span>
+                                {church.reviewCount}{' '}
+                                {church.reviewCount === 1 ? 'review' : 'reviews'}
+                              </span>
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
 
-                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                            <span>Saved {formatSavedDate(church.savedAt)}</span>
-                            <span>{church.reviewCount} reviews</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                    {savedMeta && savedMeta.totalPages > 1 && (
+                      <nav
+                        className="mt-4 flex items-center justify-center gap-3"
+                        aria-label="Saved churches pagination"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSavedPage((p) => Math.max(1, p - 1))}
+                          disabled={savedPage === 1}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+                          aria-label="Previous page"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <span className="text-sm text-muted-foreground">
+                          Page {savedMeta.page} of {savedMeta.totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSavedPage((p) => Math.min(savedMeta.totalPages, p + 1))}
+                          disabled={savedPage === savedMeta.totalPages}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+                          aria-label="Next page"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </nav>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -752,6 +930,13 @@ const AccountPage = () => {
               )}
             </div>
 
+            <AccountSettings
+              user={user}
+              onDeactivated={() => {
+                navigate('/', { replace: true });
+              }}
+            />
+
             {hasLeaderPortalEntry ? (
               <div className="mt-6 rounded-[28px] border border-[#d7e6dc] bg-[#f5faf7] p-5">
                 <div className="flex items-center gap-3">
@@ -772,13 +957,22 @@ const AccountPage = () => {
                     into one place so you can quickly see what visitors can already view and what
                     still needs attention.
                   </p>
-                  <Link
-                    to="/leaders"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1f4d45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
-                  >
-                    Open leaders portal
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  <div className="flex gap-3">
+                    <Link
+                      to="/analytics"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#1f4d45] bg-card px-5 py-3 text-sm font-semibold text-[#1f4d45] transition-colors hover:bg-[#f5faf7]"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      Analytics
+                    </Link>
+                    <Link
+                      to="/leaders"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1f4d45] px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                    >
+                      Open leaders portal
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             ) : null}

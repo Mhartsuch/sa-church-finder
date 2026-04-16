@@ -4,11 +4,13 @@ import {
   addHelpfulVote,
   createReview,
   deleteReview,
+  deleteReviewResponse,
   fetchFlaggedReviews,
   fetchChurchReviews,
   fetchUserReviews,
   flagReview,
   removeHelpfulVote,
+  respondToReview,
   resolveFlaggedReview,
   updateReview,
 } from '@/api/reviews'
@@ -28,6 +30,8 @@ import {
   ResolveFlaggedReviewResult,
   ReviewFlagResult,
   ReviewHelpfulVoteResult,
+  ReviewResponseDeleteResult,
+  ReviewResponseResult,
   UpdateReviewInput,
 } from '@/types/review'
 
@@ -148,6 +152,28 @@ export const useResolveFlaggedReview = () => {
 
   return useMutation<ResolveFlaggedReviewResult, Error, ResolveFlaggedReviewInput>({
     mutationFn: resolveFlaggedReview,
+    onSuccess: () => {
+      invalidateReviewAwareQueries(queryClient)
+    },
+  })
+}
+
+export const useRespondToReview = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<ReviewResponseResult, Error, { reviewId: string; body: string }>({
+    mutationFn: ({ reviewId, body }) => respondToReview(reviewId, body),
+    onSuccess: () => {
+      invalidateReviewAwareQueries(queryClient)
+    },
+  })
+}
+
+export const useDeleteReviewResponse = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation<ReviewResponseDeleteResult, Error, string>({
+    mutationFn: deleteReviewResponse,
     onSuccess: () => {
       invalidateReviewAwareQueries(queryClient)
     },
