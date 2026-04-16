@@ -13,6 +13,18 @@ export const EVENT_TIME_OF_DAY = ['morning', 'afternoon', 'evening'] as const;
 
 export type EventTimeOfDay = (typeof EVENT_TIME_OF_DAY)[number];
 
+/**
+ * Sort options for the aggregated events feed. `soonest` (the default) is the
+ * historical ordering — ascending by occurrence start time. `recent` reorders
+ * by announcement date so newly added events lead the feed; start time breaks
+ * ties inside a single announcement so a new recurring series' occurrences
+ * still read chronologically. Values match the wire format accepted by the
+ * server's `sort` query param.
+ */
+export const EVENT_SORT_OPTIONS = ['soonest', 'recent'] as const;
+
+export type EventSortOption = (typeof EVENT_SORT_OPTIONS)[number];
+
 export interface IChurchEvent {
   /**
    * The stored series (template) id. For non-recurring events this uniquely
@@ -167,6 +179,12 @@ export interface IEventsFeedFilters {
    * (`null`) are excluded so visitors can trust the narrowed result set.
    */
   accessibleOnly?: boolean;
+  /**
+   * Feed ordering. Defaults to `soonest`. `recent` surfaces newly announced
+   * events first (ordered by the stored series' `createdAt` descending) while
+   * still restricting to occurrences inside the requested `from`/`to` window.
+   */
+  sort?: EventSortOption;
 }
 
 export interface IEventsFeedResponse {
@@ -186,6 +204,7 @@ export interface IEventsFeedResponse {
       neighborhood?: string;
       denomination?: string[];
       accessibleOnly?: boolean;
+      sort?: EventSortOption;
     };
   };
 }

@@ -32,8 +32,10 @@ import {
 import { groupEventsByLocalDay } from '@/lib/event-grouping';
 import {
   ChurchEventType,
+  EVENT_SORT_OPTIONS,
   EVENT_TIME_OF_DAY,
   EVENT_TYPES,
+  EventSortOption,
   EventTimeOfDay,
   IAggregatedEvent,
   IEventsFeedFilters,
@@ -70,6 +72,16 @@ const TIME_OF_DAY_LABELS: Record<EventTimeOfDay, string> = {
 
 const isTimeOfDay = (value: string | null): value is EventTimeOfDay =>
   value !== null && (EVENT_TIME_OF_DAY as readonly string[]).includes(value);
+
+const SORT_LABELS: Record<EventSortOption, string> = {
+  soonest: 'Soonest',
+  recent: 'Recently announced',
+};
+
+const DEFAULT_SORT: EventSortOption = 'soonest';
+
+const isSortOption = (value: string | null): value is EventSortOption =>
+  value !== null && (EVENT_SORT_OPTIONS as readonly string[]).includes(value);
 
 const formatEventTimeRange = (startTime: string, endTime?: string | null): string => {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -120,6 +132,11 @@ type FeedFormState = {
    * wheelchair accessible.
    */
   accessibleOnly: boolean;
+  /**
+   * Feed ordering. `soonest` is the historical default (chronological);
+   * `recent` reorders the feed by most-recently-announced events.
+   */
+  sort: EventSortOption;
 };
 
 const EMPTY_FORM: FeedFormState = {
@@ -132,6 +149,7 @@ const EMPTY_FORM: FeedFormState = {
   neighborhood: '',
   denominations: [],
   accessibleOnly: false,
+  sort: DEFAULT_SORT,
 };
 
 const parseTypeParam = (raw: string | null): ChurchEventType[] => {
@@ -170,6 +188,7 @@ const parseDenominationParam = (raw: string | null): string[] => {
 
 const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
   const rawTimeOfDay = searchParams.get('timeOfDay');
+  const rawSort = searchParams.get('sort');
 
   return {
     q: searchParams.get('q') ?? '',
@@ -181,6 +200,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     neighborhood: searchParams.get('neighborhood') ?? '',
     denominations: parseDenominationParam(searchParams.get('denomination')),
     accessibleOnly: searchParams.get('accessible') === '1',
+    sort: isSortOption(rawSort) ? rawSort : DEFAULT_SORT,
   };
 };
 
@@ -296,11 +316,13 @@ const EventsDiscoveryPage = () => {
 
   const filters: IEventsFeedFilters = useMemo(() => {
     const rawTimeOfDay = searchParams.get('timeOfDay');
+    const rawSort = searchParams.get('sort');
     const savedOnly = isAuthenticated && searchParams.get('saved') === '1';
     const types = parseTypeParam(searchParams.get('type'));
     const neighborhood = searchParams.get('neighborhood')?.trim() || undefined;
     const denominations = parseDenominationParam(searchParams.get('denomination'));
     const accessibleOnly = searchParams.get('accessible') === '1';
+    const sort: EventSortOption | undefined = isSortOption(rawSort) ? rawSort : undefined;
 
     return {
       type: types.length > 0 ? types : undefined,
@@ -314,6 +336,9 @@ const EventsDiscoveryPage = () => {
       neighborhood,
       denomination: denominations.length > 0 ? denominations : undefined,
       accessibleOnly: accessibleOnly || undefined,
+      // Only forward a non-default sort so the query string (and cached
+      // response) stays clean for the most common case.
+      sort: sort && sort !== DEFAULT_SORT ? sort : undefined,
     };
   }, [searchParams, page, isAuthenticated]);
 
@@ -393,6 +418,9 @@ const EventsDiscoveryPage = () => {
       next.set('denomination', nextForm.denominations.join(','));
     }
     if (nextForm.accessibleOnly) next.set('accessible', '1');
+    // Keep the URL clean for the default ordering — only emit `sort=` when
+    // the user has explicitly chosen a non-default option.
+    if (nextForm.sort !== DEFAULT_SORT) next.set('sort', nextForm.sort);
 
     const nextPage = overrides.page === undefined ? page : overrides.page;
     if (nextPage && nextPage > 1) {
@@ -500,6 +528,13 @@ const EventsDiscoveryPage = () => {
 
   const handleSelectNeighborhood = (value: string): void => {
     const nextForm: FeedFormState = { ...form, neighborhood: value };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleSelectSort = (option: EventSortOption): void => {
+    if (form.sort === option) return;
+    const nextForm: FeedFormState = { ...form, sort: option };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -860,12 +895,38 @@ const EventsDiscoveryPage = () => {
           </div>
         ) : null}
 
-        <div className="mt-8 flex items-end justify-between gap-4">
+        <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-[16px] font-semibold text-foreground">{resultsHeading}</h2>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              {isFetching && !isLoading ? 'Refreshing…' : 'Sorted by soonest start'}
+              {isFetching && !isLoading
+                ? 'Refreshing…'
+                : form.sort === 'recent'
+                  ? 'Sorted by recently announced'
+                  : 'Sorted by soonest start'}
             </p>
+          </div>
+          <div
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1"
+            role="group"
+            aria-label="Sort events"
+          >
+            {EVENT_SORT_OPTIONS.map((option) => {
+              const isActive = form.sort === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleSelectSort(option)}
+                  aria-pressed={isActive}
+                  className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                    isActive ? 'bg-foreground text-white' : 'text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  {SORT_LABELS[option]}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -911,6 +972,16 @@ const EventsDiscoveryPage = () => {
                   Clear all filters
                 </button>
               ) : null}
+            </div>
+          ) : form.sort === 'recent' ? (
+            // Day-grouping headers assume a chronological feed. Under the
+            // "Recently announced" ordering events cluster by announcement
+            // date rather than day of occurrence, so we render a flat grid
+            // instead to avoid jumbled Today/Tomorrow headers.
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {events.map((event) => (
+                <EventCard key={event.occurrenceId} event={event} />
+              ))}
             </div>
           ) : (
             <div className="space-y-10">
