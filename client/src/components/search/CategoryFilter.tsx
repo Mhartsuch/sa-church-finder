@@ -1,37 +1,9 @@
 import { Scale, SlidersHorizontal } from 'lucide-react';
 
-import { useFilterOptions } from '@/hooks/useChurches';
+import { useRibbonCategories } from '@/hooks/useRibbonCategories';
+import { countActiveFilters } from '@/lib/search-state';
 import { useSearchStore } from '@/stores/search-store';
-
-interface CategoryItem {
-  id: string;
-  label: string;
-  icon: string;
-  queryValue?: string;
-  denominationValue?: string;
-}
-
-const ALL_CATEGORIES: CategoryItem[] = [
-  { id: 'all', label: 'All', icon: '⛪' },
-  { id: 'historic', label: 'Historic', icon: '🏛️', queryValue: 'Historic' },
-  { id: 'contemporary', label: 'Contemporary', icon: '🎵', queryValue: 'Contemporary' },
-  { id: 'traditional', label: 'Traditional', icon: '🏠', queryValue: 'Traditional' },
-  { id: 'community', label: 'Community', icon: '💜', queryValue: 'Community' },
-  { id: 'catholic', label: 'Catholic', icon: '✝️', denominationValue: 'Catholic' },
-  { id: 'baptist', label: 'Baptist', icon: '💧', denominationValue: 'Baptist' },
-  { id: 'methodist', label: 'Methodist', icon: '✨', denominationValue: 'Methodist' },
-  { id: 'episcopal', label: 'Episcopal', icon: '🌅', denominationValue: 'Anglican' },
-  { id: 'lutheran', label: 'Lutheran', icon: '🌿', denominationValue: 'Lutheran' },
-  { id: 'non-denom', label: 'Non-Denom', icon: '🌳', denominationValue: 'Non-denominational' },
-  {
-    id: 'presbyterian',
-    label: 'Presbyterian',
-    icon: '📜',
-    denominationValue: 'Presbyterian',
-  },
-  { id: 'missions', label: 'Missions', icon: '🏛️', queryValue: 'Mission' },
-  { id: 'megachurch', label: 'Megachurch', icon: '🏢', queryValue: 'Megachurch' },
-];
+import type { IRibbonCategory } from '@/types/ribbon-category';
 
 interface CategoryFilterProps {
   compareCount?: number;
@@ -47,51 +19,44 @@ export const CategoryFilter = ({
   const query = useSearchStore((state) => state.query);
   const filters = useSearchStore((state) => state.filters);
   const setFilter = useSearchStore((state) => state.setFilter);
+  const toggleDenomination = useSearchStore((state) => state.toggleDenomination);
   const clearFilters = useSearchStore((state) => state.clearFilters);
   const setQuery = useSearchStore((state) => state.setQuery);
-  const { data: filterOptions } = useFilterOptions();
+  const { data: ribbonData } = useRibbonCategories();
 
-  const activeFilterCount = Object.values(filters).filter(
-    (value) => value !== undefined && value !== '',
-  ).length;
+  const categories: IRibbonCategory[] = ribbonData?.data ?? [];
 
-  const availableDenominations = new Set(
-    (filterOptions?.denominations ?? []).map((d) => d.toLowerCase()),
-  );
+  const activeFilterCount = countActiveFilters(filters);
 
-  const categories = ALL_CATEGORIES.filter((item) => {
-    if (!item.denominationValue) return true;
-    return availableDenominations.has(item.denominationValue.toLowerCase());
-  });
+  const hasAnyDenomination = !!filters.denomination && filters.denomination.length > 0;
+  const isDenominationSelected = (value: string) => !!filters.denomination?.includes(value);
 
-  const isActive = (item: CategoryItem) => {
-    if (item.id === 'all') {
-      return !query.trim() && !filters.denomination;
+  const isAllActive = !query.trim() && !hasAnyDenomination;
+
+  const isActive = (item: IRibbonCategory) => {
+    if (item.filterType === 'DENOMINATION') {
+      return isDenominationSelected(item.filterValue);
     }
 
-    if (item.denominationValue) {
-      return filters.denomination === item.denominationValue;
-    }
-
-    return query.trim().toLowerCase() === item.queryValue?.toLowerCase();
+    return query.trim().toLowerCase() === item.filterValue.toLowerCase();
   };
 
-  const handleClick = (item: CategoryItem) => {
-    if (item.id === 'all') {
-      clearFilters();
-      return;
-    }
+  const handleAllClick = () => {
+    clearFilters();
+  };
 
-    if (item.denominationValue) {
-      const isSame = filters.denomination === item.denominationValue;
-      setFilter('denomination', isSame ? undefined : item.denominationValue);
-      if (!isSame) {
+  const handleClick = (item: IRibbonCategory) => {
+    if (item.filterType === 'DENOMINATION') {
+      const wasAlreadyOn = isDenominationSelected(item.filterValue);
+      toggleDenomination(item.filterValue);
+      if (!wasAlreadyOn) {
         setQuery('');
       }
       return;
     }
 
-    const nextQuery = item.queryValue ?? '';
+    // QUERY type — toggle text search
+    const nextQuery = item.filterValue;
     setQuery(query.trim().toLowerCase() === nextQuery.toLowerCase() ? '' : nextQuery);
     setFilter('denomination', undefined);
   };
@@ -99,6 +64,26 @@ export const CategoryFilter = ({
   return (
     <div className="flex items-center gap-3 px-4 sm:px-6 lg:px-10 xl:px-12">
       <div className="hide-scrollbar flex flex-1 items-center gap-0.5 overflow-x-auto py-3">
+        {/* "All" chip — always first, not stored in DB */}
+        <button
+          type="button"
+          onClick={handleAllClick}
+          className={`flex flex-shrink-0 flex-col items-center gap-1 border-b-2 px-3 pb-3 pt-2 transition-all duration-200 ${
+            isAllActive
+              ? 'border-foreground opacity-100'
+              : 'border-transparent opacity-[0.64] hover:border-[#b0b0b0] hover:opacity-100'
+          }`}
+        >
+          <span className="text-2xl leading-none">⛪</span>
+          <span
+            className={`whitespace-nowrap text-[12px] font-semibold leading-none ${
+              isAllActive ? 'text-foreground' : 'text-muted-foreground'
+            }`}
+          >
+            All
+          </span>
+        </button>
+
         {categories.map((item) => {
           const active = isActive(item);
 
@@ -125,6 +110,24 @@ export const CategoryFilter = ({
           );
         })}
       </div>
+
+      {/* Mobile-only filters button — visible below lg breakpoint */}
+      {onOpenFilters ? (
+        <button
+          type="button"
+          onClick={onOpenFilters}
+          className="relative inline-flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-foreground lg:hidden"
+          aria-label="Open filters"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters
+          {activeFilterCount > 0 ? (
+            <span className="absolute -right-2 -top-2 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#FF385C] px-1 text-[10px] font-bold text-white">
+              {activeFilterCount}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
 
       <div className="hidden items-center gap-3 border-l border-border pl-4 lg:flex">
         {onCompare ? (

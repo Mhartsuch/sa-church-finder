@@ -34,8 +34,8 @@ describe('church service', () => {
     expect(result.meta.pageSize).toBe(5)
   })
 
-  it('searchChurches clamps pageSize to max 100', async () => {
+  it('searchChurches clamps pageSize to the documented max of 50', async () => {
     const result = await searchChurches({ pageSize: 500 })
-    expect(result.meta.pageSize).toBe(100)
+    expect(result.meta.pageSize).toBe(50)
   })
 })

@@ -1,0 +1,1362 @@
+import bcrypt from 'bcryptjs'
+import request from 'supertest'
+
+import { createApp } from '../app.js'
+import prisma from '../lib/prisma.js'
+
+jest.mock('../lib/prisma.js', () => ({
+  __esModule: true,
+  default: {
+    $disconnect: jest.fn(),
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    church: {
+      findUnique: jest.fn(),
+    },
+    event: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    user: {
+      findUnique: jest.fn(),
+    },
+  },
+}))
+
+type MockedPrisma = {
+  church: {
+    findUnique: jest.Mock
+  }
+  event: {
+    findUnique: jest.Mock
+    findMany: jest.Mock
+    count: jest.Mock
+    create: jest.Mock
+    update: jest.Mock
+    delete: jest.Mock
+  }
+  user: {
+    findUnique: jest.Mock
+  }
+}
+
+const mockedPrisma = prisma as unknown as MockedPrisma
+
+const startTime = new Date('2026-05-01T14:00:00.000Z')
+const endTime = new Date('2026-05-01T16:00:00.000Z')
+
+const churchAdminLoginUser = {
+  id: 'user-admin-1',
+  email: 'admin@grace.org',
+  name: 'Grace Admin',
+  avatarUrl: null,
+  role: 'CHURCH_ADMIN',
+  emailVerified: true,
+  createdAt: new Date('2026-03-28T00:00:00.000Z'),
+}
+
+const baseEventRecord = {
+  id: 'event-1',
+  churchId: 'church-1',
+  title: 'Spring Service',
+  description: 'Welcome everyone',
+  eventType: 'service',
+  startTime,
+  endTime,
+  locationOverride: null,
+  isRecurring: false,
+  recurrenceRule: null,
+  createdById: 'user-admin-1',
+  createdAt: new Date('2026-04-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+}
+
+const buildLoginAgent = async (
+  userOverrides: Partial<typeof churchAdminLoginUser> = {},
+): Promise<ReturnType<typeof request.agent>> => {
+  const passwordHash = await bcrypt.hash('password123', 12)
+
+  mockedPrisma.user.findUnique.mockResolvedValueOnce({
+    ...churchAdminLoginUser,
+    ...userOverrides,
+    passwordHash,
+  })
+
+  const agent = request.agent(createApp())
+
+  const loginResponse = await agent.post('/api/v1/auth/login').send({
+    email: userOverrides.email ?? churchAdminLoginUser.email,
+    password: 'password123',
+  })
+
+  expect(loginResponse.status).toBe(200)
+
+  return agent
+}
+
+describe('event routes', () => {
+  beforeEach(() => {
+    jest.resetAllMocks()
+  })
+
+  it('requires authentication to create an event', async () => {
+    const response = await request(createApp()).post('/api/v1/churches/church-1/events').send({
+      title: 'Spring Service',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+    })
+
+    expect(response.status).toBe(401)
+    expect(response.body.error.code).toBe('AUTH_ERROR')
+  })
+
+  it('creates an event when the church admin owns the church', async () => {
+    const agent = await buildLoginAgent()
+
+    // authorizeChurchEventManager loads user + church in parallel
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+    mockedPrisma.event.create.mockResolvedValueOnce(baseEventRecord)
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'Spring Service',
+      description: 'Welcome everyone',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+    })
+
+    expect(response.status).toBe(201)
+    expect(response.body.data).toMatchObject({
+      id: 'event-1',
+      churchId: 'church-1',
+      title: 'Spring Service',
+      eventType: 'service',
+    })
+    expect(mockedPrisma.event.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          churchId: 'church-1',
+          title: 'Spring Service',
+          eventType: 'service',
+          createdById: 'user-admin-1',
+        }),
+      }),
+    )
+  })
+
+  it('forbids a church admin from creating events for another church', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-2',
+      claimedById: 'another-user',
+      isClaimed: true,
+    })
+
+    const response = await agent.post('/api/v1/churches/church-2/events').send({
+      title: 'Spring Service',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+    })
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('FORBIDDEN')
+    expect(mockedPrisma.event.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects events where end time is before start time', async () => {
+    const agent = await buildLoginAgent()
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'Spring Service',
+      eventType: 'service',
+      startTime: endTime.toISOString(),
+      endTime: startTime.toISOString(),
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(mockedPrisma.event.create).not.toHaveBeenCalled()
+  })
+
+  it('updates an event owned by the church admin', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.event.findUnique.mockResolvedValueOnce({
+      id: 'event-1',
+      churchId: 'church-1',
+      startTime,
+      endTime,
+    })
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+    mockedPrisma.event.update.mockResolvedValueOnce({
+      ...baseEventRecord,
+      title: 'Updated Spring Service',
+    })
+
+    const response = await agent.patch('/api/v1/events/event-1').send({
+      title: 'Updated Spring Service',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toMatchObject({
+      id: 'event-1',
+      title: 'Updated Spring Service',
+    })
+    expect(mockedPrisma.event.update).toHaveBeenCalledWith({
+      where: { id: 'event-1' },
+      data: { title: 'Updated Spring Service' },
+    })
+  })
+
+  it('returns 404 when updating a missing event', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.event.findUnique.mockResolvedValueOnce(null)
+
+    const response = await agent.patch('/api/v1/events/event-missing').send({
+      title: 'Does not matter',
+    })
+
+    expect(response.status).toBe(404)
+    expect(response.body.error.code).toBe('NOT_FOUND')
+  })
+
+  it('deletes an event owned by the church admin', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.event.findUnique.mockResolvedValueOnce({
+      id: 'event-1',
+      churchId: 'church-1',
+    })
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+    mockedPrisma.event.delete.mockResolvedValueOnce({
+      id: 'event-1',
+    })
+
+    const response = await agent.delete('/api/v1/events/event-1')
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toMatchObject({
+      id: 'event-1',
+      churchId: 'church-1',
+      deleted: true,
+    })
+    expect(mockedPrisma.event.delete).toHaveBeenCalledWith({
+      where: { id: 'event-1' },
+    })
+  })
+
+  it('rejects an invalid recurrence rule with a 400', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'Broken Series',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=YEARLY',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(response.body.error.message).toMatch(/recurrence/i)
+    expect(mockedPrisma.event.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects a recurrence rule that is missing when isRecurring=true', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'No Rule',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+      isRecurring: true,
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(mockedPrisma.event.create).not.toHaveBeenCalled()
+  })
+
+  it('creates a recurring event and persists a normalized RRULE', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'user-admin-1',
+      isClaimed: true,
+    })
+    mockedPrisma.event.create.mockResolvedValueOnce({
+      ...baseEventRecord,
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU,WE',
+    })
+
+    const response = await agent.post('/api/v1/churches/church-1/events').send({
+      title: 'Spring Service',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=WE,SU',
+    })
+
+    expect(response.status).toBe(201)
+    expect(mockedPrisma.event.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          isRecurring: true,
+          // INTERVAL=1 is default so it's stripped; BYDAY is reordered into
+          // week order.
+          recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU,WE',
+        }),
+      }),
+    )
+  })
+
+  it('allows a site admin to manage events for any church', async () => {
+    const agent = await buildLoginAgent({
+      id: 'admin-2',
+      email: 'admin@example.com',
+      role: 'SITE_ADMIN',
+    })
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'admin-2',
+      role: 'SITE_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-7',
+      claimedById: 'someone-else',
+      isClaimed: true,
+    })
+    mockedPrisma.event.create.mockResolvedValueOnce({
+      ...baseEventRecord,
+      churchId: 'church-7',
+      createdById: 'admin-2',
+    })
+
+    const response = await agent.post('/api/v1/churches/church-7/events').send({
+      title: 'Site-wide Service',
+      eventType: 'service',
+      startTime: startTime.toISOString(),
+    })
+
+    expect(response.status).toBe(201)
+    expect(response.body.data.churchId).toBe('church-7')
+  })
+})
+
+describe('GET /api/v1/events (aggregated feed)', () => {
+  const churchSummary = {
+    id: 'church-1',
+    slug: 'grace-church',
+    name: 'Grace Church',
+    city: 'San Antonio',
+    denomination: 'Non-denominational',
+    neighborhood: 'Downtown',
+    coverImageUrl: 'https://example.com/grace.jpg',
+  }
+
+  const feedEventRecord = {
+    ...baseEventRecord,
+    church: churchSummary,
+  }
+
+  const windowFrom = '2026-05-01T00:00:00.000Z'
+  const windowTo = '2026-06-30T00:00:00.000Z'
+
+  beforeEach(() => {
+    jest.resetAllMocks()
+  })
+
+  it('returns aggregated events with church info, pagination, and filters', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await request(createApp()).get('/api/v1/events').query({
+      type: 'service',
+      q: 'spring',
+      from: windowFrom,
+      to: windowTo,
+      page: '1',
+      pageSize: '10',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toHaveLength(1)
+    expect(response.body.data[0]).toMatchObject({
+      id: 'event-1',
+      occurrenceId: 'event-1',
+      title: 'Spring Service',
+      isOccurrence: false,
+      seriesStartTime: startTime.toISOString(),
+      church: {
+        id: 'church-1',
+        slug: 'grace-church',
+        name: 'Grace Church',
+        city: 'San Antonio',
+      },
+    })
+    expect(response.body.meta).toMatchObject({
+      total: 1,
+      page: 1,
+      pageSize: 10,
+      totalPages: 1,
+    })
+    expect(response.body.meta.filters.type).toEqual(['service'])
+    expect(response.body.meta.filters.q).toBe('spring')
+
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.any(Array),
+        }),
+        include: expect.objectContaining({
+          church: expect.objectContaining({
+            select: expect.objectContaining({ slug: true, name: true }),
+          }),
+        }),
+        orderBy: [{ startTime: 'asc' }, { title: 'asc' }],
+      }),
+    )
+  })
+
+  it('defaults to page 1 with 20 results per page when no pagination params are provided', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+    const response = await request(createApp()).get('/api/v1/events')
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toEqual([])
+    expect(response.body.meta).toMatchObject({
+      total: 0,
+      page: 1,
+      pageSize: 20,
+      totalPages: 0,
+    })
+
+    expect(mockedPrisma.event.findMany).toHaveBeenCalled()
+  })
+
+  it('paginates the expanded result set when page > 1', async () => {
+    const seriesStart = new Date('2026-05-03T15:00:00.000Z')
+    const recurringRecord = {
+      ...baseEventRecord,
+      id: 'event-recurring',
+      title: 'Weekly Service',
+      startTime: seriesStart,
+      endTime: new Date('2026-05-03T16:30:00.000Z'),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY;COUNT=35',
+      church: churchSummary,
+    }
+
+    mockedPrisma.event.findMany.mockResolvedValueOnce([recurringRecord])
+
+    const response = await request(createApp()).get('/api/v1/events').query({
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2027-05-01T00:00:00.000Z',
+      page: '3',
+      pageSize: '10',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta).toMatchObject({
+      total: 35,
+      page: 3,
+      pageSize: 10,
+      totalPages: 4,
+    })
+    // The 3rd page of 10 weekly occurrences is occurrences 21..30 from dtstart.
+    expect(response.body.data).toHaveLength(10)
+    expect(response.body.data[0]).toMatchObject({
+      id: 'event-recurring',
+      isOccurrence: true,
+      seriesStartTime: seriesStart.toISOString(),
+      startTime: '2026-09-20T15:00:00.000Z', // dtstart + 20 weeks
+    })
+  })
+
+  it('expands a weekly recurring event into multiple occurrences in the window', async () => {
+    const seriesStart = new Date('2026-05-03T15:00:00.000Z')
+    const recurringRecord = {
+      ...baseEventRecord,
+      id: 'event-recurring',
+      title: 'Sunday Worship',
+      startTime: seriesStart,
+      endTime: new Date('2026-05-03T16:30:00.000Z'),
+      isRecurring: true,
+      recurrenceRule: 'FREQ=WEEKLY',
+      church: churchSummary,
+    }
+
+    mockedPrisma.event.findMany.mockResolvedValueOnce([recurringRecord])
+
+    const response = await request(createApp()).get('/api/v1/events').query({
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2026-06-01T00:00:00.000Z',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toHaveLength(5)
+
+    const occurrenceIds = response.body.data.map(
+      (event: { occurrenceId: string }) => event.occurrenceId,
+    )
+    expect(new Set(occurrenceIds).size).toBe(5)
+    expect(occurrenceIds[0]).toBe('event-recurring::2026-05-03T15:00:00.000Z')
+
+    expect(response.body.data[1]).toMatchObject({
+      id: 'event-recurring',
+      isOccurrence: true,
+      startTime: '2026-05-10T15:00:00.000Z',
+      endTime: '2026-05-10T16:30:00.000Z',
+      seriesStartTime: seriesStart.toISOString(),
+      recurrenceRule: 'FREQ=WEEKLY',
+    })
+  })
+
+  it('rejects requests where "to" is before "from"', async () => {
+    const response = await request(createApp()).get('/api/v1/events').query({
+      from: '2026-06-01T00:00:00.000Z',
+      to: '2026-05-01T00:00:00.000Z',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid event type values', async () => {
+    const response = await request(createApp()).get('/api/v1/events').query({ type: 'not-a-type' })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+  })
+
+  it('accepts a comma-separated list of event types and ORs them together', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await request(createApp())
+      .get('/api/v1/events')
+      .query({ type: 'service,community' })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.type).toEqual(['service', 'community'])
+
+    const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+      AND: Array<Record<string, unknown>>
+    }
+    expect(whereArg.AND[0]).toMatchObject({
+      eventType: { in: ['service', 'community'] },
+    })
+  })
+
+  it('accepts repeated `type` query params for multi-select', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    // Express parses `?type=service&type=community` as a string array on
+    // req.query, so the schema needs to handle both shapes.
+    const response = await request(createApp()).get('/api/v1/events?type=service&type=community')
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.type).toEqual(['service', 'community'])
+  })
+
+  it('dedupes repeated event types and rejects when any is invalid', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const okResponse = await request(createApp())
+      .get('/api/v1/events')
+      .query({ type: 'service,service,community' })
+
+    expect(okResponse.status).toBe(200)
+    expect(okResponse.body.meta.filters.type).toEqual(['service', 'community'])
+
+    const badResponse = await request(createApp())
+      .get('/api/v1/events')
+      .query({ type: 'service,not-a-type' })
+
+    expect(badResponse.status).toBe(400)
+    expect(badResponse.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('requires authentication when savedOnly=true is requested', async () => {
+    const response = await request(createApp()).get('/api/v1/events').query({ savedOnly: 'true' })
+
+    expect(response.status).toBe(401)
+    expect(response.body.error.code).toBe('AUTH_ERROR')
+    expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+  })
+
+  it('restricts the feed to churches saved by the authenticated user when savedOnly=true', async () => {
+    const agent = await buildLoginAgent()
+
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await agent.get('/api/v1/events').query({ savedOnly: 'true' })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.savedOnly).toBe(true)
+
+    expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              church: { savedByUsers: { some: { userId: 'user-admin-1' } } },
+            }),
+          ]),
+        }),
+      }),
+    )
+  })
+
+  it('ignores savedOnly=false and does not add the saved-church filter', async () => {
+    mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+    const response = await request(createApp()).get('/api/v1/events').query({ savedOnly: 'false' })
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta.filters.savedOnly).toBeUndefined()
+
+    const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+      AND: Array<Record<string, unknown>>
+    }
+    const baseQueryFilters = whereArg.AND[0]!
+    expect(baseQueryFilters).not.toHaveProperty('church')
+  })
+
+  describe('neighborhood filter', () => {
+    it('filters the feed to a specific neighborhood (case-insensitive)', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ neighborhood: 'Downtown' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+        },
+      })
+    })
+
+    it('trims whitespace and omits the filter when the value is empty', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ neighborhood: '   ' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+
+    it('omits the neighborhood meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.neighborhood).toBeUndefined()
+    })
+
+    it('combines the neighborhood filter with savedOnly into a single church clause', async () => {
+      const agent = await buildLoginAgent()
+
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await agent
+        .get('/api/v1/events')
+        .query({ neighborhood: 'Alamo Heights', savedOnly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.neighborhood).toBe('Alamo Heights')
+      expect(response.body.meta.filters.savedOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          savedByUsers: { some: { userId: 'user-admin-1' } },
+          neighborhood: { equals: 'Alamo Heights', mode: 'insensitive' },
+        },
+      })
+    })
+
+    it('rejects neighborhood values that exceed the maximum length', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ neighborhood: 'x'.repeat(121) })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('denomination filter', () => {
+    it('filters the feed to a single denomination family (case-insensitive)', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ denomination: 'Baptist' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // The denomination filter is expressed as an OR of insensitive equality
+      // clauses on `denominationFamily`, nested under the shared `church` clause.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          OR: [
+            {
+              denominationFamily: { equals: 'baptist', mode: 'insensitive' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('accepts a comma-separated multi-select and dedupes case-insensitively', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ denomination: 'Baptist,Methodist,baptist' })
+
+      expect(response.status).toBe(200)
+      // The echoed meta preserves the originally-supplied casing/order so chip
+      // labels read naturally; the underlying SQL is matched insensitively.
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist', 'Methodist', 'baptist'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          OR: [
+            {
+              denominationFamily: { equals: 'baptist', mode: 'insensitive' },
+            },
+            {
+              denominationFamily: { equals: 'methodist', mode: 'insensitive' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('combines the denomination filter with neighborhood and savedOnly into one church clause', async () => {
+      const agent = await buildLoginAgent()
+
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await agent.get('/api/v1/events').query({
+        denomination: 'Baptist',
+        neighborhood: 'Downtown',
+        savedOnly: 'true',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.savedOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          savedByUsers: { some: { userId: 'user-admin-1' } },
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [
+            {
+              denominationFamily: { equals: 'baptist', mode: 'insensitive' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('omits the denomination meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toBeUndefined()
+    })
+
+    it('drops empty denomination tokens and skips the filter entirely', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ denomination: ' , , ' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.denomination).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+  })
+
+  describe('accessibleOnly filter', () => {
+    it('filters the feed to wheelchair-accessible churches when enabled', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ accessibleOnly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // Matching `equals: true` excludes both `false` and `null` churches so
+      // visitors can trust the narrowed result set.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: { wheelchairAccessible: true },
+      })
+    })
+
+    it('omits the accessibleOnly meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('treats accessibleOnly=false as no filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ accessibleOnly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('combines accessibleOnly with neighborhood and denomination in one church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        accessibleOnly: 'true',
+        neighborhood: 'Downtown',
+        denomination: 'Baptist',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.accessibleOnly).toBe(true)
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          wheelchairAccessible: true,
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }],
+        },
+      })
+    })
+  })
+
+  describe('timeOfDay filter (San Antonio local time)', () => {
+    // San Antonio is America/Chicago — CDT (UTC-5) in May/June.
+    // 09:00 CDT  -> 14:00 UTC (morning)
+    // 13:00 CDT  -> 18:00 UTC (afternoon)
+    // 18:30 CDT  -> 23:30 UTC (evening)
+    // 23:00 CDT  -> 04:00 UTC next day (overnight, no bucket)
+    const morningRecord = {
+      ...baseEventRecord,
+      id: 'event-morning',
+      title: 'Morning Service',
+      startTime: new Date('2026-05-03T14:00:00.000Z'),
+      endTime: new Date('2026-05-03T15:00:00.000Z'),
+      church: churchSummary,
+    }
+    const afternoonRecord = {
+      ...baseEventRecord,
+      id: 'event-afternoon',
+      title: 'Afternoon Study',
+      startTime: new Date('2026-05-03T18:00:00.000Z'),
+      endTime: new Date('2026-05-03T19:00:00.000Z'),
+      church: churchSummary,
+    }
+    const eveningRecord = {
+      ...baseEventRecord,
+      id: 'event-evening',
+      title: 'Evening Group',
+      startTime: new Date('2026-05-03T23:30:00.000Z'),
+      endTime: new Date('2026-05-04T00:30:00.000Z'),
+      church: churchSummary,
+    }
+    const overnightRecord = {
+      ...baseEventRecord,
+      id: 'event-overnight',
+      title: 'Overnight Vigil',
+      startTime: new Date('2026-05-04T04:00:00.000Z'),
+      endTime: new Date('2026-05-04T05:00:00.000Z'),
+      church: churchSummary,
+    }
+
+    it('includes only morning occurrences when timeOfDay=morning', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        morningRecord,
+        afternoonRecord,
+        eveningRecord,
+        overnightRecord,
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-10T00:00:00.000Z',
+        timeOfDay: 'morning',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual(['event-morning'])
+      expect(response.body.meta.filters.timeOfDay).toBe('morning')
+    })
+
+    it('includes only afternoon occurrences when timeOfDay=afternoon', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        morningRecord,
+        afternoonRecord,
+        eveningRecord,
+        overnightRecord,
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-10T00:00:00.000Z',
+        timeOfDay: 'afternoon',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual([
+        'event-afternoon',
+      ])
+    })
+
+    it('includes only evening occurrences when timeOfDay=evening', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        morningRecord,
+        afternoonRecord,
+        eveningRecord,
+        overnightRecord,
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-10T00:00:00.000Z',
+        timeOfDay: 'evening',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual(['event-evening'])
+    })
+
+    it('rejects unknown timeOfDay buckets with a 400', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ timeOfDay: 'midnight' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+
+    it('omits the timeOfDay meta when no bucket is requested', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.timeOfDay).toBeUndefined()
+    })
+  })
+
+  describe('sort option', () => {
+    const earlyStart = new Date('2026-05-02T15:00:00.000Z')
+    const lateStart = new Date('2026-05-10T15:00:00.000Z')
+
+    const freshlyAnnounced = {
+      ...baseEventRecord,
+      id: 'event-late-start-fresh',
+      title: 'Just-announced Volunteer Day',
+      eventType: 'volunteer',
+      startTime: lateStart,
+      endTime: new Date('2026-05-10T17:00:00.000Z'),
+      createdAt: new Date('2026-04-15T00:00:00.000Z'),
+      church: churchSummary,
+    }
+
+    const longStanding = {
+      ...baseEventRecord,
+      id: 'event-early-start-old',
+      title: 'Long-running Sunday Service',
+      eventType: 'service',
+      startTime: earlyStart,
+      endTime: new Date('2026-05-02T16:00:00.000Z'),
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      church: churchSummary,
+    }
+
+    it('defaults to soonest ordering when no sort is supplied', async () => {
+      // Prisma returns rows in insertion order — the service is responsible
+      // for the stable chronological sort regardless of the driver order.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([freshlyAnnounced, longStanding])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-31T00:00:00.000Z',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual([
+        'event-early-start-old',
+        'event-late-start-fresh',
+      ])
+      // Default sort is implicit — the meta envelope should stay clean.
+      expect(response.body.meta.filters.sort).toBeUndefined()
+    })
+
+    it('reorders the feed by createdAt desc when sort=recent', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([longStanding, freshlyAnnounced])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-31T00:00:00.000Z',
+        sort: 'recent',
+      })
+
+      expect(response.status).toBe(200)
+      // Most recently announced leads the feed even though its start time is
+      // later than the long-running service.
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual([
+        'event-late-start-fresh',
+        'event-early-start-old',
+      ])
+      expect(response.body.meta.filters.sort).toBe('recent')
+    })
+
+    it('rejects unknown sort values with a 400', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ sort: 'alphabetical' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('GET /events.ics aggregated calendar feed', () => {
+    it('returns a text/calendar feed combining events across churches', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        {
+          id: 'event-a',
+          churchId: 'church-1',
+          title: 'Sunday Worship',
+          description: null,
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: new Date('2026-05-03T15:30:00.000Z'),
+          locationOverride: null,
+          isRecurring: true,
+          recurrenceRule: 'FREQ=WEEKLY',
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date('2026-04-10T00:00:00.000Z'),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+        {
+          id: 'event-b',
+          churchId: 'church-2',
+          title: 'Food Drive',
+          description: null,
+          eventType: 'community',
+          startTime: new Date('2026-05-05T16:00:00.000Z'),
+          endTime: null,
+          locationOverride: 'Parking lot',
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u2',
+          createdAt: new Date(),
+          updatedAt: new Date('2026-04-10T00:00:00.000Z'),
+          church: {
+            id: 'church-2',
+            slug: 'northside-chapel',
+            name: 'Northside Chapel',
+            city: 'San Antonio',
+            address: '999 Evers',
+          },
+        },
+      ])
+
+      const response = await request(createApp()).get('/api/v1/events.ics')
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-type']).toMatch(/text\/calendar/)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+      const body = response.text
+      expect(body).toMatch(/BEGIN:VCALENDAR/)
+      expect(body).toMatch(/SUMMARY:Sunday Worship · Grace Fellowship/)
+      expect(body).toMatch(/SUMMARY:Food Drive · Northside Chapel/)
+      expect(body).toMatch(/RRULE:FREQ=WEEKLY/)
+      // Non-recurring event keeps its locationOverride.
+      expect(body).toMatch(/LOCATION:Parking lot/)
+    })
+
+    it('filters the feed by event type and updates the filename', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        {
+          id: 'event-a',
+          churchId: 'church-1',
+          title: 'Sunday Worship',
+          description: null,
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+      ])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ eventType: 'service' }),
+        }),
+      )
+    })
+
+    it('rejects an invalid type filter', async () => {
+      const response = await request(createApp()).get('/api/v1/events.ics').query({ type: 'bogus' })
+
+      expect(response.status).toBe(400)
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+
+    it('accepts a comma-separated multi-type filter and reflects every type in the filename', async () => {
+      // Prisma gets an `in` clause for the two selected types; the ICS
+      // response's filename enumerates both so downloaded files stay
+      // self-describing when visitors mix chips on the discovery page.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([
+        {
+          id: 'event-a',
+          churchId: 'church-1',
+          title: 'Sunday Worship',
+          description: null,
+          eventType: 'service',
+          startTime: new Date('2026-05-03T14:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          church: {
+            id: 'church-1',
+            slug: 'grace-fellowship',
+            name: 'Grace Fellowship',
+            city: 'San Antonio',
+            address: '1234 Broadway',
+          },
+        },
+        {
+          id: 'event-b',
+          churchId: 'church-2',
+          title: 'Food Drive',
+          description: null,
+          eventType: 'community',
+          startTime: new Date('2026-05-04T16:00:00.000Z'),
+          endTime: null,
+          locationOverride: null,
+          isRecurring: false,
+          recurrenceRule: null,
+          createdById: 'u2',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          church: {
+            id: 'church-2',
+            slug: 'northside-chapel',
+            name: 'Northside Chapel',
+            city: 'San Antonio',
+            address: '999 Evers',
+          },
+        },
+      ])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service,community' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-community-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: { in: ['service', 'community'] },
+          }),
+        }),
+      )
+    })
+
+    it('accepts repeated type query params and dedupes them', async () => {
+      // Express surfaces `?type=service&type=community&type=service` as an
+      // array; the schema dedupes so downstream consumers only see each type
+      // once. This protects against a user bookmarking a URL with duplicates.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp()).get(
+        '/api/v1/events.ics?type=service&type=community&type=service',
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-community-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: { in: ['service', 'community'] },
+          }),
+        }),
+      )
+    })
+
+    it('rejects a multi-type filter when any entry is unknown', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service,bogus' })
+
+      expect(response.status).toBe(400)
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+  })
+})

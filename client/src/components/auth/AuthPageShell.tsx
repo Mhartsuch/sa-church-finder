@@ -42,8 +42,8 @@ export const AuthPageShell = ({
 }: AuthPageShellProps) => {
   return (
     <div className="flex flex-1 bg-background">
-      <div className="relative mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr,0.95fr] lg:px-10 lg:py-10">
-        <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(160deg,#FF385C_0%,#e63e5c_55%,#ffd0c0_100%)] p-8 text-white shadow-airbnb sm:p-10">
+      <div className="relative mx-auto grid w-full max-w-6xl flex-1 gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:grid-cols-[1.05fr,0.95fr] lg:px-10 lg:py-10">
+        <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(160deg,#FF385C_0%,#e63e5c_55%,#ffd0c0_100%)] p-6 text-white shadow-airbnb sm:rounded-[32px] sm:p-10">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-44 w-44 rounded-full bg-[#1f4d45]/20 blur-3xl" />
 
@@ -53,14 +53,16 @@ export const AuthPageShell = ({
                 {eyebrow}
               </span>
               <div className="space-y-3">
-                <h1 className="max-w-xl text-4xl font-bold tracking-tight sm:text-5xl">{title}</h1>
+                <h1 className="max-w-xl text-2xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+                  {title}
+                </h1>
                 <p className="max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
                   {description}
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <div className="hidden gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-1">
               {highlights.map(({ icon: Icon, title: itemTitle, body }) => (
                 <div
                   key={itemTitle}
@@ -85,7 +87,7 @@ export const AuthPageShell = ({
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-border bg-card p-6 shadow-airbnb-subtle sm:p-8">
+        <section className="rounded-[24px] border border-border bg-card p-5 shadow-airbnb-subtle sm:rounded-[32px] sm:p-8">
           {children}
           <div className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">
             {footer}

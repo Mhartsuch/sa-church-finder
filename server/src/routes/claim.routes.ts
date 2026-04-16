@@ -12,7 +12,9 @@ import {
 } from '../schemas/claim.schema.js'
 import {
   createChurchClaim,
+  getChurchAdmins,
   getPendingChurchClaims,
+  removeChurchAdmin,
   resolveChurchClaim,
 } from '../services/church-claim.service.js'
 
@@ -86,6 +88,57 @@ router.patch(
             ? 'Church claim approved successfully'
             : 'Church claim rejected',
       })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+/**
+ * GET /churches/:id/admins
+ * List approved admins for a church. Requires auth — caller must be an admin of the church.
+ */
+router.get(
+  '/churches/:id/admins',
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params
+      const userId = req.session.userId!
+
+      const admins = await getChurchAdmins(id, userId)
+
+      res.json({ data: admins })
+      return
+    } catch (error) {
+      next(error)
+      return
+    }
+  },
+)
+
+/**
+ * DELETE /churches/:id/admins/:userId
+ * Remove an admin from a church. Only the primary claimant or site admins can remove.
+ */
+router.delete(
+  '/churches/:id/admins/:adminUserId',
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id, adminUserId } = req.params
+      const userId = req.session.userId!
+
+      logger.info(
+        { churchId: id, targetUserId: adminUserId, actorUserId: userId },
+        'Removing church admin',
+      )
+
+      await removeChurchAdmin(id, userId, adminUserId)
+
+      res.json({ message: 'Admin removed successfully' })
       return
     } catch (error) {
       next(error)

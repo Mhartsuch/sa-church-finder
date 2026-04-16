@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react';
+import { Compass, Heart, Map as MapIcon, Moon, Sun } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface MobileNavProps {
   onToggleMap?: () => void;
   showMap?: boolean;
 }
+
+// Match the SearchPage desktop breakpoint so the bottom nav and the
+// desktop header layout flip at the same viewport. Below 1024px the
+// Header drops its inline search bar, so the bottom nav takes over.
+export const MOBILE_NAV_BREAKPOINT = 1024;
 
 export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
   const location = useLocation();
@@ -14,11 +20,11 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
     return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
   });
   const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+    typeof window !== 'undefined' ? window.innerWidth < MOBILE_NAV_BREAKPOINT : false,
   );
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < MOBILE_NAV_BREAKPOINT);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -34,30 +40,39 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
     window.localStorage.setItem('church-finder-theme', next);
   };
 
+  // All buttons in the bar target at least 48px of tappable area so
+  // accidental mis-taps between adjacent items stay rare on small phones.
+  const buttonBase =
+    'flex min-h-[48px] min-w-[48px] flex-1 flex-col items-center justify-center gap-0.5 px-2 text-[10px] font-semibold transition-colors';
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border bg-card/95 px-2 py-2 backdrop-blur-md">
+    <nav
+      aria-label="Primary mobile navigation"
+      className="mobile-nav-bar fixed bottom-0 left-0 right-0 z-50 flex items-stretch justify-around border-t border-border bg-card/95 px-2 pt-1.5 backdrop-blur-md lg:hidden"
+    >
       <button
         type="button"
         onClick={() => {
           navigate('/');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className={`flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold ${
+        className={`${buttonBase} ${
           isHome && !showMap ? 'text-[#FF385C]' : 'text-muted-foreground'
         }`}
         aria-label="Explore"
+        aria-current={isHome && !showMap ? 'page' : undefined}
       >
-        <span className="text-xl">🔍</span>
+        <Compass className="h-5 w-5" />
         <span>Explore</span>
       </button>
 
       <button
         type="button"
         onClick={() => navigate('/account')}
-        className="flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold text-muted-foreground"
+        className={`${buttonBase} text-muted-foreground`}
         aria-label="Wishlist"
       >
-        <span className="text-xl">♥️</span>
+        <Heart className="h-5 w-5" />
         <span>Wishlist</span>
       </button>
 
@@ -65,12 +80,11 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
         <button
           type="button"
           onClick={onToggleMap}
-          className={`flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold ${
-            showMap ? 'text-[#FF385C]' : 'text-muted-foreground'
-          }`}
-          aria-label="Map"
+          aria-pressed={showMap}
+          className={`${buttonBase} ${showMap ? 'text-[#FF385C]' : 'text-muted-foreground'}`}
+          aria-label={showMap ? 'Hide map' : 'Show map'}
         >
-          <span className="text-xl">🗺️</span>
+          <MapIcon className="h-5 w-5" />
           <span>Map</span>
         </button>
       ) : null}
@@ -78,10 +92,10 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
       <button
         type="button"
         onClick={toggleTheme}
-        className="flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-semibold text-muted-foreground"
-        aria-label={theme === 'light' ? 'Dark mode' : 'Light mode'}
+        className={`${buttonBase} text-muted-foreground`}
+        aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
       >
-        <span className="text-xl">{theme === 'light' ? '🌙' : '☀️'}</span>
+        {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
         <span>Theme</span>
       </button>
     </nav>
