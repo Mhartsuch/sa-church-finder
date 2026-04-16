@@ -807,23 +807,25 @@ const EventsDiscoveryPage = () => {
         <div className="mt-4">
           {/*
             The aggregated calendar feed honors the same multi-select type,
-            denomination, AND neighborhood filters as the JSON feed, so the
-            subscribe URL reflects exactly the chips the user has toggled.
-            When no filters are active we fall back to the city-wide feed so
-            the subscribe action stays useful for any selection. The label
-            prioritizes the most specific single-axis narrative when possible,
-            otherwise names the count of filters, and otherwise points at the
-            city feed.
+            denomination, neighborhood, AND language filters as the JSON feed,
+            so the subscribe URL reflects exactly the chips the user has
+            toggled. When no filters are active we fall back to the city-wide
+            feed so the subscribe action stays useful for any selection. The
+            label prioritizes the most specific single-axis narrative when
+            possible, otherwise names the count of filters, and otherwise
+            points at the city feed.
           */}
           {(() => {
             const selectedTypes = filters.type ?? [];
             const selectedDenominations = filters.denomination ?? [];
             const selectedNeighborhoods = filters.neighborhood ?? [];
+            const selectedLanguages = filters.language ?? [];
 
             const axesInUse = [
               selectedTypes.length > 0,
               selectedDenominations.length > 0,
               selectedNeighborhoods.length > 0,
+              selectedLanguages.length > 0,
             ].filter(Boolean).length;
 
             let label: string;
@@ -835,12 +837,16 @@ const EventsDiscoveryPage = () => {
               label = `Subscribe to ${selectedDenominations[0]} events`;
             } else if (axesInUse === 1 && selectedNeighborhoods.length === 1) {
               label = `Subscribe to ${selectedNeighborhoods[0]} events`;
+            } else if (axesInUse === 1 && selectedLanguages.length === 1) {
+              label = `Subscribe to ${selectedLanguages[0]} events`;
             } else if (axesInUse === 1 && selectedTypes.length > 1) {
               label = `Subscribe to ${selectedTypes.length} event-type feeds`;
             } else if (axesInUse === 1 && selectedDenominations.length > 1) {
               label = `Subscribe to ${selectedDenominations.length} denomination feeds`;
             } else if (axesInUse === 1 && selectedNeighborhoods.length > 1) {
               label = `Subscribe to ${selectedNeighborhoods.length} neighborhood feeds`;
+            } else if (axesInUse === 1 && selectedLanguages.length > 1) {
+              label = `Subscribe to ${selectedLanguages.length} language feeds`;
             } else {
               // Multiple axes narrowed — keep it short and let the filename
               // carry the specifics.
@@ -853,6 +859,7 @@ const EventsDiscoveryPage = () => {
                   type: selectedTypes.length > 0 ? selectedTypes : null,
                   denomination: selectedDenominations.length > 0 ? selectedDenominations : null,
                   neighborhood: selectedNeighborhoods.length > 0 ? selectedNeighborhoods : null,
+                  language: selectedLanguages.length > 0 ? selectedLanguages : null,
                 })}
                 label={label}
               />

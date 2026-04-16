@@ -1483,6 +1483,71 @@ describe('EventsDiscoveryPage', () => {
         /events\.ics\?denomination=Baptist&neighborhood=Downtown$/,
       );
     });
+
+    it('names the single active language in the label and feed URL', () => {
+      // Language-only narrowing: the label reads naturally ("Subscribe to
+      // Spanish events") and the feed URL carries exactly the one language
+      // chip the visitor has toggled.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?language=Spanish');
+
+      const trigger = screen.getByRole('button', { name: /Subscribe to Spanish events/ });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?language=Spanish$/);
+    });
+
+    it('counts multiple languages in the label and joins them in the URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?language=English,Spanish');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to 2 language feeds/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      // URL-encoded comma (%2C) — the server normalizes these back into a
+      // deduped `string[]` via the shared `languageMultiQueryParam` schema.
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?language=English%2CSpanish$/);
+    });
+
+    it('combines language with another axis and uses a generic label', () => {
+      // Once two axes are narrowed (e.g. language + denomination), the label
+      // collapses to the generic "Subscribe to the filtered events feed"
+      // wording and the downloaded filename carries the specifics.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?denomination=Baptist&language=Spanish');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(
+        /events\.ics\?denomination=Baptist&language=Spanish$/,
+      );
+    });
   });
 
   describe('sort control', () => {

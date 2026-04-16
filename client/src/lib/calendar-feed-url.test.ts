@@ -145,4 +145,44 @@ describe('calendar-feed-url helpers', () => {
       'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown',
     );
   });
+
+  it('appends the language filter on the aggregated feed', () => {
+    expect(buildAggregatedEventsFeedUrl({ language: 'Spanish' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?language=Spanish',
+    );
+  });
+
+  it('joins a multi-language array with commas on the aggregated feed', () => {
+    // Mirrors the wire format the server schema normalizes back into a
+    // deduped `string[]` so the subscribe button can reflect the exact
+    // language chips the user toggled on the discovery page.
+    expect(buildAggregatedEventsFeedUrl({ language: ['English', 'Spanish'] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?language=English%2CSpanish',
+    );
+  });
+
+  it('trims and drops empty entries from a multi-language array', () => {
+    expect(buildAggregatedEventsFeedUrl({ language: ['  English  ', '', 'Spanish'] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?language=English%2CSpanish',
+    );
+  });
+
+  it('omits the language param when the array is empty', () => {
+    expect(buildAggregatedEventsFeedUrl({ language: [] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
+
+  it('combines type, denomination, neighborhood, and language filters into one query string', () => {
+    expect(
+      buildAggregatedEventsFeedUrl({
+        type: ['service'],
+        denomination: ['Baptist'],
+        neighborhood: ['Downtown'],
+        language: ['Spanish'],
+      }),
+    ).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish',
+    );
+  });
 });

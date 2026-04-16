@@ -323,6 +323,15 @@ export const aggregatedCalendarFeedSchema = z.object({
       // display; the service matches case-insensitively against
       // `church.neighborhood`.
       neighborhood: neighborhoodMultiQueryParam,
+      // Multi-select service-language filter. Mirrors the JSON feed
+      // (`language=English,Spanish` or repeated `language=` params) so a
+      // visitor who narrows the discovery page to one or more service
+      // languages can subscribe to a calendar scoped to exactly that
+      // selection. Values flow through the `/churches/filter-options`
+      // dropdown which shares the canonical casing already present in the
+      // database, so the service layer matches case-sensitively via
+      // `church.languages hasSome`.
+      language: languageMultiQueryParam,
     })
     .passthrough(),
   body: z.object({}).passthrough(),

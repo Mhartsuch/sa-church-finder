@@ -495,12 +495,13 @@ user's personal calendar.
 | type         | string\|string[] | No       | Multi-select event-type filter. Accepts a single value (`type=service`), a comma-separated list (`type=service,community`), or repeated params (`type=service&type=community`). Values are deduped.                                                                                            |
 | denomination | string\|string[] | No       | Multi-select denomination-family filter. Same wire format as `type` (single value, comma-separated, or repeated). Matching is case-insensitive against `church.denominationFamily`; values longer than 120 characters are silently dropped so a bookmarked URL cannot 400 the subscribed feed. |
 | neighborhood | string\|string[] | No       | Multi-select San Antonio neighborhood filter. Same wire format as `denomination` (single value, comma-separated, or repeated). Matching is case-insensitive against `church.neighborhood`. Values longer than 120 characters cause a `400` (strict bound, matching the JSON feed contract).    |
+| language     | string\|string[] | No       | Multi-select service-language filter. Same wire format as `denomination` (single value, comma-separated, or repeated). Matches `church.languages` via `hasSome`; values flow through `/churches/filter-options` so the canonical casing already present in the database is preserved.          |
 
 **Response headers:** `Content-Type: text/calendar; charset=utf-8`,
-`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder<-type[-type…]><-family[-family…]><-neighborhood[-neighborhood…]>-events.ics"`.
-Selected filters are enumerated in the filename (e.g. `sa-church-finder-service-community-baptist-downtown-events.ics`) so downloaded feeds stay self-describing.
-Denomination and neighborhood names are lowercased and any non-alphanumeric characters collapsed to hyphens for the filename so the download is filesystem-safe.
-When both denomination and neighborhood are supplied the predicates `AND`-compose as `(neighborhood OR …) AND (denomination OR …)` so visitors get only events at churches matching both axes.
+`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder<-type[-type…]><-family[-family…]><-neighborhood[-neighborhood…]><-language[-language…]>-events.ics"`.
+Selected filters are enumerated in the filename (e.g. `sa-church-finder-service-community-baptist-downtown-spanish-events.ics`) so downloaded feeds stay self-describing.
+Denomination, neighborhood, and language names are lowercased and any non-alphanumeric characters collapsed to hyphens for the filename so the download is filesystem-safe.
+When multiple church-level filters (denomination, neighborhood, language) are supplied the predicates `AND`-compose — e.g. `(neighborhood OR …) AND (denomination OR …) AND (languages hasSome …)` — so visitors get only events at churches matching every axis.
 
 The document emits one `VEVENT` per stored row. Recurring series pass their canonical `RRULE`
 straight through so calendar clients expand occurrences natively. Non-recurring events that

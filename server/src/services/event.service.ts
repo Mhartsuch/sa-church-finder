@@ -707,19 +707,20 @@ export async function getChurchCalendarFeedBySlug(
 
 /**
  * Fetch events across every church for the aggregated calendar feed. Supports
- * the same multi-select event-type, denomination, and neighborhood filters as
- * the JSON aggregated feed so visitors can subscribe to a calendar scoped to
- * exactly the chips they have toggled on the discovery page.
+ * the same multi-select event-type, denomination, neighborhood, and language
+ * filters as the JSON aggregated feed so visitors can subscribe to a calendar
+ * scoped to exactly the chips they have toggled on the discovery page.
  *
  * `type` accepts either a single `ChurchEventType` (legacy callers) or an
- * array of types. `denomination` and `neighborhood` accept arrays of family /
- * neighborhood names. An empty array (or `undefined`) is treated as "no
- * filter" so callers can default-construct without guarding.
+ * array of types. `denomination`, `neighborhood`, and `language` accept arrays
+ * of family / neighborhood / language names. An empty array (or `undefined`)
+ * is treated as "no filter" so callers can default-construct without guarding.
  */
 export async function getAggregatedCalendarFeed(options: {
   type?: ChurchEventType | ChurchEventType[]
   denomination?: string[]
   neighborhood?: string[]
+  language?: string[]
   now?: Date
 }): Promise<ICalendarFeedPayload> {
   const now = options.now ?? new Date()
@@ -784,11 +785,25 @@ export async function getAggregatedCalendarFeed(options: {
   )
   const hasNeighborhoodFilter = neighborhoodMatchList.length > 0
 
-  // Both filters live on the related church, so they compose as a nested
-  // `church` clause. When only one axis is narrowed we inline its `OR` list
-  // directly; when both are narrowed we `AND`-compose them so the intended
-  // semantics stay `(neighborhood OR [...]) AND (denomination OR [...])` —
-  // Prisma only allows a single top-level `OR` per clause.
+  // Normalize the language option. Language values flow through the
+  // `/churches/filter-options` dropdown, which shares the canonical casing
+  // already present in the database, so a case-sensitive `hasSome` against
+  // `church.languages` is sufficient — URL-supplied variants round-trip
+  // unchanged for filename/calendar-name display but no longer match
+  // records that differ only in casing. Matches the JSON feed's contract.
+  const languageDisplayList: string[] = options.language
+    ? Array.from(
+        new Set(options.language.map((value) => value.trim()).filter((value) => value.length > 0)),
+      )
+    : []
+  const hasLanguageFilter = languageDisplayList.length > 0
+
+  // All three filters live on the related church, so they compose as a
+  // nested `church` clause. When only one axis is narrowed we inline its
+  // sub-clause directly; when multiple are narrowed we `AND`-compose them
+  // so the intended semantics stay `(neighborhood OR [...]) AND
+  // (denomination OR [...]) AND (languages hasSome [...])` — Prisma only
+  // allows a single top-level `OR` per clause.
   const denominationSubclause: Prisma.ChurchWhereInput | undefined = hasDenominationFilter
     ? {
         OR: denominationMatchList.map((value) => ({
@@ -809,10 +824,14 @@ export async function getAggregatedCalendarFeed(options: {
         })),
       }
     : undefined
+  const languageSubclause: Prisma.ChurchWhereInput | undefined = hasLanguageFilter
+    ? { languages: { hasSome: languageDisplayList } }
+    : undefined
 
   const churchAndClauses: Prisma.ChurchWhereInput[] = []
   if (neighborhoodSubclause) churchAndClauses.push(neighborhoodSubclause)
   if (denominationSubclause) churchAndClauses.push(denominationSubclause)
+  if (languageSubclause) churchAndClauses.push(languageSubclause)
 
   const churchClause: { church?: Prisma.ChurchWhereInput } =
     churchAndClauses.length === 0
@@ -846,6 +865,7 @@ export async function getAggregatedCalendarFeed(options: {
   if (types.length > 0) suffixParts.push(types.join(', '))
   if (denominationDisplayList.length > 0) suffixParts.push(denominationDisplayList.join(', '))
   if (neighborhoodDisplayList.length > 0) suffixParts.push(neighborhoodDisplayList.join(', '))
+  if (languageDisplayList.length > 0) suffixParts.push(languageDisplayList.join(', '))
   const titleSuffix = suffixParts.length > 0 ? ` (${suffixParts.join(' · ')})` : ''
 
   return {

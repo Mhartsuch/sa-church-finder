@@ -60,9 +60,17 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    * or `null`/`undefined` ("no filter").
    */
   neighborhood?: string | string[] | null;
+  /**
+   * Multi-select service-language filter. Mirrors the discovery page's
+   * `language` chips so the subscribe button serializes exactly the
+   * languages a visitor has toggled on. Accepts a single value, an array,
+   * or `null`/`undefined` ("no filter").
+   */
+  language?: string | string[] | null;
 }): string =>
   buildFeedUrl('/events.ics', {
     type: serializeListParam(params?.type),
     denomination: serializeListParam(params?.denomination),
     neighborhood: serializeListParam(params?.neighborhood),
+    language: serializeListParam(params?.language),
   });

@@ -2001,5 +2001,190 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.status).toBe(400)
       expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
     })
+
+    it('filters the aggregated feed by a single language via church.languages hasSome', async () => {
+      // Language narrows the feed at the church level via a nested
+      // `church.languages hasSome` clause — mirrors the JSON feed contract so
+      // the two surfaces stay interchangeable.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ language: 'Spanish' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-spanish-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { languages: { hasSome: ['Spanish'] } },
+          }),
+        }),
+      )
+    })
+
+    it('accepts a comma-separated multi-language filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ language: 'English,Spanish' })
+
+      expect(response.status).toBe(200)
+      // Filename enumerates every selected language (slugified) so downloads
+      // stay self-describing.
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-english-spanish-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { languages: { hasSome: ['English', 'Spanish'] } },
+          }),
+        }),
+      )
+    })
+
+    it('accepts repeated language query params and dedupes them', async () => {
+      // Express surfaces `?language=English&language=Spanish` as an array;
+      // the schema dedupes so downstream consumers only see each language
+      // once even when users bookmark a URL with duplicates.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp()).get(
+        '/api/v1/events.ics?language=English&language=Spanish&language=English',
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-english-spanish-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { languages: { hasSome: ['English', 'Spanish'] } },
+          }),
+        }),
+      )
+    })
+
+    it('AND-composes language with denomination when both are supplied', async () => {
+      // Prisma only allows a single top-level `OR` per clause, so the two
+      // filters compose as
+      // `AND: [{ OR: denominations }, { languages: { hasSome: ... } }]`.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ denomination: 'Baptist', language: 'Spanish' })
+
+      expect(response.status).toBe(200)
+      // Filename chains type → denomination → neighborhood → language slugs
+      // in that order; with only denomination and language present, the
+      // denomination slug leads the suffix.
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-baptist-spanish-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: {
+              AND: [
+                { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+                { languages: { hasSome: ['Spanish'] } },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('combines type, denomination, neighborhood, and language filters on the aggregated feed', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp()).get('/api/v1/events.ics').query({
+        type: 'service',
+        denomination: 'Baptist',
+        neighborhood: 'Downtown',
+        language: 'Spanish',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-baptist-downtown-spanish-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: 'service',
+            church: {
+              AND: [
+                { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+                { languages: { hasSome: ['Spanish'] } },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('slugifies language values with spaces or punctuation for the filename', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ language: 'American Sign Language' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-american-sign-language-events\.ics"/,
+      )
+    })
+
+    it('drops empty language tokens and skips the nested church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ language: ' , , ' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
+
+    it('silently drops language values that exceed the maximum length', async () => {
+      // The language normalizer filters out entries longer than 60 chars
+      // before deduping, so an over-length value collapses to an empty list
+      // and the request behaves like the city-wide feed. (The calendar feed
+      // is a public GET that may be bookmarked, so we stay forgiving — the
+      // same contract the denomination filter uses.)
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ language: 'x'.repeat(61) })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
   })
 })
