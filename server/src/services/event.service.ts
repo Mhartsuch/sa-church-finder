@@ -707,18 +707,19 @@ export async function getChurchCalendarFeedBySlug(
 
 /**
  * Fetch events across every church for the aggregated calendar feed. Supports
- * the same multi-select event-type and denomination filters as the JSON
- * aggregated feed so visitors can subscribe to a calendar scoped to exactly
- * the chips they have toggled on the discovery page.
+ * the same multi-select event-type, denomination, and neighborhood filters as
+ * the JSON aggregated feed so visitors can subscribe to a calendar scoped to
+ * exactly the chips they have toggled on the discovery page.
  *
  * `type` accepts either a single `ChurchEventType` (legacy callers) or an
- * array of types. `denomination` accepts an array of family names. An empty
- * array (or `undefined`) is treated as "no filter" so callers can default-
- * construct without guarding.
+ * array of types. `denomination` and `neighborhood` accept arrays of family /
+ * neighborhood names. An empty array (or `undefined`) is treated as "no
+ * filter" so callers can default-construct without guarding.
  */
 export async function getAggregatedCalendarFeed(options: {
   type?: ChurchEventType | ChurchEventType[]
   denomination?: string[]
+  neighborhood?: string[]
   now?: Date
 }): Promise<ICalendarFeedPayload> {
   const now = options.now ?? new Date()
@@ -766,21 +767,59 @@ export async function getAggregatedCalendarFeed(options: {
   )
   const hasDenominationFilter = denominationMatchList.length > 0
 
-  // The denomination filter lives on the related church, so it's expressed as
-  // a nested `church` clause. Using `OR` of case-insensitive equality clauses
-  // mirrors `listEventsFeed` — Prisma's `in` does not honour insensitive mode.
-  const churchClause = hasDenominationFilter
+  // Normalize the neighborhood option the same way as denomination: preserve
+  // original casing/order for display, lowercase for matching. The matching
+  // list drives an `OR` of case-insensitive equality clauses (Prisma's `in`
+  // does not honour insensitive mode) so "Downtown" and "downtown" collapse
+  // to a single chip and a single predicate.
+  const neighborhoodDisplayList: string[] = options.neighborhood
+    ? Array.from(
+        new Set(
+          options.neighborhood.map((value) => value.trim()).filter((value) => value.length > 0),
+        ),
+      )
+    : []
+  const neighborhoodMatchList = Array.from(
+    new Set(neighborhoodDisplayList.map((value) => value.toLowerCase())),
+  )
+  const hasNeighborhoodFilter = neighborhoodMatchList.length > 0
+
+  // Both filters live on the related church, so they compose as a nested
+  // `church` clause. When only one axis is narrowed we inline its `OR` list
+  // directly; when both are narrowed we `AND`-compose them so the intended
+  // semantics stay `(neighborhood OR [...]) AND (denomination OR [...])` —
+  // Prisma only allows a single top-level `OR` per clause.
+  const denominationSubclause: Prisma.ChurchWhereInput | undefined = hasDenominationFilter
     ? {
-        church: {
-          OR: denominationMatchList.map((value) => ({
-            denominationFamily: {
-              equals: value,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          })),
-        },
+        OR: denominationMatchList.map((value) => ({
+          denominationFamily: {
+            equals: value,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        })),
       }
-    : {}
+    : undefined
+  const neighborhoodSubclause: Prisma.ChurchWhereInput | undefined = hasNeighborhoodFilter
+    ? {
+        OR: neighborhoodMatchList.map((value) => ({
+          neighborhood: {
+            equals: value,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        })),
+      }
+    : undefined
+
+  const churchAndClauses: Prisma.ChurchWhereInput[] = []
+  if (neighborhoodSubclause) churchAndClauses.push(neighborhoodSubclause)
+  if (denominationSubclause) churchAndClauses.push(denominationSubclause)
+
+  const churchClause: { church?: Prisma.ChurchWhereInput } =
+    churchAndClauses.length === 0
+      ? {}
+      : churchAndClauses.length === 1
+        ? { church: churchAndClauses[0]! }
+        : { church: { AND: churchAndClauses } }
 
   const rows = (await prisma.event.findMany({
     where: {
@@ -806,6 +845,7 @@ export async function getAggregatedCalendarFeed(options: {
   const suffixParts: string[] = []
   if (types.length > 0) suffixParts.push(types.join(', '))
   if (denominationDisplayList.length > 0) suffixParts.push(denominationDisplayList.join(', '))
+  if (neighborhoodDisplayList.length > 0) suffixParts.push(neighborhoodDisplayList.join(', '))
   const titleSuffix = suffixParts.length > 0 ? ` (${suffixParts.join(' · ')})` : ''
 
   return {

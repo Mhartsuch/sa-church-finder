@@ -315,6 +315,14 @@ export const aggregatedCalendarFeedSchema = z.object({
       // preserved for filename/calendar-name display; the service matches
       // case-insensitively against `church.denominationFamily`.
       denomination: denominationMultiQueryParam,
+      // Multi-select neighborhood filter. Mirrors the JSON feed
+      // (`neighborhood=Downtown,Alamo Heights` or repeated `neighborhood=`
+      // params) so a visitor who narrows the discovery page to one or more
+      // San Antonio neighborhoods can subscribe to a calendar scoped to
+      // exactly that selection. Case is preserved for filename/calendar-name
+      // display; the service matches case-insensitively against
+      // `church.neighborhood`.
+      neighborhood: neighborhoodMultiQueryParam,
     })
     .passthrough(),
   body: z.object({}).passthrough(),
