@@ -369,6 +369,15 @@ export const aggregatedCalendarFeedSchema = z.object({
       // the stored row's `startTime` before emitting the RRULE to the
       // calendar client (no per-occurrence expansion required).
       timeOfDay: z.enum(EVENT_TIME_OF_DAY).optional(),
+      // Keyword search. Mirrors the JSON feed's `q` wire format so a
+      // visitor who has typed a keyword into the discovery page's search
+      // box can subscribe to a calendar scoped to exactly that narrowing.
+      // Trimmed and capped at 200 characters to match the JSON feed; the
+      // service layer applies a case-insensitive `contains` match against
+      // the event title, description, and the host church's name so
+      // "women's Bible study" narrows across every axis the discovery
+      // page does.
+      q: z.string().trim().max(200).optional(),
     })
     .passthrough(),
   body: z.object({}).passthrough(),

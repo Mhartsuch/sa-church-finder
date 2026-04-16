@@ -2588,11 +2588,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
         }
       }
 
-      const buildRow = (
-        id: string,
-        eventType: ChurchEventType,
-        start: Date,
-      ): FeedRowOverrides => ({
+      const buildRow = (id: string, eventType: ChurchEventType, start: Date): FeedRowOverrides => ({
         id,
         churchId: `church-${id}`,
         title: id,
@@ -2682,9 +2678,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
         // `family-friendly` → `group-friendly` → `evening`, and the
         // `church` clause carries the existing six sub-clauses (time-of-day
         // is applied in-memory, so it doesn't appear in the Prisma query).
-        mockedPrisma.event.findMany.mockResolvedValueOnce([
-          buildRow('a', 'service', eveningStart),
-        ])
+        mockedPrisma.event.findMany.mockResolvedValueOnce([buildRow('a', 'service', eveningStart)])
 
         const response = await request(createApp()).get('/api/v1/events.ics').query({
           type: 'service',
@@ -2728,6 +2722,225 @@ describe('GET /api/v1/events (aggregated feed)', () => {
         const response = await request(createApp())
           .get('/api/v1/events.ics')
           .query({ timeOfDay: 'midnight' })
+
+        expect(response.status).toBe(400)
+        expect(response.body.error.code).toBe('VALIDATION_ERROR')
+        expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('keyword filter on the aggregated calendar feed', () => {
+      // Helper that mints a FeedEventRow with the supplied title so the
+      // emitted ICS `SUMMARY:<title> · <church>` line is easy to assert on.
+      const start = new Date('2026-05-03T13:00:00.000Z')
+      type KeywordFeedRow = {
+        id: string
+        churchId: string
+        title: string
+        description: null
+        eventType: ChurchEventType
+        startTime: Date
+        endTime: null
+        locationOverride: null
+        isRecurring: boolean
+        recurrenceRule: null
+        createdById: string
+        createdAt: Date
+        updatedAt: Date
+        church: {
+          id: string
+          slug: string
+          name: string
+          city: string
+          address: string
+        }
+      }
+
+      const buildRow = (id: string, title: string, churchName: string): KeywordFeedRow => ({
+        id,
+        churchId: `church-${id}`,
+        title,
+        description: null,
+        eventType: 'service',
+        startTime: start,
+        endTime: null,
+        locationOverride: null,
+        isRecurring: false,
+        recurrenceRule: null,
+        createdById: 'u1',
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-10T00:00:00.000Z'),
+        church: {
+          id: `church-${id}`,
+          slug: `church-${id}`,
+          name: churchName,
+          city: 'San Antonio',
+          address: '1 Main',
+        },
+      })
+
+      it('forwards a case-insensitive `q` into a title/description/church OR clause', async () => {
+        // Prisma enforces the keyword match at the DB level, so the mock
+        // returns only the row that would actually survive the filter.
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          buildRow('a', "Women's Bible Study", 'Grace Fellowship'),
+        ])
+
+        const response = await request(createApp()).get('/api/v1/events.ics').query({ q: 'bible' })
+
+        expect(response.status).toBe(200)
+        expect(response.text).toMatch(/SUMMARY:Women's Bible Study · Grace Fellowship/)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-matching-bible-events\.ics"/,
+        )
+        expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              AND: [
+                {
+                  OR: [
+                    { isRecurring: true },
+                    { isRecurring: false, startTime: { gte: expect.any(Date) } },
+                  ],
+                },
+                {
+                  OR: [
+                    { title: { contains: 'bible', mode: 'insensitive' } },
+                    { description: { contains: 'bible', mode: 'insensitive' } },
+                    { church: { name: { contains: 'bible', mode: 'insensitive' } } },
+                  ],
+                },
+              ],
+            }),
+          }),
+        )
+      })
+
+      it('trims whitespace from `q` before forwarding and slugifying', async () => {
+        // Leading/trailing whitespace comes off before the value reaches
+        // the service layer (Zod `.trim()`) so the filename stays stable
+        // regardless of what the user typed.
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          buildRow('a', 'Youth Retreat', 'Grace Fellowship'),
+        ])
+
+        const response = await request(createApp())
+          .get('/api/v1/events.ics')
+          .query({ q: '  youth  ' })
+
+        expect(response.status).toBe(200)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-matching-youth-events\.ics"/,
+        )
+        expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              AND: expect.arrayContaining([
+                expect.objectContaining({
+                  OR: [
+                    { title: { contains: 'youth', mode: 'insensitive' } },
+                    { description: { contains: 'youth', mode: 'insensitive' } },
+                    { church: { name: { contains: 'youth', mode: 'insensitive' } } },
+                  ],
+                }),
+              ]),
+            }),
+          }),
+        )
+      })
+
+      it('skips the keyword filter when `q` is empty / whitespace-only', async () => {
+        // A whitespace-only `q=` must collapse to "no filter" so the
+        // emitted Prisma `where` stays on the simple inline `OR` path and
+        // no `matching-` segment leaks into the filename.
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          buildRow('a', 'Easter Service', 'Grace Fellowship'),
+        ])
+
+        const response = await request(createApp()).get('/api/v1/events.ics').query({ q: '   ' })
+
+        expect(response.status).toBe(200)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-events\.ics"/,
+        )
+        const where = mockedPrisma.event.findMany.mock.calls[0]?.[0].where as Record<
+          string,
+          unknown
+        >
+        expect(where).not.toHaveProperty('AND')
+        expect(where).toHaveProperty('OR')
+      })
+
+      it('composes keyword with every other narrowing axis', async () => {
+        // All nine axes together — the filename chains
+        // type → denomination → neighborhood → language → `accessible` →
+        // `family-friendly` → `group-friendly` → `evening` → `matching-bible`,
+        // and the emitted `where` keeps the window + keyword on the
+        // top-level `AND` while the church-level axes live under `church`.
+        const eveningStart = new Date('2026-05-04T00:00:00.000Z')
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          {
+            ...buildRow('a', "Women's Bible Study", 'Grace Fellowship'),
+            startTime: eveningStart,
+          },
+        ])
+
+        const response = await request(createApp()).get('/api/v1/events.ics').query({
+          type: 'service',
+          denomination: 'Baptist',
+          neighborhood: 'Downtown',
+          language: 'Spanish',
+          accessibleOnly: 'true',
+          familyFriendly: 'true',
+          groupFriendly: 'true',
+          timeOfDay: 'evening',
+          q: 'bible',
+        })
+
+        expect(response.status).toBe(200)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-service-baptist-downtown-spanish-accessible-family-friendly-group-friendly-evening-matching-bible-events\.ics"/,
+        )
+        expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              eventType: 'service',
+              church: {
+                AND: [
+                  { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                  { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+                  { languages: { hasSome: ['Spanish'] } },
+                  { wheelchairAccessible: true },
+                  { goodForChildren: true },
+                  { goodForGroups: true },
+                ],
+              },
+              AND: [
+                {
+                  OR: [
+                    { isRecurring: true },
+                    { isRecurring: false, startTime: { gte: expect.any(Date) } },
+                  ],
+                },
+                {
+                  OR: [
+                    { title: { contains: 'bible', mode: 'insensitive' } },
+                    { description: { contains: 'bible', mode: 'insensitive' } },
+                    { church: { name: { contains: 'bible', mode: 'insensitive' } } },
+                  ],
+                },
+              ],
+            }),
+          }),
+        )
+      })
+
+      it('rejects an overlong `q` value (>200 chars)', async () => {
+        // Zod caps the value at 200 characters so a maliciously large
+        // query string can't propagate into the `ILIKE` predicate.
+        const response = await request(createApp())
+          .get('/api/v1/events.ics')
+          .query({ q: 'x'.repeat(201) })
 
         expect(response.status).toBe(400)
         expect(response.body.error.code).toBe('VALIDATION_ERROR')

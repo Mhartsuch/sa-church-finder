@@ -1739,6 +1739,51 @@ describe('EventsDiscoveryPage', () => {
         /events\.ics\?familyFriendly=true&timeOfDay=morning$/,
       );
     });
+
+    it('labels the keyword feed and serializes q into the URL', () => {
+      // Keyword-only narrowing reads naturally ("Subscribe to events
+      // matching \"bible\"") and the feed URL carries `q=bible` so the
+      // iCal subscription resolves to the same slice of the feed the
+      // visitor narrowed on the discovery page.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?q=bible');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to events matching "bible"/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?q=bible$/);
+    });
+
+    it('uses the generic label and combines q with another axis in the URL', () => {
+      // Once a second axis is narrowed (keyword + time-of-day), the label
+      // collapses to the generic wording and the URL chains both params
+      // so the saved filename surfaces the specifics.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?q=bible&timeOfDay=evening');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?timeOfDay=evening&q=bible$/);
+    });
   });
 
   describe('sort control', () => {

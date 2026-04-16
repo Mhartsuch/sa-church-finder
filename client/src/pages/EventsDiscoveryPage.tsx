@@ -825,6 +825,7 @@ const EventsDiscoveryPage = () => {
             const familyFriendly = filters.familyFriendly === true;
             const groupFriendly = filters.groupFriendly === true;
             const timeOfDay = filters.timeOfDay ?? null;
+            const keyword = filters.q ?? null;
 
             const axesInUse = [
               selectedTypes.length > 0,
@@ -835,6 +836,7 @@ const EventsDiscoveryPage = () => {
               familyFriendly,
               groupFriendly,
               timeOfDay !== null,
+              keyword !== null,
             ].filter(Boolean).length;
 
             let label: string;
@@ -864,6 +866,8 @@ const EventsDiscoveryPage = () => {
               label = 'Subscribe to group-friendly events';
             } else if (axesInUse === 1 && timeOfDay !== null) {
               label = `Subscribe to ${TIME_OF_DAY_LABELS[timeOfDay].toLowerCase()} events`;
+            } else if (axesInUse === 1 && keyword !== null) {
+              label = `Subscribe to events matching "${keyword}"`;
             } else {
               // Multiple axes narrowed — keep it short and let the filename
               // carry the specifics.
@@ -881,6 +885,7 @@ const EventsDiscoveryPage = () => {
                   familyFriendly: familyFriendly ? true : null,
                   groupFriendly: groupFriendly ? true : null,
                   timeOfDay,
+                  q: keyword,
                 })}
                 label={label}
               />

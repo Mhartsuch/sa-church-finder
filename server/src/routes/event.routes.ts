@@ -79,7 +79,13 @@ router.get(
       // schema's `z.enum(EVENT_TIME_OF_DAY)` restricts the value to
       // `morning` / `afternoon` / `evening` — anything else 400s before we
       // reach this handler, so a plain string cast is safe here.
-      const timeOfDay = typeof q.timeOfDay === 'string' ? (q.timeOfDay as EventTimeOfDay) : undefined
+      const timeOfDay =
+        typeof q.timeOfDay === 'string' ? (q.timeOfDay as EventTimeOfDay) : undefined
+      // Keyword search mirrors the JSON feed. The Zod schema trims and
+      // caps the value at 200 characters, so anything that reaches this
+      // handler is safe to forward as-is. Empty / whitespace-only strings
+      // collapse to `undefined` so the service layer skips the filter.
+      const keyword = typeof q.q === 'string' && q.q.trim().length > 0 ? q.q.trim() : undefined
 
       logger.info(
         {
@@ -91,6 +97,7 @@ router.get(
           familyFriendly,
           groupFriendly,
           timeOfDay,
+          q: keyword,
         },
         'Generating aggregated calendar feed',
       )
@@ -104,6 +111,7 @@ router.get(
         familyFriendly: familyFriendly || undefined,
         groupFriendly: groupFriendly || undefined,
         timeOfDay,
+        q: keyword,
       })
       const siteUrl = resolvePublicSiteUrl()
 
@@ -168,6 +176,19 @@ router.get(
       // `evening`) so the saved filename still reads naturally when a
       // visitor subscribes to just the slice of the day they care about.
       if (timeOfDay) filenameParts.push(timeOfDay)
+      // Keyword narrowing appends a slugified `matching-<query>` segment
+      // so the saved filename surfaces the keyword alongside any other
+      // chips. The slugifier collapses punctuation and diacritics so the
+      // filename stays filesystem-safe across operating systems. An
+      // all-punctuation keyword (e.g. `q=!!!`) collapses to nothing after
+      // slugification, so we only append when the slugified form is
+      // non-empty.
+      if (keyword) {
+        const slugged = slugifyForFilename(keyword)
+        if (slugged.length > 0) {
+          filenameParts.push(`matching-${slugged}`)
+        }
+      }
       const filenameSuffix = filenameParts.length > 0 ? `-${filenameParts.join('-')}` : ''
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
