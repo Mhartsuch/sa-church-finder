@@ -66,6 +66,17 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.familyFriendly) {
     qs.append('familyFriendly', 'true');
   }
+  // Service languages are multi-select and OR-combined on the backend. Match
+  // the shared wire format (`?language=English,Spanish`) used by the church
+  // search endpoint so cached state can round-trip cleanly.
+  if (params.language && params.language.length > 0) {
+    const cleaned = Array.from(
+      new Set(params.language.map((value) => value.trim()).filter((value) => value.length > 0)),
+    );
+    if (cleaned.length > 0) {
+      qs.append('language', cleaned.join(','));
+    }
+  }
   // Only send `sort` when the caller explicitly narrowed it — omitting the
   // param keeps the URL clean for the default (`soonest`) ordering and lets
   // the server's default travel with the request.

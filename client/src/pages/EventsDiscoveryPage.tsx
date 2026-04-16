@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock3,
   Heart,
+  Languages,
   MapPin,
   Search,
   Sparkles,
@@ -139,6 +140,12 @@ type FeedFormState = {
    */
   familyFriendly: boolean;
   /**
+   * Multi-select service-language filter. Selection order is preserved so the
+   * serialized URL string stays stable across re-renders (mirroring how
+   * `types` and `denominations` are handled above).
+   */
+  languages: string[];
+  /**
    * Feed ordering. `soonest` is the historical default (chronological);
    * `recent` reorders the feed by most-recently-announced events.
    */
@@ -156,6 +163,7 @@ const EMPTY_FORM: FeedFormState = {
   denominations: [],
   accessibleOnly: false,
   familyFriendly: false,
+  languages: [],
   sort: DEFAULT_SORT,
 };
 
@@ -193,6 +201,25 @@ const parseDenominationParam = (raw: string | null): string[] => {
   return ordered;
 };
 
+/**
+ * Parse the comma-separated `language` URL param into a deduplicated,
+ * order-preserving list of language names. Mirrors `parseDenominationParam`
+ * so the two multi-select filters share the same wire contract.
+ */
+const parseLanguageParam = (raw: string | null): string[] => {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim();
+    if (trimmed.length > 0 && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      ordered.push(trimmed);
+    }
+  }
+  return ordered;
+};
+
 const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
   const rawTimeOfDay = searchParams.get('timeOfDay');
   const rawSort = searchParams.get('sort');
@@ -208,6 +235,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     denominations: parseDenominationParam(searchParams.get('denomination')),
     accessibleOnly: searchParams.get('accessible') === '1',
     familyFriendly: searchParams.get('family') === '1',
+    languages: parseLanguageParam(searchParams.get('language')),
     sort: isSortOption(rawSort) ? rawSort : DEFAULT_SORT,
   };
 };
@@ -331,6 +359,7 @@ const EventsDiscoveryPage = () => {
     const denominations = parseDenominationParam(searchParams.get('denomination'));
     const accessibleOnly = searchParams.get('accessible') === '1';
     const familyFriendly = searchParams.get('family') === '1';
+    const languages = parseLanguageParam(searchParams.get('language'));
     const sort: EventSortOption | undefined = isSortOption(rawSort) ? rawSort : undefined;
 
     return {
@@ -346,6 +375,7 @@ const EventsDiscoveryPage = () => {
       denomination: denominations.length > 0 ? denominations : undefined,
       accessibleOnly: accessibleOnly || undefined,
       familyFriendly: familyFriendly || undefined,
+      language: languages.length > 0 ? languages : undefined,
       // Only forward a non-default sort so the query string (and cached
       // response) stays clean for the most common case.
       sort: sort && sort !== DEFAULT_SORT ? sort : undefined,
@@ -402,6 +432,13 @@ const EventsDiscoveryPage = () => {
     if (filters.familyFriendly) {
       chips.push({ key: 'family', label: 'Good for kids' });
     }
+    if (filters.language) {
+      // Each selected language gets its own removable chip so users can peel
+      // them off one at a time without clearing the whole multi-select.
+      for (const lang of filters.language) {
+        chips.push({ key: `language:${lang}`, label: `Language: ${lang}` });
+      }
+    }
     return chips;
   }, [
     filters.type,
@@ -412,6 +449,7 @@ const EventsDiscoveryPage = () => {
     filters.denomination,
     filters.accessibleOnly,
     filters.familyFriendly,
+    filters.language,
     searchParams,
   ]);
 
@@ -433,6 +471,9 @@ const EventsDiscoveryPage = () => {
     }
     if (nextForm.accessibleOnly) next.set('accessible', '1');
     if (nextForm.familyFriendly) next.set('family', '1');
+    if (nextForm.languages.length > 0) {
+      next.set('language', nextForm.languages.join(','));
+    }
     // Keep the URL clean for the default ordering — only emit `sort=` when
     // the user has explicitly chosen a non-default option.
     if (nextForm.sort !== DEFAULT_SORT) next.set('sort', nextForm.sort);
@@ -455,6 +496,7 @@ const EventsDiscoveryPage = () => {
       ...form,
       types: [...form.types],
       denominations: [...form.denominations],
+      languages: [...form.languages],
     };
     if (key.startsWith('type:')) {
       const removed = key.slice('type:'.length);
@@ -463,6 +505,10 @@ const EventsDiscoveryPage = () => {
     if (key.startsWith('denomination:')) {
       const removed = key.slice('denomination:'.length);
       nextForm.denominations = nextForm.denominations.filter((family) => family !== removed);
+    }
+    if (key.startsWith('language:')) {
+      const removed = key.slice('language:'.length);
+      nextForm.languages = nextForm.languages.filter((lang) => lang !== removed);
     }
     if (key === 'q') nextForm.q = '';
     if (key === 'from') nextForm.fromDate = '';
@@ -493,6 +539,16 @@ const EventsDiscoveryPage = () => {
       ? form.denominations.filter((existing) => existing !== family)
       : [...form.denominations, family];
     const nextForm: FeedFormState = { ...form, denominations: nextDenominations };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleLanguage = (language: string): void => {
+    const isSelected = form.languages.includes(language);
+    const nextLanguages = isSelected
+      ? form.languages.filter((existing) => existing !== language)
+      : [...form.languages, language];
+    const nextForm: FeedFormState = { ...form, languages: nextLanguages };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -562,6 +618,35 @@ const EventsDiscoveryPage = () => {
   };
 
   const neighborhoodOptions = filterOptions?.neighborhoods ?? [];
+
+  // Surface up to MAX_LANGUAGE_CHIPS languages as quick chips, but always
+  // include any currently-selected language even when it falls outside the
+  // slice (so URL-supplied selections stay clickable instead of silently
+  // disappearing). Selected languages are pinned to the front so active state
+  // is easy to scan. Mirrors `visibleDenominationFamilies` so the two
+  // multi-select chip rails stay consistent.
+  const MAX_LANGUAGE_CHIPS = 6;
+  const visibleLanguages: string[] = useMemo(() => {
+    const ordered: string[] = [];
+    const seen = new Set<string>();
+
+    for (const language of form.languages) {
+      if (!seen.has(language)) {
+        seen.add(language);
+        ordered.push(language);
+      }
+    }
+
+    for (const option of filterOptions?.languages ?? []) {
+      if (ordered.length >= MAX_LANGUAGE_CHIPS) break;
+      if (!seen.has(option)) {
+        seen.add(option);
+        ordered.push(option);
+      }
+    }
+
+    return ordered;
+  }, [filterOptions?.languages, form.languages]);
 
   // Surface up to MAX_DENOMINATION_CHIPS top families as quick chips, but
   // always include any currently-selected family even when it falls outside
@@ -798,6 +883,37 @@ const EventsDiscoveryPage = () => {
                   }`}
                 >
                   {family}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {visibleLanguages.length > 0 ? (
+          <div
+            className="mt-3 flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Language"
+          >
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Languages className="h-3.5 w-3.5" />
+              Language
+            </span>
+            {visibleLanguages.map((language) => {
+              const isActive = form.languages.includes(language);
+              return (
+                <button
+                  key={language}
+                  type="button"
+                  onClick={() => handleToggleLanguage(language)}
+                  aria-pressed={isActive}
+                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                    isActive
+                      ? 'border-foreground bg-foreground text-white'
+                      : 'border-border bg-card text-foreground hover:border-foreground'
+                  }`}
+                >
+                  {language}
                 </button>
               );
             })}

@@ -74,6 +74,32 @@ const denominationMultiQueryParam = z
     return normalized.length > 0 ? normalized : undefined
   })
 
+/**
+ * Multi-select language filter. Mirrors `denominationMultiQueryParam` — accepts
+ * a single value (`language=Spanish`), a comma-separated list
+ * (`language=English,Spanish`), or repeated query params. Entries are trimmed,
+ * deduped, and length-capped; an empty normalized list collapses to
+ * `undefined` so the service layer can skip the filter.
+ */
+const languageMultiQueryParam = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return undefined
+
+    const raw = Array.isArray(value) ? value.flatMap((item) => item.split(',')) : value.split(',')
+
+    const normalized = Array.from(
+      new Set(
+        raw
+          .map((item) => item.trim())
+          .filter((item): item is string => item.length > 0 && item.length <= 60),
+      ),
+    )
+
+    return normalized.length > 0 ? normalized : undefined
+  })
+
 const dateTimeSchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid datetime value')
@@ -204,6 +230,14 @@ export const eventsFeedSchema = z.object({
       // as `accessibleOnly` so URL share-links can carry `?familyFriendly=true`,
       // `=1`, or `=yes` interchangeably.
       familyFriendly: booleanishFlag,
+      // Multi-select service-language filter. Supports a single value
+      // (`language=Spanish`), a comma-separated list
+      // (`language=English,Spanish`), or repeated query params. Mirrors the
+      // wire format the church search endpoint already accepts so the shared
+      // `/churches/filter-options` payload (`languages[]`) can drive both
+      // surfaces. Empty / whitespace-only entries collapse to `undefined` so
+      // downstream code can skip the filter.
+      language: languageMultiQueryParam,
       // Feed ordering. `soonest` (default) is chronological ascending by
       // occurrence start time. `recent` reorders by `createdAt` descending so
       // newly announced events lead the feed, with start time as the stable

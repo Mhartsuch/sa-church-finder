@@ -187,6 +187,14 @@ export interface IEventsFeedFilters {
    */
   familyFriendly?: boolean;
   /**
+   * Multi-select service-language filter (e.g. `["English", "Spanish"]`). The
+   * wire format is a comma-separated `language` query param matching the
+   * church search endpoint. Values OR-combine, so a church that hosts
+   * services in any one of the listed languages is included. Source the list
+   * of valid options from `GET /api/v1/churches/filter-options` (`languages[]`).
+   */
+  language?: string[];
+  /**
    * Feed ordering. Defaults to `soonest`. `recent` surfaces newly announced
    * events first (ordered by the stored series' `createdAt` descending) while
    * still restricting to occurrences inside the requested `from`/`to` window.
@@ -212,6 +220,7 @@ export interface IEventsFeedResponse {
       denomination?: string[];
       accessibleOnly?: boolean;
       familyFriendly?: boolean;
+      language?: string[];
       sort?: EventSortOption;
     };
   };

@@ -363,6 +363,23 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const accessibleOnly = filters.accessibleOnly === true
   const familyFriendly = filters.familyFriendly === true
 
+  // Multi-select service language. Normalized to a deduped list; `hasSome`
+  // below then matches the underlying `church.languages` array
+  // element-by-element. Language values flow through the
+  // `/churches/filter-options` dropdown which returns the canonical casing
+  // already present in the database, so case-sensitive matching is the
+  // right default — URL-supplied variants round-trip unchanged and still
+  // render as chips even when they miss the database values.
+  const languageList =
+    filters.language && filters.language.length > 0
+      ? Array.from(
+          new Set(
+            filters.language.map((value) => value.trim()).filter((value) => value.length > 0),
+          ),
+        )
+      : []
+  const hasLanguage = languageList.length > 0
+
   // Multi-select event type. A single value collapses into a one-element `in`
   // clause, which Prisma is happy to translate; an empty array is treated as
   // "no filter" so callers can default-construct the array safely.
@@ -413,6 +430,12 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
     // can trust that the narrowed list of events is hosted somewhere flagged
     // as kid-friendly.
     ...(familyFriendly ? { goodForChildren: true } : {}),
+    // Multi-select language filter: `hasSome` matches a church whose
+    // `languages` array contains any of the requested values. The values
+    // supplied by the client originate from the `/churches/filter-options`
+    // dropdown and therefore share the canonical casing already present in
+    // the database, so a case-sensitive `hasSome` is sufficient here.
+    ...(hasLanguage ? { languages: { hasSome: languageList } } : {}),
   }
   const hasChurchClause = Object.keys(churchClause).length > 0
 
@@ -532,6 +555,10 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
             : undefined,
         accessibleOnly: accessibleOnly ? true : undefined,
         familyFriendly: familyFriendly ? true : undefined,
+        // Echo the deduped (trim-only) language strings the caller supplied so
+        // chip labels on the discovery page round-trip exactly as the user
+        // typed or selected them. Omitted when no language filter was applied.
+        language: hasLanguage ? languageList : undefined,
         // Only echo `sort` when the caller explicitly narrowed it — omitting
         // the key on the default keeps the `soonest` contract out of the
         // response envelope and avoids surfacing internal defaults to clients.

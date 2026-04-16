@@ -1000,6 +1000,146 @@ describe('EventsDiscoveryPage', () => {
     });
   });
 
+  describe('language filter', () => {
+    const languageOptionsResponse = {
+      data: {
+        denominations: [],
+        languages: ['English', 'Spanish', 'Vietnamese'],
+        amenities: [],
+        neighborhoods: ['Alamo Heights', 'Downtown', 'Southtown'],
+        serviceTypes: [],
+      },
+    };
+
+    it('renders a chip for each available language', () => {
+      useFilterOptionsMock.mockReturnValue(languageOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const group = screen.getByRole('group', { name: 'Language' });
+      expect(within(group).getByRole('button', { name: 'English' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Spanish' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Vietnamese' })).toBeInTheDocument();
+    });
+
+    it('hides the language row entirely when no languages are available', () => {
+      // Default mock in beforeEach returns no languages.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.queryByRole('group', { name: 'Language' })).not.toBeInTheDocument();
+    });
+
+    it('toggles the URL and feed filter when a language chip is clicked', () => {
+      useFilterOptionsMock.mockReturnValue(languageOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const languageGroup = screen.getByRole('group', { name: 'Language' });
+      fireEvent.click(within(languageGroup).getByRole('button', { name: 'Spanish' }));
+
+      expect(getSearch()).toContain('language=Spanish');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ language: ['Spanish'] });
+
+      // Active-filter chip surfaces in the chip rail so the user can clear it.
+      expect(screen.getByText('Language: Spanish')).toBeInTheDocument();
+    });
+
+    it('supports selecting multiple languages and serializes them with commas', () => {
+      useFilterOptionsMock.mockReturnValue(languageOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const languageGroup = screen.getByRole('group', { name: 'Language' });
+      fireEvent.click(within(languageGroup).getByRole('button', { name: 'English' }));
+      fireEvent.click(within(languageGroup).getByRole('button', { name: 'Spanish' }));
+
+      // Order matches the click order so the URL is stable across re-renders.
+      expect(getSearch()).toContain('language=English%2CSpanish');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ language: ['English', 'Spanish'] });
+    });
+
+    it('removes a single language via the chip rail without clearing the others', () => {
+      useFilterOptionsMock.mockReturnValue(languageOptionsResponse);
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?language=English,Spanish');
+
+      // Both applied chips render initially.
+      expect(screen.getByText('Language: English')).toBeInTheDocument();
+      expect(screen.getByText('Language: Spanish')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Language: English/ }));
+
+      // Spanish remains; URL drops English.
+      expect(getSearch()).toContain('language=Spanish');
+      expect(getSearch()).not.toContain('English');
+      expect(screen.getByText('Language: Spanish')).toBeInTheDocument();
+    });
+
+    it('keeps a URL-supplied language clickable even when it is missing from the options list', () => {
+      useFilterOptionsMock.mockReturnValue({
+        data: {
+          denominations: [],
+          languages: ['English'],
+          amenities: [],
+          neighborhoods: [],
+          serviceTypes: [],
+        },
+      });
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?language=Tagalog');
+
+      // The unknown language pins to the front of the chip row so it can still
+      // be toggled off.
+      const group = screen.getByRole('group', { name: 'Language' });
+      const tagalogChip = within(group).getByRole('button', { name: 'Tagalog' });
+      expect(tagalogChip).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('Language: Tagalog')).toBeInTheDocument();
+    });
+  });
+
   describe('subscribe-to-calendar button', () => {
     // The subscribe button's label and feed URL reflect the active `type`
     // chips so visitors can subscribe to a calendar scoped to exactly the

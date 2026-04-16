@@ -183,6 +183,15 @@ export interface IEventsFeedFilters {
    */
   familyFriendly?: boolean
   /**
+   * Restrict the feed to events hosted by churches that conduct services in
+   * any of the named languages (e.g. `["English", "Spanish"]`). Matching is
+   * case-insensitive against each entry in `church.languages`, and the list
+   * is OR-combined so `["English", "Spanish"]` matches a church that holds
+   * services in either language. Callers should source valid options from
+   * `GET /api/v1/churches/filter-options` (`languages[]`).
+   */
+  language?: string[]
+  /**
    * Choose how the feed is ordered. Defaults to `soonest` (ascending
    * `startTime`). `recent` surfaces newly announced events first by sorting
    * by `createdAt` descending with `startTime` as a stable tiebreaker.
@@ -208,6 +217,7 @@ export interface IEventsFeedResponse {
       denomination?: string[]
       accessibleOnly?: boolean
       familyFriendly?: boolean
+      language?: string[]
       sort?: EventSortOption
     }
   }

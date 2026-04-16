@@ -1035,6 +1035,96 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     })
   })
 
+  describe('language filter', () => {
+    it('filters the feed to churches that host services in the requested language', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ language: 'Spanish' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.language).toEqual(['Spanish'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: { languages: { hasSome: ['Spanish'] } },
+      })
+    })
+
+    it('OR-combines a comma-separated list of languages', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ language: 'English,Spanish' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.language).toEqual(['English', 'Spanish'])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: { languages: { hasSome: ['English', 'Spanish'] } },
+      })
+    })
+
+    it('omits the language meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.language).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('ignores blank / whitespace-only entries in the list', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ language: ',  ,Spanish, ' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.language).toEqual(['Spanish'])
+    })
+
+    it('combines language with familyFriendly and neighborhood in one church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        language: 'Spanish',
+        familyFriendly: 'true',
+        neighborhood: 'Downtown',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.language).toEqual(['Spanish'])
+      expect(response.body.meta.filters.familyFriendly).toBe(true)
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          goodForChildren: true,
+          languages: { hasSome: ['Spanish'] },
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+        },
+      })
+    })
+  })
+
   describe('timeOfDay filter (San Antonio local time)', () => {
     // San Antonio is America/Chicago — CDT (UTC-5) in May/June.
     // 09:00 CDT  -> 14:00 UTC (morning)
