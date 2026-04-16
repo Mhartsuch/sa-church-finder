@@ -143,6 +143,7 @@ router.get(
         denomination: Array.isArray(q.denomination) ? (q.denomination as string[]) : undefined,
         accessibleOnly: q.accessibleOnly === true ? true : undefined,
         familyFriendly: q.familyFriendly === true ? true : undefined,
+        groupFriendly: q.groupFriendly === true ? true : undefined,
         // The Zod schema normalizes single, comma-separated, and repeated
         // `language` query params into a deduped `string[]` (or `undefined`).
         language: Array.isArray(q.language) ? (q.language as string[]) : undefined,

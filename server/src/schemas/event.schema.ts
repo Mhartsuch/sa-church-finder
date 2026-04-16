@@ -230,6 +230,11 @@ export const eventsFeedSchema = z.object({
       // as `accessibleOnly` so URL share-links can carry `?familyFriendly=true`,
       // `=1`, or `=yes` interchangeably.
       familyFriendly: booleanishFlag,
+      // Restrict the feed to events at churches flagged as good for groups
+      // (`church.goodForGroups = true`). Mirrors `familyFriendly` — reuses the
+      // shared boolean-ish parser so URL share-links can carry
+      // `?groupFriendly=true`, `=1`, or `=yes` interchangeably.
+      groupFriendly: booleanishFlag,
       // Multi-select service-language filter. Supports a single value
       // (`language=Spanish`), a comma-separated list
       // (`language=English,Spanish`), or repeated query params. Mirrors the

@@ -1000,6 +1000,107 @@ describe('EventsDiscoveryPage', () => {
     });
   });
 
+  describe('group-friendly filter', () => {
+    it('renders the good-for-groups toggle chip regardless of auth state', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      // Scope to the quick-filter rail so the toggle is the only candidate —
+      // once the filter is on there is also an "applied" chip with the same
+      // label in the chip rail below.
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for groups/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('writes groups=1 to the URL and passes groupFriendly to the feed filters', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for groups/i });
+      fireEvent.click(chip);
+
+      expect(getSearch()).toContain('groups=1');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ groupFriendly: true });
+
+      // Two instances of the label appear once the filter is on: the toggle
+      // chip above the form (now in its active state) and the applied chip in
+      // the chip rail below.
+      expect(screen.getAllByText('Good for groups')).toHaveLength(2);
+    });
+
+    it('reflects the active state on the toggle when seeded from the URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?groups=1');
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for groups/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('removes groups=1 from the URL when the filter chip is cleared', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?groups=1');
+
+      const filterChips = screen.getAllByText('Good for groups');
+      // The second occurrence lives in the applied-chips rail (the first is on
+      // the toggle chip above the form). Clicking it removes the filter via
+      // the shared clear-chip flow.
+      const clearChip = filterChips[filterChips.length - 1]!.closest('button');
+      expect(clearChip).not.toBeNull();
+      fireEvent.click(clearChip!);
+
+      expect(getSearch()).not.toContain('groups=');
+    });
+
+    it('preserves groups=1 alongside family=1 when toggled together', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?family=1');
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /good for groups/i });
+      fireEvent.click(chip);
+
+      const search = getSearch();
+      expect(search).toContain('family=1');
+      expect(search).toContain('groups=1');
+    });
+  });
+
   describe('language filter', () => {
     const languageOptionsResponse = {
       data: {

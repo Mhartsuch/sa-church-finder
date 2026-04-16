@@ -362,6 +362,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const hasNeighborhood = Boolean(trimmedNeighborhood)
   const accessibleOnly = filters.accessibleOnly === true
   const familyFriendly = filters.familyFriendly === true
+  const groupFriendly = filters.groupFriendly === true
 
   // Multi-select service language. Normalized to a deduped list; `hasSome`
   // below then matches the underlying `church.languages` array
@@ -430,6 +431,12 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
     // can trust that the narrowed list of events is hosted somewhere flagged
     // as kid-friendly.
     ...(familyFriendly ? { goodForChildren: true } : {}),
+    // `goodForGroups` mirrors the nullable-boolean semantics above: requiring
+    // `equals: true` excludes both `false` and `null` (unknown) churches so
+    // small-group leaders, Bible-study organizers, and volunteer coordinators
+    // can trust the narrowed list is hosted somewhere flagged as good for
+    // visiting groups.
+    ...(groupFriendly ? { goodForGroups: true } : {}),
     // Multi-select language filter: `hasSome` matches a church whose
     // `languages` array contains any of the requested values. The values
     // supplied by the client originate from the `/churches/filter-options`
@@ -555,6 +562,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
             : undefined,
         accessibleOnly: accessibleOnly ? true : undefined,
         familyFriendly: familyFriendly ? true : undefined,
+        groupFriendly: groupFriendly ? true : undefined,
         // Echo the deduped (trim-only) language strings the caller supplied so
         // chip labels on the discovery page round-trip exactly as the user
         // typed or selected them. Omitted when no language filter was applied.

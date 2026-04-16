@@ -183,6 +183,14 @@ export interface IEventsFeedFilters {
    */
   familyFriendly?: boolean
   /**
+   * Restrict the feed to events hosted by churches flagged as good for
+   * groups (`church.goodForGroups = true`). Mirrors `familyFriendly` —
+   * churches where the underlying field is `false` or `null` (unknown) are
+   * excluded so small-group leaders, Bible-study organizers, and volunteer
+   * coordinators can trust that the narrowed list hosts visiting groups well.
+   */
+  groupFriendly?: boolean
+  /**
    * Restrict the feed to events hosted by churches that conduct services in
    * any of the named languages (e.g. `["English", "Spanish"]`). Matching is
    * case-insensitive against each entry in `church.languages`, and the list
@@ -217,6 +225,7 @@ export interface IEventsFeedResponse {
       denomination?: string[]
       accessibleOnly?: boolean
       familyFriendly?: boolean
+      groupFriendly?: boolean
       language?: string[]
       sort?: EventSortOption
     }

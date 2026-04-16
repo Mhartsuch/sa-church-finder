@@ -348,6 +348,7 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
 | denomination   | string  | No       | Multi-select denomination-family filter, OR-combined. Accepts a single value (`denomination=Baptist`), a comma-separated list (`denomination=Baptist,Methodist`), or repeated `denomination=` query params. Matching is case-insensitive against `church.denominationFamily`. Values typically come from `/churches/filter-options` (`denominations[].value`). Max length 120 per token. |
 | accessibleOnly | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as wheelchair accessible (`church.wheelchairAccessible = true`). Churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                                              |
 | familyFriendly | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as good for children (`church.goodForChildren = true`). Mirrors `accessibleOnly` — churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                            |
+| groupFriendly  | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as good for groups (`church.goodForGroups = true`). Mirrors `familyFriendly` — churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                                |
 | language       | string  | No       | Multi-select service-language filter, OR-combined. Accepts a single value (`language=Spanish`), a comma-separated list (`language=English,Spanish`), or repeated `language=` query params. Matches a church whose `languages` array contains any of the listed values. Values typically come from `/churches/filter-options` (`languages[]`). Max length 60 per token.                   |
 
 **Response:**
@@ -396,6 +397,7 @@ with a unique `occurrenceId` while `id` still points back to the stored series r
       "denomination": ["Baptist", "Methodist"],
       "accessibleOnly": true,
       "familyFriendly": true,
+      "groupFriendly": true,
       "language": ["English", "Spanish"]
     }
   }

@@ -1035,6 +1035,89 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     })
   })
 
+  describe('groupFriendly filter', () => {
+    it('filters the feed to good-for-groups churches when enabled', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ groupFriendly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.groupFriendly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // Matching `equals: true` excludes both `false` and `null` churches so
+      // small-group organizers can trust the narrowed result set hosts groups.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: { goodForGroups: true },
+      })
+    })
+
+    it('omits the groupFriendly meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.groupFriendly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('treats groupFriendly=false as no filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ groupFriendly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.groupFriendly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('combines groupFriendly with familyFriendly and accessibleOnly in one church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        groupFriendly: 'true',
+        familyFriendly: 'true',
+        accessibleOnly: 'true',
+        neighborhood: 'Downtown',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.groupFriendly).toBe(true)
+      expect(response.body.meta.filters.familyFriendly).toBe(true)
+      expect(response.body.meta.filters.accessibleOnly).toBe(true)
+      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          wheelchairAccessible: true,
+          goodForChildren: true,
+          goodForGroups: true,
+          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+        },
+      })
+    })
+  })
+
   describe('language filter', () => {
     it('filters the feed to churches that host services in the requested language', async () => {
       mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])

@@ -12,6 +12,7 @@ import {
   MapPin,
   Search,
   Sparkles,
+  Users,
   X,
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -140,6 +141,11 @@ type FeedFormState = {
    */
   familyFriendly: boolean;
   /**
+   * When true, limit the feed to events hosted by churches flagged as good
+   * for groups (`church.goodForGroups = true`). Mirrors `familyFriendly`.
+   */
+  groupFriendly: boolean;
+  /**
    * Multi-select service-language filter. Selection order is preserved so the
    * serialized URL string stays stable across re-renders (mirroring how
    * `types` and `denominations` are handled above).
@@ -163,6 +169,7 @@ const EMPTY_FORM: FeedFormState = {
   denominations: [],
   accessibleOnly: false,
   familyFriendly: false,
+  groupFriendly: false,
   languages: [],
   sort: DEFAULT_SORT,
 };
@@ -235,6 +242,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     denominations: parseDenominationParam(searchParams.get('denomination')),
     accessibleOnly: searchParams.get('accessible') === '1',
     familyFriendly: searchParams.get('family') === '1',
+    groupFriendly: searchParams.get('groups') === '1',
     languages: parseLanguageParam(searchParams.get('language')),
     sort: isSortOption(rawSort) ? rawSort : DEFAULT_SORT,
   };
@@ -359,6 +367,7 @@ const EventsDiscoveryPage = () => {
     const denominations = parseDenominationParam(searchParams.get('denomination'));
     const accessibleOnly = searchParams.get('accessible') === '1';
     const familyFriendly = searchParams.get('family') === '1';
+    const groupFriendly = searchParams.get('groups') === '1';
     const languages = parseLanguageParam(searchParams.get('language'));
     const sort: EventSortOption | undefined = isSortOption(rawSort) ? rawSort : undefined;
 
@@ -375,6 +384,7 @@ const EventsDiscoveryPage = () => {
       denomination: denominations.length > 0 ? denominations : undefined,
       accessibleOnly: accessibleOnly || undefined,
       familyFriendly: familyFriendly || undefined,
+      groupFriendly: groupFriendly || undefined,
       language: languages.length > 0 ? languages : undefined,
       // Only forward a non-default sort so the query string (and cached
       // response) stays clean for the most common case.
@@ -432,6 +442,9 @@ const EventsDiscoveryPage = () => {
     if (filters.familyFriendly) {
       chips.push({ key: 'family', label: 'Good for kids' });
     }
+    if (filters.groupFriendly) {
+      chips.push({ key: 'groups', label: 'Good for groups' });
+    }
     if (filters.language) {
       // Each selected language gets its own removable chip so users can peel
       // them off one at a time without clearing the whole multi-select.
@@ -449,6 +462,7 @@ const EventsDiscoveryPage = () => {
     filters.denomination,
     filters.accessibleOnly,
     filters.familyFriendly,
+    filters.groupFriendly,
     filters.language,
     searchParams,
   ]);
@@ -471,6 +485,7 @@ const EventsDiscoveryPage = () => {
     }
     if (nextForm.accessibleOnly) next.set('accessible', '1');
     if (nextForm.familyFriendly) next.set('family', '1');
+    if (nextForm.groupFriendly) next.set('groups', '1');
     if (nextForm.languages.length > 0) {
       next.set('language', nextForm.languages.join(','));
     }
@@ -518,6 +533,7 @@ const EventsDiscoveryPage = () => {
     if (key === 'neighborhood') nextForm.neighborhood = '';
     if (key === 'accessible') nextForm.accessibleOnly = false;
     if (key === 'family') nextForm.familyFriendly = false;
+    if (key === 'groups') nextForm.groupFriendly = false;
 
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
@@ -567,6 +583,12 @@ const EventsDiscoveryPage = () => {
 
   const handleToggleFamilyFriendly = (): void => {
     const nextForm: FeedFormState = { ...form, familyFriendly: !form.familyFriendly };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleGroupFriendly = (): void => {
+    const nextForm: FeedFormState = { ...form, groupFriendly: !form.groupFriendly };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -828,6 +850,20 @@ const EventsDiscoveryPage = () => {
           >
             <Baby className="h-3.5 w-3.5" />
             Good for kids
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleGroupFriendly}
+            aria-pressed={form.groupFriendly}
+            aria-label="Show only events at churches that are good for groups"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+              form.groupFriendly
+                ? 'border-foreground bg-foreground text-white'
+                : 'border-border bg-card text-foreground hover:border-foreground'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Good for groups
           </button>
         </div>
 
