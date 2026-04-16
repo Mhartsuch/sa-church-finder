@@ -71,4 +71,37 @@ describe('calendar-feed-url helpers', () => {
       'https://api.sachurchfinder.com/api/v1/events.ics',
     );
   });
+
+  it('appends the denomination filter on the aggregated feed', () => {
+    expect(buildAggregatedEventsFeedUrl({ denomination: 'Baptist' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?denomination=Baptist',
+    );
+  });
+
+  it('joins a multi-denomination array with commas on the aggregated feed', () => {
+    // Mirrors the wire format the server schema normalizes back into a
+    // deduped `string[]` so the subscribe button can reflect the exact
+    // denomination chips the user toggled on the discovery page.
+    expect(buildAggregatedEventsFeedUrl({ denomination: ['Baptist', 'Methodist'] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?denomination=Baptist%2CMethodist',
+    );
+  });
+
+  it('trims and drops empty entries from a multi-denomination array', () => {
+    expect(buildAggregatedEventsFeedUrl({ denomination: ['  Baptist  ', '', 'Methodist'] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?denomination=Baptist%2CMethodist',
+    );
+  });
+
+  it('omits the denomination param when the array is empty', () => {
+    expect(buildAggregatedEventsFeedUrl({ denomination: [] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
+
+  it('combines the type and denomination filters into one query string', () => {
+    expect(buildAggregatedEventsFeedUrl({ type: ['service'], denomination: ['Baptist'] })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist',
+    );
+  });
 });

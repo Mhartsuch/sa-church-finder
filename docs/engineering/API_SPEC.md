@@ -484,13 +484,15 @@ Aggregated **iCalendar (RFC 5545)** feed for every church. Designed to be subscr
 calendar app (Apple Calendar, Google Calendar, Outlook) so upcoming events stay in sync with a
 user's personal calendar.
 
-| Param | Type           | Required | Notes                                                                                                                                                                                              |
-| ----- | -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| type  | string\|string[] | No     | Multi-select event-type filter. Accepts a single value (`type=service`), a comma-separated list (`type=service,community`), or repeated params (`type=service&type=community`). Values are deduped. |
+| Param        | Type             | Required | Notes                                                                                                                                                                                                                                                                                          |
+| ------------ | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type         | string\|string[] | No       | Multi-select event-type filter. Accepts a single value (`type=service`), a comma-separated list (`type=service,community`), or repeated params (`type=service&type=community`). Values are deduped.                                                                                            |
+| denomination | string\|string[] | No       | Multi-select denomination-family filter. Same wire format as `type` (single value, comma-separated, or repeated). Matching is case-insensitive against `church.denominationFamily`; values longer than 120 characters are silently dropped so a bookmarked URL cannot 400 the subscribed feed. |
 
 **Response headers:** `Content-Type: text/calendar; charset=utf-8`,
-`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder<-type[-type…]>-events.ics"`.
-Selected types are enumerated in the filename (e.g. `sa-church-finder-service-community-events.ics`) so downloaded feeds stay self-describing.
+`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder<-type[-type…]><-family[-family…]>-events.ics"`.
+Selected filters are enumerated in the filename (e.g. `sa-church-finder-service-community-baptist-events.ics`) so downloaded feeds stay self-describing.
+Denomination family names are lowercased and any non-alphanumeric characters collapsed to hyphens for the filename so the download is filesystem-safe.
 
 The document emits one `VEVENT` per stored row. Recurring series pass their canonical `RRULE`
 straight through so calendar clients expand occurrences natively. Non-recurring events that

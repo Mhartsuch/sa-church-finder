@@ -624,16 +624,18 @@ export async function getChurchCalendarFeedBySlug(
 
 /**
  * Fetch events across every church for the aggregated calendar feed. Supports
- * the same multi-select event-type filter as the JSON aggregated feed so
- * visitors can subscribe to a calendar scoped to exactly the chips they have
- * toggled on the discovery page.
+ * the same multi-select event-type and denomination filters as the JSON
+ * aggregated feed so visitors can subscribe to a calendar scoped to exactly
+ * the chips they have toggled on the discovery page.
  *
  * `type` accepts either a single `ChurchEventType` (legacy callers) or an
- * array of types. An empty array is treated as "no filter" so callers can
- * default-construct without guarding.
+ * array of types. `denomination` accepts an array of family names. An empty
+ * array (or `undefined`) is treated as "no filter" so callers can default-
+ * construct without guarding.
  */
 export async function getAggregatedCalendarFeed(options: {
   type?: ChurchEventType | ChurchEventType[]
+  denomination?: string[]
   now?: Date
 }): Promise<ICalendarFeedPayload> {
   const now = options.now ?? new Date()
@@ -665,9 +667,42 @@ export async function getAggregatedCalendarFeed(options: {
         ? { eventType: types[0] }
         : { eventType: { in: types } }
 
+  // Normalize the denomination option. The display list preserves original
+  // casing/order (for filename + calendar name); the matching list is
+  // lowercased so the `equals … mode: insensitive` clause never double-counts
+  // "Baptist" and "baptist" as two chips.
+  const denominationDisplayList: string[] = options.denomination
+    ? Array.from(
+        new Set(
+          options.denomination.map((value) => value.trim()).filter((value) => value.length > 0),
+        ),
+      )
+    : []
+  const denominationMatchList = Array.from(
+    new Set(denominationDisplayList.map((value) => value.toLowerCase())),
+  )
+  const hasDenominationFilter = denominationMatchList.length > 0
+
+  // The denomination filter lives on the related church, so it's expressed as
+  // a nested `church` clause. Using `OR` of case-insensitive equality clauses
+  // mirrors `listEventsFeed` — Prisma's `in` does not honour insensitive mode.
+  const churchClause = hasDenominationFilter
+    ? {
+        church: {
+          OR: denominationMatchList.map((value) => ({
+            denominationFamily: {
+              equals: value,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          })),
+        },
+      }
+    : {}
+
   const rows = (await prisma.event.findMany({
     where: {
       ...eventTypeClause,
+      ...churchClause,
       OR: [{ isRecurring: true }, { isRecurring: false, startTime: { gte: from } }],
     },
     include: {
@@ -685,11 +720,14 @@ export async function getAggregatedCalendarFeed(options: {
     take: MAX_FEED_EVENTS,
   })) as FeedEventRow[]
 
-  const typeSuffix = types.length > 0 ? ` (${types.join(', ')})` : ''
+  const suffixParts: string[] = []
+  if (types.length > 0) suffixParts.push(types.join(', '))
+  if (denominationDisplayList.length > 0) suffixParts.push(denominationDisplayList.join(', '))
+  const titleSuffix = suffixParts.length > 0 ? ` (${suffixParts.join(' · ')})` : ''
 
   return {
-    calendarName: `SA Church Finder — Events${typeSuffix}`,
-    calendarDescription: `Upcoming church events across San Antonio${typeSuffix}.`,
+    calendarName: `SA Church Finder — Events${titleSuffix}`,
+    calendarDescription: `Upcoming church events across San Antonio${titleSuffix}.`,
     events: rows.map(mapFeedEvent),
   }
 }

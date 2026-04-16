@@ -19,15 +19,19 @@ const buildFeedUrl = (path: string, params?: Record<string, string | null | unde
 };
 
 /**
- * Normalize a `type` argument (single value, array, `null`, or `undefined`)
- * into the comma-separated wire format both calendar-feed endpoints accept.
- * Empty / whitespace-only entries are dropped so the resulting string never
- * carries stray commas (e.g. `type=,service`). Returns `undefined` when the
- * normalized list is empty so the caller can omit the query param entirely.
+ * Normalize a list-valued query argument (single value, array, `null`, or
+ * `undefined`) into the comma-separated wire format the calendar-feed
+ * endpoints accept. Empty / whitespace-only entries are dropped so the
+ * resulting string never carries stray commas (e.g. `type=,service`). Returns
+ * `undefined` when the normalized list is empty so the caller can omit the
+ * query param entirely.
+ *
+ * The same serializer handles every multi-select param (`type`,
+ * `denomination`, etc.) — the wire format is identical, and keeping them in
+ * one helper guarantees the query strings stay predictable across the
+ * different calendar surfaces.
  */
-const serializeTypeParam = (
-  value: string | string[] | null | undefined,
-): string | undefined => {
+const serializeListParam = (value: string | string[] | null | undefined): string | undefined => {
   if (value === undefined || value === null) return undefined;
   const list = Array.isArray(value) ? value : [value];
   const cleaned = list
@@ -37,11 +41,20 @@ const serializeTypeParam = (
   return cleaned.join(',');
 };
 
-export const buildChurchEventsFeedUrl = (
-  slug: string,
-  params?: { type?: string | null },
-): string => buildFeedUrl(`/churches/${encodeURIComponent(slug)}/events.ics`, params);
+export const buildChurchEventsFeedUrl = (slug: string, params?: { type?: string | null }): string =>
+  buildFeedUrl(`/churches/${encodeURIComponent(slug)}/events.ics`, params);
 
 export const buildAggregatedEventsFeedUrl = (params?: {
   type?: string | string[] | null;
-}): string => buildFeedUrl('/events.ics', { type: serializeTypeParam(params?.type) });
+  /**
+   * Multi-select denomination family filter. Mirrors the discovery page's
+   * `denomination` chips so the subscribe button serializes exactly the
+   * families a visitor has toggled on. Accepts a single value, an array, or
+   * `null`/`undefined` ("no filter").
+   */
+  denomination?: string | string[] | null;
+}): string =>
+  buildFeedUrl('/events.ics', {
+    type: serializeListParam(params?.type),
+    denomination: serializeListParam(params?.denomination),
+  });

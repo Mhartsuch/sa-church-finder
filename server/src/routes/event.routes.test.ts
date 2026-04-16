@@ -1358,5 +1358,138 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.status).toBe(400)
       expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
     })
+
+    it('filters the aggregated feed by a single denomination (case-insensitive)', async () => {
+      // Denomination narrows the feed at the church level via a nested clause
+      // on `church.denominationFamily`. Matching is case-insensitive so the
+      // lowercased list collapses "Baptist" and "baptist" to one predicate.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ denomination: 'Baptist' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-baptist-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: {
+              OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('accepts a comma-separated multi-denomination filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ denomination: 'Baptist,Methodist' })
+
+      expect(response.status).toBe(200)
+      // Filename enumerates every selected family (lowercased) so downloads
+      // stay self-describing.
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-baptist-methodist-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: {
+              OR: [
+                { denominationFamily: { equals: 'baptist', mode: 'insensitive' } },
+                { denominationFamily: { equals: 'methodist', mode: 'insensitive' } },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('combines the type and denomination filters on the aggregated feed', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service', denomination: 'Baptist' })
+
+      expect(response.status).toBe(200)
+      // Filename chains the type slug(s) ahead of the denomination slug(s) so
+      // the ordering in downloads stays predictable.
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-baptist-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: 'service',
+            church: {
+              OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('slugifies denomination values with spaces or punctuation for the filename', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ denomination: 'Non-denominational' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-non-denominational-events\.ics"/,
+      )
+    })
+
+    it('drops empty denomination tokens and skips the nested church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ denomination: ' , , ' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
+
+    it('silently drops denomination values that exceed the maximum length', async () => {
+      // The denomination normalizer filters out entries longer than 120 chars
+      // before deduping, so an over-length value collapses to an empty list
+      // and the request behaves like the city-wide feed. (The JSON feed
+      // enforces a hard 120-char limit via `.max()`; the calendar feed is a
+      // public GET that may be bookmarked, so we stay forgiving.)
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ denomination: 'x'.repeat(121) })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
   })
 })
