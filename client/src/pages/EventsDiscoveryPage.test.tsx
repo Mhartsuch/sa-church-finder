@@ -923,8 +923,11 @@ describe('EventsDiscoveryPage', () => {
 
       renderPage('/events?accessible=1');
 
+      // Use the chip's full aria-label to disambiguate it from the
+      // subscribe-to-calendar button, which now reads "Subscribe to
+      // wheelchair-accessible events" once this filter is active.
       const chip = screen.getByRole('button', {
-        name: /wheelchair-accessible/i,
+        name: 'Show only events at wheelchair-accessible churches',
       });
       expect(chip).toHaveAttribute('aria-pressed', 'true');
     });
@@ -1546,6 +1549,53 @@ describe('EventsDiscoveryPage', () => {
       const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
       expect(apple.getAttribute('href')).toMatch(
         /events\.ics\?denomination=Baptist&language=Spanish$/,
+      );
+    });
+
+    it('labels the wheelchair-accessible feed and serializes accessibleOnly into the URL', () => {
+      // Wheelchair-accessible-only narrowing reads naturally ("Subscribe to
+      // wheelchair-accessible events") and the feed URL carries
+      // `accessibleOnly=true` so the iCal subscription resolves the same way
+      // the chip narrows the discovery feed.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?accessible=1');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to wheelchair-accessible events/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?accessibleOnly=true$/);
+    });
+
+    it('uses the generic label and combines accessibleOnly with another axis in the URL', () => {
+      // Once a second axis is narrowed (e.g. accessible + denomination), the
+      // label collapses to the generic wording and the URL chains every
+      // active param so the saved filename surfaces the specifics.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?denomination=Baptist&accessible=1');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(
+        /events\.ics\?denomination=Baptist&accessibleOnly=true$/,
       );
     });
   });

@@ -2186,5 +2186,125 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       >
       expect(whereArg).not.toHaveProperty('church')
     })
+
+    it('filters the aggregated feed by wheelchair-accessible churches', async () => {
+      // `accessibleOnly=true` adds a `church.wheelchairAccessible: true` clause
+      // — mirrors the JSON feed's contract so calendar subscribers see exactly
+      // the events the wheelchair-accessible chip surfaces on the discovery
+      // page. The filename gets a trailing `accessible` segment so saved ICS
+      // downloads stay self-describing.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ accessibleOnly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-accessible-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { wheelchairAccessible: true },
+          }),
+        }),
+      )
+    })
+
+    it('also accepts boolean-ish wheelchair-accessible aliases (1, yes)', async () => {
+      // The shared `booleanishFlag` parser treats `true`, `1`, `yes`, and
+      // `on` interchangeably so URL share-links coming from any surface
+      // (the discovery page emits `accessibleOnly=true`, but hand-typed
+      // bookmarks may use `=1`) resolve identically.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ accessibleOnly: '1' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-accessible-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { wheelchairAccessible: true },
+          }),
+        }),
+      )
+    })
+
+    it('skips the church clause when accessibleOnly is false', async () => {
+      // A "no, just the city feed" toggle (the chip flipped off) must not
+      // tack a `church` clause onto the Prisma query — the city-wide feed
+      // contract stays unchanged when no narrowing is requested.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ accessibleOnly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
+
+    it('AND-composes wheelchair-accessible with denomination + neighborhood + language', async () => {
+      // When every narrowing axis is in play the four `church` sub-clauses
+      // compose under a single `AND` (denomination → neighborhood → language
+      // → wheelchair-accessible), and the filename suffix chains
+      // type → denomination → neighborhood → language → `accessible`.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp()).get('/api/v1/events.ics').query({
+        type: 'service',
+        denomination: 'Baptist',
+        neighborhood: 'Downtown',
+        language: 'Spanish',
+        accessibleOnly: 'true',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-baptist-downtown-spanish-accessible-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: 'service',
+            church: {
+              AND: [
+                { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+                { languages: { hasSome: ['Spanish'] } },
+                { wheelchairAccessible: true },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('rejects an invalid wheelchair-accessible flag', async () => {
+      // The shared `booleanishFlag` parser refuses values like `maybe`, so
+      // bogus subscription URLs surface as a 400 instead of silently passing
+      // through with no narrowing.
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ accessibleOnly: 'maybe' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
   })
 })

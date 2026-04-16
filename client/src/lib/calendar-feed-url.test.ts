@@ -185,4 +185,40 @@ describe('calendar-feed-url helpers', () => {
       'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish',
     );
   });
+
+  it('appends the wheelchair-accessible flag when accessibleOnly=true', () => {
+    // The wire format mirrors the JSON feed (`accessibleOnly=true`) so the
+    // calendar-feed query string and the discovery page's URL stay in sync.
+    expect(buildAggregatedEventsFeedUrl({ accessibleOnly: true })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?accessibleOnly=true',
+    );
+  });
+
+  it('omits the accessibleOnly param when false / null / undefined', () => {
+    // The chip toggled off (or omitted entirely) must not surface a query
+    // param so the server keeps the city-wide default contract.
+    expect(buildAggregatedEventsFeedUrl({ accessibleOnly: false })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({ accessibleOnly: null })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({})).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
+
+  it('combines accessibleOnly with the other narrowing axes in one query string', () => {
+    expect(
+      buildAggregatedEventsFeedUrl({
+        type: ['service'],
+        denomination: ['Baptist'],
+        neighborhood: ['Downtown'],
+        language: ['Spanish'],
+        accessibleOnly: true,
+      }),
+    ).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true',
+    );
+  });
 });

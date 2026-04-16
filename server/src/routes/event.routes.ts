@@ -59,9 +59,15 @@ router.get(
       // (the canonical casing already exposed via `/churches/filter-options`)
       // but echoes the caller's casing back for filename/calendar-name display.
       const languages = Array.isArray(q.language) ? (q.language as string[]) : undefined
+      // Wheelchair-accessible narrowing mirrors the JSON feed's
+      // `accessibleOnly` boolean. The shared `booleanishFlag` Zod parser
+      // accepts `true` / `1` / `yes` / `on` so URL share-links coming from
+      // either the discovery page or hand-typed subscriptions resolve the
+      // same way.
+      const accessibleOnly = q.accessibleOnly === true
 
       logger.info(
-        { types, denominations, neighborhoods, languages },
+        { types, denominations, neighborhoods, languages, accessibleOnly },
         'Generating aggregated calendar feed',
       )
 
@@ -70,6 +76,7 @@ router.get(
         denomination: denominations,
         neighborhood: neighborhoods,
         language: languages,
+        accessibleOnly: accessibleOnly || undefined,
       })
       const siteUrl = resolvePublicSiteUrl()
 
@@ -119,6 +126,11 @@ router.get(
           ...languages.map(slugifyForFilename).filter((value) => value.length > 0),
         )
       }
+      // Wheelchair-accessible has no per-value list to slug, so it adds a
+      // single static segment (`accessible`) so the saved filename surfaces
+      // the narrowing alongside any type/denomination/neighborhood/language
+      // chips the visitor toggled.
+      if (accessibleOnly) filenameParts.push('accessible')
       const filenameSuffix = filenameParts.length > 0 ? `-${filenameParts.join('-')}` : ''
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8')

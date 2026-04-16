@@ -67,10 +67,19 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    * or `null`/`undefined` ("no filter").
    */
   language?: string | string[] | null;
+  /**
+   * Wheelchair-accessible toggle. Mirrors the discovery page's accessibility
+   * chip — when `true` the calendar feed is restricted to events at churches
+   * flagged as wheelchair accessible. `false` / `null` / `undefined` omits
+   * the param so the server skips the filter. The serialized wire format is
+   * `accessibleOnly=true` to match the JSON feed (`?accessibleOnly=true`).
+   */
+  accessibleOnly?: boolean | null;
 }): string =>
   buildFeedUrl('/events.ics', {
     type: serializeListParam(params?.type),
     denomination: serializeListParam(params?.denomination),
     neighborhood: serializeListParam(params?.neighborhood),
     language: serializeListParam(params?.language),
+    accessibleOnly: params?.accessibleOnly === true ? 'true' : undefined,
   });

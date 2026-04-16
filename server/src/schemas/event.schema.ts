@@ -332,6 +332,15 @@ export const aggregatedCalendarFeedSchema = z.object({
       // database, so the service layer matches case-sensitively via
       // `church.languages hasSome`.
       language: languageMultiQueryParam,
+      // Restrict the calendar feed to events at churches flagged as
+      // wheelchair accessible. Mirrors the JSON feed's `accessibleOnly`
+      // wire format (`?accessibleOnly=true|1|yes`) so a visitor who has
+      // toggled the wheelchair-accessible chip on the discovery page can
+      // subscribe to a calendar scoped to exactly that narrowing. The
+      // service layer requires `church.wheelchairAccessible = true`,
+      // excluding both `false` and `null` (unknown) churches so the
+      // subscribed calendar stays trustworthy.
+      accessibleOnly: booleanishFlag,
     })
     .passthrough(),
   body: z.object({}).passthrough(),
