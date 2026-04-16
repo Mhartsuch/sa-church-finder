@@ -92,6 +92,15 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    */
   groupFriendly?: boolean | null;
   /**
+   * Verified-only toggle. Mirrors the discovery page's "Verified churches"
+   * chip — when `true` the calendar feed is restricted to events at
+   * churches whose claim workflow has been approved (`church.isClaimed =
+   * true`). `false` / `null` / `undefined` omits the param so the server
+   * skips the filter. The serialized wire format is `verifiedOnly=true` to
+   * match the JSON feed (`?verifiedOnly=true`).
+   */
+  verifiedOnly?: boolean | null;
+  /**
    * Time-of-day bucket. Mirrors the discovery page's "Morning" / "Afternoon"
    * / "Evening" chip — the calendar feed is restricted to events whose local
    * start time falls inside the named bucket. `null` / `undefined` / empty
@@ -119,6 +128,7 @@ export const buildAggregatedEventsFeedUrl = (params?: {
     accessibleOnly: params?.accessibleOnly === true ? 'true' : undefined,
     familyFriendly: params?.familyFriendly === true ? 'true' : undefined,
     groupFriendly: params?.groupFriendly === true ? 'true' : undefined,
+    verifiedOnly: params?.verifiedOnly === true ? 'true' : undefined,
     timeOfDay: params?.timeOfDay ?? undefined,
     q: trimmedQ.length > 0 ? trimmedQ : undefined,
   });

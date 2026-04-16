@@ -293,6 +293,43 @@ describe('calendar-feed-url helpers', () => {
     );
   });
 
+  it('appends the verified-only flag when verifiedOnly=true', () => {
+    // Mirrors the JSON feed's wire format (`verifiedOnly=true`) so the
+    // calendar-feed query string stays in sync with the discovery page
+    // URL param the "Verified churches" chip toggles on.
+    expect(buildAggregatedEventsFeedUrl({ verifiedOnly: true })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?verifiedOnly=true',
+    );
+  });
+
+  it('omits the verifiedOnly param when false / null / undefined', () => {
+    // Chip toggled off (or omitted entirely) must not surface a query
+    // param so the server keeps the city-wide default contract.
+    expect(buildAggregatedEventsFeedUrl({ verifiedOnly: false })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({ verifiedOnly: null })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
+
+  it('combines verifiedOnly with the other narrowing axes in one query string', () => {
+    expect(
+      buildAggregatedEventsFeedUrl({
+        type: ['service'],
+        denomination: ['Baptist'],
+        neighborhood: ['Downtown'],
+        language: ['Spanish'],
+        accessibleOnly: true,
+        familyFriendly: true,
+        groupFriendly: true,
+        verifiedOnly: true,
+      }),
+    ).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true&familyFriendly=true&groupFriendly=true&verifiedOnly=true',
+    );
+  });
+
   it('appends the timeOfDay bucket when set', () => {
     // Mirrors the JSON feed's wire format (`timeOfDay=evening`) so the
     // calendar-feed query string stays in sync with the discovery page

@@ -78,6 +78,9 @@ const buildFeedQueryString = (params: IEventsFeedFilters): string => {
   if (params.groupFriendly) {
     qs.append('groupFriendly', 'true');
   }
+  if (params.verifiedOnly) {
+    qs.append('verifiedOnly', 'true');
+  }
   // Service languages are multi-select and OR-combined on the backend. Match
   // the shared wire format (`?language=English,Spanish`) used by the church
   // search endpoint so cached state can round-trip cleanly.

@@ -195,6 +195,13 @@ export interface IEventsFeedFilters {
    */
   groupFriendly?: boolean
   /**
+   * Restrict the feed to events hosted by verified / claimed churches
+   * (`church.isClaimed = true`). Excluding unclaimed records signals that
+   * a church leader has confirmed ownership of the listing, so visitors
+   * can trust the event metadata reflects the current ministry.
+   */
+  verifiedOnly?: boolean
+  /**
    * Restrict the feed to events hosted by churches that conduct services in
    * any of the named languages (e.g. `["English", "Spanish"]`). Matching is
    * case-insensitive against each entry in `church.languages`, and the list
@@ -230,6 +237,7 @@ export interface IEventsFeedResponse {
       accessibleOnly?: boolean
       familyFriendly?: boolean
       groupFriendly?: boolean
+      verifiedOnly?: boolean
       language?: string[]
       sort?: EventSortOption
     }

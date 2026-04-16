@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Accessibility,
   Baby,
+  BadgeCheck,
   Calendar,
   CalendarDays,
   ChevronLeft,
@@ -151,6 +152,11 @@ type FeedFormState = {
    */
   groupFriendly: boolean;
   /**
+   * When true, limit the feed to events hosted by verified / claimed
+   * churches (`church.isClaimed = true`). Mirrors the other boolean chips.
+   */
+  verifiedOnly: boolean;
+  /**
    * Multi-select service-language filter. Selection order is preserved so the
    * serialized URL string stays stable across re-renders (mirroring how
    * `types` and `denominations` are handled above).
@@ -175,6 +181,7 @@ const EMPTY_FORM: FeedFormState = {
   accessibleOnly: false,
   familyFriendly: false,
   groupFriendly: false,
+  verifiedOnly: false,
   languages: [],
   sort: DEFAULT_SORT,
 };
@@ -268,6 +275,7 @@ const readFormFromParams = (searchParams: URLSearchParams): FeedFormState => {
     accessibleOnly: searchParams.get('accessible') === '1',
     familyFriendly: searchParams.get('family') === '1',
     groupFriendly: searchParams.get('groups') === '1',
+    verifiedOnly: searchParams.get('verified') === '1',
     languages: parseLanguageParam(searchParams.get('language')),
     sort: isSortOption(rawSort) ? rawSort : DEFAULT_SORT,
   };
@@ -393,6 +401,7 @@ const EventsDiscoveryPage = () => {
     const accessibleOnly = searchParams.get('accessible') === '1';
     const familyFriendly = searchParams.get('family') === '1';
     const groupFriendly = searchParams.get('groups') === '1';
+    const verifiedOnly = searchParams.get('verified') === '1';
     const languages = parseLanguageParam(searchParams.get('language'));
     const sort: EventSortOption | undefined = isSortOption(rawSort) ? rawSort : undefined;
 
@@ -410,6 +419,7 @@ const EventsDiscoveryPage = () => {
       accessibleOnly: accessibleOnly || undefined,
       familyFriendly: familyFriendly || undefined,
       groupFriendly: groupFriendly || undefined,
+      verifiedOnly: verifiedOnly || undefined,
       language: languages.length > 0 ? languages : undefined,
       // Only forward a non-default sort so the query string (and cached
       // response) stays clean for the most common case.
@@ -474,6 +484,9 @@ const EventsDiscoveryPage = () => {
     if (filters.groupFriendly) {
       chips.push({ key: 'groups', label: 'Good for groups' });
     }
+    if (filters.verifiedOnly) {
+      chips.push({ key: 'verified', label: 'Verified churches' });
+    }
     if (filters.language) {
       // Each selected language gets its own removable chip so users can peel
       // them off one at a time without clearing the whole multi-select.
@@ -492,6 +505,7 @@ const EventsDiscoveryPage = () => {
     filters.accessibleOnly,
     filters.familyFriendly,
     filters.groupFriendly,
+    filters.verifiedOnly,
     filters.language,
     searchParams,
   ]);
@@ -517,6 +531,7 @@ const EventsDiscoveryPage = () => {
     if (nextForm.accessibleOnly) next.set('accessible', '1');
     if (nextForm.familyFriendly) next.set('family', '1');
     if (nextForm.groupFriendly) next.set('groups', '1');
+    if (nextForm.verifiedOnly) next.set('verified', '1');
     if (nextForm.languages.length > 0) {
       next.set('language', nextForm.languages.join(','));
     }
@@ -569,6 +584,7 @@ const EventsDiscoveryPage = () => {
     if (key === 'accessible') nextForm.accessibleOnly = false;
     if (key === 'family') nextForm.familyFriendly = false;
     if (key === 'groups') nextForm.groupFriendly = false;
+    if (key === 'verified') nextForm.verifiedOnly = false;
 
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
@@ -624,6 +640,12 @@ const EventsDiscoveryPage = () => {
 
   const handleToggleGroupFriendly = (): void => {
     const nextForm: FeedFormState = { ...form, groupFriendly: !form.groupFriendly };
+    setForm(nextForm);
+    updateUrlParams(nextForm, { page: 1 });
+  };
+
+  const handleToggleVerifiedOnly = (): void => {
+    const nextForm: FeedFormState = { ...form, verifiedOnly: !form.verifiedOnly };
     setForm(nextForm);
     updateUrlParams(nextForm, { page: 1 });
   };
@@ -824,6 +846,7 @@ const EventsDiscoveryPage = () => {
             const accessibleOnly = filters.accessibleOnly === true;
             const familyFriendly = filters.familyFriendly === true;
             const groupFriendly = filters.groupFriendly === true;
+            const verifiedOnly = filters.verifiedOnly === true;
             const timeOfDay = filters.timeOfDay ?? null;
             const keyword = filters.q ?? null;
 
@@ -835,6 +858,7 @@ const EventsDiscoveryPage = () => {
               accessibleOnly,
               familyFriendly,
               groupFriendly,
+              verifiedOnly,
               timeOfDay !== null,
               keyword !== null,
             ].filter(Boolean).length;
@@ -864,6 +888,8 @@ const EventsDiscoveryPage = () => {
               label = 'Subscribe to kid-friendly events';
             } else if (axesInUse === 1 && groupFriendly) {
               label = 'Subscribe to group-friendly events';
+            } else if (axesInUse === 1 && verifiedOnly) {
+              label = 'Subscribe to verified-church events';
             } else if (axesInUse === 1 && timeOfDay !== null) {
               label = `Subscribe to ${TIME_OF_DAY_LABELS[timeOfDay].toLowerCase()} events`;
             } else if (axesInUse === 1 && keyword !== null) {
@@ -884,6 +910,7 @@ const EventsDiscoveryPage = () => {
                   accessibleOnly: accessibleOnly ? true : null,
                   familyFriendly: familyFriendly ? true : null,
                   groupFriendly: groupFriendly ? true : null,
+                  verifiedOnly: verifiedOnly ? true : null,
                   timeOfDay,
                   q: keyword,
                 })}
@@ -976,6 +1003,20 @@ const EventsDiscoveryPage = () => {
           >
             <Users className="h-3.5 w-3.5" />
             Good for groups
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleVerifiedOnly}
+            aria-pressed={form.verifiedOnly}
+            aria-label="Show only events at verified churches"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+              form.verifiedOnly
+                ? 'border-foreground bg-foreground text-white'
+                : 'border-border bg-card text-foreground hover:border-foreground'
+            }`}
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            Verified churches
           </button>
         </div>
 
