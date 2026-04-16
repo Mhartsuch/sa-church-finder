@@ -48,6 +48,32 @@ const eventTypesQueryParam = z
     return normalized as ChurchEventType[]
   })
 
+/**
+ * Multi-select denomination family filter. Accepts a single value, a
+ * comma-separated list, or repeated query params — matching the wire format
+ * `eventsFeedSchema` uses so the calendar-feed and JSON-feed params stay
+ * interchangeable. Empty / whitespace-only / over-length entries are dropped;
+ * an empty normalized list collapses to `undefined`.
+ */
+const denominationMultiQueryParam = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return undefined
+
+    const raw = Array.isArray(value) ? value.flatMap((item) => item.split(',')) : value.split(',')
+
+    const normalized = Array.from(
+      new Set(
+        raw
+          .map((item) => item.trim())
+          .filter((item): item is string => item.length > 0 && item.length <= 120),
+      ),
+    )
+
+    return normalized.length > 0 ? normalized : undefined
+  })
+
 const dateTimeSchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid datetime value')
@@ -168,26 +194,7 @@ export const eventsFeedSchema = z.object({
       // shared `/churches/filter-options` payload (`denominations[].value`)
       // can drive both surfaces. Empty / whitespace-only entries collapse to
       // `undefined` so downstream code can skip the filter.
-      denomination: z
-        .union([z.string(), z.array(z.string())])
-        .optional()
-        .transform((value) => {
-          if (value === undefined) return undefined
-
-          const raw = Array.isArray(value)
-            ? value.flatMap((item) => item.split(','))
-            : value.split(',')
-
-          const normalized = Array.from(
-            new Set(
-              raw
-                .map((item) => item.trim())
-                .filter((item): item is string => item.length > 0 && item.length <= 120),
-            ),
-          )
-
-          return normalized.length > 0 ? normalized : undefined
-        }),
+      denomination: denominationMultiQueryParam,
       // Restrict the feed to events at churches flagged as wheelchair
       // accessible. Reuses the same boolean-ish parser as `savedOnly` so
       // `?accessibleOnly=true`, `=1`, and `=yes` all work for URL share-links.
@@ -220,6 +227,13 @@ export const aggregatedCalendarFeedSchema = z.object({
       // subscribe to a calendar scoped to exactly that selection. Leave
       // unset to subscribe to every event type.
       type: eventTypesQueryParam,
+      // Multi-select denomination family filter. Mirrors the JSON feed
+      // (`denomination=Baptist,Methodist` or repeated `denomination=` params)
+      // so a visitor who narrows the discovery page to one or more families
+      // can subscribe to a calendar scoped to exactly that selection. Case is
+      // preserved for filename/calendar-name display; the service matches
+      // case-insensitively against `church.denominationFamily`.
+      denomination: denominationMultiQueryParam,
     })
     .passthrough(),
   body: z.object({}).passthrough(),

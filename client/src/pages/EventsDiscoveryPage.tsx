@@ -612,26 +612,39 @@ const EventsDiscoveryPage = () => {
         <div className="mt-4">
           {/*
             The aggregated calendar feed honors the same multi-select type
-            filter as the JSON feed, so the subscribe URL reflects exactly
-            the chips the user has toggled. When no types are active we fall
-            back to the city-wide feed so the subscribe action stays useful
-            for any selection. The label follows the same pattern: one type
-            names the type ("Subscribe to Service events"), multiple types
-            count them ("Subscribe to 3 event-type feeds"), and an empty
-            selection points at the city feed.
+            AND denomination filters as the JSON feed, so the subscribe URL
+            reflects exactly the chips the user has toggled. When no filters
+            are active we fall back to the city-wide feed so the subscribe
+            action stays useful for any selection. The label prioritizes the
+            event-type narrative when types are chosen, otherwise names the
+            denomination selection, and otherwise points at the city feed.
           */}
           {(() => {
             const selectedTypes = filters.type ?? [];
-            const label =
-              selectedTypes.length === 0
-                ? 'Subscribe to the city events feed'
-                : selectedTypes.length === 1
-                  ? `Subscribe to ${EVENT_TYPE_LABELS[selectedTypes[0]]} events`
-                  : `Subscribe to ${selectedTypes.length} event-type feeds`;
+            const selectedDenominations = filters.denomination ?? [];
+
+            let label: string;
+            if (selectedTypes.length === 0 && selectedDenominations.length === 0) {
+              label = 'Subscribe to the city events feed';
+            } else if (selectedTypes.length === 1 && selectedDenominations.length === 0) {
+              label = `Subscribe to ${EVENT_TYPE_LABELS[selectedTypes[0]]} events`;
+            } else if (selectedTypes.length === 0 && selectedDenominations.length === 1) {
+              label = `Subscribe to ${selectedDenominations[0]} events`;
+            } else if (selectedTypes.length === 0 && selectedDenominations.length > 1) {
+              label = `Subscribe to ${selectedDenominations.length} denomination feeds`;
+            } else if (selectedTypes.length > 0 && selectedDenominations.length === 0) {
+              label = `Subscribe to ${selectedTypes.length} event-type feeds`;
+            } else {
+              // Both axes narrowed — keep it short and let the filename carry
+              // the specifics.
+              label = 'Subscribe to the filtered events feed';
+            }
+
             return (
               <SubscribeToCalendarButton
                 feedUrl={buildAggregatedEventsFeedUrl({
                   type: selectedTypes.length > 0 ? selectedTypes : null,
+                  denomination: selectedDenominations.length > 0 ? selectedDenominations : null,
                 })}
                 label={label}
               />

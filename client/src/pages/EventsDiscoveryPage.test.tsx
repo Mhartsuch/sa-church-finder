@@ -959,6 +959,68 @@ describe('EventsDiscoveryPage', () => {
       // schema, so visitors subscribe to a calendar scoped to both chips.
       expect(apple.getAttribute('href')).toMatch(/events\.ics\?type=service%2Ccommunity$/);
     });
+
+    it('names the single active denomination in the label and feed URL', () => {
+      // Denomination-only narrowing: the label reads naturally ("Subscribe
+      // to Baptist events") and the feed URL carries exactly the one
+      // denomination chip the visitor has toggled.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?denomination=Baptist');
+
+      const trigger = screen.getByRole('button', { name: /Subscribe to Baptist events/ });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?denomination=Baptist$/);
+    });
+
+    it('counts multiple denominations in the label and joins them in the URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?denomination=Baptist,Methodist');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to 2 denomination feeds/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?denomination=Baptist%2CMethodist$/);
+    });
+
+    it('combines type + denomination filters and uses a generic label', () => {
+      // When both axes are narrowed we keep the label short ("Subscribe to
+      // the filtered events feed") and let the downloaded filename carry
+      // the specifics — the URL still round-trips both filters so the
+      // subscribed calendar matches the discovery view exactly.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?type=service&denomination=Baptist');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?type=service&denomination=Baptist$/);
+    });
   });
 
   describe('sort control', () => {

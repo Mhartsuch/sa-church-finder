@@ -44,10 +44,18 @@ router.get(
       // list / missing param means "no filter" — matches the wire format of
       // the JSON aggregated feed (`GET /events`).
       const types = Array.isArray(q.type) ? (q.type as ChurchEventType[]) : undefined
+      // Same story for denomination: schema deduplicates and normalizes the
+      // input into a `string[]` (or `undefined`). Passed straight through to
+      // the service layer, which matches case-insensitively but echoes the
+      // caller's casing back for display.
+      const denominations = Array.isArray(q.denomination) ? (q.denomination as string[]) : undefined
 
-      logger.info({ types }, 'Generating aggregated calendar feed')
+      logger.info({ types, denominations }, 'Generating aggregated calendar feed')
 
-      const feed = await getAggregatedCalendarFeed({ type: types })
+      const feed = await getAggregatedCalendarFeed({
+        type: types,
+        denomination: denominations,
+      })
       const siteUrl = resolvePublicSiteUrl()
 
       const ics = buildCalendarFeed({
@@ -68,11 +76,25 @@ router.get(
         })),
       })
 
-      // Filename surfaces the chosen types so downloads stay self-descriptive
-      // (`sa-church-finder-service-community-events.ics`). The join order
-      // follows the deduped list the Zod schema returns, which preserves the
-      // user's chip-selection order from the discovery page.
-      const filenameSuffix = types && types.length > 0 ? `-${types.join('-')}` : ''
+      // Filename surfaces the chosen filters so downloads stay self-descriptive
+      // (e.g. `sa-church-finder-service-community-events.ics`, or
+      // `sa-church-finder-baptist-events.ics` for a denomination-only feed).
+      // Denomination slugs are lowercased and non-alphanumerics collapsed to
+      // hyphens so the filename stays filesystem-safe across operating
+      // systems.
+      const slugifyForFilename = (value: string): string =>
+        value
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '')
+      const filenameParts: string[] = []
+      if (types && types.length > 0) filenameParts.push(...types)
+      if (denominations && denominations.length > 0) {
+        filenameParts.push(
+          ...denominations.map(slugifyForFilename).filter((value) => value.length > 0),
+        )
+      }
+      const filenameSuffix = filenameParts.length > 0 ? `-${filenameParts.join('-')}` : ''
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
       res.setHeader(
