@@ -88,22 +88,68 @@ export async function toggleSavedChurch(
   }
 }
 
-export async function getSavedChurchesForUser(userId: string): Promise<ISavedChurch[]> {
-  const savedChurches = await prisma.userSavedChurch.findMany({
-    where: { userId },
-    orderBy: { savedAt: 'desc' },
-    include: {
-      church: {
-        include: {
-          services: {
-            orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-          },
-        },
-      },
-    },
-  })
+export type SavedChurchSort = 'savedAt' | 'name' | 'rating'
 
-  return savedChurches.map(({ church, savedAt }) => ({
+export interface ISavedChurchesQuery {
+  sort?: SavedChurchSort
+  order?: 'asc' | 'desc'
+  q?: string
+  page?: number
+  pageSize?: number
+}
+
+export interface ISavedChurchesResponse {
+  data: ISavedChurch[]
+  meta: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+function mapSavedChurch(
+  church: {
+    id: string
+    name: string
+    slug: string
+    denomination: string | null
+    denominationFamily: string | null
+    description: string | null
+    address: string
+    city: string
+    state: string
+    zipCode: string
+    neighborhood: string | null
+    latitude: unknown
+    longitude: unknown
+    phone: string | null
+    email: string | null
+    website: string | null
+    pastorName: string | null
+    yearEstablished: number | null
+    avgRating: unknown
+    reviewCount: number
+    isClaimed: boolean
+    languages: string[]
+    amenities: string[]
+    coverImageUrl: string | null
+    services: Array<{
+      id: string
+      churchId: string
+      dayOfWeek: number
+      startTime: string
+      endTime: string | null
+      serviceType: string
+      language: string
+      description: string | null
+      createdAt: Date
+      updatedAt: Date
+    }>
+  },
+  savedAt: Date,
+): ISavedChurch {
+  return {
     id: church.id,
     name: church.name,
     slug: church.slug,
@@ -131,5 +177,69 @@ export async function getSavedChurchesForUser(userId: string): Promise<ISavedChu
     coverImageUrl: church.coverImageUrl ?? undefined,
     services: church.services.map(mapService),
     savedAt,
-  }))
+  }
+}
+
+export async function getSavedChurchesForUser(
+  userId: string,
+  query: ISavedChurchesQuery = {},
+): Promise<ISavedChurchesResponse> {
+  const { sort = 'savedAt', order = 'desc', q, page = 1, pageSize = 20 } = query
+
+  // Build the where clause with optional text search
+  const where: Record<string, unknown> = { userId }
+  if (q && q.trim().length > 0) {
+    const search = q.trim()
+    where.church = {
+      OR: [
+        { name: { contains: search, mode: 'insensitive' } },
+        { denomination: { contains: search, mode: 'insensitive' } },
+        { neighborhood: { contains: search, mode: 'insensitive' } },
+      ],
+    }
+  }
+
+  // Build the orderBy clause
+  let orderBy: Record<string, unknown>
+  switch (sort) {
+    case 'name':
+      orderBy = { church: { name: order } }
+      break
+    case 'rating':
+      orderBy = { church: { avgRating: order } }
+      break
+    case 'savedAt':
+    default:
+      orderBy = { savedAt: order }
+      break
+  }
+
+  const [total, savedChurches] = await Promise.all([
+    prisma.userSavedChurch.count({ where }),
+    prisma.userSavedChurch.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        church: {
+          include: {
+            services: {
+              orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+            },
+          },
+        },
+      },
+    }),
+  ])
+
+  return {
+    data: savedChurches.map(({ church, savedAt }) => mapSavedChurch(church, savedAt)),
+    meta: {
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize) || 1,
+    },
+  }
 }

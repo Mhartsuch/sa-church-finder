@@ -85,7 +85,7 @@ export const QuickViewModal = ({ slug, onClose, onNavigate }: QuickViewModalProp
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 animate-modal-overlay"
+        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-0 animate-modal-overlay sm:items-center sm:p-4"
         onClick={onClose}
       >
         {/* Modal panel */}
@@ -94,7 +94,7 @@ export const QuickViewModal = ({ slug, onClose, onNavigate }: QuickViewModalProp
           tabIndex={-1}
           role="dialog"
           aria-label={church ? `Quick view of ${church.name}` : 'Loading church details'}
-          className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-card shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-modal-slide-up"
+          className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-card shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-modal-slide-up sm:max-h-[90vh] sm:rounded-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
@@ -183,7 +183,7 @@ export const QuickViewModal = ({ slug, onClose, onNavigate }: QuickViewModalProp
               )}
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 {/* Header */}
                 <div className="mb-4">
                   <h2 className="text-xl font-semibold text-foreground">{church.name}</h2>

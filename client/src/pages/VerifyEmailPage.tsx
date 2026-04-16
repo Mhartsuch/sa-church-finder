@@ -3,9 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { useAuthSession, useVerifyEmail } from '@/hooks/useAuth';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { VerifyEmailResult } from '@/types/auth';
 
 const VerifyEmailPage = () => {
+  useDocumentHead({ title: 'Verify Email', noindex: true });
+
   const { isLoading, user } = useAuthSession();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token')?.trim() ?? '';

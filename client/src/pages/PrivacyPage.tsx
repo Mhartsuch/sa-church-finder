@@ -5,6 +5,7 @@ import {
   SupportPageLayout,
   SupportPageSection,
 } from '@/components/support/SupportPageLayout';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const informationCollected = [
   {
@@ -49,6 +50,12 @@ const privacyNotes = [
 ] as const;
 
 export const PrivacyPage = () => {
+  useDocumentHead({
+    title: 'Privacy Policy',
+    description: 'How SA Church Finder collects, uses, and protects your personal information.',
+    canonicalPath: '/privacy',
+  });
+
   return (
     <SupportPageLayout
       eyebrow="Legal"

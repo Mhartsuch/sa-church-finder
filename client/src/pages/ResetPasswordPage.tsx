@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { useResetPassword } from '@/hooks/useAuth';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 type ResetPasswordFormState = {
   password: string;
@@ -33,6 +34,8 @@ const validateForm = (token: string, formState: ResetPasswordFormState): string 
 };
 
 const ResetPasswordPage = () => {
+  useDocumentHead({ title: 'Reset Password', noindex: true });
+
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token')?.trim() ?? '';
   const resetPasswordMutation = useResetPassword();

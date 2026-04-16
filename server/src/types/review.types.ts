@@ -18,6 +18,8 @@ export interface IReview {
   facilitiesRating: number | null
   helpfulCount: number
   viewerHasVotedHelpful: boolean
+  responseBody: string | null
+  respondedAt: Date | null
   createdAt: Date
   updatedAt: Date
   user: IReviewAuthor
@@ -109,4 +111,51 @@ export interface IResolveFlaggedReviewInput {
 export interface IFlaggedReviewResolutionResult {
   reviewId: string
   status: 'approved' | 'removed'
+}
+
+export interface IReviewResponseInput {
+  body: string
+}
+
+export interface IReviewResponseResult {
+  reviewId: string
+  responseBody: string
+  respondedAt: Date
+}
+
+export interface IReviewResponseDeleteResult {
+  reviewId: string
+}
+
+// Service time management types
+export interface ICreateChurchServiceInput {
+  dayOfWeek: number
+  startTime: string
+  endTime?: string | null
+  serviceType: string
+  language?: string
+  description?: string | null
+}
+
+export interface IUpdateChurchServiceInput {
+  dayOfWeek?: number
+  startTime?: string
+  endTime?: string | null
+  serviceType?: string
+  language?: string
+  description?: string | null
+}
+
+export interface IChurchServiceResult {
+  id: string
+  churchId: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string | null
+  serviceType: string
+  language: string
+  description: string | null
+  isAutoImported: boolean
+  createdAt: Date
+  updatedAt: Date
 }
