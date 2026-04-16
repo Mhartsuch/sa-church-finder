@@ -3,6 +3,7 @@ import request from 'supertest'
 
 import { createApp } from '../app.js'
 import prisma from '../lib/prisma.js'
+import { ChurchEventType } from '../types/event.types.js'
 
 jest.mock('../lib/prisma.js', () => ({
   __esModule: true,
@@ -2553,6 +2554,185 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.status).toBe(400)
       expect(response.body.error.code).toBe('VALIDATION_ERROR')
       expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+
+    describe('timeOfDay filter on the aggregated calendar feed', () => {
+      // 08:00 CDT / 13:00 UTC during April is in the "morning" bucket
+      // (05:00–11:59 local).
+      const morningStart = new Date('2026-05-03T13:00:00.000Z')
+      // 14:00 CDT / 19:00 UTC is in the "afternoon" bucket (12:00–16:59).
+      const afternoonStart = new Date('2026-05-03T19:00:00.000Z')
+      // 18:00 CDT / 23:00 UTC is in the "evening" bucket (17:00–21:59).
+      const eveningStart = new Date('2026-05-04T00:00:00.000Z')
+
+      type FeedRowOverrides = {
+        id: string
+        churchId: string
+        title: string
+        description: null
+        eventType: ChurchEventType
+        startTime: Date
+        endTime: null
+        locationOverride: null
+        isRecurring: boolean
+        recurrenceRule: null
+        createdById: string
+        createdAt: Date
+        updatedAt: Date
+        church: {
+          id: string
+          slug: string
+          name: string
+          city: string
+          address: string
+        }
+      }
+
+      const buildRow = (
+        id: string,
+        eventType: ChurchEventType,
+        start: Date,
+      ): FeedRowOverrides => ({
+        id,
+        churchId: `church-${id}`,
+        title: id,
+        description: null,
+        eventType,
+        startTime: start,
+        endTime: null,
+        locationOverride: null,
+        isRecurring: false,
+        recurrenceRule: null,
+        createdById: 'u1',
+        createdAt: new Date(),
+        updatedAt: new Date('2026-04-10T00:00:00.000Z'),
+        church: {
+          id: `church-${id}`,
+          slug: `church-${id}`,
+          name: `Church ${id}`,
+          city: 'San Antonio',
+          address: '1 Main',
+        },
+      })
+
+      it('keeps only morning occurrences when timeOfDay=morning', async () => {
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          buildRow('a', 'service', morningStart),
+          buildRow('b', 'community', afternoonStart),
+          buildRow('c', 'study', eveningStart),
+        ])
+
+        const response = await request(createApp())
+          .get('/api/v1/events.ics')
+          .query({ timeOfDay: 'morning' })
+
+        expect(response.status).toBe(200)
+        // Only the morning row should make it into the emitted ICS.
+        expect(response.text).toMatch(/SUMMARY:a · Church a/)
+        expect(response.text).not.toMatch(/SUMMARY:b · Church b/)
+        expect(response.text).not.toMatch(/SUMMARY:c · Church c/)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-morning-events\.ics"/,
+        )
+      })
+
+      it('keeps only afternoon occurrences when timeOfDay=afternoon', async () => {
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          buildRow('a', 'service', morningStart),
+          buildRow('b', 'community', afternoonStart),
+          buildRow('c', 'study', eveningStart),
+        ])
+
+        const response = await request(createApp())
+          .get('/api/v1/events.ics')
+          .query({ timeOfDay: 'afternoon' })
+
+        expect(response.status).toBe(200)
+        expect(response.text).not.toMatch(/SUMMARY:a · Church a/)
+        expect(response.text).toMatch(/SUMMARY:b · Church b/)
+        expect(response.text).not.toMatch(/SUMMARY:c · Church c/)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-afternoon-events\.ics"/,
+        )
+      })
+
+      it('keeps only evening occurrences when timeOfDay=evening', async () => {
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          buildRow('a', 'service', morningStart),
+          buildRow('b', 'community', afternoonStart),
+          buildRow('c', 'study', eveningStart),
+        ])
+
+        const response = await request(createApp())
+          .get('/api/v1/events.ics')
+          .query({ timeOfDay: 'evening' })
+
+        expect(response.status).toBe(200)
+        expect(response.text).not.toMatch(/SUMMARY:a · Church a/)
+        expect(response.text).not.toMatch(/SUMMARY:b · Church b/)
+        expect(response.text).toMatch(/SUMMARY:c · Church c/)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-evening-events\.ics"/,
+        )
+      })
+
+      it('composes timeOfDay with every other narrowing axis', async () => {
+        // All seven axes together — the filename chains
+        // type → denomination → neighborhood → language → `accessible` →
+        // `family-friendly` → `group-friendly` → `evening`, and the
+        // `church` clause carries the existing six sub-clauses (time-of-day
+        // is applied in-memory, so it doesn't appear in the Prisma query).
+        mockedPrisma.event.findMany.mockResolvedValueOnce([
+          buildRow('a', 'service', eveningStart),
+        ])
+
+        const response = await request(createApp()).get('/api/v1/events.ics').query({
+          type: 'service',
+          denomination: 'Baptist',
+          neighborhood: 'Downtown',
+          language: 'Spanish',
+          accessibleOnly: 'true',
+          familyFriendly: 'true',
+          groupFriendly: 'true',
+          timeOfDay: 'evening',
+        })
+
+        expect(response.status).toBe(200)
+        expect(response.headers['content-disposition']).toMatch(
+          /filename="sa-church-finder-service-baptist-downtown-spanish-accessible-family-friendly-group-friendly-evening-events\.ics"/,
+        )
+        expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              eventType: 'service',
+              church: {
+                AND: [
+                  { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                  { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+                  { languages: { hasSome: ['Spanish'] } },
+                  { wheelchairAccessible: true },
+                  { goodForChildren: true },
+                  { goodForGroups: true },
+                ],
+              },
+            }),
+          }),
+        )
+      })
+
+      it('rejects an invalid timeOfDay bucket', async () => {
+        // Zod `.enum()` only accepts `morning` / `afternoon` / `evening`;
+        // anything else 400s before the handler fires so bogus subscription
+        // URLs surface as validation errors instead of silently returning
+        // the city-wide feed.
+        const response = await request(createApp())
+          .get('/api/v1/events.ics')
+          .query({ timeOfDay: 'midnight' })
+
+        expect(response.status).toBe(400)
+        expect(response.body.error.code).toBe('VALIDATION_ERROR')
+        expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+      })
     })
   })
 })

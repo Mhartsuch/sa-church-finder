@@ -292,4 +292,47 @@ describe('calendar-feed-url helpers', () => {
       'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true&familyFriendly=true&groupFriendly=true',
     );
   });
+
+  it('appends the timeOfDay bucket when set', () => {
+    // Mirrors the JSON feed's wire format (`timeOfDay=evening`) so the
+    // calendar-feed query string stays in sync with the discovery page
+    // URL param the time-of-day chip toggles on.
+    expect(buildAggregatedEventsFeedUrl({ timeOfDay: 'morning' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?timeOfDay=morning',
+    );
+    expect(buildAggregatedEventsFeedUrl({ timeOfDay: 'afternoon' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?timeOfDay=afternoon',
+    );
+    expect(buildAggregatedEventsFeedUrl({ timeOfDay: 'evening' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?timeOfDay=evening',
+    );
+  });
+
+  it('omits the timeOfDay param when null / undefined', () => {
+    // Chip deselected (or omitted entirely) must not surface a query param
+    // so the server keeps the city-wide default contract.
+    expect(buildAggregatedEventsFeedUrl({ timeOfDay: null })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({})).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
+
+  it('combines timeOfDay with the other narrowing axes in one query string', () => {
+    expect(
+      buildAggregatedEventsFeedUrl({
+        type: ['service'],
+        denomination: ['Baptist'],
+        neighborhood: ['Downtown'],
+        language: ['Spanish'],
+        accessibleOnly: true,
+        familyFriendly: true,
+        groupFriendly: true,
+        timeOfDay: 'evening',
+      }),
+    ).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true&familyFriendly=true&groupFriendly=true&timeOfDay=evening',
+    );
+  });
 });

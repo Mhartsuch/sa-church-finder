@@ -1692,6 +1692,53 @@ describe('EventsDiscoveryPage', () => {
         /events\.ics\?familyFriendly=true&groupFriendly=true$/,
       );
     });
+
+    it('labels the time-of-day feed and serializes timeOfDay into the URL', () => {
+      // Time-of-day-only narrowing reads naturally ("Subscribe to evening
+      // events") and the feed URL carries `timeOfDay=evening` so the iCal
+      // subscription resolves the same way the chip narrows the discovery
+      // feed.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?timeOfDay=evening');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to evening events/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?timeOfDay=evening$/);
+    });
+
+    it('uses the generic label and combines timeOfDay with another axis in the URL', () => {
+      // Once a second axis is narrowed (time-of-day + family), the label
+      // collapses to the generic wording and the URL chains both params so
+      // the saved filename surfaces the specifics.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?family=1&timeOfDay=morning');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(
+        /events\.ics\?familyFriendly=true&timeOfDay=morning$/,
+      );
+    });
   });
 
   describe('sort control', () => {

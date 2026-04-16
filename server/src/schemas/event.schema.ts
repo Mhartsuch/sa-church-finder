@@ -359,6 +359,16 @@ export const aggregatedCalendarFeedSchema = z.object({
       // `church.goodForGroups = true`, excluding both `false` and `null`
       // (unknown) churches so subscribers can trust the subscribed calendar.
       groupFriendly: booleanishFlag,
+      // Restrict the calendar feed to occurrences whose start time falls
+      // inside a named bucket of the day, evaluated in San Antonio local
+      // time (America/Chicago). Mirrors the JSON feed's `timeOfDay` wire
+      // format so a visitor who has toggled the "Morning" / "Afternoon" /
+      // "Evening" chip on the discovery page can subscribe to a calendar
+      // scoped to exactly that narrowing. All occurrences of a recurring
+      // series share the same hour-of-day, so the service layer matches on
+      // the stored row's `startTime` before emitting the RRULE to the
+      // calendar client (no per-occurrence expansion required).
+      timeOfDay: z.enum(EVENT_TIME_OF_DAY).optional(),
     })
     .passthrough(),
   body: z.object({}).passthrough(),
