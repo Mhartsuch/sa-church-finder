@@ -595,87 +595,139 @@ describe('EventsDiscoveryPage', () => {
     }
   });
 
-  it('populates the neighborhood select with options from the filter-options endpoint', () => {
-    useEventsFeedMock.mockReturnValue({
-      data: buildResponse([]),
-      isLoading: false,
-      isFetching: false,
-      error: null,
+  describe('neighborhood filter', () => {
+    it('renders a chip for each available neighborhood', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const group = screen.getByRole('group', { name: 'Neighborhood' });
+      expect(within(group).getByRole('button', { name: 'Alamo Heights' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Downtown' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Southtown' })).toBeInTheDocument();
     });
 
-    renderPage();
+    it('hides the neighborhood row entirely when no options are available', () => {
+      useFilterOptionsMock.mockReturnValue({
+        data: {
+          denominations: [],
+          languages: [],
+          amenities: [],
+          neighborhoods: [],
+          serviceTypes: [],
+        },
+      });
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
 
-    const select = screen.getByLabelText('Filter events by neighborhood') as HTMLSelectElement;
-    const optionLabels = Array.from(select.options).map((option) => option.textContent);
+      renderPage();
 
-    expect(optionLabels).toEqual(['All neighborhoods', 'Alamo Heights', 'Downtown', 'Southtown']);
-  });
-
-  it('writes the selected neighborhood to the URL and to the feed filters', () => {
-    useEventsFeedMock.mockReturnValue({
-      data: buildResponse([]),
-      isLoading: false,
-      isFetching: false,
-      error: null,
+      expect(screen.queryByRole('group', { name: 'Neighborhood' })).not.toBeInTheDocument();
     });
 
-    const { getSearch } = renderPage();
+    it('toggles the URL and feed filter when a neighborhood chip is clicked', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
 
-    const select = screen.getByLabelText('Filter events by neighborhood');
-    fireEvent.change(select, { target: { value: 'Downtown' } });
+      const { getSearch } = renderPage();
 
-    expect(getSearch()).toContain('neighborhood=Downtown');
+      const group = screen.getByRole('group', { name: 'Neighborhood' });
+      fireEvent.click(within(group).getByRole('button', { name: 'Downtown' }));
 
-    // React Query reruns the feed hook with the new filter applied.
-    const calls = useEventsFeedMock.mock.calls;
-    const lastCallArgs = calls[calls.length - 1]?.[0];
-    expect(lastCallArgs).toMatchObject({ neighborhood: 'Downtown' });
+      expect(getSearch()).toContain('neighborhood=Downtown');
 
-    // Active-filter chip renders so the user can see + remove the selection.
-    expect(screen.getByText('Neighborhood: Downtown')).toBeInTheDocument();
-  });
+      // React Query reruns the feed hook with the new filter applied.
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ neighborhood: ['Downtown'] });
 
-  it('removes the neighborhood from the URL when its chip is cleared', () => {
-    useEventsFeedMock.mockReturnValue({
-      data: buildResponse([]),
-      isLoading: false,
-      isFetching: false,
-      error: null,
+      // Active-filter chip renders so the user can see + remove the selection.
+      expect(screen.getByText('Neighborhood: Downtown')).toBeInTheDocument();
     });
 
-    const { getSearch } = renderPage('/events?neighborhood=Southtown');
+    it('supports selecting multiple neighborhoods and serializes them with commas', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
 
-    // Chip is visible on mount and clicking it clears the filter.
-    const chip = screen.getByRole('button', { name: /Neighborhood: Southtown/ });
-    fireEvent.click(chip);
+      const { getSearch } = renderPage();
 
-    expect(getSearch()).not.toContain('neighborhood=');
-  });
+      const group = screen.getByRole('group', { name: 'Neighborhood' });
+      fireEvent.click(within(group).getByRole('button', { name: 'Downtown' }));
+      fireEvent.click(within(group).getByRole('button', { name: 'Alamo Heights' }));
 
-  it('preserves a URL-supplied neighborhood even when it is missing from the options list', () => {
-    useFilterOptionsMock.mockReturnValue({
-      data: {
-        denominations: [],
-        languages: [],
-        amenities: [],
-        neighborhoods: ['Downtown'],
-        serviceTypes: [],
-      },
-    });
-    useEventsFeedMock.mockReturnValue({
-      data: buildResponse([]),
-      isLoading: false,
-      isFetching: false,
-      error: null,
+      // Order matches the click order so the URL is stable across re-renders.
+      expect(getSearch()).toContain('neighborhood=Downtown%2CAlamo+Heights');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ neighborhood: ['Downtown', 'Alamo Heights'] });
     });
 
-    renderPage('/events?neighborhood=Stone%20Oak');
+    it('removes a single neighborhood via the chip without clearing the others', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
 
-    const select = screen.getByLabelText('Filter events by neighborhood') as HTMLSelectElement;
-    // The URL-supplied value is still the selected option even though it's
-    // not in the filter-options cache, so users can see and clear it.
-    expect(select.value).toBe('Stone Oak');
-    expect(screen.getByText('Neighborhood: Stone Oak')).toBeInTheDocument();
+      const { getSearch } = renderPage('/events?neighborhood=Downtown,Southtown');
+
+      // Both applied-filter chips render initially.
+      expect(screen.getByText('Neighborhood: Downtown')).toBeInTheDocument();
+      expect(screen.getByText('Neighborhood: Southtown')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Neighborhood: Downtown/ }));
+
+      // Southtown remains; URL drops Downtown.
+      expect(getSearch()).toContain('neighborhood=Southtown');
+      expect(getSearch()).not.toContain('Downtown');
+      expect(screen.getByText('Neighborhood: Southtown')).toBeInTheDocument();
+    });
+
+    it('keeps a URL-supplied neighborhood clickable even when it is missing from the options list', () => {
+      useFilterOptionsMock.mockReturnValue({
+        data: {
+          denominations: [],
+          languages: [],
+          amenities: [],
+          neighborhoods: ['Downtown'],
+          serviceTypes: [],
+        },
+      });
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?neighborhood=Stone%20Oak');
+
+      // The unknown neighborhood pins to the front of the chip rail so it can
+      // still be toggled off by the user.
+      const group = screen.getByRole('group', { name: 'Neighborhood' });
+      const stoneOakChip = within(group).getByRole('button', { name: 'Stone Oak' });
+      expect(stoneOakChip).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('Neighborhood: Stone Oak')).toBeInTheDocument();
+    });
   });
 
   describe('denomination filter', () => {

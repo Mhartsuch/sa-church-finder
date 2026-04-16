@@ -153,12 +153,16 @@ export interface IEventsFeedFilters {
    */
   timeOfDay?: EventTimeOfDay
   /**
-   * Restrict the feed to events belonging to churches in the given
-   * neighborhood. Matching is case-insensitive against the church's stored
-   * `neighborhood` value. Callers typically source the list of valid options
-   * from `GET /api/v1/churches/filter-options`.
+   * Restrict the feed to events belonging to churches in any of the named San
+   * Antonio neighborhoods (e.g. `["Downtown", "Alamo Heights"]`). Values
+   * OR-combine, so a church living in any one of the listed neighborhoods is
+   * included. Matching is case-insensitive against the church's stored
+   * `neighborhood` value, mirroring the wire format used by the other
+   * multi-select filters (`denomination`, `language`). Callers should source
+   * the list of valid options from `GET /api/v1/churches/filter-options`
+   * (`neighborhoods[]`). An empty array or `undefined` means "no filter".
    */
-  neighborhood?: string
+  neighborhood?: string[]
   /**
    * Restrict the feed to events whose hosting church belongs to one of the
    * named denomination families (e.g. `["Baptist", "Methodist"]`). Matching
@@ -221,7 +225,7 @@ export interface IEventsFeedResponse {
       q?: string
       savedOnly?: boolean
       timeOfDay?: EventTimeOfDay
-      neighborhood?: string
+      neighborhood?: string[]
       denomination?: string[]
       accessibleOnly?: boolean
       familyFriendly?: boolean

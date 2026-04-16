@@ -159,12 +159,16 @@ export interface IEventsFeedFilters {
    */
   timeOfDay?: EventTimeOfDay;
   /**
-   * Restrict the feed to events from churches in the given San Antonio
-   * neighborhood (case-insensitive match against the church's stored
-   * `neighborhood` column). Source the list of valid options from the
-   * `/churches/filter-options` endpoint.
+   * Multi-select San Antonio neighborhood filter
+   * (e.g. `["Downtown", "Alamo Heights"]`). The wire format is a
+   * comma-separated `neighborhood` query param matching the wire format of
+   * the other multi-select chip filters (`denomination`, `language`).
+   * Matching is case-insensitive against the church's stored `neighborhood`
+   * column, and values OR-combine so a church in any one of the listed
+   * neighborhoods is included. Source the list of valid options from the
+   * `/churches/filter-options` endpoint (`neighborhoods[]`).
    */
-  neighborhood?: string;
+  neighborhood?: string[];
   /**
    * Multi-select denomination family filter (e.g. `["Baptist", "Methodist"]`).
    * The wire format is a comma-separated `denomination` query param matching
@@ -224,7 +228,7 @@ export interface IEventsFeedResponse {
       q?: string;
       savedOnly?: boolean;
       timeOfDay?: EventTimeOfDay;
-      neighborhood?: string;
+      neighborhood?: string[];
       denomination?: string[];
       accessibleOnly?: boolean;
       familyFriendly?: boolean;

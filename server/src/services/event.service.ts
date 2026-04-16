@@ -358,11 +358,28 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const trimmedQuery = filters.q?.trim()
   const hasQuery = Boolean(trimmedQuery)
   const savedByUserId = filters.savedByUserId
-  const trimmedNeighborhood = filters.neighborhood?.trim()
-  const hasNeighborhood = Boolean(trimmedNeighborhood)
   const accessibleOnly = filters.accessibleOnly === true
   const familyFriendly = filters.familyFriendly === true
   const groupFriendly = filters.groupFriendly === true
+
+  // Multi-select neighborhood filter. Normalized to a deduped list so the
+  // Prisma `OR` of case-insensitive equality clauses below never
+  // double-counts tokens that only differ by casing (e.g. "Downtown" vs
+  // "downtown"). Values flow through the `/churches/filter-options`
+  // dropdown which returns canonical casing, but URL-supplied variants
+  // round-trip via the echoed meta regardless.
+  const neighborhoodList =
+    filters.neighborhood && filters.neighborhood.length > 0
+      ? Array.from(
+          new Set(
+            filters.neighborhood.map((value) => value.trim()).filter((value) => value.length > 0),
+          ),
+        )
+      : []
+  const hasNeighborhood = neighborhoodList.length > 0
+  const neighborhoodMatchList = Array.from(
+    new Set(neighborhoodList.map((value) => value.toLowerCase())),
+  )
 
   // Multi-select service language. Normalized to a deduped list; `hasSome`
   // below then matches the underlying `church.languages` array
@@ -406,22 +423,42 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   // live on the related church) into a single nested `church` clause so
   // Prisma emits one JOIN rather than conflicting top-level church clauses.
   // `in` does not honour `mode: insensitive`, so multi-select denomination
-  // matching is expressed as an `OR` of case-insensitive equality clauses.
+  // and neighborhood matching is expressed as an `OR` of case-insensitive
+  // equality clauses.
+  //
+  // When both neighborhood and denomination are narrowed the Prisma schema
+  // allows only a single top-level `OR` per clause, so the two filters are
+  // `AND`-composed with their own nested `OR` lists to preserve the
+  // intended semantics (neighborhood OR [...] ) AND (denomination OR [...]).
+  const neighborhoodClause: Prisma.ChurchWhereInput | undefined = hasNeighborhood
+    ? {
+        OR: neighborhoodMatchList.map((value) => ({
+          neighborhood: {
+            equals: value,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        })),
+      }
+    : undefined
+  const denominationClause: Prisma.ChurchWhereInput | undefined = hasDenomination
+    ? {
+        OR: denominationList.map((value) => ({
+          denominationFamily: {
+            equals: value,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        })),
+      }
+    : undefined
+
+  const churchAndClauses: Prisma.ChurchWhereInput[] = []
+  if (neighborhoodClause) churchAndClauses.push(neighborhoodClause)
+  if (denominationClause) churchAndClauses.push(denominationClause)
+
   const churchClause: Prisma.ChurchWhereInput = {
     ...(savedByUserId ? { savedByUsers: { some: { userId: savedByUserId } } } : {}),
-    ...(hasNeighborhood
-      ? { neighborhood: { equals: trimmedNeighborhood!, mode: Prisma.QueryMode.insensitive } }
-      : {}),
-    ...(hasDenomination
-      ? {
-          OR: denominationList.map((value) => ({
-            denominationFamily: {
-              equals: value,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          })),
-        }
-      : {}),
+    ...(churchAndClauses.length === 1 ? churchAndClauses[0]! : {}),
+    ...(churchAndClauses.length > 1 ? { AND: churchAndClauses } : {}),
     // `wheelchairAccessible` is a nullable boolean: `null` means "unknown".
     // Requiring `equals: true` filters out both `false` and `null` churches
     // so visitors can trust the narrowed result set.
@@ -547,7 +584,11 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
         q: hasQuery ? trimmedQuery : undefined,
         savedOnly: savedByUserId ? true : undefined,
         timeOfDay,
-        neighborhood: hasNeighborhood ? trimmedNeighborhood : undefined,
+        // Echo the caller-supplied (trim-only) neighborhood strings so chip
+        // labels on the discovery page round-trip exactly as typed or
+        // selected — matching how `denomination` and `language` behave.
+        // Omitted when no neighborhood filter was applied.
+        neighborhood: hasNeighborhood ? neighborhoodList : undefined,
         // Echo the original (non-lowercased) denomination strings supplied by
         // the caller so chip labels and round-tripping stay stable.
         denomination:

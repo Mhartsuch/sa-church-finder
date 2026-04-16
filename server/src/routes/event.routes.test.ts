@@ -684,7 +684,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
   })
 
   describe('neighborhood filter', () => {
-    it('filters the feed to a specific neighborhood (case-insensitive)', async () => {
+    it('filters the feed to a single neighborhood (case-insensitive)', async () => {
       mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
 
       const response = await request(createApp())
@@ -692,28 +692,78 @@ describe('GET /api/v1/events (aggregated feed)', () => {
         .query({ neighborhood: 'Downtown' })
 
       expect(response.status).toBe(200)
-      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      // The echoed meta preserves the originally-supplied casing so chip
+      // labels read naturally; the underlying SQL is matched insensitively.
+      expect(response.body.meta.filters.neighborhood).toEqual(['Downtown'])
 
       const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
         AND: Array<Record<string, unknown>>
       }
+      // The neighborhood filter is expressed as an OR of insensitive equality
+      // clauses on `neighborhood`, nested under the shared `church` clause.
       expect(whereArg.AND[0]).toMatchObject({
         church: {
-          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [
+            {
+              neighborhood: { equals: 'downtown', mode: 'insensitive' },
+            },
+          ],
         },
       })
     })
 
-    it('trims whitespace and omits the filter when the value is empty', async () => {
+    it('accepts a comma-separated multi-select and dedupes case-insensitively', async () => {
       mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
 
       const response = await request(createApp())
         .get('/api/v1/events')
-        .query({ neighborhood: '   ' })
+        .query({ neighborhood: 'Downtown,Alamo Heights,downtown' })
 
-      expect(response.status).toBe(400)
-      expect(response.body.error.code).toBe('VALIDATION_ERROR')
-      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+      expect(response.status).toBe(200)
+      // Echoed meta preserves the originally-supplied casing/order so chip
+      // labels read naturally; only exact-match duplicates (after trimming)
+      // collapse via the display-casing set.
+      expect(response.body.meta.filters.neighborhood).toEqual([
+        'Downtown',
+        'Alamo Heights',
+        'downtown',
+      ])
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // The OR list is deduped by lower-cased value so `Downtown` and
+      // `downtown` collapse to a single SQL clause even though they round-trip
+      // separately in the echoed meta.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          OR: [
+            {
+              neighborhood: { equals: 'downtown', mode: 'insensitive' },
+            },
+            {
+              neighborhood: { equals: 'alamo heights', mode: 'insensitive' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('drops empty/whitespace neighborhood tokens and skips the filter entirely', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ neighborhood: ' , , ' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.neighborhood).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
     })
 
     it('omits the neighborhood meta when no value is supplied', async () => {
@@ -735,7 +785,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
         .query({ neighborhood: 'Alamo Heights', savedOnly: 'true' })
 
       expect(response.status).toBe(200)
-      expect(response.body.meta.filters.neighborhood).toBe('Alamo Heights')
+      expect(response.body.meta.filters.neighborhood).toEqual(['Alamo Heights'])
       expect(response.body.meta.filters.savedOnly).toBe(true)
 
       const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
@@ -744,7 +794,7 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(whereArg.AND[0]).toMatchObject({
         church: {
           savedByUsers: { some: { userId: 'user-admin-1' } },
-          neighborhood: { equals: 'Alamo Heights', mode: 'insensitive' },
+          OR: [{ neighborhood: { equals: 'alamo heights', mode: 'insensitive' } }],
         },
       })
     })
@@ -829,19 +879,26 @@ describe('GET /api/v1/events (aggregated feed)', () => {
 
       expect(response.status).toBe(200)
       expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
-      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.neighborhood).toEqual(['Downtown'])
       expect(response.body.meta.filters.savedOnly).toBe(true)
 
       const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
         AND: Array<Record<string, unknown>>
       }
+      // Both neighborhood and denomination are multi-select, each expressed as
+      // its own `OR` of case-insensitive equality clauses. Prisma only allows a
+      // single top-level `OR` per clause, so when both are present they are
+      // `AND`-composed to preserve the intended
+      // (neighborhood OR [...] ) AND (denomination OR [...] ) semantics.
       expect(whereArg.AND[0]).toMatchObject({
         church: {
           savedByUsers: { some: { userId: 'user-admin-1' } },
-          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
-          OR: [
+          AND: [
             {
-              denominationFamily: { equals: 'baptist', mode: 'insensitive' },
+              OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }],
+            },
+            {
+              OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }],
             },
           ],
         },
@@ -939,17 +996,26 @@ describe('GET /api/v1/events (aggregated feed)', () => {
 
       expect(response.status).toBe(200)
       expect(response.body.meta.filters.accessibleOnly).toBe(true)
-      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.neighborhood).toEqual(['Downtown'])
       expect(response.body.meta.filters.denomination).toEqual(['Baptist'])
 
       const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
         AND: Array<Record<string, unknown>>
       }
+      // Neighborhood + denomination are both multi-select, so each contributes
+      // its own nested `OR` combined under `AND`; wheelchairAccessible stays a
+      // top-level field on the shared church clause.
       expect(whereArg.AND[0]).toMatchObject({
         church: {
           wheelchairAccessible: true,
-          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
-          OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }],
+          AND: [
+            {
+              OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }],
+            },
+            {
+              OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }],
+            },
+          ],
         },
       })
     })
@@ -1020,16 +1086,19 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.status).toBe(200)
       expect(response.body.meta.filters.familyFriendly).toBe(true)
       expect(response.body.meta.filters.accessibleOnly).toBe(true)
-      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.neighborhood).toEqual(['Downtown'])
 
       const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
         AND: Array<Record<string, unknown>>
       }
+      // With only neighborhood as a multi-select clause on the church side
+      // (no denomination narrowing), its `OR` list lives directly on the
+      // shared church clause alongside the accessibility + family flags.
       expect(whereArg.AND[0]).toMatchObject({
         church: {
           wheelchairAccessible: true,
           goodForChildren: true,
-          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }],
         },
       })
     })
@@ -1102,17 +1171,19 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.body.meta.filters.groupFriendly).toBe(true)
       expect(response.body.meta.filters.familyFriendly).toBe(true)
       expect(response.body.meta.filters.accessibleOnly).toBe(true)
-      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.neighborhood).toEqual(['Downtown'])
 
       const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
         AND: Array<Record<string, unknown>>
       }
+      // Neighborhood remains a multi-select `OR` list on the shared church
+      // clause while the three nullable-boolean flags sit as top-level fields.
       expect(whereArg.AND[0]).toMatchObject({
         church: {
           wheelchairAccessible: true,
           goodForChildren: true,
           goodForGroups: true,
-          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }],
         },
       })
     })
@@ -1193,16 +1264,19 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.status).toBe(200)
       expect(response.body.meta.filters.language).toEqual(['Spanish'])
       expect(response.body.meta.filters.familyFriendly).toBe(true)
-      expect(response.body.meta.filters.neighborhood).toBe('Downtown')
+      expect(response.body.meta.filters.neighborhood).toEqual(['Downtown'])
 
       const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
         AND: Array<Record<string, unknown>>
       }
+      // Neighborhood is now a multi-select `OR` list on the shared church
+      // clause while `languages.hasSome` and the family-friendly flag stay
+      // top-level fields alongside it.
       expect(whereArg.AND[0]).toMatchObject({
         church: {
           goodForChildren: true,
           languages: { hasSome: ['Spanish'] },
-          neighborhood: { equals: 'Downtown', mode: 'insensitive' },
+          OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }],
         },
       })
     })

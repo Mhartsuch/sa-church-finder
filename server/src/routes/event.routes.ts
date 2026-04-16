@@ -134,10 +134,11 @@ router.get(
         pageSize: typeof q.pageSize === 'number' ? q.pageSize : undefined,
         savedByUserId: savedOnly ? req.session.userId : undefined,
         timeOfDay: typeof q.timeOfDay === 'string' ? (q.timeOfDay as EventTimeOfDay) : undefined,
-        neighborhood:
-          typeof q.neighborhood === 'string' && q.neighborhood.trim().length > 0
-            ? q.neighborhood.trim()
-            : undefined,
+        // The Zod schema normalizes single, comma-separated, and repeated
+        // `neighborhood` query params into a deduped `string[]` (or
+        // `undefined`). Matches the wire format used by `denomination` and
+        // `language`.
+        neighborhood: Array.isArray(q.neighborhood) ? (q.neighborhood as string[]) : undefined,
         // The Zod schema normalizes single, comma-separated, and repeated
         // `denomination` query params into a deduped `string[]`.
         denomination: Array.isArray(q.denomination) ? (q.denomination as string[]) : undefined,

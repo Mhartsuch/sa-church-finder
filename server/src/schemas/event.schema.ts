@@ -100,6 +100,41 @@ const languageMultiQueryParam = z
     return normalized.length > 0 ? normalized : undefined
   })
 
+/**
+ * Multi-select neighborhood filter. Mirrors `denominationMultiQueryParam` and
+ * `languageMultiQueryParam` — accepts a single value
+ * (`neighborhood=Downtown`), a comma-separated list
+ * (`neighborhood=Downtown,Alamo Heights`), or repeated query params. Entries
+ * are trimmed, deduped, and length-capped (120 chars to match the prior
+ * single-value validation); an empty normalized list collapses to `undefined`
+ * so the service layer can skip the filter. A single token over the length
+ * cap triggers a zod validation error to preserve the prior strict behaviour.
+ */
+const neighborhoodMultiQueryParam = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value, ctx) => {
+    if (value === undefined) return undefined
+
+    const raw = Array.isArray(value) ? value.flatMap((item) => item.split(',')) : value.split(',')
+
+    const trimmed = raw.map((item) => item.trim()).filter((item) => item.length > 0)
+
+    for (const token of trimmed) {
+      if (token.length > 120) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Neighborhood value must be at most 120 characters',
+        })
+        return z.NEVER
+      }
+    }
+
+    const normalized = Array.from(new Set(trimmed))
+
+    return normalized.length > 0 ? normalized : undefined
+  })
+
 const dateTimeSchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid datetime value')
@@ -206,13 +241,15 @@ export const eventsFeedSchema = z.object({
       pageSize: z.coerce.number().int().positive().max(50).optional(),
       savedOnly: booleanishFlag,
       timeOfDay: z.enum(EVENT_TIME_OF_DAY).optional(),
-      neighborhood: z
-        .string()
-        .trim()
-        .min(1)
-        .max(120)
-        .optional()
-        .transform((value) => (value && value.length > 0 ? value : undefined)),
+      // Multi-select neighborhood filter. Supports a single value
+      // (`neighborhood=Downtown`), a comma-separated list
+      // (`neighborhood=Downtown,Alamo Heights`), or repeated query params.
+      // Mirrors the wire format used by the other multi-select chip filters
+      // (`denomination`, `language`) so the shared
+      // `/churches/filter-options` payload (`neighborhoods[]`) can drive the
+      // chip rail. Empty / whitespace-only entries collapse to `undefined`
+      // so downstream code can skip the filter entirely.
+      neighborhood: neighborhoodMultiQueryParam,
       // Multi-select denomination family filter. Supports a single value
       // (`denomination=Baptist`), a comma-separated list
       // (`denomination=Baptist,Methodist`), or repeated query params. Matches
