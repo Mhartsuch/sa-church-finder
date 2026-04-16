@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { ChurchEventType, EVENT_TIME_OF_DAY, EVENT_TYPES } from '../types/event.types.js'
+import {
+  ChurchEventType,
+  EVENT_SORT_OPTIONS,
+  EVENT_TIME_OF_DAY,
+  EVENT_TYPES,
+} from '../types/event.types.js'
 
 const isChurchEventType = (value: string): value is ChurchEventType =>
   (EVENT_TYPES as readonly string[]).includes(value)
@@ -187,6 +192,11 @@ export const eventsFeedSchema = z.object({
       // accessible. Reuses the same boolean-ish parser as `savedOnly` so
       // `?accessibleOnly=true`, `=1`, and `=yes` all work for URL share-links.
       accessibleOnly: booleanishFlag,
+      // Feed ordering. `soonest` (default) is chronological ascending by
+      // occurrence start time. `recent` reorders by `createdAt` descending so
+      // newly announced events lead the feed, with start time as the stable
+      // tiebreaker inside the same announcement moment.
+      sort: z.enum(EVENT_SORT_OPTIONS).optional(),
     })
     .passthrough()
     .refine(

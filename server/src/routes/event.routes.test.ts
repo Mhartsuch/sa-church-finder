@@ -1071,6 +1071,81 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     })
   })
 
+  describe('sort option', () => {
+    const earlyStart = new Date('2026-05-02T15:00:00.000Z')
+    const lateStart = new Date('2026-05-10T15:00:00.000Z')
+
+    const freshlyAnnounced = {
+      ...baseEventRecord,
+      id: 'event-late-start-fresh',
+      title: 'Just-announced Volunteer Day',
+      eventType: 'volunteer',
+      startTime: lateStart,
+      endTime: new Date('2026-05-10T17:00:00.000Z'),
+      createdAt: new Date('2026-04-15T00:00:00.000Z'),
+      church: churchSummary,
+    }
+
+    const longStanding = {
+      ...baseEventRecord,
+      id: 'event-early-start-old',
+      title: 'Long-running Sunday Service',
+      eventType: 'service',
+      startTime: earlyStart,
+      endTime: new Date('2026-05-02T16:00:00.000Z'),
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      church: churchSummary,
+    }
+
+    it('defaults to soonest ordering when no sort is supplied', async () => {
+      // Prisma returns rows in insertion order — the service is responsible
+      // for the stable chronological sort regardless of the driver order.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([freshlyAnnounced, longStanding])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-31T00:00:00.000Z',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual([
+        'event-early-start-old',
+        'event-late-start-fresh',
+      ])
+      // Default sort is implicit — the meta envelope should stay clean.
+      expect(response.body.meta.filters.sort).toBeUndefined()
+    })
+
+    it('reorders the feed by createdAt desc when sort=recent', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([longStanding, freshlyAnnounced])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        from: '2026-05-01T00:00:00.000Z',
+        to: '2026-05-31T00:00:00.000Z',
+        sort: 'recent',
+      })
+
+      expect(response.status).toBe(200)
+      // Most recently announced leads the feed even though its start time is
+      // later than the long-running service.
+      expect(response.body.data.map((event: { id: string }) => event.id)).toEqual([
+        'event-late-start-fresh',
+        'event-early-start-old',
+      ])
+      expect(response.body.meta.filters.sort).toBe('recent')
+    })
+
+    it('rejects unknown sort values with a 400', async () => {
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ sort: 'alphabetical' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+  })
+
   describe('GET /events.ics aggregated calendar feed', () => {
     it('returns a text/calendar feed combining events across churches', async () => {
       mockedPrisma.event.findMany.mockResolvedValueOnce([
@@ -1258,8 +1333,9 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       // once. This protects against a user bookmarking a URL with duplicates.
       mockedPrisma.event.findMany.mockResolvedValueOnce([])
 
-      const response = await request(createApp())
-        .get('/api/v1/events.ics?type=service&type=community&type=service')
+      const response = await request(createApp()).get(
+        '/api/v1/events.ics?type=service&type=community&type=service',
+      )
 
       expect(response.status).toBe(200)
       expect(response.headers['content-disposition']).toMatch(

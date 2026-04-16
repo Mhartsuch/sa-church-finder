@@ -923,6 +923,133 @@ describe('EventsDiscoveryPage', () => {
     });
   });
 
+  describe('sort control', () => {
+    it('defaults to soonest ordering, keeps the URL clean, and omits sort from filters', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([makeEvent()]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      // Caption reflects the default chronological ordering.
+      expect(screen.getByText('Sorted by soonest start')).toBeInTheDocument();
+
+      // "Soonest" is the active pill in the segmented control.
+      const sortGroup = screen.getByRole('group', { name: 'Sort events' });
+      expect(within(sortGroup).getByRole('button', { name: 'Soonest' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(within(sortGroup).getByRole('button', { name: 'Recently announced' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+
+      // The default is implicit — neither URL nor filter arg should carry it.
+      expect(getSearch()).not.toContain('sort=');
+      const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+      expect(filterArgs.sort).toBeUndefined();
+    });
+
+    it('writes sort=recent to the URL and forwards it to the feed hook', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([makeEvent()]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const sortGroup = screen.getByRole('group', { name: 'Sort events' });
+      fireEvent.click(within(sortGroup).getByRole('button', { name: 'Recently announced' }));
+
+      expect(getSearch()).toContain('sort=recent');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ sort: 'recent' });
+
+      expect(screen.getByText('Sorted by recently announced')).toBeInTheDocument();
+    });
+
+    it('reads sort=recent from the URL and reflects the active state on mount', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([makeEvent()]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?sort=recent');
+
+      const sortGroup = screen.getByRole('group', { name: 'Sort events' });
+      expect(within(sortGroup).getByRole('button', { name: 'Recently announced' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+
+      const filterArgs = useEventsFeedMock.mock.calls[0]?.[0];
+      expect(filterArgs).toMatchObject({ sort: 'recent' });
+    });
+
+    it('ignores unknown sort values and falls back to the default', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([makeEvent()]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?sort=alphabetical');
+
+      const sortGroup = screen.getByRole('group', { name: 'Sort events' });
+      expect(within(sortGroup).getByRole('button', { name: 'Soonest' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    });
+
+    it('renders a flat grid without day headers when sorted by recently announced', () => {
+      const fresh = makeEvent({
+        occurrenceId: 'event-fresh',
+        title: 'Just-Announced Food Drive',
+        startTime: '2026-04-20T15:00:00.000Z',
+      });
+      const older = makeEvent({
+        occurrenceId: 'event-older',
+        title: 'Long-running Service',
+        startTime: '2026-04-17T15:00:00.000Z',
+      });
+
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([fresh, older], { total: 2, totalPages: 1 }),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?sort=recent');
+
+      // Day-group headings (Today / Tomorrow / weekday labels rendered as
+      // <h3> section headers) should not appear under the recency sort —
+      // grouping events by day of occurrence doesn't make sense when the
+      // feed is ordered by announcement date. The "Today" chip in the
+      // date-preset rail is a <button>, not a heading, so restricting the
+      // query to the heading role is unambiguous.
+      expect(screen.queryByRole('heading', { name: 'Today' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Tomorrow' })).not.toBeInTheDocument();
+
+      expect(
+        screen.getByRole('heading', { name: 'Just-Announced Food Drive' }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Long-running Service' })).toBeInTheDocument();
+    });
+  });
+
   it('renders pagination and advances to the next page', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([makeEvent()], { total: 36, totalPages: 3, page: 1, pageSize: 12 }),

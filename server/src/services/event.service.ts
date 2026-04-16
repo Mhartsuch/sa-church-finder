@@ -11,6 +11,7 @@ import {
 import { AppError, NotFoundError, ValidationError } from '../middleware/error-handler.js'
 import {
   ChurchEventType,
+  EventSortOption,
   EventTimeOfDay,
   IAggregatedEvent,
   ICreateChurchEventInput,
@@ -471,7 +472,22 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
     ? expanded.filter((event) => matchesTimeOfDay(event.startTime, timeOfDay))
     : expanded
 
+  // Default is `soonest`: chronological ascending by occurrence start time,
+  // with the event title as a stable tiebreaker so pagination is
+  // deterministic. `recent` surfaces newly announced events first by sorting
+  // on the stored series' `createdAt` (every expanded occurrence of a series
+  // shares the same `createdAt`, so all of one announcement's occurrences
+  // cluster together under `recent`); start time then breaks ties so
+  // occurrences inside a single announcement still read chronologically.
+  const sort: EventSortOption = filters.sort ?? 'soonest'
   filtered.sort((a, b) => {
+    if (sort === 'recent') {
+      const createdDiff = b.createdAt.getTime() - a.createdAt.getTime()
+      if (createdDiff !== 0) return createdDiff
+      const startDiff = a.startTime.getTime() - b.startTime.getTime()
+      if (startDiff !== 0) return startDiff
+      return a.title.localeCompare(b.title)
+    }
     const diff = a.startTime.getTime() - b.startTime.getTime()
     return diff !== 0 ? diff : a.title.localeCompare(b.title)
   })
@@ -509,6 +525,10 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
               )
             : undefined,
         accessibleOnly: accessibleOnly ? true : undefined,
+        // Only echo `sort` when the caller explicitly narrowed it — omitting
+        // the key on the default keeps the `soonest` contract out of the
+        // response envelope and avoids surfacing internal defaults to clients.
+        sort: filters.sort,
       },
     },
   }

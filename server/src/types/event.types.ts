@@ -6,6 +6,17 @@ export const EVENT_TIME_OF_DAY = ['morning', 'afternoon', 'evening'] as const
 
 export type EventTimeOfDay = (typeof EVENT_TIME_OF_DAY)[number]
 
+/**
+ * Sort options for the aggregated events feed. `soonest` (default) orders
+ * occurrences by ascending start time. `recent` surfaces newly announced
+ * events first by ordering by `createdAt` descending, with start time as a
+ * stable tiebreaker. The window (`from`/`to`) is applied before sorting in
+ * either case, so `recent` still only returns upcoming events.
+ */
+export const EVENT_SORT_OPTIONS = ['soonest', 'recent'] as const
+
+export type EventSortOption = (typeof EVENT_SORT_OPTIONS)[number]
+
 export interface IChurchEvent {
   id: string
   /**
@@ -164,6 +175,12 @@ export interface IEventsFeedFilters {
    * search endpoint.
    */
   accessibleOnly?: boolean
+  /**
+   * Choose how the feed is ordered. Defaults to `soonest` (ascending
+   * `startTime`). `recent` surfaces newly announced events first by sorting
+   * by `createdAt` descending with `startTime` as a stable tiebreaker.
+   */
+  sort?: EventSortOption
 }
 
 export interface IEventsFeedResponse {
@@ -183,6 +200,7 @@ export interface IEventsFeedResponse {
       neighborhood?: string
       denomination?: string[]
       accessibleOnly?: boolean
+      sort?: EventSortOption
     }
   }
 }
