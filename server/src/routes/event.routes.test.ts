@@ -1190,6 +1190,101 @@ describe('GET /api/v1/events (aggregated feed)', () => {
     })
   })
 
+  describe('verifiedOnly filter', () => {
+    it('filters the feed to verified / claimed churches when enabled', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ verifiedOnly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.verifiedOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // `isClaimed: true` excludes unclaimed churches so visitors know the
+      // listing has been confirmed by a church leader.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: { isClaimed: true },
+      })
+    })
+
+    it('omits the verifiedOnly meta when no value is supplied', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events')
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.verifiedOnly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('treats verifiedOnly=false as no filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp())
+        .get('/api/v1/events')
+        .query({ verifiedOnly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.verifiedOnly).toBeUndefined()
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      const baseQueryFilters = whereArg.AND[0]!
+      expect(baseQueryFilters).not.toHaveProperty('church')
+    })
+
+    it('accepts the boolean-ish =1 alias', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events').query({ verifiedOnly: '1' })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.verifiedOnly).toBe(true)
+    })
+
+    it('combines verifiedOnly with the other boolean axes in one church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
+
+      const response = await request(createApp()).get('/api/v1/events').query({
+        verifiedOnly: 'true',
+        groupFriendly: 'true',
+        familyFriendly: 'true',
+        accessibleOnly: 'true',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.body.meta.filters.verifiedOnly).toBe(true)
+      expect(response.body.meta.filters.groupFriendly).toBe(true)
+      expect(response.body.meta.filters.familyFriendly).toBe(true)
+      expect(response.body.meta.filters.accessibleOnly).toBe(true)
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as {
+        AND: Array<Record<string, unknown>>
+      }
+      // All four nullable/non-nullable boolean flags sit as top-level fields
+      // on the same shared church clause — no extra nesting required because
+      // none of them contributes its own `OR` list.
+      expect(whereArg.AND[0]).toMatchObject({
+        church: {
+          wheelchairAccessible: true,
+          goodForChildren: true,
+          goodForGroups: true,
+          isClaimed: true,
+        },
+      })
+    })
+  })
+
   describe('language filter', () => {
     it('filters the feed to churches that host services in the requested language', async () => {
       mockedPrisma.event.findMany.mockResolvedValueOnce([feedEventRecord])
@@ -2550,6 +2645,134 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       const response = await request(createApp())
         .get('/api/v1/events.ics')
         .query({ groupFriendly: 'maybe' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
+
+    it('filters the aggregated feed by verified / claimed churches', async () => {
+      // `verifiedOnly=true` adds a `church.isClaimed: true` clause — mirrors
+      // the JSON feed's contract so calendar subscribers see exactly the
+      // events the "Verified churches" chip surfaces on the discovery page.
+      // The filename gets a trailing `verified` segment so saved ICS
+      // downloads stay self-describing.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ verifiedOnly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-verified-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { isClaimed: true },
+          }),
+        }),
+      )
+    })
+
+    it('also accepts boolean-ish verified-only aliases (1, yes)', async () => {
+      // The shared `booleanishFlag` parser treats `true`, `1`, `yes`, and
+      // `on` interchangeably so URL share-links coming from any surface
+      // (the discovery page emits `verifiedOnly=true`, but hand-typed
+      // bookmarks may use `=1`) resolve identically.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ verifiedOnly: '1' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-verified-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { isClaimed: true },
+          }),
+        }),
+      )
+    })
+
+    it('skips the church clause when verifiedOnly is false', async () => {
+      // The chip toggled off (or omitted entirely) must not tack a
+      // `church` clause onto the Prisma query — the city-wide feed
+      // contract stays unchanged when no narrowing is requested.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ verifiedOnly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
+
+    it('AND-composes verified-only with every other narrowing axis', async () => {
+      // When every narrowing axis is in play the seven `church` sub-clauses
+      // compose under a single `AND` (neighborhood → denomination → language
+      // → wheelchair-accessible → family-friendly → group-friendly →
+      // verified), and the filename suffix chains type → denomination →
+      // neighborhood → language → `accessible` → `family-friendly` →
+      // `group-friendly` → `verified`.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp()).get('/api/v1/events.ics').query({
+        type: 'service',
+        denomination: 'Baptist',
+        neighborhood: 'Downtown',
+        language: 'Spanish',
+        accessibleOnly: 'true',
+        familyFriendly: 'true',
+        groupFriendly: 'true',
+        verifiedOnly: 'true',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-baptist-downtown-spanish-accessible-family-friendly-group-friendly-verified-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: 'service',
+            church: {
+              AND: [
+                { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+                { languages: { hasSome: ['Spanish'] } },
+                { wheelchairAccessible: true },
+                { goodForChildren: true },
+                { goodForGroups: true },
+                { isClaimed: true },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('rejects an invalid verified-only flag', async () => {
+      // The shared `booleanishFlag` parser refuses values like `maybe`, so
+      // bogus subscription URLs surface as a 400 instead of silently passing
+      // through with no narrowing.
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ verifiedOnly: 'maybe' })
 
       expect(response.status).toBe(400)
       expect(response.body.error.code).toBe('VALIDATION_ERROR')

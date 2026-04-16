@@ -75,6 +75,11 @@ router.get(
       // `groups=1` URL param and a hand-typed `groupFriendly=true`
       // subscription resolve identically.
       const groupFriendly = q.groupFriendly === true
+      // Verified-only narrowing mirrors the JSON feed's `verifiedOnly`
+      // boolean — same `booleanishFlag` parser so the discovery page's
+      // `verified=1` URL param and a hand-typed `verifiedOnly=true`
+      // subscription resolve identically.
+      const verifiedOnly = q.verifiedOnly === true
       // Time-of-day narrowing mirrors the JSON feed's `timeOfDay` enum. The
       // schema's `z.enum(EVENT_TIME_OF_DAY)` restricts the value to
       // `morning` / `afternoon` / `evening` — anything else 400s before we
@@ -96,6 +101,7 @@ router.get(
           accessibleOnly,
           familyFriendly,
           groupFriendly,
+          verifiedOnly,
           timeOfDay,
           q: keyword,
         },
@@ -110,6 +116,7 @@ router.get(
         accessibleOnly: accessibleOnly || undefined,
         familyFriendly: familyFriendly || undefined,
         groupFriendly: groupFriendly || undefined,
+        verifiedOnly: verifiedOnly || undefined,
         timeOfDay,
         q: keyword,
       })
@@ -172,6 +179,10 @@ router.get(
       // `group-friendly` segment when the narrowing is on, so the saved
       // filename surfaces the chip without needing a per-value list.
       if (groupFriendly) filenameParts.push('group-friendly')
+      // Verified-only mirrors the group-friendly pattern: a single static
+      // `verified` segment when the narrowing is on, so the saved filename
+      // surfaces the chip without needing a per-value list.
+      if (verifiedOnly) filenameParts.push('verified')
       // Time-of-day surfaces the bucket label (`morning` / `afternoon` /
       // `evening`) so the saved filename still reads naturally when a
       // visitor subscribes to just the slice of the day they care about.
@@ -240,6 +251,7 @@ router.get(
         accessibleOnly: q.accessibleOnly === true ? true : undefined,
         familyFriendly: q.familyFriendly === true ? true : undefined,
         groupFriendly: q.groupFriendly === true ? true : undefined,
+        verifiedOnly: q.verifiedOnly === true ? true : undefined,
         // The Zod schema normalizes single, comma-separated, and repeated
         // `language` query params into a deduped `string[]` (or `undefined`).
         language: Array.isArray(q.language) ? (q.language as string[]) : undefined,

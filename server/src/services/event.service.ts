@@ -361,6 +361,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
   const accessibleOnly = filters.accessibleOnly === true
   const familyFriendly = filters.familyFriendly === true
   const groupFriendly = filters.groupFriendly === true
+  const verifiedOnly = filters.verifiedOnly === true
 
   // Multi-select neighborhood filter. Normalized to a deduped list so the
   // Prisma `OR` of case-insensitive equality clauses below never
@@ -474,6 +475,11 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
     // can trust the narrowed list is hosted somewhere flagged as good for
     // visiting groups.
     ...(groupFriendly ? { goodForGroups: true } : {}),
+    // `isClaimed` is a non-nullable boolean: requiring `true` restricts the
+    // feed to churches whose claim workflow has been approved, so visitors
+    // know the listing has been verified by a church leader. Unclaimed
+    // records are excluded entirely when `verifiedOnly` is set.
+    ...(verifiedOnly ? { isClaimed: true } : {}),
     // Multi-select language filter: `hasSome` matches a church whose
     // `languages` array contains any of the requested values. The values
     // supplied by the client originate from the `/churches/filter-options`
@@ -604,6 +610,7 @@ export async function listEventsFeed(filters: IEventsFeedFilters): Promise<IEven
         accessibleOnly: accessibleOnly ? true : undefined,
         familyFriendly: familyFriendly ? true : undefined,
         groupFriendly: groupFriendly ? true : undefined,
+        verifiedOnly: verifiedOnly ? true : undefined,
         // Echo the deduped (trim-only) language strings the caller supplied so
         // chip labels on the discovery page round-trip exactly as the user
         // typed or selected them. Omitted when no language filter was applied.
@@ -720,13 +727,15 @@ export async function getChurchCalendarFeedBySlug(
  * is `true` (excluding both `false` and `null`). `familyFriendly`, when
  * `true`, applies the same nullable-boolean semantics to
  * `church.goodForChildren`. `groupFriendly`, when `true`, applies the same
- * nullable-boolean semantics to `church.goodForGroups`. `timeOfDay`, when
- * set, filters each candidate event by the local-time bucket of its stored
- * `startTime`; every occurrence of a recurring series shares the same
- * hour-of-day so we can apply the bucket before emitting the RRULE to the
- * calendar client. An empty array (or `undefined`) for any list-valued
- * option is treated as "no filter" so callers can default-construct without
- * guarding.
+ * nullable-boolean semantics to `church.goodForGroups`. `verifiedOnly`,
+ * when `true`, restricts the feed to churches whose `isClaimed` flag is
+ * `true` so subscribers only see events at listings confirmed by a church
+ * leader. `timeOfDay`, when set, filters each candidate event by the
+ * local-time bucket of its stored `startTime`; every occurrence of a
+ * recurring series shares the same hour-of-day so we can apply the bucket
+ * before emitting the RRULE to the calendar client. An empty array (or
+ * `undefined`) for any list-valued option is treated as "no filter" so
+ * callers can default-construct without guarding.
  */
 export async function getAggregatedCalendarFeed(options: {
   type?: ChurchEventType | ChurchEventType[]
@@ -736,6 +745,7 @@ export async function getAggregatedCalendarFeed(options: {
   accessibleOnly?: boolean
   familyFriendly?: boolean
   groupFriendly?: boolean
+  verifiedOnly?: boolean
   timeOfDay?: EventTimeOfDay
   q?: string
   now?: Date
@@ -834,6 +844,12 @@ export async function getAggregatedCalendarFeed(options: {
   // group-friendly venues. `groupFriendly: false` / `undefined` skips
   // the filter, matching the JSON feed's contract.
   const groupFriendly = options.groupFriendly === true
+  // `isClaimed` is a non-nullable boolean on the church row: requiring
+  // `true` restricts the subscribed calendar to verified listings where a
+  // church leader has completed the claim workflow. `verifiedOnly: false` /
+  // `undefined` skips the filter so the wire format matches the JSON feed
+  // (`?verifiedOnly=true` is the only way to opt in).
+  const verifiedOnly = options.verifiedOnly === true
 
   // All narrowing axes live on the related church, so they compose as
   // a single nested `church` clause. When only one axis is narrowed we
@@ -875,6 +891,9 @@ export async function getAggregatedCalendarFeed(options: {
   const groupFriendlySubclause: Prisma.ChurchWhereInput | undefined = groupFriendly
     ? { goodForGroups: true }
     : undefined
+  const verifiedSubclause: Prisma.ChurchWhereInput | undefined = verifiedOnly
+    ? { isClaimed: true }
+    : undefined
 
   const churchAndClauses: Prisma.ChurchWhereInput[] = []
   if (neighborhoodSubclause) churchAndClauses.push(neighborhoodSubclause)
@@ -883,6 +902,7 @@ export async function getAggregatedCalendarFeed(options: {
   if (accessibleSubclause) churchAndClauses.push(accessibleSubclause)
   if (familyFriendlySubclause) churchAndClauses.push(familyFriendlySubclause)
   if (groupFriendlySubclause) churchAndClauses.push(groupFriendlySubclause)
+  if (verifiedSubclause) churchAndClauses.push(verifiedSubclause)
 
   const churchClause: { church?: Prisma.ChurchWhereInput } =
     churchAndClauses.length === 0
@@ -976,6 +996,10 @@ export async function getAggregatedCalendarFeed(options: {
   // "good for groups" chip in the calendar name / description so
   // subscribers see the narrowing alongside any other active filters.
   if (groupFriendly) suffixParts.push('good for groups')
+  // Verified-only mirrors the other boolean chips — a single static
+  // "verified churches" chip in the calendar name / description so
+  // subscribers see the narrowing alongside any other active filters.
+  if (verifiedOnly) suffixParts.push('verified churches')
   // Time-of-day surfaces the bucket label ("morning" / "afternoon" /
   // "evening") so subscribers see which slice of the day has been narrowed.
   if (timeOfDay) suffixParts.push(timeOfDay)

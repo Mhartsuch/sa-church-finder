@@ -272,6 +272,13 @@ export const eventsFeedSchema = z.object({
       // shared boolean-ish parser so URL share-links can carry
       // `?groupFriendly=true`, `=1`, or `=yes` interchangeably.
       groupFriendly: booleanishFlag,
+      // Restrict the feed to events at verified / claimed churches
+      // (`church.isClaimed = true`). Mirrors `groupFriendly` — reuses the
+      // shared boolean-ish parser so URL share-links can carry
+      // `?verifiedOnly=true`, `=1`, or `=yes` interchangeably. Excluding
+      // unclaimed records signals that a church leader has confirmed
+      // ownership of the listing.
+      verifiedOnly: booleanishFlag,
       // Multi-select service-language filter. Supports a single value
       // (`language=Spanish`), a comma-separated list
       // (`language=English,Spanish`), or repeated query params. Mirrors the
@@ -359,6 +366,14 @@ export const aggregatedCalendarFeedSchema = z.object({
       // `church.goodForGroups = true`, excluding both `false` and `null`
       // (unknown) churches so subscribers can trust the subscribed calendar.
       groupFriendly: booleanishFlag,
+      // Restrict the calendar feed to events at verified / claimed churches.
+      // Mirrors the JSON feed's `verifiedOnly` wire format
+      // (`?verifiedOnly=true|1|yes`) so a visitor who has toggled the
+      // "Verified churches" chip on the discovery page can subscribe to a
+      // calendar scoped to exactly that narrowing. The service layer
+      // requires `church.isClaimed = true` so subscribers can trust the
+      // listings have been confirmed by a church leader.
+      verifiedOnly: booleanishFlag,
       // Restrict the calendar feed to occurrences whose start time falls
       // inside a named bucket of the day, evaluated in San Antonio local
       // time (America/Chicago). Mirrors the JSON feed's `timeOfDay` wire

@@ -199,6 +199,13 @@ export interface IEventsFeedFilters {
    */
   groupFriendly?: boolean;
   /**
+   * Restrict the feed to events hosted by verified / claimed churches
+   * (`church.isClaimed = true`). Only churches whose claim workflow has
+   * been approved are included so visitors know the listing has been
+   * confirmed by a church leader.
+   */
+  verifiedOnly?: boolean;
+  /**
    * Multi-select service-language filter (e.g. `["English", "Spanish"]`). The
    * wire format is a comma-separated `language` query param matching the
    * church search endpoint. Values OR-combine, so a church that hosts
@@ -233,6 +240,7 @@ export interface IEventsFeedResponse {
       accessibleOnly?: boolean;
       familyFriendly?: boolean;
       groupFriendly?: boolean;
+      verifiedOnly?: boolean;
       language?: string[];
       sort?: EventSortOption;
     };

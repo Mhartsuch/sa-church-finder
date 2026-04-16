@@ -1156,6 +1156,107 @@ describe('EventsDiscoveryPage', () => {
     });
   });
 
+  describe('verified-only filter', () => {
+    it('renders the verified-churches toggle chip regardless of auth state', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage();
+
+      // Scope to the quick-filter rail so the toggle is the only candidate —
+      // once the filter is on there is also an "applied" chip with the same
+      // label in the chip rail below.
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /verified churches/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('writes verified=1 to the URL and passes verifiedOnly to the feed filters', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage();
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /verified churches/i });
+      fireEvent.click(chip);
+
+      expect(getSearch()).toContain('verified=1');
+
+      const calls = useEventsFeedMock.mock.calls;
+      const lastCallArgs = calls[calls.length - 1]?.[0];
+      expect(lastCallArgs).toMatchObject({ verifiedOnly: true });
+
+      // Two instances of the label appear once the filter is on: the toggle
+      // chip above the form (now in its active state) and the applied chip in
+      // the chip rail below.
+      expect(screen.getAllByText('Verified churches')).toHaveLength(2);
+    });
+
+    it('reflects the active state on the toggle when seeded from the URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?verified=1');
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /verified churches/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('removes verified=1 from the URL when the filter chip is cleared', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?verified=1');
+
+      const filterChips = screen.getAllByText('Verified churches');
+      // The second occurrence lives in the applied-chips rail (the first is on
+      // the toggle chip above the form). Clicking it removes the filter via
+      // the shared clear-chip flow.
+      const clearChip = filterChips[filterChips.length - 1]!.closest('button');
+      expect(clearChip).not.toBeNull();
+      fireEvent.click(clearChip!);
+
+      expect(getSearch()).not.toContain('verified=');
+    });
+
+    it('preserves verified=1 alongside groups=1 when toggled together', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      const { getSearch } = renderPage('/events?groups=1');
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const chip = within(presetGroup).getByRole('button', { name: /verified churches/i });
+      fireEvent.click(chip);
+
+      const search = getSearch();
+      expect(search).toContain('groups=1');
+      expect(search).toContain('verified=1');
+    });
+  });
+
   describe('language filter', () => {
     const languageOptionsResponse = {
       data: {
@@ -1690,6 +1791,53 @@ describe('EventsDiscoveryPage', () => {
       const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
       expect(apple.getAttribute('href')).toMatch(
         /events\.ics\?familyFriendly=true&groupFriendly=true$/,
+      );
+    });
+
+    it('labels the verified-church feed and serializes verifiedOnly into the URL', () => {
+      // Verified-only narrowing reads naturally ("Subscribe to
+      // verified-church events") and the feed URL carries
+      // `verifiedOnly=true` so the iCal subscription resolves the same way
+      // the chip narrows the discovery feed.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?verified=1');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to verified-church events/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?verifiedOnly=true$/);
+    });
+
+    it('uses the generic label and combines verifiedOnly with another axis in the URL', () => {
+      // Once a second axis is narrowed (verified + groups), the label
+      // collapses to the generic wording and the URL chains both params so
+      // the saved filename surfaces the specifics.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?groups=1&verified=1');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(
+        /events\.ics\?groupFriendly=true&verifiedOnly=true$/,
       );
     });
 
