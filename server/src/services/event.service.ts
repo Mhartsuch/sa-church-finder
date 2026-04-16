@@ -720,9 +720,13 @@ export async function getChurchCalendarFeedBySlug(
  * is `true` (excluding both `false` and `null`). `familyFriendly`, when
  * `true`, applies the same nullable-boolean semantics to
  * `church.goodForChildren`. `groupFriendly`, when `true`, applies the same
- * nullable-boolean semantics to `church.goodForGroups`. An empty array (or
- * `undefined`) for any list-valued option is treated as "no filter" so
- * callers can default-construct without guarding.
+ * nullable-boolean semantics to `church.goodForGroups`. `timeOfDay`, when
+ * set, filters each candidate event by the local-time bucket of its stored
+ * `startTime`; every occurrence of a recurring series shares the same
+ * hour-of-day so we can apply the bucket before emitting the RRULE to the
+ * calendar client. An empty array (or `undefined`) for any list-valued
+ * option is treated as "no filter" so callers can default-construct without
+ * guarding.
  */
 export async function getAggregatedCalendarFeed(options: {
   type?: ChurchEventType | ChurchEventType[]
@@ -732,6 +736,7 @@ export async function getAggregatedCalendarFeed(options: {
   accessibleOnly?: boolean
   familyFriendly?: boolean
   groupFriendly?: boolean
+  timeOfDay?: EventTimeOfDay
   now?: Date
 }): Promise<ICalendarFeedPayload> {
   const now = options.now ?? new Date()
@@ -906,6 +911,17 @@ export async function getAggregatedCalendarFeed(options: {
     take: MAX_FEED_EVENTS,
   })) as FeedEventRow[]
 
+  // Time-of-day narrowing is applied in-memory against each stored row's
+  // `startTime`. Every occurrence of a recurring series shares the same
+  // hour-of-day (RRULEs preserve start time), so a series whose base time
+  // falls inside the selected bucket is guaranteed to emit in-bucket
+  // occurrences — we can filter before handing the RRULE to the calendar
+  // client instead of pre-expanding occurrences.
+  const timeOfDay = options.timeOfDay
+  const filteredRows = timeOfDay
+    ? rows.filter((row) => matchesTimeOfDay(row.startTime, timeOfDay))
+    : rows
+
   const suffixParts: string[] = []
   if (types.length > 0) suffixParts.push(types.join(', '))
   if (denominationDisplayList.length > 0) suffixParts.push(denominationDisplayList.join(', '))
@@ -923,12 +939,15 @@ export async function getAggregatedCalendarFeed(options: {
   // "good for groups" chip in the calendar name / description so
   // subscribers see the narrowing alongside any other active filters.
   if (groupFriendly) suffixParts.push('good for groups')
+  // Time-of-day surfaces the bucket label ("morning" / "afternoon" /
+  // "evening") so subscribers see which slice of the day has been narrowed.
+  if (timeOfDay) suffixParts.push(timeOfDay)
   const titleSuffix = suffixParts.length > 0 ? ` (${suffixParts.join(' · ')})` : ''
 
   return {
     calendarName: `SA Church Finder — Events${titleSuffix}`,
     calendarDescription: `Upcoming church events across San Antonio${titleSuffix}.`,
-    events: rows.map(mapFeedEvent),
+    events: filteredRows.map(mapFeedEvent),
   }
 }
 

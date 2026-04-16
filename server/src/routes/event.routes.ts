@@ -75,6 +75,11 @@ router.get(
       // `groups=1` URL param and a hand-typed `groupFriendly=true`
       // subscription resolve identically.
       const groupFriendly = q.groupFriendly === true
+      // Time-of-day narrowing mirrors the JSON feed's `timeOfDay` enum. The
+      // schema's `z.enum(EVENT_TIME_OF_DAY)` restricts the value to
+      // `morning` / `afternoon` / `evening` — anything else 400s before we
+      // reach this handler, so a plain string cast is safe here.
+      const timeOfDay = typeof q.timeOfDay === 'string' ? (q.timeOfDay as EventTimeOfDay) : undefined
 
       logger.info(
         {
@@ -85,6 +90,7 @@ router.get(
           accessibleOnly,
           familyFriendly,
           groupFriendly,
+          timeOfDay,
         },
         'Generating aggregated calendar feed',
       )
@@ -97,6 +103,7 @@ router.get(
         accessibleOnly: accessibleOnly || undefined,
         familyFriendly: familyFriendly || undefined,
         groupFriendly: groupFriendly || undefined,
+        timeOfDay,
       })
       const siteUrl = resolvePublicSiteUrl()
 
@@ -157,6 +164,10 @@ router.get(
       // `group-friendly` segment when the narrowing is on, so the saved
       // filename surfaces the chip without needing a per-value list.
       if (groupFriendly) filenameParts.push('group-friendly')
+      // Time-of-day surfaces the bucket label (`morning` / `afternoon` /
+      // `evening`) so the saved filename still reads naturally when a
+      // visitor subscribes to just the slice of the day they care about.
+      if (timeOfDay) filenameParts.push(timeOfDay)
       const filenameSuffix = filenameParts.length > 0 ? `-${filenameParts.join('-')}` : ''
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8')

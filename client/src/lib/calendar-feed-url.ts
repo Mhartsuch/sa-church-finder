@@ -91,6 +91,15 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    * `groupFriendly=true` to match the JSON feed (`?groupFriendly=true`).
    */
   groupFriendly?: boolean | null;
+  /**
+   * Time-of-day bucket. Mirrors the discovery page's "Morning" / "Afternoon"
+   * / "Evening" chip — the calendar feed is restricted to events whose local
+   * start time falls inside the named bucket. `null` / `undefined` / empty
+   * string omits the param so the server returns the unfiltered feed. The
+   * wire format is `timeOfDay=morning|afternoon|evening` to match the JSON
+   * feed.
+   */
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | null;
 }): string =>
   buildFeedUrl('/events.ics', {
     type: serializeListParam(params?.type),
@@ -100,4 +109,5 @@ export const buildAggregatedEventsFeedUrl = (params?: {
     accessibleOnly: params?.accessibleOnly === true ? 'true' : undefined,
     familyFriendly: params?.familyFriendly === true ? 'true' : undefined,
     groupFriendly: params?.groupFriendly === true ? 'true' : undefined,
+    timeOfDay: params?.timeOfDay ?? undefined,
   });

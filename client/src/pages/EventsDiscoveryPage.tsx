@@ -808,13 +808,13 @@ const EventsDiscoveryPage = () => {
           {/*
             The aggregated calendar feed honors the same multi-select type,
             denomination, neighborhood, language, wheelchair-accessible,
-            family-friendly, AND group-friendly filters as the JSON feed, so
-            the subscribe URL reflects exactly the chips the user has toggled.
-            When no filters are active we fall back to the city-wide feed so
-            the subscribe action stays useful for any selection. The label
-            prioritizes the most specific single-axis narrative when possible,
-            otherwise names the count of filters, and otherwise points at the
-            city feed.
+            family-friendly, group-friendly, AND time-of-day filters as the
+            JSON feed, so the subscribe URL reflects exactly the chips the
+            user has toggled. When no filters are active we fall back to the
+            city-wide feed so the subscribe action stays useful for any
+            selection. The label prioritizes the most specific single-axis
+            narrative when possible, otherwise names the count of filters,
+            and otherwise points at the city feed.
           */}
           {(() => {
             const selectedTypes = filters.type ?? [];
@@ -824,6 +824,7 @@ const EventsDiscoveryPage = () => {
             const accessibleOnly = filters.accessibleOnly === true;
             const familyFriendly = filters.familyFriendly === true;
             const groupFriendly = filters.groupFriendly === true;
+            const timeOfDay = filters.timeOfDay ?? null;
 
             const axesInUse = [
               selectedTypes.length > 0,
@@ -833,6 +834,7 @@ const EventsDiscoveryPage = () => {
               accessibleOnly,
               familyFriendly,
               groupFriendly,
+              timeOfDay !== null,
             ].filter(Boolean).length;
 
             let label: string;
@@ -860,6 +862,8 @@ const EventsDiscoveryPage = () => {
               label = 'Subscribe to kid-friendly events';
             } else if (axesInUse === 1 && groupFriendly) {
               label = 'Subscribe to group-friendly events';
+            } else if (axesInUse === 1 && timeOfDay !== null) {
+              label = `Subscribe to ${TIME_OF_DAY_LABELS[timeOfDay].toLowerCase()} events`;
             } else {
               // Multiple axes narrowed — keep it short and let the filename
               // carry the specifics.
@@ -876,6 +880,7 @@ const EventsDiscoveryPage = () => {
                   accessibleOnly: accessibleOnly ? true : null,
                   familyFriendly: familyFriendly ? true : null,
                   groupFriendly: groupFriendly ? true : null,
+                  timeOfDay,
                 })}
                 label={label}
               />
