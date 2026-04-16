@@ -221,4 +221,39 @@ describe('calendar-feed-url helpers', () => {
       'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true',
     );
   });
+
+  it('appends the family-friendly flag when familyFriendly=true', () => {
+    // Mirrors the JSON feed's wire format (`familyFriendly=true`) so the
+    // calendar-feed query string stays in sync with the discovery page
+    // URL param the "Good for kids" chip toggles on.
+    expect(buildAggregatedEventsFeedUrl({ familyFriendly: true })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?familyFriendly=true',
+    );
+  });
+
+  it('omits the familyFriendly param when false / null / undefined', () => {
+    // Chip toggled off (or omitted entirely) must not surface a query
+    // param so the server keeps the city-wide default contract.
+    expect(buildAggregatedEventsFeedUrl({ familyFriendly: false })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({ familyFriendly: null })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
+
+  it('combines familyFriendly with the other narrowing axes in one query string', () => {
+    expect(
+      buildAggregatedEventsFeedUrl({
+        type: ['service'],
+        denomination: ['Baptist'],
+        neighborhood: ['Downtown'],
+        language: ['Spanish'],
+        accessibleOnly: true,
+        familyFriendly: true,
+      }),
+    ).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true&familyFriendly=true',
+    );
+  });
 });

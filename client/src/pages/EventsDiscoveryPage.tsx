@@ -807,13 +807,14 @@ const EventsDiscoveryPage = () => {
         <div className="mt-4">
           {/*
             The aggregated calendar feed honors the same multi-select type,
-            denomination, neighborhood, language, AND wheelchair-accessible
-            filters as the JSON feed, so the subscribe URL reflects exactly
-            the chips the user has toggled. When no filters are active we
-            fall back to the city-wide feed so the subscribe action stays
-            useful for any selection. The label prioritizes the most specific
-            single-axis narrative when possible, otherwise names the count of
-            filters, and otherwise points at the city feed.
+            denomination, neighborhood, language, wheelchair-accessible, AND
+            family-friendly filters as the JSON feed, so the subscribe URL
+            reflects exactly the chips the user has toggled. When no filters
+            are active we fall back to the city-wide feed so the subscribe
+            action stays useful for any selection. The label prioritizes the
+            most specific single-axis narrative when possible, otherwise
+            names the count of filters, and otherwise points at the city
+            feed.
           */}
           {(() => {
             const selectedTypes = filters.type ?? [];
@@ -821,6 +822,7 @@ const EventsDiscoveryPage = () => {
             const selectedNeighborhoods = filters.neighborhood ?? [];
             const selectedLanguages = filters.language ?? [];
             const accessibleOnly = filters.accessibleOnly === true;
+            const familyFriendly = filters.familyFriendly === true;
 
             const axesInUse = [
               selectedTypes.length > 0,
@@ -828,6 +830,7 @@ const EventsDiscoveryPage = () => {
               selectedNeighborhoods.length > 0,
               selectedLanguages.length > 0,
               accessibleOnly,
+              familyFriendly,
             ].filter(Boolean).length;
 
             let label: string;
@@ -851,6 +854,8 @@ const EventsDiscoveryPage = () => {
               label = `Subscribe to ${selectedLanguages.length} language feeds`;
             } else if (axesInUse === 1 && accessibleOnly) {
               label = 'Subscribe to wheelchair-accessible events';
+            } else if (axesInUse === 1 && familyFriendly) {
+              label = 'Subscribe to kid-friendly events';
             } else {
               // Multiple axes narrowed — keep it short and let the filename
               // carry the specifics.
@@ -865,6 +870,7 @@ const EventsDiscoveryPage = () => {
                   neighborhood: selectedNeighborhoods.length > 0 ? selectedNeighborhoods : null,
                   language: selectedLanguages.length > 0 ? selectedLanguages : null,
                   accessibleOnly: accessibleOnly ? true : null,
+                  familyFriendly: familyFriendly ? true : null,
                 })}
                 label={label}
               />

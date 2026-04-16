@@ -65,9 +65,14 @@ router.get(
       // either the discovery page or hand-typed subscriptions resolve the
       // same way.
       const accessibleOnly = q.accessibleOnly === true
+      // Family-friendly narrowing mirrors the JSON feed's `familyFriendly`
+      // boolean — same `booleanishFlag` parser so the discovery page's
+      // `family=1` URL param and a hand-typed `familyFriendly=true`
+      // subscription resolve identically.
+      const familyFriendly = q.familyFriendly === true
 
       logger.info(
-        { types, denominations, neighborhoods, languages, accessibleOnly },
+        { types, denominations, neighborhoods, languages, accessibleOnly, familyFriendly },
         'Generating aggregated calendar feed',
       )
 
@@ -77,6 +82,7 @@ router.get(
         neighborhood: neighborhoods,
         language: languages,
         accessibleOnly: accessibleOnly || undefined,
+        familyFriendly: familyFriendly || undefined,
       })
       const siteUrl = resolvePublicSiteUrl()
 
@@ -122,15 +128,17 @@ router.get(
         )
       }
       if (languages && languages.length > 0) {
-        filenameParts.push(
-          ...languages.map(slugifyForFilename).filter((value) => value.length > 0),
-        )
+        filenameParts.push(...languages.map(slugifyForFilename).filter((value) => value.length > 0))
       }
       // Wheelchair-accessible has no per-value list to slug, so it adds a
       // single static segment (`accessible`) so the saved filename surfaces
       // the narrowing alongside any type/denomination/neighborhood/language
       // chips the visitor toggled.
       if (accessibleOnly) filenameParts.push('accessible')
+      // Family-friendly mirrors the wheelchair-accessible pattern: a single
+      // static `family-friendly` segment when the narrowing is on, so the
+      // saved filename surfaces the chip without needing a per-value list.
+      if (familyFriendly) filenameParts.push('family-friendly')
       const filenameSuffix = filenameParts.length > 0 ? `-${filenameParts.join('-')}` : ''
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8')

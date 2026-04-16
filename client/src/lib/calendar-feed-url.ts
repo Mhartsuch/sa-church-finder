@@ -75,6 +75,14 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    * `accessibleOnly=true` to match the JSON feed (`?accessibleOnly=true`).
    */
   accessibleOnly?: boolean | null;
+  /**
+   * Family-friendly toggle. Mirrors the discovery page's "Good for kids"
+   * chip — when `true` the calendar feed is restricted to events at churches
+   * flagged as good for children. `false` / `null` / `undefined` omits the
+   * param so the server skips the filter. The serialized wire format is
+   * `familyFriendly=true` to match the JSON feed (`?familyFriendly=true`).
+   */
+  familyFriendly?: boolean | null;
 }): string =>
   buildFeedUrl('/events.ics', {
     type: serializeListParam(params?.type),
@@ -82,4 +90,5 @@ export const buildAggregatedEventsFeedUrl = (params?: {
     neighborhood: serializeListParam(params?.neighborhood),
     language: serializeListParam(params?.language),
     accessibleOnly: params?.accessibleOnly === true ? 'true' : undefined,
+    familyFriendly: params?.familyFriendly === true ? 'true' : undefined,
   });

@@ -2306,5 +2306,128 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR')
       expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
     })
+
+    it('filters the aggregated feed by family-friendly churches', async () => {
+      // `familyFriendly=true` adds a `church.goodForChildren: true` clause —
+      // mirrors the JSON feed's contract so calendar subscribers see exactly
+      // the events the "Good for kids" chip surfaces on the discovery page.
+      // The filename gets a trailing `family-friendly` segment so saved ICS
+      // downloads stay self-describing.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ familyFriendly: 'true' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-family-friendly-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { goodForChildren: true },
+          }),
+        }),
+      )
+    })
+
+    it('also accepts boolean-ish family-friendly aliases (1, yes)', async () => {
+      // The shared `booleanishFlag` parser treats `true`, `1`, `yes`, and
+      // `on` interchangeably so URL share-links coming from any surface
+      // (the discovery page emits `familyFriendly=true`, but hand-typed
+      // bookmarks may use `=1`) resolve identically.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ familyFriendly: '1' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-family-friendly-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: { goodForChildren: true },
+          }),
+        }),
+      )
+    })
+
+    it('skips the church clause when familyFriendly is false', async () => {
+      // The chip toggled off (or omitted entirely) must not tack a
+      // `church` clause onto the Prisma query — the city-wide feed
+      // contract stays unchanged when no narrowing is requested.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ familyFriendly: 'false' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
+
+    it('AND-composes family-friendly with every other narrowing axis', async () => {
+      // When every narrowing axis is in play the five `church` sub-clauses
+      // compose under a single `AND` (neighborhood → denomination → language
+      // → wheelchair-accessible → family-friendly), and the filename suffix
+      // chains type → denomination → neighborhood → language → `accessible`
+      // → `family-friendly`.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp()).get('/api/v1/events.ics').query({
+        type: 'service',
+        denomination: 'Baptist',
+        neighborhood: 'Downtown',
+        language: 'Spanish',
+        accessibleOnly: 'true',
+        familyFriendly: 'true',
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-baptist-downtown-spanish-accessible-family-friendly-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: 'service',
+            church: {
+              AND: [
+                { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+                { languages: { hasSome: ['Spanish'] } },
+                { wheelchairAccessible: true },
+                { goodForChildren: true },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('rejects an invalid family-friendly flag', async () => {
+      // The shared `booleanishFlag` parser refuses values like `maybe`, so
+      // bogus subscription URLs surface as a 400 instead of silently passing
+      // through with no narrowing.
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ familyFriendly: 'maybe' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
   })
 })

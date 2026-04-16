@@ -341,6 +341,15 @@ export const aggregatedCalendarFeedSchema = z.object({
       // excluding both `false` and `null` (unknown) churches so the
       // subscribed calendar stays trustworthy.
       accessibleOnly: booleanishFlag,
+      // Restrict the calendar feed to events at churches flagged as good
+      // for children. Mirrors the JSON feed's `familyFriendly` wire format
+      // (`?familyFriendly=true|1|yes`) so a visitor who has toggled the
+      // "Good for kids" chip on the discovery page can subscribe to a
+      // calendar scoped to exactly that narrowing. The service layer
+      // requires `church.goodForChildren = true`, excluding both `false`
+      // and `null` (unknown) churches so families can trust the
+      // subscribed calendar.
+      familyFriendly: booleanishFlag,
     })
     .passthrough(),
   body: z.object({}).passthrough(),
