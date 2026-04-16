@@ -1818,5 +1818,188 @@ describe('GET /api/v1/events (aggregated feed)', () => {
       >
       expect(whereArg).not.toHaveProperty('church')
     })
+
+    it('filters the aggregated feed by a single neighborhood (case-insensitive)', async () => {
+      // Neighborhood narrows the feed at the church level via a nested clause
+      // on `church.neighborhood`. Matching is case-insensitive so the
+      // lowercased list collapses "Downtown" and "downtown" to one predicate —
+      // mirrors the denomination filter's contract.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ neighborhood: 'Downtown' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-downtown-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: {
+              OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('accepts a comma-separated multi-neighborhood filter', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ neighborhood: 'Downtown,Alamo Heights' })
+
+      expect(response.status).toBe(200)
+      // Filename enumerates every selected neighborhood (slugified) so
+      // downloads stay self-describing and filesystem-safe.
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-downtown-alamo-heights-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: {
+              OR: [
+                { neighborhood: { equals: 'downtown', mode: 'insensitive' } },
+                { neighborhood: { equals: 'alamo heights', mode: 'insensitive' } },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('accepts repeated neighborhood query params and dedupes them', async () => {
+      // Express surfaces `?neighborhood=Downtown&neighborhood=Alamo+Heights`
+      // as an array; the schema dedupes so downstream consumers only see each
+      // neighborhood once even when users bookmark a URL with duplicates.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp()).get(
+        '/api/v1/events.ics?neighborhood=Downtown&neighborhood=Alamo+Heights&neighborhood=Downtown',
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-downtown-alamo-heights-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: {
+              OR: [
+                { neighborhood: { equals: 'downtown', mode: 'insensitive' } },
+                { neighborhood: { equals: 'alamo heights', mode: 'insensitive' } },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('AND-composes neighborhood with denomination when both are supplied', async () => {
+      // Prisma only allows a single top-level `OR` per clause, so the two
+      // multi-select filters have to compose as
+      // `AND: [{ OR: neighborhoods }, { OR: denominations }]` to preserve the
+      // intended `(neighborhood OR ...) AND (denomination OR ...)` semantics.
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ neighborhood: 'Downtown', denomination: 'Baptist' })
+
+      expect(response.status).toBe(200)
+      // Filename chains type → denomination → neighborhood slugs in that
+      // order; with neighborhood after denomination, the denomination slug
+      // leads the suffix.
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-baptist-downtown-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            church: {
+              AND: [
+                { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('combines the type, denomination, and neighborhood filters on the aggregated feed', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ type: 'service', denomination: 'Baptist', neighborhood: 'Downtown' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-service-baptist-downtown-events\.ics"/,
+      )
+      expect(mockedPrisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: 'service',
+            church: {
+              AND: [
+                { OR: [{ neighborhood: { equals: 'downtown', mode: 'insensitive' } }] },
+                { OR: [{ denominationFamily: { equals: 'baptist', mode: 'insensitive' } }] },
+              ],
+            },
+          }),
+        }),
+      )
+    })
+
+    it('slugifies neighborhood values with spaces or punctuation for the filename', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ neighborhood: 'King William / Lavaca' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-king-william-lavaca-events\.ics"/,
+      )
+    })
+
+    it('drops empty neighborhood tokens and skips the nested church clause', async () => {
+      mockedPrisma.event.findMany.mockResolvedValueOnce([])
+
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ neighborhood: ' , , ' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-disposition']).toMatch(
+        /filename="sa-church-finder-events\.ics"/,
+      )
+
+      const whereArg = mockedPrisma.event.findMany.mock.calls[0]![0]!.where as Record<
+        string,
+        unknown
+      >
+      expect(whereArg).not.toHaveProperty('church')
+    })
+
+    it('rejects a neighborhood value that exceeds the maximum length', async () => {
+      // The neighborhood normalizer is strict about length (120 chars) and
+      // reports a zod validation error, matching the JSON feed's contract so
+      // attackers can't smuggle overly-long payloads into the public endpoint.
+      const response = await request(createApp())
+        .get('/api/v1/events.ics')
+        .query({ neighborhood: 'x'.repeat(121) })
+
+      expect(response.status).toBe(400)
+      expect(mockedPrisma.event.findMany).not.toHaveBeenCalled()
+    })
   })
 })

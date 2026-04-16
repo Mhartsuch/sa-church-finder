@@ -806,32 +806,44 @@ const EventsDiscoveryPage = () => {
         </p>
         <div className="mt-4">
           {/*
-            The aggregated calendar feed honors the same multi-select type
-            AND denomination filters as the JSON feed, so the subscribe URL
-            reflects exactly the chips the user has toggled. When no filters
-            are active we fall back to the city-wide feed so the subscribe
-            action stays useful for any selection. The label prioritizes the
-            event-type narrative when types are chosen, otherwise names the
-            denomination selection, and otherwise points at the city feed.
+            The aggregated calendar feed honors the same multi-select type,
+            denomination, AND neighborhood filters as the JSON feed, so the
+            subscribe URL reflects exactly the chips the user has toggled.
+            When no filters are active we fall back to the city-wide feed so
+            the subscribe action stays useful for any selection. The label
+            prioritizes the most specific single-axis narrative when possible,
+            otherwise names the count of filters, and otherwise points at the
+            city feed.
           */}
           {(() => {
             const selectedTypes = filters.type ?? [];
             const selectedDenominations = filters.denomination ?? [];
+            const selectedNeighborhoods = filters.neighborhood ?? [];
+
+            const axesInUse = [
+              selectedTypes.length > 0,
+              selectedDenominations.length > 0,
+              selectedNeighborhoods.length > 0,
+            ].filter(Boolean).length;
 
             let label: string;
-            if (selectedTypes.length === 0 && selectedDenominations.length === 0) {
+            if (axesInUse === 0) {
               label = 'Subscribe to the city events feed';
-            } else if (selectedTypes.length === 1 && selectedDenominations.length === 0) {
+            } else if (axesInUse === 1 && selectedTypes.length === 1) {
               label = `Subscribe to ${EVENT_TYPE_LABELS[selectedTypes[0]]} events`;
-            } else if (selectedTypes.length === 0 && selectedDenominations.length === 1) {
+            } else if (axesInUse === 1 && selectedDenominations.length === 1) {
               label = `Subscribe to ${selectedDenominations[0]} events`;
-            } else if (selectedTypes.length === 0 && selectedDenominations.length > 1) {
-              label = `Subscribe to ${selectedDenominations.length} denomination feeds`;
-            } else if (selectedTypes.length > 0 && selectedDenominations.length === 0) {
+            } else if (axesInUse === 1 && selectedNeighborhoods.length === 1) {
+              label = `Subscribe to ${selectedNeighborhoods[0]} events`;
+            } else if (axesInUse === 1 && selectedTypes.length > 1) {
               label = `Subscribe to ${selectedTypes.length} event-type feeds`;
+            } else if (axesInUse === 1 && selectedDenominations.length > 1) {
+              label = `Subscribe to ${selectedDenominations.length} denomination feeds`;
+            } else if (axesInUse === 1 && selectedNeighborhoods.length > 1) {
+              label = `Subscribe to ${selectedNeighborhoods.length} neighborhood feeds`;
             } else {
-              // Both axes narrowed — keep it short and let the filename carry
-              // the specifics.
+              // Multiple axes narrowed — keep it short and let the filename
+              // carry the specifics.
               label = 'Subscribe to the filtered events feed';
             }
 
@@ -840,6 +852,7 @@ const EventsDiscoveryPage = () => {
                 feedUrl={buildAggregatedEventsFeedUrl({
                   type: selectedTypes.length > 0 ? selectedTypes : null,
                   denomination: selectedDenominations.length > 0 ? selectedDenominations : null,
+                  neighborhood: selectedNeighborhoods.length > 0 ? selectedNeighborhoods : null,
                 })}
                 label={label}
               />

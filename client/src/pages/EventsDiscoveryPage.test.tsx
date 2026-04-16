@@ -1415,6 +1415,74 @@ describe('EventsDiscoveryPage', () => {
       const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
       expect(apple.getAttribute('href')).toMatch(/events\.ics\?type=service&denomination=Baptist$/);
     });
+
+    it('names the single active neighborhood in the label and feed URL', () => {
+      // Neighborhood-only narrowing: the label reads naturally ("Subscribe
+      // to Downtown events") and the feed URL carries exactly the one
+      // neighborhood chip the visitor has toggled.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?neighborhood=Downtown');
+
+      const trigger = screen.getByRole('button', { name: /Subscribe to Downtown events/ });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(/events\.ics\?neighborhood=Downtown$/);
+    });
+
+    it('counts multiple neighborhoods in the label and joins them in the URL', () => {
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?neighborhood=Downtown,Alamo Heights');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to 2 neighborhood feeds/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      // URL-encoded comma (%2C) + URL-encoded space (+) — the server
+      // normalizes these back into a deduped `string[]` via the shared
+      // `neighborhoodMultiQueryParam` schema.
+      expect(apple.getAttribute('href')).toMatch(
+        /events\.ics\?neighborhood=Downtown%2CAlamo\+Heights$/,
+      );
+    });
+
+    it('combines neighborhood with another axis and uses a generic label', () => {
+      // Once two axes are narrowed (e.g. neighborhood + denomination), the
+      // label collapses to the generic "Subscribe to the filtered events
+      // feed" wording and the downloaded filename carries the specifics.
+      useEventsFeedMock.mockReturnValue({
+        data: buildResponse([]),
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      });
+
+      renderPage('/events?denomination=Baptist&neighborhood=Downtown');
+
+      const trigger = screen.getByRole('button', {
+        name: /Subscribe to the filtered events feed/,
+      });
+      fireEvent.click(trigger);
+
+      const apple = screen.getByRole('menuitem', { name: /Apple Calendar/ });
+      expect(apple.getAttribute('href')).toMatch(
+        /events\.ics\?denomination=Baptist&neighborhood=Downtown$/,
+      );
+    });
   });
 
   describe('sort control', () => {

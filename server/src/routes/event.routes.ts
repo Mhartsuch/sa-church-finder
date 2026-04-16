@@ -49,12 +49,18 @@ router.get(
       // the service layer, which matches case-insensitively but echoes the
       // caller's casing back for display.
       const denominations = Array.isArray(q.denomination) ? (q.denomination as string[]) : undefined
+      // Same story for neighborhood: schema deduplicates and normalizes the
+      // input into a `string[]` (or `undefined`). The service layer matches
+      // case-insensitively against `church.neighborhood` but echoes the
+      // caller's casing back for filename/calendar-name display.
+      const neighborhoods = Array.isArray(q.neighborhood) ? (q.neighborhood as string[]) : undefined
 
-      logger.info({ types, denominations }, 'Generating aggregated calendar feed')
+      logger.info({ types, denominations, neighborhoods }, 'Generating aggregated calendar feed')
 
       const feed = await getAggregatedCalendarFeed({
         type: types,
         denomination: denominations,
+        neighborhood: neighborhoods,
       })
       const siteUrl = resolvePublicSiteUrl()
 
@@ -79,9 +85,9 @@ router.get(
       // Filename surfaces the chosen filters so downloads stay self-descriptive
       // (e.g. `sa-church-finder-service-community-events.ics`, or
       // `sa-church-finder-baptist-events.ics` for a denomination-only feed).
-      // Denomination slugs are lowercased and non-alphanumerics collapsed to
-      // hyphens so the filename stays filesystem-safe across operating
-      // systems.
+      // Denomination and neighborhood slugs are lowercased and
+      // non-alphanumerics collapsed to hyphens so the filename stays
+      // filesystem-safe across operating systems.
       const slugifyForFilename = (value: string): string =>
         value
           .toLowerCase()
@@ -92,6 +98,11 @@ router.get(
       if (denominations && denominations.length > 0) {
         filenameParts.push(
           ...denominations.map(slugifyForFilename).filter((value) => value.length > 0),
+        )
+      }
+      if (neighborhoods && neighborhoods.length > 0) {
+        filenameParts.push(
+          ...neighborhoods.map(slugifyForFilename).filter((value) => value.length > 0),
         )
       }
       const filenameSuffix = filenameParts.length > 0 ? `-${filenameParts.join('-')}` : ''

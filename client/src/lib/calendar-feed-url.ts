@@ -53,8 +53,16 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    * `null`/`undefined` ("no filter").
    */
   denomination?: string | string[] | null;
+  /**
+   * Multi-select neighborhood filter. Mirrors the discovery page's
+   * `neighborhood` chips so the subscribe button serializes exactly the
+   * neighborhoods a visitor has toggled on. Accepts a single value, an array,
+   * or `null`/`undefined` ("no filter").
+   */
+  neighborhood?: string | string[] | null;
 }): string =>
   buildFeedUrl('/events.ics', {
     type: serializeListParam(params?.type),
     denomination: serializeListParam(params?.denomination),
+    neighborhood: serializeListParam(params?.neighborhood),
   });
