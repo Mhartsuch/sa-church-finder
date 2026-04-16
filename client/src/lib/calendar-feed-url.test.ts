@@ -335,4 +335,62 @@ describe('calendar-feed-url helpers', () => {
       'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true&familyFriendly=true&groupFriendly=true&timeOfDay=evening',
     );
   });
+
+  it('appends the keyword filter when q is set', () => {
+    // Mirrors the JSON feed's wire format (`q=bible`) so the
+    // calendar-feed query string stays in sync with the discovery page
+    // URL param the search box writes.
+    expect(buildAggregatedEventsFeedUrl({ q: 'bible' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?q=bible',
+    );
+  });
+
+  it('trims whitespace from q before serializing', () => {
+    expect(buildAggregatedEventsFeedUrl({ q: '  bible  ' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?q=bible',
+    );
+  });
+
+  it('URL-encodes keyword characters that are unsafe in query strings', () => {
+    // Spaces, ampersands, and other reserved characters must be encoded
+    // so the emitted URL is a valid query string the server can parse.
+    expect(buildAggregatedEventsFeedUrl({ q: "women's bible study" })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?q=women%27s+bible+study',
+    );
+  });
+
+  it('omits the q param when empty / whitespace-only / null / undefined', () => {
+    // Empty and whitespace-only queries collapse to "no filter" so the
+    // server keeps the city-wide default contract.
+    expect(buildAggregatedEventsFeedUrl({ q: '' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({ q: '   ' })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({ q: null })).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+    expect(buildAggregatedEventsFeedUrl({})).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics',
+    );
+  });
+
+  it('combines q with the other narrowing axes in one query string', () => {
+    expect(
+      buildAggregatedEventsFeedUrl({
+        type: ['service'],
+        denomination: ['Baptist'],
+        neighborhood: ['Downtown'],
+        language: ['Spanish'],
+        accessibleOnly: true,
+        familyFriendly: true,
+        groupFriendly: true,
+        timeOfDay: 'evening',
+        q: 'bible',
+      }),
+    ).toBe(
+      'https://api.sachurchfinder.com/api/v1/events.ics?type=service&denomination=Baptist&neighborhood=Downtown&language=Spanish&accessibleOnly=true&familyFriendly=true&groupFriendly=true&timeOfDay=evening&q=bible',
+    );
+  });
 });

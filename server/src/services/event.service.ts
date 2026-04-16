@@ -737,6 +737,7 @@ export async function getAggregatedCalendarFeed(options: {
   familyFriendly?: boolean
   groupFriendly?: boolean
   timeOfDay?: EventTimeOfDay
+  q?: string
   now?: Date
 }): Promise<ICalendarFeedPayload> {
   const now = options.now ?? new Date()
@@ -890,12 +891,48 @@ export async function getAggregatedCalendarFeed(options: {
         ? { church: churchAndClauses[0]! }
         : { church: { AND: churchAndClauses } }
 
+  // Keyword search mirrors the JSON feed: a trimmed, length-capped `q`
+  // string narrows via a case-insensitive `contains` match across the
+  // event title, description, and the host church's name. An empty /
+  // whitespace-only value skips the filter so the wire contract matches
+  // the JSON feed (`?q=` collapses to "no keyword").
+  const trimmedQuery = options.q?.trim()
+  const hasQuery = Boolean(trimmedQuery && trimmedQuery.length > 0)
+  const querySubclause: Prisma.EventWhereInput | undefined = hasQuery
+    ? {
+        OR: [
+          { title: { contains: trimmedQuery!, mode: Prisma.QueryMode.insensitive } },
+          { description: { contains: trimmedQuery!, mode: Prisma.QueryMode.insensitive } },
+          {
+            church: { name: { contains: trimmedQuery!, mode: Prisma.QueryMode.insensitive } },
+          },
+        ],
+      }
+    : undefined
+
+  // Window clause and keyword clause both want to live on the event
+  // row, so when both are present they're `AND`-composed. The
+  // pre-existing `where` kept an inline top-level `OR` for the window;
+  // adding keyword search forces it into an explicit `AND` so the two
+  // `OR` lists can coexist without Prisma collapsing them into each
+  // other.
+  const windowClause: Prisma.EventWhereInput = {
+    OR: [{ isRecurring: true }, { isRecurring: false, startTime: { gte: from } }],
+  }
+  const whereClause: Prisma.EventWhereInput = querySubclause
+    ? {
+        ...eventTypeClause,
+        ...churchClause,
+        AND: [windowClause, querySubclause],
+      }
+    : {
+        ...eventTypeClause,
+        ...churchClause,
+        ...windowClause,
+      }
+
   const rows = (await prisma.event.findMany({
-    where: {
-      ...eventTypeClause,
-      ...churchClause,
-      OR: [{ isRecurring: true }, { isRecurring: false, startTime: { gte: from } }],
-    },
+    where: whereClause,
     include: {
       church: {
         select: {
@@ -942,6 +979,10 @@ export async function getAggregatedCalendarFeed(options: {
   // Time-of-day surfaces the bucket label ("morning" / "afternoon" /
   // "evening") so subscribers see which slice of the day has been narrowed.
   if (timeOfDay) suffixParts.push(timeOfDay)
+  // Keyword narrowing reads naturally in the calendar name / description
+  // as `matching "<query>"` so subscribers can tell at a glance which slice
+  // of the feed they are watching.
+  if (hasQuery) suffixParts.push(`matching "${trimmedQuery}"`)
   const titleSuffix = suffixParts.length > 0 ? ` (${suffixParts.join(' · ')})` : ''
 
   return {

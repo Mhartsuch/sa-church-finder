@@ -100,8 +100,18 @@ export const buildAggregatedEventsFeedUrl = (params?: {
    * feed.
    */
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | null;
-}): string =>
-  buildFeedUrl('/events.ics', {
+  /**
+   * Keyword search. Mirrors the discovery page's `q` URL param — the
+   * calendar feed is restricted to events whose title, description, or
+   * host church name contains the keyword (case-insensitive). Trimmed to
+   * match the server's contract; an empty / whitespace-only value omits
+   * the param so the server returns the unfiltered feed. The wire format
+   * is `q=<keyword>` to match the JSON feed.
+   */
+  q?: string | null;
+}): string => {
+  const trimmedQ = typeof params?.q === 'string' ? params.q.trim() : '';
+  return buildFeedUrl('/events.ics', {
     type: serializeListParam(params?.type),
     denomination: serializeListParam(params?.denomination),
     neighborhood: serializeListParam(params?.neighborhood),
@@ -110,4 +120,6 @@ export const buildAggregatedEventsFeedUrl = (params?: {
     familyFriendly: params?.familyFriendly === true ? 'true' : undefined,
     groupFriendly: params?.groupFriendly === true ? 'true' : undefined,
     timeOfDay: params?.timeOfDay ?? undefined,
+    q: trimmedQ.length > 0 ? trimmedQ : undefined,
   });
+};
