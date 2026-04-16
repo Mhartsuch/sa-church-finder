@@ -36,6 +36,27 @@ describe('resolveEventDatePreset', () => {
     });
   });
 
+  it('this-sunday on a weekday jumps to the upcoming Sunday', () => {
+    expect(resolveEventDatePreset('this-sunday', wednesday)).toEqual({
+      from: '2026-04-19',
+      to: '2026-04-19',
+    });
+  });
+
+  it('this-sunday on Saturday resolves to the next day', () => {
+    expect(resolveEventDatePreset('this-sunday', saturday)).toEqual({
+      from: '2026-04-19',
+      to: '2026-04-19',
+    });
+  });
+
+  it('this-sunday on Sunday collapses to today', () => {
+    expect(resolveEventDatePreset('this-sunday', sunday)).toEqual({
+      from: '2026-04-19',
+      to: '2026-04-19',
+    });
+  });
+
   it('this-weekend on a weekday jumps to the upcoming Sat-Sun', () => {
     expect(resolveEventDatePreset('this-weekend', wednesday)).toEqual({
       from: '2026-04-18',
@@ -97,6 +118,23 @@ describe('matchEventDatePreset', () => {
 
   it('exposes every preset in display order', () => {
     const ids = EVENT_DATE_PRESETS.map((preset) => preset.id);
-    expect(ids).toEqual(['today', 'this-weekend', 'this-week', 'this-month', 'next-30-days']);
+    expect(ids).toEqual([
+      'today',
+      'this-sunday',
+      'this-weekend',
+      'this-week',
+      'this-month',
+      'next-30-days',
+    ]);
+  });
+
+  it('matches the this-sunday preset on a mid-week Wednesday', () => {
+    const resolved = resolveEventDatePreset('this-sunday', wednesday);
+    expect(matchEventDatePreset(resolved.from, resolved.to, wednesday)).toBe('this-sunday');
+  });
+
+  it('matches the this-sunday preset on a Saturday', () => {
+    const resolved = resolveEventDatePreset('this-sunday', saturday);
+    expect(matchEventDatePreset(resolved.from, resolved.to, saturday)).toBe('this-sunday');
   });
 });

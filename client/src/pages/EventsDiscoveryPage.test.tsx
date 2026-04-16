@@ -332,6 +332,44 @@ describe('EventsDiscoveryPage', () => {
     expect(cleared).not.toContain('to=');
   });
 
+  it('renders the This Sunday preset chip and syncs the upcoming Sunday into the URL on click', () => {
+    useEventsFeedMock.mockReturnValue({
+      data: buildResponse([]),
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    });
+
+    // Freeze time on a Wednesday so the upcoming-Sunday calculation is
+    // deterministic regardless of when the suite runs. 2026-04-15 is a
+    // Wednesday; the upcoming Sunday is 2026-04-19.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 3, 15, 10, 30));
+
+    try {
+      const { getSearch } = renderPage();
+
+      const presetGroup = screen.getByRole('group', { name: 'Quick date ranges' });
+      const sundayButton = within(presetGroup).getByRole('button', { name: 'This Sunday' });
+
+      expect(sundayButton).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(sundayButton);
+
+      const search = new URLSearchParams(getSearch());
+      expect(search.get('from')).toBe('2026-04-19');
+      expect(search.get('to')).toBe('2026-04-19');
+
+      expect(
+        within(screen.getByRole('group', { name: 'Quick date ranges' })).getByRole('button', {
+          name: 'This Sunday',
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('hides the "From saved churches" toggle for signed-out visitors', () => {
     useEventsFeedMock.mockReturnValue({
       data: buildResponse([]),

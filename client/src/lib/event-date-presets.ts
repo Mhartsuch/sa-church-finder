@@ -12,6 +12,7 @@
 
 export type EventDatePresetId =
   | 'today'
+  | 'this-sunday'
   | 'this-weekend'
   | 'this-week'
   | 'this-month'
@@ -56,6 +57,20 @@ export const resolveEventDatePreset = (
     case 'today': {
       const key = toDateKey(today);
       return { from: key, to: key };
+    }
+
+    case 'this-sunday': {
+      // If today is Sunday, use today. Otherwise jump to the upcoming Sunday.
+      // Churches in San Antonio concentrate primary services on Sundays, so
+      // visitors frequently plan their first visit specifically around
+      // "this Sunday" rather than the broader weekend window.
+      if (dayOfWeek === 0) {
+        const key = toDateKey(today);
+        return { from: key, to: key };
+      }
+      const daysUntilSunday = 7 - dayOfWeek;
+      const sundayKey = toDateKey(addDays(today, daysUntilSunday));
+      return { from: sundayKey, to: sundayKey };
     }
 
     case 'this-weekend': {
@@ -103,6 +118,7 @@ export const EVENT_DATE_PRESETS: ReadonlyArray<{
   label: string;
 }> = [
   { id: 'today', label: 'Today' },
+  { id: 'this-sunday', label: 'This Sunday' },
   { id: 'this-weekend', label: 'This weekend' },
   { id: 'this-week', label: 'This week' },
   { id: 'this-month', label: 'This month' },
