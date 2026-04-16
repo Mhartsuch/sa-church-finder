@@ -65,17 +65,72 @@ export interface ISavedChurch extends Omit<IChurchSummary, 'distance'> {
   savedAt: string;
 }
 
+export type SavedChurchSort = 'savedAt' | 'name' | 'rating';
+
+export interface ISavedChurchesParams {
+  sort?: SavedChurchSort;
+  order?: 'asc' | 'desc';
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ISavedChurchesResponse {
+  data: ISavedChurch[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface IUpdateChurchInput {
+  description?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  pastorName?: string | null;
+  yearEstablished?: number | null;
+  languages?: string[];
+  amenities?: string[];
+  goodForChildren?: boolean | null;
+  goodForGroups?: boolean | null;
+  wheelchairAccessible?: boolean | null;
+}
+
 export interface ISearchParams {
   lat?: number;
   lng?: number;
   radius?: number;
   q?: string;
-  denomination?: string;
+  /**
+   * Denomination filter. Multi-select: an array is OR-combined on the
+   * backend ("Baptist OR Methodist"). Serialised to the `denomination` wire
+   * param as a comma-separated list, which the backend splits and ORs —
+   * a one-element array behaves identically to the legacy single-value
+   * filter, so old callers keep working.
+   */
+  denomination?: string[];
   day?: number;
   time?: string;
-  language?: string;
-  amenities?: string;
-  sort?: 'distance' | 'rating' | 'name';
+  /**
+   * Service language filter. Multi-select: an array is OR-combined on the
+   * backend ("English OR Spanish"). A single-element array is equivalent to
+   * the legacy single-value filter.
+   */
+  languages?: string[];
+  amenities?: string[];
+  wheelchairAccessible?: boolean;
+  goodForChildren?: boolean;
+  goodForGroups?: boolean;
+  minRating?: number;
+  neighborhood?: string;
+  serviceType?: string;
+  hasPhotos?: boolean;
+  isClaimed?: boolean;
+  openNow?: boolean;
+  sort?: 'relevance' | 'distance' | 'rating' | 'name';
   page?: number;
   pageSize?: number;
   bounds?: string;
@@ -91,8 +146,21 @@ export interface ISearchResponse {
   };
 }
 
+/**
+ * One denomination family option returned by `/filter-options`. The
+ * `count` is the number of operational churches in that family (closed-
+ * permanently churches are excluded on the backend) and is used by the
+ * UI to sort and label the chips as "Baptist · 42".
+ */
+export interface IDenominationOption {
+  value: string;
+  count: number;
+}
+
 export interface IFilterOptions {
-  denominations: string[];
+  denominations: IDenominationOption[];
   languages: string[];
   amenities: string[];
+  neighborhoods: string[];
+  serviceTypes: string[];
 }

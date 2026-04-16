@@ -2,10 +2,12 @@ import { FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Building2,
   Calendar,
   CheckCircle,
   ChevronLeft,
   Clock,
+  Compass,
   ExternalLink,
   Globe,
   Heart,
@@ -13,19 +15,27 @@ import {
   MapPin,
   Phone,
   ShieldAlert,
-  Share,
   Star,
   ThumbsUp,
   Users,
 } from 'lucide-react';
 
 import { Lightbox } from '@/components/church/Lightbox';
+import { LogVisitModal } from '@/components/church/LogVisitModal';
+import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
+import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalendarButton';
+import { buildChurchEventsFeedUrl } from '@/lib/calendar-feed-url';
+import { getAwardDisplayName } from '@/utils/awards';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
+import { ShareButton } from '@/components/layout/ShareButton';
 import ReviewForm from '@/components/reviews/ReviewForm';
+import { BreadcrumbJsonLd, ChurchJsonLd } from '@/components/seo/JsonLd';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { useAuthSession } from '@/hooks/useAuth';
 import { useSubmitChurchClaim } from '@/hooks/useChurchClaims';
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches';
 import { useChurchEvents } from '@/hooks/useEvents';
+import { useCreateVisit } from '@/hooks/usePassport';
 import {
   useAddHelpfulVote,
   useChurchReviews,
@@ -212,6 +222,7 @@ export const ChurchProfilePage = () => {
   const addHelpfulVoteMutation = useAddHelpfulVote();
   const flagReviewMutation = useFlagReview();
   const removeHelpfulVoteMutation = useRemoveHelpfulVote();
+  const createVisitMutation = useCreateVisit();
   const { data: church, isLoading, error } = useChurch(slug ?? '');
   const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>('all');
   const [eventDateRange, setEventDateRange] = useState<EventDateRange>('next-30-days');
@@ -229,6 +240,7 @@ export const ChurchProfilePage = () => {
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [flagDialogReviewId, setFlagDialogReviewId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isLogVisitModalOpen, setIsLogVisitModalOpen] = useState(false);
   const eventWindow = buildEventDateWindow(eventWindowBaseIso, eventDateRange);
   const {
     data: churchEventsResponse,
@@ -247,6 +259,20 @@ export const ChurchProfilePage = () => {
     sort: reviewSort,
     page: reviewPage,
     pageSize: 10,
+  });
+
+  const churchDescription = church?.description
+    ? church.description.slice(0, 155)
+    : church
+      ? `${church.name} in ${church.neighborhood ?? 'San Antonio'}, TX. Read reviews, view service times, and get directions.`
+      : undefined;
+
+  useDocumentHead({
+    title: church?.name,
+    description: churchDescription,
+    canonicalPath: slug ? `/churches/${slug}` : undefined,
+    ogType: 'place',
+    ogImage: church?.coverImageUrl ?? church?.photos?.[0]?.url ?? undefined,
   });
 
   if (isLoading) {
@@ -319,8 +345,19 @@ export const ChurchProfilePage = () => {
     try {
       await toggleSavedChurchMutation.mutateAsync(church.id);
       addToast({
-        message: church.isSaved ? 'Removed from your wishlist' : 'Saved to your wishlist',
+        message: church.isSaved ? 'Removed from saved churches' : 'Saved to your list',
         variant: 'success',
+        ...(church.isSaved
+          ? {
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  void toggleSavedChurchMutation.mutateAsync(church.id);
+                },
+              },
+              duration: 6000,
+            }
+          : {}),
       });
     } catch (toggleError) {
       addToast({
@@ -328,6 +365,41 @@ export const ChurchProfilePage = () => {
           toggleError instanceof Error
             ? toggleError.message
             : 'Unable to update saved churches right now.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleLogVisit = async (input: { visitedAt: string; notes?: string; rating?: number }) => {
+    if (!user) {
+      navigateToLogin();
+      return;
+    }
+
+    try {
+      const result = await createVisitMutation.mutateAsync({
+        churchId: church.id,
+        input,
+      });
+
+      setIsLogVisitModalOpen(false);
+
+      addToast({
+        message: 'Visit logged to your passport!',
+        variant: 'success',
+      });
+
+      for (const award of result.newAwards) {
+        addToast({
+          message: `You earned the ${getAwardDisplayName(award)} badge!`,
+          variant: 'success',
+          duration: 6000,
+        });
+      }
+    } catch (visitError) {
+      addToast({
+        message:
+          visitError instanceof Error ? visitError.message : 'Unable to log your visit right now.',
         variant: 'error',
       });
     }
@@ -443,6 +515,14 @@ export const ChurchProfilePage = () => {
 
   return (
     <div className="flex-1 overflow-y-auto bg-background">
+      <ChurchJsonLd church={church} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: 'https://sachurchfinder.com/' },
+          { name: 'Search', url: 'https://sachurchfinder.com/search' },
+          { name: church.name, url: `https://sachurchfinder.com/churches/${church.slug}` },
+        ]}
+      />
       <div className="mx-auto max-w-[1180px] px-6 pb-4 pt-6 lg:px-0">
         <Link
           to="/"
@@ -509,10 +589,18 @@ export const ChurchProfilePage = () => {
               </div>
 
               <div className="mt-4 flex items-center gap-4">
-                <button className="flex items-center gap-2 text-sm font-semibold text-foreground underline hover:text-foreground">
-                  <Share className="h-4 w-4" />
-                  Share
-                </button>
+                <ShareButton
+                  target={{
+                    title: church.name,
+                    text: church.description
+                      ? church.description.slice(0, 140)
+                      : `${church.name} on SA Church Finder`,
+                    url:
+                      typeof window !== 'undefined'
+                        ? `${window.location.origin}/churches/${church.slug}`
+                        : `/churches/${church.slug}`,
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -532,6 +620,16 @@ export const ChurchProfilePage = () => {
                       ? 'Saved'
                       : 'Save'}
                 </button>
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLogVisitModalOpen(true)}
+                    className="flex items-center gap-2 text-sm font-semibold text-foreground underline hover:text-foreground"
+                  >
+                    <Compass className="h-4 w-4" />
+                    Log Visit
+                  </button>
+                )}
               </div>
 
               {saveError ? (
@@ -663,6 +761,12 @@ export const ChurchProfilePage = () => {
                     See what is happening beyond Sunday morning, from studies and service days to
                     community nights that help you get a feel for the church.
                   </p>
+                  <div className="mt-3">
+                    <SubscribeToCalendarButton
+                      feedUrl={buildChurchEventsFeedUrl(church.slug)}
+                      label={`Subscribe to ${church.name} events`}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
@@ -778,7 +882,7 @@ export const ChurchProfilePage = () => {
                 <div className="mt-6 space-y-4">
                   {churchEvents.map((event) => (
                     <article
-                      key={event.id}
+                      key={event.occurrenceId}
                       className="rounded-[28px] border border-border bg-card p-6 shadow-airbnb-subtle"
                     >
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -815,6 +919,35 @@ export const ChurchProfilePage = () => {
                           <div className="mt-3 flex items-center gap-3">
                             <MapPin className="h-4 w-4 text-foreground" />
                             <span>{event.locationOverride || church.address}</span>
+                          </div>
+                          <div className="mt-4 flex flex-wrap justify-end gap-2">
+                            <ShareButton
+                              variant="subtle"
+                              target={{
+                                title: `${event.title} — ${church.name}`,
+                                text: event.description
+                                  ? event.description.slice(0, 140)
+                                  : `${formatEventDate(event.startTime)} at ${church.name}`,
+                                url:
+                                  typeof window !== 'undefined'
+                                    ? `${window.location.origin}/churches/${church.slug}#events`
+                                    : `/churches/${church.slug}#events`,
+                              }}
+                            />
+                            <AddToCalendarButton
+                              event={{
+                                id: event.occurrenceId,
+                                title: `${event.title} — ${church.name}`,
+                                description: event.description,
+                                startTime: event.startTime,
+                                endTime: event.endTime,
+                                location: event.locationOverride || church.address,
+                                url:
+                                  typeof window !== 'undefined'
+                                    ? `${window.location.origin}/churches/${church.slug}`
+                                    : `/churches/${church.slug}`,
+                              }}
+                            />
                           </div>
                         </div>
                       </div>
@@ -982,6 +1115,30 @@ export const ChurchProfilePage = () => {
                         <p className="mt-4 whitespace-pre-line text-sm leading-7 text-foreground">
                           {review.body}
                         </p>
+
+                        {review.responseBody ? (
+                          <div className="mt-4 rounded-2xl border border-gray-100 bg-[#f7f7f7] p-5">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-semibold text-foreground">
+                                Response from {church.name}
+                              </span>
+                              {review.respondedAt ? (
+                                <span className="text-xs text-muted-foreground">
+                                  ·{' '}
+                                  {new Date(review.respondedAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                              {review.responseBody}
+                            </p>
+                          </div>
+                        ) : null}
 
                         {subratings.length > 0 ? (
                           <div className="mt-4 flex flex-wrap gap-2">
@@ -1240,6 +1397,10 @@ export const ChurchProfilePage = () => {
                             </span>
                             <input
                               type="email"
+                              inputMode="email"
+                              autoComplete="email"
+                              autoCapitalize="none"
+                              spellCheck={false}
                               value={claimVerificationEmail}
                               onChange={(event) => {
                                 setClaimVerificationEmail(event.target.value);
@@ -1310,6 +1471,18 @@ export const ChurchProfilePage = () => {
           initialIndex={lightboxIndex}
           alt={church.name}
           onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
+      {isLogVisitModalOpen && (
+        <LogVisitModal
+          churchId={church.id}
+          churchName={church.name}
+          isPending={createVisitMutation.isPending}
+          onSubmit={(input) => {
+            void handleLogVisit(input);
+          }}
+          onClose={() => setIsLogVisitModalOpen(false)}
         />
       )}
 

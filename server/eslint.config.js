@@ -46,4 +46,12 @@ export default defineConfig([
       },
     },
   },
+  {
+    // CLI scripts are intentionally chatty — they print progress, summaries,
+    // and operator-facing diagnostics straight to stdout.
+    files: ['src/scripts/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ])

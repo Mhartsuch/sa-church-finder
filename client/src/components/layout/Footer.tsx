@@ -27,14 +27,20 @@ const FOOTER_COLUMNS = [
   },
 ];
 
+const COMMUNITY_ROUTED_LINKS = new Map<string, string>([
+  ['Community events', '/events'],
+  ['Forum', '/forum'],
+  ['Church leaders portal', '/leaders'],
+]);
+
 export const Footer = () => {
   const supportLinksByLabel = new Map<string, string>(
     SUPPORT_LINKS.map((link) => [link.label, link.to]),
   );
 
   return (
-    <footer className="border-t border-border bg-muted">
-      <div className="mx-auto max-w-[1760px] px-10 py-12">
+    <footer aria-label="Site footer" className="border-t border-border bg-muted">
+      <div className="mx-auto max-w-[1760px] px-4 py-8 sm:px-6 sm:py-12 lg:px-10">
         {import.meta.env.VITE_STRIPE_DONATION_URL && (
           <div className="mb-8 flex flex-col items-center gap-3 border-b border-border pb-6 text-center">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -57,25 +63,29 @@ export const Footer = () => {
             <div key={column.title}>
               <h4 className="mb-4 text-sm font-bold">{column.title}</h4>
               <ul className="space-y-3">
-                {column.links.map((link) => (
-                  <li key={link}>
-                    {supportLinksByLabel.has(link) ? (
-                      <Link
-                        to={supportLinksByLabel.get(link) ?? '/'}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                      >
-                        {link}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                      >
-                        {link}
-                      </button>
-                    )}
-                  </li>
-                ))}
+                {column.links.map((link) => {
+                  const routedTo =
+                    supportLinksByLabel.get(link) ?? COMMUNITY_ROUTED_LINKS.get(link);
+                  return (
+                    <li key={link}>
+                      {routedTo ? (
+                        <Link
+                          to={routedTo}
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                        >
+                          {link}
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                        >
+                          {link}
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

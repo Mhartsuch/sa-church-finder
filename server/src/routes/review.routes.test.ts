@@ -3,6 +3,18 @@ import request from 'supertest'
 
 import { createApp } from '../app.js'
 import prisma from '../lib/prisma.js'
+import {
+  sendNewReviewNotification,
+  sendReviewResponseNotification,
+} from '../services/notification-email.service.js'
+
+jest.mock('../services/notification-email.service.js', () => ({
+  __esModule: true,
+  sendNewReviewNotification: jest.fn().mockResolvedValue(undefined),
+  sendReviewResponseNotification: jest.fn().mockResolvedValue(undefined),
+  sendWelcomeEmail: jest.fn().mockResolvedValue(undefined),
+  sendClaimStatusEmail: jest.fn().mockResolvedValue(undefined),
+}))
 
 jest.mock('../lib/prisma.js', () => ({
   __esModule: true,
@@ -99,9 +111,7 @@ const baseReview = {
 describe('review routes', () => {
   beforeEach(() => {
     jest.resetAllMocks()
-    mockedPrisma.$transaction.mockImplementation((operations: unknown[]) =>
-      Promise.all(operations),
-    )
+    mockedPrisma.$transaction.mockImplementation((operations: unknown[]) => Promise.all(operations))
   })
 
   const loginAgent = async (): Promise<ReturnType<typeof request.agent>> => {
@@ -125,12 +135,10 @@ describe('review routes', () => {
   }
 
   it('requires authentication to create a review', async () => {
-    const response = await request(createApp())
-      .post('/api/v1/churches/church-1/reviews')
-      .send({
-        rating: 4.5,
-        body: 'This church felt warm and welcoming from start to finish, and the sermon stayed with us all afternoon.',
-      })
+    const response = await request(createApp()).post('/api/v1/churches/church-1/reviews').send({
+      rating: 4.5,
+      body: 'This church felt warm and welcoming from start to finish, and the sermon stayed with us all afternoon.',
+    })
 
     expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('AUTH_ERROR')
@@ -261,11 +269,9 @@ describe('review routes', () => {
         id: 'review-2',
         helpfulCount: 4,
       })
-    mockedPrisma.reviewVote.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        reviewId: 'review-2',
-      })
+    mockedPrisma.reviewVote.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      reviewId: 'review-2',
+    })
     mockedPrisma.reviewVote.create.mockResolvedValueOnce({
       userId: 'user-1',
       reviewId: 'review-2',
@@ -476,6 +482,135 @@ describe('review routes', () => {
       reviewId: 'review-3',
       status: 'removed',
     })
+  })
+
+  it('lets a church admin respond to a review and notifies the reviewer the first time', async () => {
+    const churchAdmin = {
+      ...baseUser,
+      id: 'admin-1',
+      email: 'pastor@example.com',
+      name: 'Pastor Jane',
+      role: 'CHURCH_ADMIN',
+    }
+    const passwordHash = await bcrypt.hash('password123', 12)
+
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      ...churchAdmin,
+      passwordHash,
+    })
+
+    const agent = request.agent(createApp())
+    const loginResponse = await agent.post('/api/v1/auth/login').send({
+      email: 'pastor@example.com',
+      password: 'password123',
+    })
+
+    expect(loginResponse.status).toBe(200)
+
+    // First response: review has no prior responseBody -> should notify.
+    mockedPrisma.review.findUnique.mockResolvedValueOnce({
+      id: 'review-1',
+      churchId: 'church-1',
+      responseBody: null,
+      user: { email: 'reviewer@example.com', name: 'Review Author' },
+      church: { name: 'Grace Fellowship', slug: 'grace-fellowship' },
+    })
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'admin-1',
+      isClaimed: true,
+    })
+    mockedPrisma.review.update.mockResolvedValueOnce({
+      id: 'review-1',
+    })
+
+    const firstResponse = await agent.post('/api/v1/reviews/review-1/response').send({
+      body: 'Thank you so much for the kind words — we hope to see you again soon!',
+    })
+
+    expect(firstResponse.status).toBe(201)
+    expect(firstResponse.body.data).toMatchObject({
+      reviewId: 'review-1',
+      responseBody: 'Thank you so much for the kind words — we hope to see you again soon!',
+    })
+
+    // Give the fire-and-forget notification a microtask tick to resolve.
+    await new Promise((resolve) => setImmediate(resolve))
+
+    expect(sendReviewResponseNotification).toHaveBeenCalledTimes(1)
+    expect(sendReviewResponseNotification).toHaveBeenCalledWith({
+      reviewerEmail: 'reviewer@example.com',
+      reviewerName: 'Review Author',
+      churchName: 'Grace Fellowship',
+      churchSlug: 'grace-fellowship',
+      responseExcerpt: 'Thank you so much for the kind words — we hope to see you again soon!',
+    })
+
+    // Second response: review already has a responseBody -> must NOT notify again.
+    ;(sendReviewResponseNotification as jest.Mock).mockClear()
+
+    mockedPrisma.review.findUnique.mockResolvedValueOnce({
+      id: 'review-1',
+      churchId: 'church-1',
+      responseBody: 'Earlier reply',
+      user: { email: 'reviewer@example.com', name: 'Review Author' },
+      church: { name: 'Grace Fellowship', slug: 'grace-fellowship' },
+    })
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'admin-1',
+      role: 'CHURCH_ADMIN',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'admin-1',
+      isClaimed: true,
+    })
+    mockedPrisma.review.update.mockResolvedValueOnce({
+      id: 'review-1',
+    })
+
+    const editResponse = await agent.post('/api/v1/reviews/review-1/response').send({
+      body: 'Updated reply — thanks again!',
+    })
+
+    expect(editResponse.status).toBe(201)
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(sendReviewResponseNotification).not.toHaveBeenCalled()
+
+    // Silence unused-import complaints while keeping the reference for mocking.
+    expect(sendNewReviewNotification).toBeDefined()
+  })
+
+  it('rejects a response from a user who does not own the church claim', async () => {
+    const agent = await loginAgent()
+
+    mockedPrisma.review.findUnique.mockResolvedValueOnce({
+      id: 'review-1',
+      churchId: 'church-1',
+      responseBody: null,
+      user: { email: 'reviewer@example.com', name: 'Review Author' },
+      church: { name: 'Grace Fellowship', slug: 'grace-fellowship' },
+    })
+    mockedPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      role: 'USER',
+    })
+    mockedPrisma.church.findUnique.mockResolvedValueOnce({
+      id: 'church-1',
+      claimedById: 'someone-else',
+      isClaimed: true,
+    })
+
+    const response = await agent.post('/api/v1/reviews/review-1/response').send({
+      body: 'Thanks for the review.',
+    })
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('FORBIDDEN')
   })
 
   it('deletes a review, updates aggregates, and exposes account review history only to the owner', async () => {

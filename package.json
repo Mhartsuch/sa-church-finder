@@ -23,9 +23,13 @@
     "lint-staged": "lint-staged",
     "db:migrate": "cd server && npx prisma migrate dev",
     "db:seed": "cd server && npx prisma db seed",
+    "db:grant-admin": "cd server && npx tsx src/scripts/grant-admin.ts",
     "db:refresh-curated-data": "cd server && npx tsx prisma/refresh-curated-church-data.ts",
     "db:studio": "cd server && npx prisma studio",
     "import:google-churches": "cd server && npx tsx src/scripts/google-import/index.ts",
+    "enrich:church-details": "cd server && npx tsx src/scripts/enrich-details/index.ts",
+    "enrich:website": "cd server && npx tsx src/scripts/enrich-website/index.ts",
+    "enrich:website-v2": "cd server && npx tsx src/scripts/enrich-website-v2/index.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },

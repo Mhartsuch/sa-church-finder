@@ -1,58 +1,267 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { RequireAuth } from '@/components/auth/RequireAuth';
+import { ChurchProfileSkeleton } from '@/components/church/ChurchProfileSkeleton';
+import { EventsSkeleton } from '@/components/layout/EventsSkeleton';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
+import { InstallPrompt } from '@/components/layout/InstallPrompt';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { OfflineBanner } from '@/components/layout/OfflineBanner';
+import { PageFallback } from '@/components/layout/PageFallback';
+import { RouteErrorBoundary } from '@/components/layout/RouteErrorBoundary';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { ToastContainer } from '@/components/layout/Toast';
-import { ToastProvider } from '@/hooks/useToast';
+import { ToastProvider } from '@/hooks/ToastProvider';
+
+// Eagerly loaded: home + search are the primary entry points
 import HomePage from '@/pages/HomePage';
 import { SearchPage } from '@/pages/SearchPage';
-import { ChurchProfilePage } from '@/pages/ChurchProfilePage';
-import AccountPage from '@/pages/AccountPage';
-import ComparePage from '@/pages/ComparePage';
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
-import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import VerifyEmailPage from '@/pages/VerifyEmailPage';
-import HelpCenterPage from '@/pages/HelpCenterPage';
-import SafetyInformationPage from '@/pages/SafetyInformationPage';
-import AccessibilityPage from '@/pages/AccessibilityPage';
-import ReportConcernPage from '@/pages/ReportConcernPage';
-import PrivacyPage from '@/pages/PrivacyPage';
-import TermsPage from '@/pages/TermsPage';
-import SitemapPage from '@/pages/SitemapPage';
-import LeadersPortalPage from '@/pages/LeadersPortalPage';
+
+// Lazy-loaded: secondary pages split into separate chunks
+const ChurchProfilePage = lazy(() =>
+  import('@/pages/ChurchProfilePage').then((m) => ({ default: m.ChurchProfilePage })),
+);
+const AccountPage = lazy(() => import('@/pages/AccountPage'));
+const ComparePage = lazy(() => import('@/pages/ComparePage'));
+const EventsDiscoveryPage = lazy(() => import('@/pages/EventsDiscoveryPage'));
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'));
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
+const VerifyEmailPage = lazy(() => import('@/pages/VerifyEmailPage'));
+const HelpCenterPage = lazy(() => import('@/pages/HelpCenterPage'));
+const SafetyInformationPage = lazy(() => import('@/pages/SafetyInformationPage'));
+const AccessibilityPage = lazy(() => import('@/pages/AccessibilityPage'));
+const ReportConcernPage = lazy(() => import('@/pages/ReportConcernPage'));
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
+const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const SitemapPage = lazy(() => import('@/pages/SitemapPage'));
+const LeadersPortalPage = lazy(() => import('@/pages/LeadersPortalPage'));
+const ForumPage = lazy(() => import('@/pages/ForumPage'));
+const PassportPage = lazy(() => import('@/pages/PassportPage'));
+const CollectionPage = lazy(() => import('@/pages/CollectionPage'));
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const AnalyticsDashboardPage = lazy(() => import('@/pages/AnalyticsDashboardPage'));
 
 const App = () => {
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="mobile-nav-spacer flex min-h-screen flex-col bg-background">
+        <a
+          href="#main-content"
+          className="sr-only z-[100] rounded bg-[#FF385C] px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        >
+          Skip to main content
+        </a>
+        <OfflineBanner />
         <ScrollToTop />
         <Header />
-        <Routes>
+        <main id="main-content">
+          <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/compare" element={<ComparePage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/churches/:slug" element={<ChurchProfilePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/help-center" element={<HelpCenterPage />} />
-          <Route path="/safety-information" element={<SafetyInformationPage />} />
-          <Route path="/accessibility" element={<AccessibilityPage />} />
-          <Route path="/report-a-concern" element={<ReportConcernPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/sitemap" element={<SitemapPage />} />
+          <Route
+            path="/churches/:slug"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<ChurchProfileSkeleton />}>
+                  <ChurchProfilePage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/events"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<EventsSkeleton />}>
+                  <EventsDiscoveryPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/compare"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ComparePage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <LoginPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <RegisterPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ForgotPasswordPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ResetPasswordPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/verify-email"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <VerifyEmailPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/help-center"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <HelpCenterPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/safety-information"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <SafetyInformationPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/accessibility"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <AccessibilityPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/report-a-concern"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ReportConcernPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/privacy"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <PrivacyPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/terms"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <TermsPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/sitemap"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <SitemapPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/forum"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <ForumPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/passport"
+            element={
+              <RequireAuth>
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <PassportPage />
+                  </Suspense>
+                </RouteErrorBoundary>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/users/:id/passport"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <PassportPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
+          <Route
+            path="/collections/:id"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <CollectionPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
           <Route
             path="/leaders"
             element={
               <RequireAuth>
-                <LeadersPortalPage />
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <LeadersPortalPage />
+                  </Suspense>
+                </RouteErrorBoundary>
               </RequireAuth>
             }
           />
@@ -60,13 +269,39 @@ const App = () => {
             path="/account"
             element={
               <RequireAuth>
-                <AccountPage />
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <AccountPage />
+                  </Suspense>
+                </RouteErrorBoundary>
               </RequireAuth>
             }
           />
-        </Routes>
+          <Route
+            path="/analytics"
+            element={
+              <RequireAuth>
+                <RouteErrorBoundary>
+                  <Suspense fallback={<PageFallback />}>
+                    <AnalyticsDashboardPage />
+                  </Suspense>
+                </RouteErrorBoundary>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <NotFoundPage />
+              </Suspense>
+            }
+          />
+          </Routes>
+        </main>
         <Footer />
         <MobileNav />
+        <InstallPrompt />
       </div>
       <ToastContainer />
     </ToastProvider>

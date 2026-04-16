@@ -1,1 +1,1 @@
-sh scripts/pre-push-check.sh
+bash scripts/pre-push-check.sh

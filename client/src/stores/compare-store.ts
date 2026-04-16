@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { IChurchSummary } from '@/types/church';
 
 export const COMPARE_STORAGE_KEY = 'church-finder-compare';
+export const MAX_COMPARE = 4;
 
 interface CompareStore {
   selectedChurches: IChurchSummary[];
@@ -76,6 +77,7 @@ export const useCompareStore = create<CompareStore>((set) => ({
 
   addChurch: (church) =>
     set((state) => {
+      if (state.selectedChurches.length >= MAX_COMPARE) return state;
       const selectedChurches = state.selectedChurches.some(
         (selectedChurch) => selectedChurch.id === church.id,
       )
@@ -101,7 +103,9 @@ export const useCompareStore = create<CompareStore>((set) => ({
       );
       const selectedChurches = alreadySelected
         ? state.selectedChurches.filter((selectedChurch) => selectedChurch.id !== church.id)
-        : dedupeChurches([...state.selectedChurches, church]);
+        : state.selectedChurches.length >= MAX_COMPARE
+          ? state.selectedChurches
+          : dedupeChurches([...state.selectedChurches, church]);
 
       persistChurches(selectedChurches);
       return { selectedChurches };

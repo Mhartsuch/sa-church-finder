@@ -29,6 +29,20 @@ enum ClaimStatus {
   @@map("claim_status")
 }
 
+enum RibbonCategorySource {
+  MANUAL
+  AUTO
+
+  @@map("ribbon_category_source")
+}
+
+enum RibbonCategoryFilterType {
+  QUERY
+  DENOMINATION
+
+  @@map("ribbon_category_filter_type")
+}
+
 // Models
 model User {
   id                    String                 @id @default(uuid())
@@ -39,10 +53,14 @@ model User {
   role                  Role                   @default(USER)
   googleId              String?                @unique
   emailVerified         Boolean                @default(false)
+  deactivatedAt         DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   reviews               Review[]
   savedChurches         UserSavedChurch[]
+  churchVisits          ChurchVisit[]
+  collections           ChurchCollection[]
+  awards                UserAward[]
   claimedChurches       ChurchClaim[]          @relation("claimUser")
   reviewedClaims        ChurchClaim[]          @relation("reviewedBy")
   photos                ChurchPhoto[]
@@ -50,6 +68,8 @@ model User {
   reviewVotes           ReviewVote[]
   passwordResetTokens   PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
+  forumPosts            ForumPost[]            @relation("ForumPosts")
+  forumReplies          ForumReply[]           @relation("ForumReplies")
 
   @@map("users")
 }
@@ -99,11 +119,34 @@ model Church {
   events                Event[]
   claims                ChurchClaim[]
   savedByUsers          UserSavedChurch[]
+  visits                ChurchVisit[]
+  collectionItems       ChurchCollectionItem[]
+  enrichmentState       EnrichmentState?
 
   @@index([slug])
   @@index([denominationFamily])
   @@index([latitude, longitude])
   @@map("churches")
+}
+
+model EnrichmentState {
+  id            String    @id @default(uuid())
+  churchId      String    @unique
+  church        Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  version       String    @default("v2")
+  status        String    // pending | fetched | extracted | applied | skipped_no_data | failed | rate_limited
+  pagesFetched  Json      @default("[]")
+  extractedData Json?
+  confidence    Float?
+  source        String?
+  lastError     String?
+  attempts      Int       @default(0)
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, version])
+  @@map("enrichment_states")
 }
 
 model ChurchService {
@@ -152,6 +195,8 @@ model Review {
   facilitiesRating      Int?
   helpfulCount          Int                    @default(0)
   isFlagged             Boolean                @default(false)
+  responseBody          String?
+  respondedAt           DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   votes                 ReviewVote[]
@@ -185,9 +230,12 @@ model Event {
   recurrenceRule        String?
   createdById           String?
   createdBy             User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  isAutoImported        Boolean                @default(false)
+  sourceUrl             String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
+  @@index([churchId, isAutoImported])
   @@map("events")
 }
 
@@ -232,6 +280,25 @@ model EmailVerificationToken {
   @@map("email_verification_tokens")
 }
 
+model RibbonCategory {
+  id          String                     @id @default(uuid())
+  label       String
+  icon        String                     @default("⛪")
+  slug        String                     @unique
+  filterType  RibbonCategoryFilterType
+  filterValue String
+  position    Int                        @default(0)
+  isVisible   Boolean                    @default(true)
+  source      RibbonCategorySource       @default(MANUAL)
+  isPinned    Boolean                    @default(false)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  @@index([position])
+  @@index([isVisible])
+  @@map("ribbon_categories")
+}
+
 model UserSavedChurch {
   userId                String
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -241,4 +308,97 @@ model UserSavedChurch {
 
   @@id([userId, churchId])
   @@map("user_saved_churches")
+}
+
+model ChurchVisit {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  visitedAt             DateTime               @db.Date
+  notes                 String?
+  rating                Int?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@unique([userId, churchId, visitedAt])
+  @@index([userId])
+  @@map("church_visits")
+}
+
+model ChurchCollection {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String?
+  slug                  String
+  isPublic              Boolean                @default(true)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  items                 ChurchCollectionItem[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@map("church_collections")
+}
+
+model ChurchCollectionItem {
+  collectionId          String
+  collection            ChurchCollection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  churchId              String
+  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  notes                 String?
+  addedAt               DateTime               @default(now())
+
+  @@id([collectionId, churchId])
+  @@map("church_collection_items")
+}
+
+model UserAward {
+  id                    String                 @id @default(uuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  awardType             String
+  earnedAt              DateTime               @default(now())
+
+  @@unique([userId, awardType])
+  @@index([userId])
+  @@map("user_awards")
+}
+
+model ForumPost {
+  id        String       @id @default(cuid())
+  title     String
+  body      String
+  category  String       @default("general")
+  authorId  String
+  author    User         @relation("ForumPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  replies   ForumReply[]
+  isPinned  Boolean      @default(false)
+  isLocked  Boolean      @default(false)
+  viewCount Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([category])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("forum_posts")
+}
+
+model ForumReply {
+  id        String    @id @default(cuid())
+  body      String
+  postId    String
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation("ForumReplies", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("forum_replies")
 }

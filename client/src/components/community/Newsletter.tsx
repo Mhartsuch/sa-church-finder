@@ -34,10 +34,15 @@ export const Newsletter = () => {
         <form onSubmit={handleSubmit} className="mx-auto mt-6 flex max-w-md gap-3">
           <input
             type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
-            className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-[14px] outline-none transition-colors focus:border-foreground"
+            aria-label="Email address"
+            className="min-h-[44px] flex-1 rounded-xl border border-border bg-card px-4 py-3 text-[14px] outline-none transition-colors focus:border-foreground"
           />
           <button
             type="submit"
