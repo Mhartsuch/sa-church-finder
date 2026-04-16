@@ -708,9 +708,10 @@ export async function getChurchCalendarFeedBySlug(
 /**
  * Fetch events across every church for the aggregated calendar feed. Supports
  * the same multi-select event-type, denomination, neighborhood, and language
- * filters as the JSON aggregated feed plus the boolean wheelchair-accessible
- * and family-friendly narrowings so visitors can subscribe to a calendar
- * scoped to exactly the chips they have toggled on the discovery page.
+ * filters as the JSON aggregated feed plus the boolean wheelchair-accessible,
+ * family-friendly, and group-friendly narrowings so visitors can subscribe to
+ * a calendar scoped to exactly the chips they have toggled on the discovery
+ * page.
  *
  * `type` accepts either a single `ChurchEventType` (legacy callers) or an
  * array of types. `denomination`, `neighborhood`, and `language` accept arrays
@@ -718,9 +719,10 @@ export async function getChurchCalendarFeedBySlug(
  * restricts the feed to events at churches whose `wheelchairAccessible` flag
  * is `true` (excluding both `false` and `null`). `familyFriendly`, when
  * `true`, applies the same nullable-boolean semantics to
- * `church.goodForChildren`. An empty array (or `undefined`) for any
- * list-valued option is treated as "no filter" so callers can
- * default-construct without guarding.
+ * `church.goodForChildren`. `groupFriendly`, when `true`, applies the same
+ * nullable-boolean semantics to `church.goodForGroups`. An empty array (or
+ * `undefined`) for any list-valued option is treated as "no filter" so
+ * callers can default-construct without guarding.
  */
 export async function getAggregatedCalendarFeed(options: {
   type?: ChurchEventType | ChurchEventType[]
@@ -729,6 +731,7 @@ export async function getAggregatedCalendarFeed(options: {
   language?: string[]
   accessibleOnly?: boolean
   familyFriendly?: boolean
+  groupFriendly?: boolean
   now?: Date
 }): Promise<ICalendarFeedPayload> {
   const now = options.now ?? new Date()
@@ -818,14 +821,22 @@ export async function getAggregatedCalendarFeed(options: {
   // scoped to kid-friendly venues. `familyFriendly: false` / `undefined`
   // skips the filter, matching the JSON feed's contract.
   const familyFriendly = options.familyFriendly === true
+  // `goodForGroups` mirrors the nullable-boolean semantics above:
+  // requiring `true` excludes both `false` and `null` (unknown) so
+  // small-group leaders, Bible-study organizers, and volunteer
+  // coordinators can trust the subscribed calendar is scoped to
+  // group-friendly venues. `groupFriendly: false` / `undefined` skips
+  // the filter, matching the JSON feed's contract.
+  const groupFriendly = options.groupFriendly === true
 
   // All narrowing axes live on the related church, so they compose as
   // a single nested `church` clause. When only one axis is narrowed we
   // inline its sub-clause directly; when multiple are narrowed we
   // `AND`-compose them so the intended semantics stay `(neighborhood OR
   // [...]) AND (denomination OR [...]) AND (languages hasSome [...]) AND
-  // (wheelchairAccessible = true) AND (goodForChildren = true)` —
-  // Prisma only allows a single top-level `OR` per clause.
+  // (wheelchairAccessible = true) AND (goodForChildren = true) AND
+  // (goodForGroups = true)` — Prisma only allows a single top-level `OR`
+  // per clause.
   const denominationSubclause: Prisma.ChurchWhereInput | undefined = hasDenominationFilter
     ? {
         OR: denominationMatchList.map((value) => ({
@@ -855,6 +866,9 @@ export async function getAggregatedCalendarFeed(options: {
   const familyFriendlySubclause: Prisma.ChurchWhereInput | undefined = familyFriendly
     ? { goodForChildren: true }
     : undefined
+  const groupFriendlySubclause: Prisma.ChurchWhereInput | undefined = groupFriendly
+    ? { goodForGroups: true }
+    : undefined
 
   const churchAndClauses: Prisma.ChurchWhereInput[] = []
   if (neighborhoodSubclause) churchAndClauses.push(neighborhoodSubclause)
@@ -862,6 +876,7 @@ export async function getAggregatedCalendarFeed(options: {
   if (languageSubclause) churchAndClauses.push(languageSubclause)
   if (accessibleSubclause) churchAndClauses.push(accessibleSubclause)
   if (familyFriendlySubclause) churchAndClauses.push(familyFriendlySubclause)
+  if (groupFriendlySubclause) churchAndClauses.push(groupFriendlySubclause)
 
   const churchClause: { church?: Prisma.ChurchWhereInput } =
     churchAndClauses.length === 0
@@ -904,6 +919,10 @@ export async function getAggregatedCalendarFeed(options: {
   // static "good for kids" chip in the calendar name / description so
   // subscribers see the narrowing alongside any other active filters.
   if (familyFriendly) suffixParts.push('good for kids')
+  // Group-friendly mirrors the family-friendly suffix — a single static
+  // "good for groups" chip in the calendar name / description so
+  // subscribers see the narrowing alongside any other active filters.
+  if (groupFriendly) suffixParts.push('good for groups')
   const titleSuffix = suffixParts.length > 0 ? ` (${suffixParts.join(' · ')})` : ''
 
   return {
