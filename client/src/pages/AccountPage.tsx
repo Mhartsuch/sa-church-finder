@@ -21,6 +21,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { AccountSettings } from '@/components/auth/AccountSettings';
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
+import { resolveAvatarSrc } from '@/lib/avatar';
 import { useAuthSession, useLogout, useRequestEmailVerification } from '@/hooks/useAuth';
 import {
   useAdminChurchClaims,
@@ -429,11 +430,7 @@ const AccountPage = () => {
                 <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[24px] bg-foreground text-xl font-bold text-white">
                   {user.avatarUrl ? (
                     <img
-                      src={
-                        user.avatarUrl.startsWith('http')
-                          ? user.avatarUrl
-                          : `${import.meta.env.VITE_API_URL || ''}${user.avatarUrl}`
-                      }
+                      src={resolveAvatarSrc(user.avatarUrl) ?? undefined}
                       alt={user.name}
                       className="h-full w-full object-cover"
                     />

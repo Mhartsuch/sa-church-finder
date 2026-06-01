@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Camera, KeyRound, Pencil, Trash2, UserX, X } from 'lucide-react';
 
 import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
+import { resolveAvatarSrc } from '@/lib/avatar';
 import {
   useChangePassword,
   useDeactivateAccount,
@@ -16,15 +17,6 @@ interface AccountSettingsProps {
   user: AuthUser;
   onDeactivated: () => void;
 }
-
-const resolveAvatarSrc = (avatarUrl: string | null): string | null => {
-  if (!avatarUrl) return null;
-  if (avatarUrl.startsWith('http')) return avatarUrl;
-
-  const apiBase = import.meta.env.VITE_API_URL || '';
-
-  return `${apiBase}${avatarUrl}`;
-};
 
 export function AccountSettings({ user, onDeactivated }: AccountSettingsProps) {
   const { addToast } = useToast();

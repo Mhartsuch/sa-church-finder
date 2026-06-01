@@ -14,6 +14,7 @@ import {
   Trophy,
 } from 'lucide-react';
 
+import { resolveAvatarSrc } from '@/lib/avatar';
 import { useAuthSession } from '@/hooks/useAuth';
 import { usePassport, useUserCollections } from '@/hooks/usePassport';
 import { useToast } from '@/hooks/useToast';
@@ -148,6 +149,7 @@ const PassportPage = () => {
   }
 
   const { user: passportUser, stats, awards, recentVisits } = passport;
+  const avatarSrc = resolveAvatarSrc(passportUser.avatarUrl);
   const earnedAwardTypes = new Set(awards.map((a) => a.awardType));
   const earnedAwardMap = new Map(awards.map((a) => [a.awardType, a]));
 
@@ -160,9 +162,9 @@ const PassportPage = () => {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            {passportUser.avatarUrl ? (
+            {avatarSrc ? (
               <img
-                src={passportUser.avatarUrl}
+                src={avatarSrc}
                 alt={passportUser.name}
                 className="h-16 w-16 rounded-full object-cover border-2 border-gray-100"
               />
