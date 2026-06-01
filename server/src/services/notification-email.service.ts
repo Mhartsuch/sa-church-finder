@@ -1,8 +1,8 @@
-import logger from '../lib/logger.js'
 import { sendEmail, isEmailDeliveryConfigured } from '../lib/email.js'
+import logger from '../lib/logger.js'
+import { resolvePublicSiteUrl } from '../lib/public-url.js'
 
 const APP_NAME = 'SA Church Finder'
-const BASE_URL = process.env.CLIENT_URL ?? 'https://sachurchfinder.com'
 
 function escapeHtml(value: string): string {
   return value
@@ -28,6 +28,7 @@ interface WelcomeEmailInput {
 export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> {
   if (!isEmailDeliveryConfigured()) return
 
+  const BASE_URL = resolvePublicSiteUrl()
   const greetingName = resolveGreetingName(input.name)
   const escapedName = escapeHtml(greetingName)
   const searchUrl = escapeHtml(`${BASE_URL}/search`)
@@ -91,6 +92,7 @@ interface ClaimStatusEmailInput {
 export async function sendClaimStatusEmail(input: ClaimStatusEmailInput): Promise<void> {
   if (!isEmailDeliveryConfigured()) return
 
+  const BASE_URL = resolvePublicSiteUrl()
   const greetingName = resolveGreetingName(input.name)
   const escapedName = escapeHtml(greetingName)
   const escapedChurchName = escapeHtml(input.churchName)
@@ -189,6 +191,7 @@ export async function sendReviewResponseNotification(
 ): Promise<void> {
   if (!isEmailDeliveryConfigured()) return
 
+  const BASE_URL = resolvePublicSiteUrl()
   const greetingName = resolveGreetingName(input.reviewerName)
   const escapedName = escapeHtml(greetingName)
   const escapedChurchName = escapeHtml(input.churchName)
@@ -254,6 +257,7 @@ interface NewReviewEmailInput {
 export async function sendNewReviewNotification(input: NewReviewEmailInput): Promise<void> {
   if (!isEmailDeliveryConfigured()) return
 
+  const BASE_URL = resolvePublicSiteUrl()
   const greetingName = resolveGreetingName(input.adminName)
   const escapedName = escapeHtml(greetingName)
   const escapedChurchName = escapeHtml(input.churchName)
