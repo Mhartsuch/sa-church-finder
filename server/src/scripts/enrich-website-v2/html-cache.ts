@@ -32,7 +32,11 @@ export async function readHtmlCache(
   const path = cachePath(churchId, url)
   try {
     const info = await stat(path)
-    const age = Date.now() - info.mtimeMs
+    // `mtimeMs` is a sub-millisecond float while `Date.now()` is truncated to
+    // whole milliseconds, so a file written in the same millisecond can report
+    // a slightly negative age. Clamp to 0 so a brand-new entry reads as age 0
+    // and `maxAgeMs: 0` deterministically means "always stale".
+    const age = Math.max(0, Date.now() - info.mtimeMs)
     if (age >= maxAgeMs) return null
     return await readFile(path, 'utf8')
   } catch {
