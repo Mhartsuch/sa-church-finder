@@ -2,6 +2,9 @@ import prisma from '../lib/prisma.js'
 import { NotFoundError } from '../middleware/error-handler.js'
 import { IChurchService, ISavedChurch } from '../types/church.types.js'
 
+const DEFAULT_PAGE_SIZE = 20
+const MAX_PAGE_SIZE = 50
+
 const toNumber = (value: unknown): number => {
   if (typeof value === 'number') {
     return value
@@ -184,7 +187,12 @@ export async function getSavedChurchesForUser(
   userId: string,
   query: ISavedChurchesQuery = {},
 ): Promise<ISavedChurchesResponse> {
-  const { sort = 'savedAt', order = 'desc', q, page = 1, pageSize = 20 } = query
+  const { sort = 'savedAt', order = 'desc', q } = query
+  // Defensively clamp pagination the same way every sibling list service does
+  // (reviews, forum, events), so the endpoint can never return more than
+  // MAX_PAGE_SIZE rows even if a caller bypasses the route-level Zod schema.
+  const page = Math.max(1, query.page ?? 1)
+  const pageSize = Math.min(Math.max(query.pageSize ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE)
 
   // Build the where clause with optional text search
   const where: Record<string, unknown> = { userId }

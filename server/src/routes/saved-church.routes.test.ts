@@ -192,4 +192,13 @@ describe('saved church routes', () => {
     expect(otherSavedResponse.status).toBe(403)
     expect(otherSavedResponse.body.error.code).toBe('FORBIDDEN')
   })
+
+  it('rejects a pageSize above the documented maximum of 50', async () => {
+    const agent = await loginAgent()
+
+    const response = await agent.get('/api/v1/users/user-1/saved?pageSize=100')
+
+    expect(response.status).toBe(400)
+    expect(mockedPrisma.userSavedChurch.findMany).not.toHaveBeenCalled()
+  })
 })

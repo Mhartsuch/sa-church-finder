@@ -14,7 +14,7 @@ export const userSavedChurchesSchema = z.object({
       order: z.enum(['asc', 'desc']).optional(),
       q: z.string().optional(),
       page: z.coerce.number().int().min(1).optional(),
-      pageSize: z.coerce.number().int().min(1).max(100).optional(),
+      pageSize: z.coerce.number().int().min(1).max(50).optional(),
     })
     .passthrough(),
   body: z.object({}).passthrough(),
