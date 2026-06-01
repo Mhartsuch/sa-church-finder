@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -36,6 +36,7 @@ import { useSubmitChurchClaim } from '@/hooks/useChurchClaims';
 import { useChurch, useToggleSavedChurch } from '@/hooks/useChurches';
 import { useChurchEvents } from '@/hooks/useEvents';
 import { useCreateVisit } from '@/hooks/usePassport';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import {
   useAddHelpfulVote,
   useChurchReviews,
@@ -224,6 +225,7 @@ export const ChurchProfilePage = () => {
   const removeHelpfulVoteMutation = useRemoveHelpfulVote();
   const createVisitMutation = useCreateVisit();
   const { data: church, isLoading, error } = useChurch(slug ?? '');
+  const { addRecent } = useRecentlyViewed();
   const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>('all');
   const [eventDateRange, setEventDateRange] = useState<EventDateRange>('next-30-days');
   const [eventWindowBaseIso, setEventWindowBaseIso] = useState(() => new Date().toISOString());
@@ -274,6 +276,22 @@ export const ChurchProfilePage = () => {
     ogType: 'place',
     ogImage: church?.coverImageUrl ?? church?.photos?.[0]?.url ?? undefined,
   });
+
+  // Record this church in the visitor's "Recently viewed" rail (persisted to
+  // localStorage) once its profile has loaded. React Query keeps `church`
+  // referentially stable until the data changes, so this fires once per
+  // distinct church the visitor opens.
+  useEffect(() => {
+    if (!church) return;
+    addRecent({
+      id: church.id,
+      slug: church.slug,
+      name: church.name,
+      denomination: church.denomination,
+      avgRating: church.avgRating,
+      coverImageUrl: church.coverImageUrl,
+    });
+  }, [church, addRecent]);
 
   if (isLoading) {
     return <ProfileSkeleton />;

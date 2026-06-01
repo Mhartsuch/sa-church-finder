@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
@@ -238,6 +238,22 @@ describe('ChurchProfilePage', () => {
     renderChurchProfilePage();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Grace Baptist Church');
+  });
+
+  it('records the viewed church in the recently-viewed list', async () => {
+    localStorage.removeItem('church-finder-recently-viewed');
+    renderChurchProfilePage();
+
+    await waitFor(() => {
+      const stored = localStorage.getItem('church-finder-recently-viewed');
+      expect(stored).toBeTruthy();
+      const parsed = JSON.parse(stored as string) as Array<{ id: string; slug: string }>;
+      expect(parsed[0]).toMatchObject({
+        id: 'church-1',
+        slug: 'grace-baptist-church',
+        name: 'Grace Baptist Church',
+      });
+    });
   });
 
   it('shows the church denomination', () => {
