@@ -496,8 +496,8 @@ export async function getChurchAdmins(
 
 /**
  * Remove an admin from a church. Only the primary admin (claimedById) or a
- * site admin can remove other admins. Admins cannot remove themselves if they
- * are the only remaining admin.
+ * site admin can remove other admins. The primary admin cannot be removed,
+ * which guarantees a church always retains at least one admin.
  */
 export async function removeChurchAdmin(
   churchId: string,
