@@ -86,7 +86,7 @@
 | google_review_count   | INTEGER          | NULLABLE                | Review count from Google Places API                       |
 | is_claimed            | BOOLEAN          | default false           | Whether a church admin has claimed it                     |
 | claimed_by            | UUID             | FK → users.id, NULLABLE |                                                           |
-| languages             | TEXT[]           | default ['English']     | Array of languages                                        |
+| languages             | TEXT[]           | default []              | Array of languages                                        |
 | amenities             | TEXT[]           | default []              | e.g., ['parking', 'wheelchair', 'childcare']              |
 | cover_image_url       | TEXT             | NULLABLE                | Primary listing photo                                     |
 | google_place_id       | TEXT             | UNIQUE, NULLABLE        | Google Places API ID for import deduplication             |
