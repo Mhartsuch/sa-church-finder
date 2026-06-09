@@ -6,6 +6,7 @@ import { createSessionMiddleware, SESSION_COOKIE_NAME } from './session.js'
 
 const originalNodeEnv = process.env.NODE_ENV
 const originalSessionCookieSameSite = process.env.SESSION_COOKIE_SAME_SITE
+const originalSessionSecret = process.env.SESSION_SECRET
 
 const createTestApp = (): Express => {
   const app = express()
@@ -37,6 +38,7 @@ describe('session middleware', () => {
   beforeEach(() => {
     delete process.env.SESSION_COOKIE_SAME_SITE
     delete process.env.NODE_ENV
+    delete process.env.SESSION_SECRET
   })
 
   afterAll(() => {
@@ -50,6 +52,12 @@ describe('session middleware', () => {
       delete process.env.NODE_ENV
     } else {
       process.env.NODE_ENV = originalNodeEnv
+    }
+
+    if (originalSessionSecret === undefined) {
+      delete process.env.SESSION_SECRET
+    } else {
+      process.env.SESSION_SECRET = originalSessionSecret
     }
   })
 
@@ -67,6 +75,7 @@ describe('session middleware', () => {
 
   it('uses SameSite=None with Secure in production so split-origin auth can persist', async () => {
     process.env.NODE_ENV = 'production'
+    process.env.SESSION_SECRET = 'test-session-secret'
 
     const response = await request(createTestApp())
       .get('/session')
@@ -81,8 +90,17 @@ describe('session middleware', () => {
     expect(sessionCookie).toContain('Secure')
   })
 
+  it('refuses to start in production without an explicit SESSION_SECRET', () => {
+    process.env.NODE_ENV = 'production'
+
+    expect(() => createSessionMiddleware()).toThrow(
+      'SESSION_SECRET must be set when NODE_ENV=production',
+    )
+  })
+
   it('honors an explicit SameSite override for environments that stay same-site in production', async () => {
     process.env.NODE_ENV = 'production'
+    process.env.SESSION_SECRET = 'test-session-secret'
     process.env.SESSION_COOKIE_SAME_SITE = 'lax'
 
     const response = await request(createTestApp())

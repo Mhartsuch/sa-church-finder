@@ -110,12 +110,6 @@ Get full church profile by slug.
 
 ---
 
-#### `POST /churches` _(site_admin only)_
-
-Create a new church listing.
-
----
-
 #### `PATCH /churches/:id` _(church_admin or site_admin)_
 
 Update editable church listing fields. Only included fields are changed (PATCH semantics). String fields accept `null` to clear the value.
@@ -712,6 +706,36 @@ List flagged reviews for moderation.
 
 ---
 
+#### `PATCH /admin/flagged-reviews/:id` _(site_admin)_
+
+Resolve a flagged review.
+
+| Field  | Type   | Required                      |
+| ------ | ------ | ----------------------------- |
+| status | string | Yes ('approved' or 'removed') |
+
+**Notes:** `approved` clears the flag and keeps the review; `removed` deletes the review and refreshes the church's aggregate rating.
+
+---
+
+### Analytics
+
+#### `GET /analytics/churches/:churchId` _(church_admin or site_admin)_
+
+Analytics for a single church. Requires an approved claim on the church (or site admin).
+
+**Response:** church id/name plus rating, review, save, and visit aggregates, including six-month trend buckets and 30-day counts.
+
+---
+
+#### `GET /analytics/my-churches` _(authenticated)_
+
+Analytics for every church the caller manages — site admins receive all churches, other users receive the churches they hold approved claims on.
+
+**Response:** array of the same analytics objects returned by `GET /analytics/churches/:churchId`.
+
+---
+
 ### Church Claims
 
 #### `POST /churches/:id/claim` _(authenticated)_
@@ -722,6 +746,20 @@ Submit a claim request for a church.
 | ------------------ | ------ | -------- |
 | role_title         | string | Yes      |
 | verification_email | string | Yes      |
+
+---
+
+#### `GET /churches/:id/admins` _(church_admin or site_admin)_
+
+List the approved admins for a church. Callers must be a site admin or hold an approved claim on the church themselves.
+
+**Response:** array of admins (user id, name, email, role title, approval date).
+
+---
+
+#### `DELETE /churches/:id/admins/:adminUserId` _(church_admin or site_admin)_
+
+Revoke a user's church-admin access by retiring their approved claim.
 
 ---
 
@@ -852,7 +890,18 @@ Remove a church from a collection.
 
 ## Rate Limiting
 
-- Auth endpoints: 5 requests/minute per IP
+Enforced today (in-house fixed-window limiter, per IP, per server instance —
+see `server/src/middleware/rate-limit.ts`):
+
+- Credential endpoints (`POST /auth/register`, `/auth/login`,
+  `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`,
+  `/auth/verify-email/resend`, `/auth/change-password`): a shared budget of
+  **5 requests/minute per IP**. Exceeding it returns `429` with code
+  `RATE_LIMITED`, plus `RateLimit-Limit`/`RateLimit-Remaining`/`RateLimit-Reset`
+  and `Retry-After` headers.
+
+Planned (not yet enforced):
+
 - Write endpoints (POST/PATCH/DELETE): 30 requests/minute per user
 - Read endpoints: 100 requests/minute per IP
 - Search endpoint: 60 requests/minute per IP

@@ -46,6 +46,13 @@ function shouldUseDatabaseSessionStore(): boolean {
 
 export const createSessionMiddleware = (): RequestHandler => {
   const isProduction = process.env.NODE_ENV === 'production'
+
+  // The development fallback secret must never sign production cookies:
+  // anyone who knows it can forge sessions. Fail fast instead.
+  if (isProduction && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET must be set when NODE_ENV=production')
+  }
+
   const sessionSecret = process.env.SESSION_SECRET || 'dev-session-secret'
   const sameSite = resolveSessionCookieSameSite()
   const config: session.SessionOptions = {
