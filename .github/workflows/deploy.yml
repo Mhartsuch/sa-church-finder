@@ -94,11 +94,12 @@ jobs:
         env:
           VITE_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
           VITE_API_URL: ${{ secrets.API_URL }}
-      - name: Deploy to Vercel
+      - name: Deploy to Render
         run: |
-          echo "Deploy frontend to Vercel"
+          echo "Frontend deploys via Render auto-deploy from main (render.yaml)"
           echo "Commit: ${{ inputs.rollback_to || github.sha }}"
-          # Uncomment: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+          # For a manual redeploy, trigger a Render deploy hook:
+          # curl -X POST "${{ secrets.RENDER_CLIENT_DEPLOY_HOOK_URL }}"
 
   # ── Post-deploy health check ──
   health-check:

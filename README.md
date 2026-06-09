@@ -4,7 +4,7 @@ Airbnb-style church discovery for San Antonio, built with React, Express, Prisma
 
 ## Start Here
 
-- Contributor and agent handoff: `AGENT_BRIEFING.md`
+- Contributor and agent handoff: `AGENTS.md` (current status lives in `docs/process/TODO.md`)
 - Local setup and commands: `docs/setup/QUICKSTART.md`
 - Documentation index: `docs/README.md`
 
@@ -34,5 +34,5 @@ npm run build
 
 ## Notes
 
-- The repo root is intentionally kept light: the main entry points are this file and `AGENT_BRIEFING.md`.
+- The repo root is intentionally kept light: the main entry points are this file and `AGENTS.md`. (`AGENT_BRIEFING.md` and `AI_CONTEXT.md` are deprecated and kept for history only.)
 - Supporting docs were reorganized under `docs/` on 2026-03-31 to reduce root-level clutter without deleting project history.

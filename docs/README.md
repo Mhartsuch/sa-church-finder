@@ -4,7 +4,7 @@ The documentation is grouped by purpose so the repo root stays easy to scan.
 
 ## Start With
 
-- `../AGENT_BRIEFING.md` for current project status and session guidance
+- `../AGENTS.md` for repo conventions and session guidance; `process/TODO.md` for current status
 - `setup/QUICKSTART.md` for local setup and common commands
 
 ## Folders

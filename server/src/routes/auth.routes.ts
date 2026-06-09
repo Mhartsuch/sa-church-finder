@@ -4,6 +4,7 @@ import { NextFunction, Request, Response, Router } from 'express'
 import { resolveClientUrls, SESSION_COOKIE_NAME } from '../lib/session.js'
 import logger from '../lib/logger.js'
 import { AuthError } from '../middleware/error-handler.js'
+import { createRateLimiter } from '../middleware/rate-limit.js'
 import { requireAuth } from '../middleware/require-auth.js'
 import { validate } from '../middleware/validate.js'
 import {
@@ -34,6 +35,16 @@ import {
 import { changePassword } from '../services/user.service.js'
 
 const router = Router()
+
+// One shared 5-requests-per-minute-per-IP budget across the credential
+// endpoints (register, login, password reset, email verification) to slow
+// brute-force and credential-stuffing attempts. See docs/engineering/API_SPEC.md.
+const authRateLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 5,
+  name: 'authentication attempts',
+})
+
 const DEFAULT_AUTH_RETURN_TO = '/account'
 const GOOGLE_OAUTH_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_OAUTH_SCOPE = 'openid email profile'
@@ -275,6 +286,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
 router.post(
   '/register',
+  authRateLimiter,
   validate(authRegisterSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -298,6 +310,7 @@ router.post(
 
 router.post(
   '/verify-email/resend',
+  authRateLimiter,
   validate(authResendVerificationSchema),
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -324,6 +337,7 @@ router.post(
 
 router.post(
   '/verify-email',
+  authRateLimiter,
   validate(authVerifyEmailSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -349,6 +363,7 @@ router.post(
 
 router.post(
   '/forgot-password',
+  authRateLimiter,
   validate(authForgotPasswordSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -371,6 +386,7 @@ router.post(
 
 router.post(
   '/reset-password',
+  authRateLimiter,
   validate(authResetPasswordSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -393,6 +409,7 @@ router.post(
 
 router.post(
   '/login',
+  authRateLimiter,
   validate(authLoginSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -416,6 +433,7 @@ router.post(
 
 router.post(
   '/change-password',
+  authRateLimiter,
   validate(changePasswordSchema),
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {

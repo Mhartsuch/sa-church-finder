@@ -130,20 +130,14 @@ SA Church Finder is a full-stack web application with a React SPA frontend commu
 
 ### Staging / Preview
 
-- **Frontend previews:** Vercel deploys a unique preview URL for every PR to `main` (via `.github/workflows/preview.yml`). Each preview points to the staging API.
-- **Staging API:** Render web service (`sa-church-finder-staging-api`) auto-deploys from the `develop` branch.
-- **Staging DB:** Render free-tier PostgreSQL (`sa-church-finder-staging-db`).
-- **CORS:** The staging API accepts all `*.vercel.app` origins so any Vercel preview can connect.
-
-#### Setup (one-time)
-
-1. Run `npx vercel link` in `client/` to connect the Vercel project.
-2. Set Vercel environment variables: `VITE_API_URL=https://sa-church-finder-staging-api.onrender.com`, `VITE_MAPBOX_TOKEN`.
-3. Add GitHub secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
-4. Deploy `render.yaml` to create the staging services.
-5. Run `prisma migrate deploy` against the staging DB to initialize the schema.
-6. Optionally seed the staging DB: `npx prisma db seed`.
+There is no staging or PR-preview environment today. An earlier Vercel
+preview + Render staging setup (a `sa-church-finder-staging-api` service and
+`sa-church-finder-staging-db` database tracking a `develop` branch) was
+removed on 2026-06-09: the `develop` branch never existed, the preview
+workflow failed on every PR, and CORS no longer accepts `*.vercel.app`
+origins. Changes are verified locally (`npm run dev`, full test suite) and CI
+gates every PR to `main`.
 
 ---
 
-_Last updated: 2026-03-26_
+_Last updated: 2026-06-09_

@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import compression from 'compression'
 import cors from 'cors'
 import express, { Express, Request, Response } from 'express'
 import helmet from 'helmet'
@@ -50,6 +51,7 @@ export const createApp = (): Express => {
       frameguard: { action: 'deny' },
     }),
   )
+  app.use(compression())
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ limit: '10mb', extended: true }))
   app.use(
@@ -58,7 +60,6 @@ export const createApp = (): Express => {
         if (!origin) return callback(null, true)
         if (clientUrls === '*') return callback(null, true)
         if (clientUrls.includes(origin)) return callback(null, true)
-        if (/\.vercel\.app$/.test(origin)) return callback(null, true)
         callback(new Error(`CORS: origin ${origin} not allowed`))
       },
       credentials: true,

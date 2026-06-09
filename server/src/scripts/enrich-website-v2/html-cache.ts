@@ -29,6 +29,12 @@ export async function readHtmlCache(
   url: string,
   maxAgeMs: number = DEFAULT_MAX_AGE_MS,
 ): Promise<string | null> {
+  // A non-positive max age means "always stale". Short-circuit instead of
+  // comparing against the file's age: stat().mtimeMs has sub-millisecond
+  // precision while Date.now() is integral, so a just-written file can
+  // report a slightly negative age and slip past the comparison below.
+  if (maxAgeMs <= 0) return null
+
   const path = cachePath(churchId, url)
   try {
     const info = await stat(path)

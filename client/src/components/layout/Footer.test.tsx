@@ -42,4 +42,43 @@ describe('Footer', () => {
     expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
     expect(screen.getByRole('link', { name: 'Sitemap' })).toHaveAttribute('href', '/sitemap');
   });
+
+  it('routes the discovery and product links to real destinations', () => {
+    render(
+      <MemoryRouter>
+        <Footer />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'All San Antonio churches' })).toHaveAttribute(
+      'href',
+      '/search',
+    );
+    expect(screen.getByRole('link', { name: 'Historic missions' })).toHaveAttribute(
+      'href',
+      '/search?q=mission',
+    );
+    expect(screen.getByRole('link', { name: 'List your church' })).toHaveAttribute(
+      'href',
+      '/leaders',
+    );
+    expect(screen.getByRole('link', { name: 'Compare churches' })).toHaveAttribute(
+      'href',
+      '/compare',
+    );
+  });
+
+  it('renders no dead footer controls (every entry is a real link)', () => {
+    render(
+      <MemoryRouter>
+        <Footer />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('About us')).not.toBeInTheDocument();
+    expect(screen.queryByText('Careers')).not.toBeInTheDocument();
+    expect(screen.queryByText('Blog')).not.toBeInTheDocument();
+    expect(screen.queryByText('English (US)')).not.toBeInTheDocument();
+  });
 });
