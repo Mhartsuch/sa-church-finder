@@ -1,4 +1,4 @@
-import { Globe, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SUPPORT_LINKS } from '@/constants/support';
 
@@ -8,36 +8,43 @@ const FOOTER_LEGAL_LINKS = [
   { label: 'Sitemap', to: '/sitemap' },
 ] as const;
 
-const FOOTER_COLUMNS = [
+const FOOTER_COLUMNS: ReadonlyArray<{
+  title: string;
+  links: ReadonlyArray<{ label: string; to: string }>;
+}> = [
   {
     title: 'Support',
-    links: ['Help Center', 'Safety information', 'Accessibility', 'Report a concern'],
+    links: SUPPORT_LINKS,
   },
   {
     title: 'Community',
-    links: ['Church leaders portal', 'Volunteer opportunities', 'Community events', 'Forum'],
+    links: [
+      { label: 'Church leaders portal', to: '/leaders' },
+      { label: 'Community events', to: '/events' },
+      { label: 'Forum', to: '/forum' },
+    ],
   },
   {
     title: 'Discovering',
-    links: ['San Antonio churches', 'Historic missions', 'Megachurches', 'Community churches'],
+    links: [
+      { label: 'All San Antonio churches', to: '/search' },
+      { label: 'Historic missions', to: '/search?q=mission' },
+      { label: 'Catholic parishes', to: '/search?q=catholic' },
+      { label: 'Baptist churches', to: '/search?q=baptist' },
+    ],
   },
   {
     title: 'ChurchFinder',
-    links: ['About us', 'List your church', 'Careers', 'Blog'],
+    links: [
+      { label: 'List your church', to: '/leaders' },
+      { label: 'Compare churches', to: '/compare' },
+      { label: 'Church passport', to: '/passport' },
+      { label: 'My account', to: '/account' },
+    ],
   },
 ];
 
-const COMMUNITY_ROUTED_LINKS = new Map<string, string>([
-  ['Community events', '/events'],
-  ['Forum', '/forum'],
-  ['Church leaders portal', '/leaders'],
-]);
-
 export const Footer = () => {
-  const supportLinksByLabel = new Map<string, string>(
-    SUPPORT_LINKS.map((link) => [link.label, link.to]),
-  );
-
   return (
     <footer aria-label="Site footer" className="border-t border-border bg-muted">
       <div className="mx-auto max-w-[1760px] px-4 py-8 sm:px-6 sm:py-12 lg:px-10">
@@ -63,60 +70,31 @@ export const Footer = () => {
             <div key={column.title}>
               <h4 className="mb-4 text-sm font-bold">{column.title}</h4>
               <ul className="space-y-3">
-                {column.links.map((link) => {
-                  const routedTo =
-                    supportLinksByLabel.get(link) ?? COMMUNITY_ROUTED_LINKS.get(link);
-                  return (
-                    <li key={link}>
-                      {routedTo ? (
-                        <Link
-                          to={routedTo}
-                          className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                        >
-                          {link}
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                        >
-                          {link}
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      to={link.to}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>&copy; {new Date().getFullYear()} ChurchFinder, Inc.</span>
-            {FOOTER_LEGAL_LINKS.map((link) => (
-              <div key={link.to} className="flex items-center gap-2">
-                <span>&middot;</span>
-                <Link to={link.to} className="hover:underline">
-                  {link.label}
-                </Link>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="text-foreground transition-colors hover:text-muted-foreground"
-            >
-              <Globe className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="text-sm font-semibold text-foreground transition-colors hover:text-muted-foreground"
-            >
-              English (US)
-            </button>
-          </div>
+        <div className="mt-8 flex flex-wrap items-center gap-2 border-t border-border pt-6 text-sm text-muted-foreground">
+          <span>&copy; {new Date().getFullYear()} ChurchFinder, Inc.</span>
+          {FOOTER_LEGAL_LINKS.map((link) => (
+            <div key={link.to} className="flex items-center gap-2">
+              <span>&middot;</span>
+              <Link to={link.to} className="hover:underline">
+                {link.label}
+              </Link>
+            </div>
+          ))}
         </div>
       </div>
     </footer>
