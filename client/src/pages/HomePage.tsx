@@ -201,6 +201,8 @@ const HomePage = () => {
         <div
           className="absolute inset-0 opacity-[0.15] mix-blend-luminosity"
           style={{
+            // This image is preloaded via <link rel="preload"> in client/index.html.
+            // If the URL changes here, update it there too so they don't drift.
             backgroundImage:
               "url('https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1400&q=80')",
             backgroundPosition: 'center',

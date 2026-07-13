@@ -16,18 +16,42 @@ export default defineConfig({
     // first route actually needs.
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'query-vendor': ['@tanstack/react-query', '@tanstack/react-virtual'],
-          'map-vendor': ['react-map-gl', 'mapbox-gl'],
-          'sentry-vendor': ['@sentry/react'],
-          'ui-vendor': [
-            'lucide-react',
-            'embla-carousel-react',
-            'class-variance-authority',
-            'clsx',
-            'tailwind-merge',
-          ],
+        // Function form (not object form) so chunks are only created for modules
+        // actually reachable from each entry point. Object form forces every
+        // listed chunk (e.g. map-vendor) into the eager modulepreload set even
+        // when it is only imported by lazy-loaded components.
+        manualChunks(id) {
+          // Vite's dynamic-import preload helper is shared by every lazy chunk.
+          // Pin it to react-vendor (which everything already imports) so Rollup
+          // doesn't hoist it into an otherwise-lazy chunk like map-vendor and
+          // drag that chunk into the eager graph.
+          if (id.includes('vite/preload-helper')) return 'react-vendor'
+          // 'mapbox-gl' is aliased to src/lib/mapbox-gl-runtime.ts, so match it
+          // by path rather than node_modules.
+          if (id.includes('node_modules/react-map-gl') || id.includes('mapbox-gl-runtime')) {
+            return 'map-vendor'
+          }
+          if (!id.includes('node_modules')) return
+          if (id.includes('@sentry')) return 'sentry-vendor'
+          if (id.includes('@tanstack')) return 'query-vendor'
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/scheduler/') ||
+            id.includes('react-router') ||
+            id.includes('@remix-run/router')
+          ) {
+            return 'react-vendor'
+          }
+          if (
+            id.includes('lucide-react') ||
+            id.includes('embla-carousel') ||
+            id.includes('class-variance-authority') ||
+            id.includes('node_modules/clsx/') ||
+            id.includes('tailwind-merge')
+          ) {
+            return 'ui-vendor'
+          }
         },
       },
     },
