@@ -27,10 +27,31 @@ interface DenominationRule {
  * More specific patterns MUST come before broader ones.
  */
 const DENOMINATION_RULES: DenominationRule[] = [
+  // ── Latter-day Saints ──
+  // Must precede the Catholic rules: the San Antonio LDS temple is named
+  // "San Antonio Texas Temple", which the Spanish saint-name rule would
+  // otherwise claim. LDS temples follow the "<City> <State> Temple" pattern.
+  {
+    pattern: /\b(latter[- ]day\ssaints?|l\.?d\.?s\.?|mormon|texas\stemple)\b/i,
+    denomination: 'Church of Jesus Christ of Latter-day Saints',
+    denominationFamily: 'Latter-day Saints',
+  },
+
+  // ── Jehovah's Witnesses ──
+  {
+    pattern: /\b(jehovah|kingdom\shall)\b/i,
+    denomination: "Jehovah's Witnesses",
+    denominationFamily: "Jehovah's Witnesses",
+  },
+
   // ── Catholic ──
   { pattern: /\bcatholic\b/i, denomination: 'Catholic', denominationFamily: 'Catholic' },
   {
-    pattern: /\b(san\s|santa\s|santo\s|nuestra\s|sagrado\s|inmaculad)/i,
+    // "San/Santa/Santo <saint name>" — but "San Antonio" as the city name
+    // (e.g. "Community Bible Church of San Antonio") must not match.
+    // "San Antonio de Padua" (the actual saint) still matches via the
+    // lookahead exception.
+    pattern: /\b(san\s(?!antonio\b(?!\sde\s))|santa\s|santo\s|nuestra\s|sagrado\s|inmaculad)/i,
     denomination: 'Catholic',
     denominationFamily: 'Catholic',
   },

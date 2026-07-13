@@ -10,6 +10,8 @@ export interface EnrichWebsiteV2Options {
   forceRefetch: boolean
   maxSubpages: number
   maxAttempts: number
+  /** Re-process applied/skipped churches whose last run is older than this many days (null = never). */
+  staleDays: number | null
 }
 
 export interface EnrichV2Stats {

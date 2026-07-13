@@ -38,4 +38,37 @@ describe('church service', () => {
     const result = await searchChurches({ pageSize: 500 })
     expect(result.meta.pageSize).toBe(50)
   })
+
+  describe('non-congregational demotion in default ordering', () => {
+    // The generated SQL is inspected through the mocked $queryRaw call args
+    // (Prisma.Sql exposes .sql and .values).
+    const getQueries = () => {
+      const prisma = jest.requireMock('../lib/prisma.js').default as {
+        $queryRaw: jest.Mock
+      }
+      return prisma.$queryRaw.mock.calls.map((call) => call[0] as { sql: string; values: unknown[] })
+    }
+
+    beforeEach(() => {
+      const prisma = jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock }
+      prisma.$queryRaw.mockClear()
+    })
+
+    it('applies the demotion term to the relevance ranking score', async () => {
+      await searchChurches({})
+      const mainQuery = getQueries().find((q) => q.sql.includes('ranking_score'))
+      expect(mainQuery).toBeDefined()
+      expect(mainQuery!.sql).toContain('DEFAULT-ORDER DEMOTION')
+      expect(mainQuery!.values.flat()).toEqual(
+        expect.arrayContaining(['Latter-day Saints', "Jehovah's Witnesses"])
+      )
+    })
+
+    it('sorts demoted families last under the rating sort', async () => {
+      await searchChurches({ sort: 'rating' })
+      const mainQuery = getQueries().find((q) => q.sql.includes('ORDER BY'))
+      expect(mainQuery).toBeDefined()
+      expect(mainQuery!.sql).toMatch(/ORDER BY[\s\S]*"denominationFamily" = ANY[\s\S]*ASC/)
+    })
+  })
 })

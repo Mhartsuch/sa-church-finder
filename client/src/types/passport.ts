@@ -27,6 +27,19 @@ export interface IAward {
   earnedAt: string;
 }
 
+/**
+ * Minimal visit shape shared by the passport "recent visits" list and the
+ * paginated full visit timeline. `church` is optional because the paginated
+ * visits endpoint types it as optional on IChurchVisit.
+ */
+export interface IPassportVisit {
+  id: string;
+  visitedAt: string;
+  rating: number | null;
+  notes: string | null;
+  church?: IVisitChurch;
+}
+
 export interface IPassport {
   user: {
     id: string;

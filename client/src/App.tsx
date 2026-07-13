@@ -14,11 +14,13 @@ import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { ToastContainer } from '@/components/layout/Toast';
 import { ToastProvider } from '@/hooks/ToastProvider';
 
-// Eagerly loaded: home + search are the primary entry points
+// Eagerly loaded: home is the landing page
 import HomePage from '@/pages/HomePage';
-import { SearchPage } from '@/pages/SearchPage';
 
-// Lazy-loaded: secondary pages split into separate chunks
+// Lazy-loaded: everything else splits into separate chunks
+const SearchPage = lazy(() =>
+  import('@/pages/SearchPage').then((m) => ({ default: m.SearchPage })),
+);
 const ChurchProfilePage = lazy(() =>
   import('@/pages/ChurchProfilePage').then((m) => ({ default: m.ChurchProfilePage })),
 );
@@ -60,7 +62,16 @@ const App = () => {
         <main id="main-content">
           <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route
+            path="/search"
+            element={
+              <RouteErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <SearchPage />
+                </Suspense>
+              </RouteErrorBoundary>
+            }
+          />
           <Route
             path="/churches/:slug"
             element={

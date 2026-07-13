@@ -10,19 +10,22 @@
  *  4. Cover image — first photo from the ChurchPhoto table (by displayOrder)
  *
  * This script is safe to run multiple times. By default it only fills in
- * fields that are currently null/empty. Use --overwrite to re-derive all
- * enrichable fields (hand-curated values from the Leaders Portal are
- * preserved unless --overwrite is passed).
+ * fields that are currently null/empty. Claimed churches are treated as
+ * leader-curated: their existing values are never overwritten (null fields
+ * are still filled), regardless of flags.
  *
  * Usage:
  *   npx tsx src/scripts/enrich-details/index.ts [flags]
  *
  * Flags:
- *   --dry-run       Show what would change without writing to the database
- *   --overwrite     Re-derive all fields, overwriting existing values
- *                   (except data entered via Leaders Portal — see note below)
- *   --limit N       Only process the first N churches
- *   --verbose       Print per-church details even when nothing changed
+ *   --dry-run                    Show what would change without writing
+ *   --overwrite                  Re-derive all fields on unclaimed churches,
+ *                                overwriting existing values
+ *   --reclassify-denominations   Re-derive ONLY denomination fields on
+ *                                unclaimed churches (use after classifier
+ *                                rule changes to correct old labels)
+ *   --limit N                    Only process the first N churches
+ *   --verbose                    Print per-church details even when nothing changed
  *
  * No external API calls required — runs entirely against the local database.
  */
@@ -39,6 +42,7 @@ dotenv.config()
 interface EnrichOptions {
   dryRun: boolean
   overwrite: boolean
+  reclassifyDenominations: boolean
   limit: number | null
   verbose: boolean
 }
@@ -60,6 +64,7 @@ function parseArgs(): EnrichOptions {
   return {
     dryRun: args.includes('--dry-run'),
     overwrite: args.includes('--overwrite'),
+    reclassifyDenominations: args.includes('--reclassify-denominations'),
     limit: limitIndex !== -1 ? parseInt(args[limitIndex + 1], 10) : null,
     verbose: args.includes('--verbose'),
   }
@@ -93,6 +98,7 @@ async function main(): Promise<void> {
         id: true,
         name: true,
         zipCode: true,
+        isClaimed: true,
         denomination: true,
         denominationFamily: true,
         neighborhood: true,
@@ -119,9 +125,15 @@ async function main(): Promise<void> {
       try {
         const updates: Record<string, unknown> = {}
 
+        // Claimed churches carry leader-curated values — never overwrite
+        // them, only fill fields that are still empty.
+        const allowOverwrite = options.overwrite && !church.isClaimed
+        const allowReclassify =
+          (options.overwrite || options.reclassifyDenominations) && !church.isClaimed
+
         // ── 1. Denomination ──
         const shouldSetDenom =
-          options.overwrite || (!church.denomination && !church.denominationFamily)
+          allowReclassify || (!church.denomination && !church.denominationFamily)
         if (shouldSetDenom) {
           const result = classifyDenomination(church.name)
           if (result) {
@@ -135,7 +147,7 @@ async function main(): Promise<void> {
         }
 
         // ── 2. Neighborhood ──
-        const shouldSetNeighborhood = options.overwrite || !church.neighborhood
+        const shouldSetNeighborhood = allowOverwrite || !church.neighborhood
         if (shouldSetNeighborhood && church.zipCode) {
           const neighborhood = getNeighborhood(church.zipCode)
           if (neighborhood && neighborhood !== church.neighborhood) {
@@ -145,7 +157,7 @@ async function main(): Promise<void> {
 
         // ── 3. Languages ──
         const shouldSetLanguages =
-          options.overwrite || !church.languages || church.languages.length === 0
+          allowOverwrite || !church.languages || church.languages.length === 0
         if (shouldSetLanguages) {
           // Use the denomination we just derived (or existing one)
           const denom = (updates.denomination as string | undefined) ?? church.denomination
@@ -166,7 +178,7 @@ async function main(): Promise<void> {
         }
 
         // ── 4. Cover image ──
-        const shouldSetCoverImage = options.overwrite || !church.coverImageUrl
+        const shouldSetCoverImage = allowOverwrite || !church.coverImageUrl
         if (shouldSetCoverImage && church.photos.length > 0) {
           const firstPhoto = church.photos[0].url
           if (firstPhoto !== church.coverImageUrl) {

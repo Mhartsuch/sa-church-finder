@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-024: Demote (never exclude) LDS temples and Kingdom Halls in default result ordering
+
+- **Date:** 2026-07-13
+- **Status:** ACTIVE
+- **Decision:** Default search ordering (relevance score and rating sort) demotes churches whose `denominationFamily` is `Latter-day Saints` or `Jehovah's Witnesses` below all other results, via `DEMOTED_DENOMINATION_FAMILIES` in `server/src/services/church.service.ts`. They remain fully searchable, filterable, and visible — an explicit denomination filter orders them normally because the demotion applies uniformly within the family. Alongside this, the denomination classifier gained an LDS-temple rule (`"<City> Texas Temple"` naming pattern) that runs before the Catholic rules, and the Spanish saint-name rule no longer matches "San Antonio" used as a city name.
+- **Alternatives Considered:** Exclude these records from the dataset at import time (`excludedTypes` / name skip-list); delete existing rows; leave ranking denomination-blind and rely only on correct classification; add an `includeInDefaultSearch` column via migration.
+- **Reasoning:** The user reported an LDS temple as a top search result. Root cause was twofold: the temple was misclassified as Catholic (name-rule ordering bug), and the relevance score rewards exactly what temples have (photos, high Google ratings, accessibility). Google's `church` place type sweeps in LDS temples and Kingdom Halls, but an LDS temple is not a general-public worship service, which is what this directory helps visitors find. Demotion preserves the data, keeps these communities discoverable through explicit filters, and avoids silently editing the dataset — more transparent and reversible than exclusion.
+- **Consequences:** "Latter-day Saints" and "Jehovah's Witnesses" still appear as denomination filter options when such records exist. Existing misclassified rows in production need a one-time reclassification run (`enrich:church-details` with overwrite) before the demotion fully takes effect. Adjust `DEMOTED_DENOMINATION_FAMILIES` if product policy changes.
+
 ### DEC-023: Ship an in-house RRULE subset instead of depending on the `rrule` package
 
 - **Date:** 2026-04-11

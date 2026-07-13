@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Inter is loaded via <link> tags in index.html (non-render-blocking) rather
+   than a CSS @import, which would block first paint on the fonts CSS fetch. */
 
 @tailwind base;
 @tailwind components;

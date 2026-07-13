@@ -7,10 +7,26 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Weights 300 (font-light) and 800 (font-extrabold) are used on HomePage/Header. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    />
+    <!-- Warm up the API origin (prod host; harmless in dev). -->
+    <link rel="preconnect" href="https://sa-church-finder-api.onrender.com" crossorigin />
     <link rel="preconnect" href="https://images.unsplash.com" />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
     <link rel="preconnect" href="https://api.mapbox.com" />
     <link rel="dns-prefetch" href="https://api.mapbox.com" />
+    <!-- Homepage hero background — keep in sync with src/pages/HomePage.tsx. -->
+    <link
+      rel="preload"
+      as="image"
+      fetchpriority="high"
+      href="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1400&q=80"
+    />
     <meta
       name="description"
       content="Discover churches across San Antonio with neighborhood search, detailed profiles, and community-driven reviews."

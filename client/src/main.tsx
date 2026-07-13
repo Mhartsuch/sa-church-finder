@@ -1,4 +1,3 @@
-import './instrument';
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import ReactDOM from 'react-dom/client';
@@ -23,6 +22,11 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Load Sentry instrumentation off the critical path so it doesn't block first
+// render. Fire-and-forget: errors thrown before it finishes loading are lost —
+// an accepted tradeoff for faster startup.
+void import('./instrument');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

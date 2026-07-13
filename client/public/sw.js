@@ -1,5 +1,70 @@
-const CACHE_NAME = 'sa-churches-v1';
+// Bump to purge caches that may hold stale interactive data or error responses.
+const CACHE_NAME = 'sa-churches-v2';
 const STATIC_ASSETS = ['/'];
+
+// How long to wait on the network for API GETs before falling back to a cached
+// response. Guards against the API's cold-start hang (Render free tier) masking
+// itself behind an endlessly pending fetch.
+const API_NETWORK_TIMEOUT_MS = 4000;
+
+// Interactive resources where a user writes and immediately reads back
+// (forum posts, visits, collections, account data, admin queues). Serving
+// these from cache makes fresh writes invisible, so they bypass SW caching
+// entirely — browse-oriented data (churches, events, categories) still gets
+// the cold-start cache fallback.
+const UNCACHED_API_SEGMENTS = [
+  '/forum',
+  '/visits',
+  '/collections',
+  '/users',
+  '/admin',
+  '/claims',
+  '/analytics',
+];
+
+function isUncachedApiPath(pathname) {
+  return UNCACHED_API_SEGMENTS.some((segment) => pathname.includes(segment));
+}
+
+// Store only successful responses — caching a transient 5xx would replay the
+// failure long after the server recovered.
+function cacheIfOk(request, response) {
+  if (response.ok) {
+    const clone = response.clone();
+    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+  }
+  return response;
+}
+
+// Network-first with a timeout. Resolves with the network response when it
+// arrives in time; if the network hangs past the timeout or errors, serves the
+// cached response instead — but only when one exists. With no cached copy we
+// keep waiting on the network (an eventual slow response beats an error page).
+async function networkFirstWithTimeout(event, request) {
+  const networkPromise = fetch(request).then((response) => cacheIfOk(request, response));
+
+  const cached = await caches.match(request);
+  if (!cached) {
+    return networkPromise;
+  }
+
+  // Keep the service worker alive so the late network response still lands in
+  // the cache even after we've responded from cache.
+  event.waitUntil(networkPromise.catch(() => undefined));
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(cached), API_NETWORK_TIMEOUT_MS);
+    networkPromise
+      .then((response) => {
+        clearTimeout(timer);
+        resolve(response);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        resolve(cached);
+      });
+  });
+}
 
 // Install: pre-cache essential static assets
 self.addEventListener('install', (event) => {
@@ -32,17 +97,14 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Network-first for API requests
+  // Interactive API resources: straight to the network, no SW caching.
+  if (url.pathname.startsWith('/api') && isUncachedApiPath(url.pathname)) {
+    return;
+  }
+
+  // Network-first (with cold-start timeout) for browse-oriented API requests
   if (url.pathname.startsWith('/api')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
+    event.respondWith(networkFirstWithTimeout(event, request));
     return;
   }
 
@@ -50,11 +112,7 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
+        .then((response) => cacheIfOk(request, response))
         .catch(() => caches.match('/'))
     );
     return;
@@ -67,12 +125,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
-          cached ||
-          fetch(request).then((response) => {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            return response;
-          })
+          cached || fetch(request).then((response) => cacheIfOk(request, response))
       )
     );
     return;
@@ -81,11 +134,7 @@ self.addEventListener('fetch', (event) => {
   // Default: network with cache fallback
   event.respondWith(
     fetch(request)
-      .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        return response;
-      })
+      .then((response) => cacheIfOk(request, response))
       .catch(() => caches.match(request))
   );
 });

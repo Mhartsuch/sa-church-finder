@@ -30,10 +30,13 @@
  *   --overwrite            Re-write DB fields even if already set
  *                          (hand-curated services are still preserved)
  *   --force-low-confidence Apply results with confidence < 0.5
- *   --retry-failed         Re-process churches whose last attempt failed
+ *   --retry-failed         Re-process churches whose last attempt failed or
+ *                          was parked as needs_review
  *   --force-refetch        Ignore disk cache; fetch pages fresh
  *   --max-subpages N       Cap discovered subpages per church (default 5)
  *   --max-attempts N       Max retry attempts per church before giving up (default 3)
+ *   --stale-days N         Also re-process churches whose last successful run
+ *                          finished more than N days ago (freshness refresh)
  *
  * Requires:
  *   - Network access to fetch church websites
@@ -72,6 +75,7 @@ function parseArgs(): EnrichWebsiteV2Options {
   const limitIdx = args.indexOf('--limit')
   const maxSubpagesIdx = args.indexOf('--max-subpages')
   const maxAttemptsIdx = args.indexOf('--max-attempts')
+  const staleDaysIdx = args.indexOf('--stale-days')
 
   return {
     dryRun: args.includes('--dry-run'),
@@ -85,6 +89,7 @@ function parseArgs(): EnrichWebsiteV2Options {
     forceRefetch: args.includes('--force-refetch'),
     maxSubpages: maxSubpagesIdx !== -1 ? parseInt(args[maxSubpagesIdx + 1], 10) : 5,
     maxAttempts: maxAttemptsIdx !== -1 ? parseInt(args[maxAttemptsIdx + 1], 10) : 3,
+    staleDays: staleDaysIdx !== -1 ? parseInt(args[staleDaysIdx + 1], 10) : null,
   }
 }
 
@@ -130,6 +135,7 @@ type StateStatus =
   | 'extracted'
   | 'applied'
   | 'skipped_no_data'
+  | 'needs_review' // extraction succeeded but confidence was below the apply gate
   | 'failed'
   | 'rate_limited'
 
@@ -182,14 +188,20 @@ async function upsertState(
 // ── Determine eligibility ─────────────────────────────────────────
 
 function isEligible(
-  state: { status: string; attempts: number } | null,
+  state: { status: string; attempts: number; completedAt: Date | null } | null,
   options: EnrichWebsiteV2Options,
 ): boolean {
   if (!state) return true
   if (state.status === 'applied' || state.status === 'skipped_no_data') {
-    return options.overwrite
+    if (options.overwrite) return true
+    // Freshness refresh: data older than --stale-days is fair game again.
+    if (options.staleDays !== null && state.completedAt) {
+      const ageMs = Date.now() - state.completedAt.getTime()
+      return ageMs > options.staleDays * 24 * 60 * 60 * 1000
+    }
+    return false
   }
-  if (state.status === 'failed') {
+  if (state.status === 'failed' || state.status === 'needs_review') {
     return options.retryFailed && state.attempts < options.maxAttempts
   }
   // pending / fetched / extracted / rate_limited: always resume
@@ -362,13 +374,16 @@ async function processChurch(
   )
 
   // ── Confidence gate ──
+  // Parked as needs_review (not failed): the extraction snapshot stays in
+  // enrichment_states.extractedData for a human to inspect and either apply
+  // with --force-low-confidence or fix at the source.
   if (extracted.confidenceLevel === 'low' && !options.forceLowConfidence) {
     stats.lowConfidenceFlagged++
     await upsertState(
       prisma,
       church.id,
       {
-        status: 'failed',
+        status: 'needs_review',
         lastError: `low confidence ${extracted.confidence.toFixed(2)}`,
         completed: true,
       },
@@ -412,6 +427,9 @@ async function main(): Promise<void> {
     console.log(`Max subpages per church: ${options.maxSubpages}`)
     console.log(`Overwrite existing fields: ${options.overwrite ? 'YES' : 'NO (null only)'}`)
     console.log(`Retry previously-failed: ${options.retryFailed ? 'YES' : 'NO'}`)
+    if (options.staleDays !== null) {
+      console.log(`Refresh churches older than: ${options.staleDays} days`)
+    }
     console.log(`Force refetch (skip cache): ${options.forceRefetch ? 'YES' : 'NO'}`)
     if (options.limit) console.log(`Limit: ${options.limit}`)
     console.log('')
@@ -447,7 +465,7 @@ async function main(): Promise<void> {
         wheelchairAccessible: true,
         services: { select: { id: true, isAutoImported: true } },
         enrichmentState: {
-          select: { status: true, attempts: true },
+          select: { status: true, attempts: true, completedAt: true },
         },
       },
       orderBy: { name: 'asc' },

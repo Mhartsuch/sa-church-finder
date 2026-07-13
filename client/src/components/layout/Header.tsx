@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, Church, Heart, Menu, Moon, Scale, Search, Sun, User } from 'lucide-react';
+import {
+  BookOpen,
+  CalendarDays,
+  Church,
+  Heart,
+  Menu,
+  MessagesSquare,
+  Moon,
+  Scale,
+  Search,
+  Sun,
+  User,
+} from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { SearchBar } from '@/components/search/SearchBar';
@@ -95,6 +107,14 @@ export const Header = () => {
             </Link>
 
             <Link
+              to="/forum"
+              className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
+            >
+              <MessagesSquare className="h-3.5 w-3.5" />
+              Forum
+            </Link>
+
+            <Link
               to="/compare"
               className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-foreground hover:bg-muted"
               aria-label={
@@ -126,6 +146,16 @@ export const Header = () => {
               <Heart className="h-3.5 w-3.5 fill-current" />
               Wishlist
             </Link>
+
+            {user ? (
+              <Link
+                to="/passport"
+                className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Passport
+              </Link>
+            ) : null}
 
             <button
               type="button"

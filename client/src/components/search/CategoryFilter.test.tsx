@@ -7,19 +7,19 @@ import { useSearchStore } from '@/stores/search-store';
 
 import { CategoryFilter } from './CategoryFilter';
 
+const serverCategories = [
+  { id: '1', label: 'Historic', icon: '🏛️', slug: 'historic', filterType: 'QUERY', filterValue: 'Historic', position: 0, isVisible: true, source: 'MANUAL', isPinned: true },
+  { id: '2', label: 'Contemporary', icon: '🎵', slug: 'contemporary', filterType: 'QUERY', filterValue: 'Contemporary', position: 1, isVisible: true, source: 'MANUAL', isPinned: true },
+  { id: '3', label: 'Traditional', icon: '🏠', slug: 'traditional', filterType: 'QUERY', filterValue: 'Traditional', position: 2, isVisible: true, source: 'MANUAL', isPinned: true },
+  { id: '4', label: 'Community', icon: '💜', slug: 'community', filterType: 'QUERY', filterValue: 'Community', position: 3, isVisible: true, source: 'MANUAL', isPinned: true },
+  { id: '5', label: 'Baptist', icon: '💧', slug: 'denom-baptist', filterType: 'DENOMINATION', filterValue: 'Baptist', position: 6, isVisible: true, source: 'AUTO', isPinned: false },
+  { id: '6', label: 'Catholic', icon: '✝️', slug: 'denom-catholic', filterType: 'DENOMINATION', filterValue: 'Catholic', position: 7, isVisible: true, source: 'AUTO', isPinned: false },
+];
+
+const mockUseRibbonCategories = vi.fn();
+
 vi.mock('@/hooks/useRibbonCategories', () => ({
-  useRibbonCategories: () => ({
-    data: {
-      data: [
-        { id: '1', label: 'Historic', icon: '🏛️', slug: 'historic', filterType: 'QUERY', filterValue: 'Historic', position: 0, isVisible: true, source: 'MANUAL', isPinned: true },
-        { id: '2', label: 'Contemporary', icon: '🎵', slug: 'contemporary', filterType: 'QUERY', filterValue: 'Contemporary', position: 1, isVisible: true, source: 'MANUAL', isPinned: true },
-        { id: '3', label: 'Traditional', icon: '🏠', slug: 'traditional', filterType: 'QUERY', filterValue: 'Traditional', position: 2, isVisible: true, source: 'MANUAL', isPinned: true },
-        { id: '4', label: 'Community', icon: '💜', slug: 'community', filterType: 'QUERY', filterValue: 'Community', position: 3, isVisible: true, source: 'MANUAL', isPinned: true },
-        { id: '5', label: 'Baptist', icon: '💧', slug: 'denom-baptist', filterType: 'DENOMINATION', filterValue: 'Baptist', position: 6, isVisible: true, source: 'AUTO', isPinned: false },
-        { id: '6', label: 'Catholic', icon: '✝️', slug: 'denom-catholic', filterType: 'DENOMINATION', filterValue: 'Catholic', position: 7, isVisible: true, source: 'AUTO', isPinned: false },
-      ],
-    },
-  }),
+  useRibbonCategories: () => mockUseRibbonCategories(),
 }));
 
 const resetStore = () => {
@@ -45,6 +45,7 @@ const getFiltersButton = () => screen.getAllByRole('button', { name: /filters/i 
 describe('CategoryFilter', () => {
   beforeEach(() => {
     resetStore();
+    mockUseRibbonCategories.mockReturnValue({ data: { data: serverCategories } });
   });
 
   it('omits the filter badge when no filters are active', () => {
@@ -144,5 +145,51 @@ describe('CategoryFilter', () => {
     fireEvent.click(screen.getByText('Historic'));
 
     expect(useSearchStore.getState().query).toBe('');
+  });
+
+  it('renders server-provided chips when the API returns categories', () => {
+    render(<CategoryFilter onOpenFilters={vi.fn()} />);
+
+    // Denomination chips only exist in the server payload…
+    expect(screen.getByText('Baptist')).toBeInTheDocument();
+    expect(screen.getByText('Catholic')).toBeInTheDocument();
+    // …and default-only chips must not leak in alongside server data.
+    expect(screen.queryByText('Megachurch')).not.toBeInTheDocument();
+    expect(screen.queryByText('Missions')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the default chips when the API errors', () => {
+    mockUseRibbonCategories.mockReturnValue({
+      data: undefined,
+      error: new Error('Network error'),
+    });
+
+    render(<CategoryFilter onOpenFilters={vi.fn()} />);
+
+    expect(screen.getByText('All')).toBeInTheDocument();
+    for (const label of ['Historic', 'Contemporary', 'Traditional', 'Community', 'Missions', 'Megachurch']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it('falls back to the default chips when the API returns an empty list', () => {
+    mockUseRibbonCategories.mockReturnValue({ data: { data: [] } });
+
+    render(<CategoryFilter onOpenFilters={vi.fn()} />);
+
+    expect(screen.getByText('All')).toBeInTheDocument();
+    for (const label of ['Historic', 'Contemporary', 'Traditional', 'Community', 'Missions', 'Megachurch']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it('applies a default chip filter when tapped in fallback mode', () => {
+    mockUseRibbonCategories.mockReturnValue({ data: { data: [] } });
+
+    render(<CategoryFilter onOpenFilters={vi.fn()} />);
+
+    fireEvent.click(screen.getByText('Megachurch'));
+
+    expect(useSearchStore.getState().query).toBe('Megachurch');
   });
 });
