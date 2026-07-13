@@ -3,7 +3,6 @@ import { ApiEnvelope } from '@/types/api';
 import {
   CreateForumPostInput,
   IForumPost,
-  IForumPostDetail,
   IForumPostDetailResponse,
   IForumPostListParams,
   IForumPostListResponse,
