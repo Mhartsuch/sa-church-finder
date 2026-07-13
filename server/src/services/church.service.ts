@@ -84,7 +84,18 @@ const RANK_WEIGHTS = {
   // Accessibility & status
   WHEELCHAIR_ACCESSIBLE: 3, // confirmed wheelchair accessible
   OPERATIONAL_STATUS: 2, // confirmed OPERATIONAL business status
+
+  // Default-order demotion for non-congregational traditions (see below)
+  DEMOTED_FAMILY_PENALTY: 500,
 } as const
+
+// Denomination families demoted (never excluded) in default result ordering.
+// Google's `church` place type sweeps in LDS temples and Kingdom Halls, which
+// aren't general-public worship services in the way the rest of the directory
+// is. They stay searchable and selectable via the denomination filter — and
+// because the demotion applies to every row of the family equally, an explicit
+// filter for one of these families still orders its results normally.
+const DEMOTED_DENOMINATION_FAMILIES = ['Latter-day Saints', "Jehovah's Witnesses"]
 
 // ── Raw SQL result types ──
 
@@ -433,6 +444,9 @@ export async function searchChurches(
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
 
   // ── ORDER BY ──
+  const demotedFamilyExpr = Prisma.sql`
+    CASE WHEN "denominationFamily" = ANY(${DEMOTED_DENOMINATION_FAMILIES}::text[])
+      THEN 1 ELSE 0 END`
   let orderClause: Prisma.Sql
   switch (sortBy) {
     case 'rating':
@@ -441,6 +455,7 @@ export async function searchChurches(
       // Churches with no rating data sort last; among rated churches,
       // a 5.0 from 1 review scores ~3.65, while 4.8 from 200 scores ~4.74
       orderClause = Prisma.sql`ORDER BY
+        (${demotedFamilyExpr}) ASC,
         CASE WHEN GREATEST("reviewCount", COALESCE("googleReviewCount", 0)) = 0
              AND COALESCE("googleRating", 0) = 0
           THEN 0 ELSE 1 END DESC,
@@ -543,6 +558,9 @@ export async function searchChurches(
 
     -- OPERATIONAL STATUS
     + CASE WHEN "businessStatus" = 'OPERATIONAL' THEN ${RANK_WEIGHTS.OPERATIONAL_STATUS}::float ELSE 0 END
+
+    -- DEFAULT-ORDER DEMOTION (see DEMOTED_DENOMINATION_FAMILIES above)
+    - (${demotedFamilyExpr})::float * ${RANK_WEIGHTS.DEMOTED_FAMILY_PENALTY}::float
   `
 
   // ── Count query ──
