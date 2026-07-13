@@ -7,6 +7,7 @@ import {
   IForumPostDetailResponse,
   IForumPostListParams,
   IForumPostListResponse,
+  IForumReply,
 } from '@/types/forum';
 
 const buildForumQueryString = (params: IForumPostListParams): string => {
@@ -66,11 +67,8 @@ export const deleteForumPost = async (postId: string): Promise<{ id: string; del
   return envelope.data;
 };
 
-export const createForumReply = async (
-  postId: string,
-  body: string,
-): Promise<IForumPostDetail> => {
-  const envelope = await apiRequest<ApiEnvelope<IForumPostDetail>>(
+export const createForumReply = async (postId: string, body: string): Promise<IForumReply> => {
+  const envelope = await apiRequest<ApiEnvelope<IForumReply>>(
     `/forum/posts/${encodeURIComponent(postId)}/replies`,
     {
       method: 'POST',
