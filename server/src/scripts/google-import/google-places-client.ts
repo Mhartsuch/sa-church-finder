@@ -8,6 +8,21 @@ import type { GoogleNearbySearchResponse, GooglePlaceResult } from './types.js'
 
 const PLACES_API_BASE = 'https://places.googleapis.com/v1'
 
+// Nearby Search (New) returns at most 20 places and does NOT paginate —
+// a full page means the cell is probably saturated and must be subdivided.
+const NEARBY_MAX_RESULTS = 20
+// Stop subdividing below this radius; a 300 m circle with 20+ churches is
+// implausible in practice, and each level of subdivision quadruples API calls.
+const MIN_SUBDIVISION_RADIUS_METERS = 300
+
+const MAX_RETRIES = 3
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504])
+const METERS_PER_DEGREE_LAT = 111_320
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 const NEARBY_FIELD_MASK = [
   'places.id',
   'places.displayName',
@@ -63,58 +78,135 @@ export class GooglePlacesClient {
   }
 
   /**
+   * Perform a request with rate limiting and exponential-backoff retries on
+   * 429/5xx responses and network errors. Honors Retry-After when present.
+   * Non-retryable error statuses are returned to the caller to interpret.
+   */
+  private async fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+    let attempt = 0
+    for (;;) {
+      await this.rateLimiter.wait()
+
+      let response: Response | null = null
+      let networkError: unknown = null
+      try {
+        response = await fetch(url, init)
+      } catch (error) {
+        networkError = error
+      }
+
+      if (response && !RETRYABLE_STATUSES.has(response.status)) {
+        return response
+      }
+
+      attempt++
+      if (attempt > MAX_RETRIES) {
+        if (response) return response
+        throw networkError
+      }
+
+      const retryAfterSeconds = Number(response?.headers.get('retry-after'))
+      const backoffMs = Number.isFinite(retryAfterSeconds)
+        ? retryAfterSeconds * 1000
+        : 1000 * 2 ** (attempt - 1)
+      console.warn(
+        `  [retry ${attempt}/${MAX_RETRIES}] ${response ? `HTTP ${response.status}` : 'network error'} — waiting ${backoffMs}ms`,
+      )
+      await sleep(backoffMs)
+    }
+  }
+
+  /**
    * Search for churches near a given point.
-   * Returns all results, following pagination tokens automatically.
+   *
+   * Nearby Search (New) caps responses at 20 places with no pagination, so a
+   * full page likely means the cell is saturated. Saturated cells are
+   * recursively subdivided into four overlapping child circles (centers at
+   * ±r/2, radius r/√2 — fully covering the parent) until results fit or the
+   * radius floor is reached. Duplicates from overlap are deduped by place id.
    */
   async searchNearbyChurches(
     latitude: number,
     longitude: number,
     radiusMeters: number,
   ): Promise<GooglePlaceResult[]> {
-    const allResults: GooglePlaceResult[] = []
-    let pageToken: string | undefined
+    const resultsById = new Map<string, GooglePlaceResult>()
+    await this.searchNearbyInto(resultsById, latitude, longitude, radiusMeters)
+    return [...resultsById.values()]
+  }
 
-    do {
-      await this.rateLimiter.wait()
+  private async searchNearbyInto(
+    resultsById: Map<string, GooglePlaceResult>,
+    latitude: number,
+    longitude: number,
+    radiusMeters: number,
+  ): Promise<void> {
+    const places = await this.searchNearbyOnce(latitude, longitude, radiusMeters)
+    for (const place of places) {
+      resultsById.set(place.id, place)
+    }
 
-      const body: Record<string, unknown> = {
-        includedTypes: ['church'],
-        locationRestriction: {
-          circle: {
-            center: { latitude, longitude },
-            radius: radiusMeters,
-          },
+    const saturated = places.length >= NEARBY_MAX_RESULTS
+    if (!saturated || radiusMeters / 2 < MIN_SUBDIVISION_RADIUS_METERS) {
+      if (saturated) {
+        console.warn(
+          `  [saturated] cell at (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) r=${Math.round(radiusMeters)}m hit the ${NEARBY_MAX_RESULTS}-result cap at the radius floor — some places may be missed`,
+        )
+      }
+      return
+    }
+
+    const centerOffsetMeters = radiusMeters / 2
+    const childRadius = radiusMeters / Math.SQRT2
+    const deltaLat = centerOffsetMeters / METERS_PER_DEGREE_LAT
+    const deltaLng =
+      centerOffsetMeters / (METERS_PER_DEGREE_LAT * Math.cos((latitude * Math.PI) / 180))
+
+    for (const latSign of [-1, 1]) {
+      for (const lngSign of [-1, 1]) {
+        await this.searchNearbyInto(
+          resultsById,
+          latitude + latSign * deltaLat,
+          longitude + lngSign * deltaLng,
+          childRadius,
+        )
+      }
+    }
+  }
+
+  private async searchNearbyOnce(
+    latitude: number,
+    longitude: number,
+    radiusMeters: number,
+  ): Promise<GooglePlaceResult[]> {
+    const body = {
+      includedTypes: ['church'],
+      locationRestriction: {
+        circle: {
+          center: { latitude, longitude },
+          radius: radiusMeters,
         },
-        maxResultCount: 20,
-      }
+      },
+      maxResultCount: NEARBY_MAX_RESULTS,
+    }
 
-      if (pageToken) {
-        body.pageToken = pageToken
-      }
+    const response = await this.fetchWithRetry(`${PLACES_API_BASE}/places:searchNearby`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': this.apiKey,
+        'X-Goog-FieldMask': NEARBY_FIELD_MASK,
+      },
+      body: JSON.stringify(body),
+    })
 
-      const response = await fetch(`${PLACES_API_BASE}/places:searchNearby`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': this.apiKey,
-          'X-Goog-FieldMask': NEARBY_FIELD_MASK,
-        },
-        body: JSON.stringify(body),
-      })
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Google Places API error (${response.status}): ${errorText}`)
+    }
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Google Places API error (${response.status}): ${errorText}`)
-      }
-
-      const data = (await response.json()) as GoogleNearbySearchResponse
-      if (data.places) {
-        allResults.push(...data.places)
-      }
-      pageToken = data.nextPageToken
-    } while (pageToken)
-
-    return allResults
+    const data = (await response.json()) as GoogleNearbySearchResponse
+    return data.places ?? []
   }
 
   /**
@@ -122,9 +214,7 @@ export class GooglePlacesClient {
    * Used by the enrich script to update existing churches.
    */
   async getPlaceDetails(placeId: string): Promise<GooglePlaceResult | null> {
-    await this.rateLimiter.wait()
-
-    const response = await fetch(`${PLACES_API_BASE}/places/${placeId}`, {
+    const response = await this.fetchWithRetry(`${PLACES_API_BASE}/places/${placeId}`, {
       headers: {
         'X-Goog-Api-Key': this.apiKey,
         'X-Goog-FieldMask': DETAIL_FIELD_MASK,
@@ -157,10 +247,8 @@ export class GooglePlacesClient {
     photoResourceName: string,
     maxWidthPx = 1200,
   ): Promise<{ buffer: Buffer; contentType: string }> {
-    await this.rateLimiter.wait()
-
     const url = this.getPhotoUrl(photoResourceName, maxWidthPx)
-    const response = await fetch(url, { redirect: 'follow' })
+    const response = await this.fetchWithRetry(url, { redirect: 'follow' })
 
     if (!response.ok) {
       throw new Error(`Failed to download photo (${response.status}): ${photoResourceName}`)

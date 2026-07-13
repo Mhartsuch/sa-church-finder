@@ -79,9 +79,9 @@ export interface GooglePlaceResult {
   primaryTypeDisplayName?: { text: string; languageCode: string }
 }
 
+// Nearby Search (New) does not paginate — 20 results max, no page token.
 export interface GoogleNearbySearchResponse {
   places?: GooglePlaceResult[]
-  nextPageToken?: string
 }
 
 export interface GoogleTextSearchResponse {
