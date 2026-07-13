@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Compass, Heart, Map as MapIcon, Moon, Sun } from 'lucide-react';
+import { BookOpen, Compass, Heart, Map as MapIcon, Moon, Sun } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface MobileNavProps {
@@ -74,6 +74,19 @@ export const MobileNav = ({ onToggleMap, showMap = false }: MobileNavProps) => {
       >
         <Heart className="h-5 w-5" />
         <span>Wishlist</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => navigate('/passport')}
+        className={`${buttonBase} ${
+          location.pathname === '/passport' ? 'text-[#FF385C]' : 'text-muted-foreground'
+        }`}
+        aria-label="Passport"
+        aria-current={location.pathname === '/passport' ? 'page' : undefined}
+      >
+        <BookOpen className="h-5 w-5" />
+        <span>Passport</span>
       </button>
 
       {onToggleMap ? (

@@ -80,6 +80,7 @@ export const useUpdateVisit = () => {
     mutationFn: ({ visitId, input }) => updateVisit(visitId, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: VISITS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PASSPORT_QUERY_KEY });
     },
   });
 };

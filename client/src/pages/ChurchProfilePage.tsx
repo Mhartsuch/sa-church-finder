@@ -9,6 +9,7 @@ import {
   Clock,
   Compass,
   ExternalLink,
+  FolderPlus,
   Globe,
   Heart,
   Mail,
@@ -22,6 +23,7 @@ import {
 
 import { Lightbox } from '@/components/church/Lightbox';
 import { LogVisitModal } from '@/components/church/LogVisitModal';
+import { AddToCollectionModal } from '@/components/passport/AddToCollectionModal';
 import { AddToCalendarButton } from '@/components/events/AddToCalendarButton';
 import { SubscribeToCalendarButton } from '@/components/events/SubscribeToCalendarButton';
 import { buildChurchEventsFeedUrl } from '@/lib/calendar-feed-url';
@@ -241,6 +243,7 @@ export const ChurchProfilePage = () => {
   const [flagDialogReviewId, setFlagDialogReviewId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isLogVisitModalOpen, setIsLogVisitModalOpen] = useState(false);
+  const [isAddToCollectionOpen, setIsAddToCollectionOpen] = useState(false);
   const eventWindow = buildEventDateWindow(eventWindowBaseIso, eventDateRange);
   const {
     data: churchEventsResponse,
@@ -628,6 +631,16 @@ export const ChurchProfilePage = () => {
                   >
                     <Compass className="h-4 w-4" />
                     Log Visit
+                  </button>
+                )}
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddToCollectionOpen(true)}
+                    className="flex items-center gap-2 text-sm font-semibold text-foreground underline hover:text-foreground"
+                  >
+                    <FolderPlus className="h-4 w-4" />
+                    Add to collection
                   </button>
                 )}
               </div>
@@ -1471,6 +1484,14 @@ export const ChurchProfilePage = () => {
           initialIndex={lightboxIndex}
           alt={church.name}
           onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
+      {isAddToCollectionOpen && user && (
+        <AddToCollectionModal
+          churchId={church.id}
+          churchName={church.name}
+          onClose={() => setIsAddToCollectionOpen(false)}
         />
       )}
 

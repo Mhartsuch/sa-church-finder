@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
@@ -208,6 +208,12 @@ vi.mock('@/components/church/LogVisitModal', () => ({
   LogVisitModal: () => null,
 }));
 
+vi.mock('@/components/passport/AddToCollectionModal', () => ({
+  AddToCollectionModal: ({ churchName }: { churchName: string }) => (
+    <div data-testid="add-to-collection-modal">{churchName}</div>
+  ),
+}));
+
 vi.mock('@/components/church/Lightbox', () => ({
   Lightbox: () => null,
 }));
@@ -319,6 +325,24 @@ describe('ChurchProfilePage', () => {
     renderChurchProfilePage();
 
     expect(screen.getByTestId('review-form')).toBeInTheDocument();
+  });
+
+  it('shows the "Add to collection" control for signed-in users', () => {
+    renderChurchProfilePage();
+
+    expect(screen.getByRole('button', { name: /add to collection/i })).toBeInTheDocument();
+  });
+
+  it('opens the add-to-collection modal when the control is clicked', () => {
+    renderChurchProfilePage();
+
+    expect(screen.queryByTestId('add-to-collection-modal')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /add to collection/i }));
+
+    expect(screen.getByTestId('add-to-collection-modal')).toHaveTextContent(
+      'Grace Baptist Church',
+    );
   });
 
   it('shows the not-found state when church is missing', async () => {

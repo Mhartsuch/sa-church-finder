@@ -1,23 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Award,
   BookOpen,
   ChevronRight,
   Church,
-  Copy,
   Globe,
   Lock,
   MapPin,
+  Pencil,
+  Plus,
   Share2,
   Star,
+  Trash2,
   Trophy,
 } from 'lucide-react';
 
+import { CreateCollectionModal } from '@/components/passport/CreateCollectionModal';
+import { EditVisitModal } from '@/components/passport/EditVisitModal';
+import { ConfirmDialog } from '@/components/layout/ConfirmDialog';
 import { useAuthSession } from '@/hooks/useAuth';
-import { usePassport, useUserCollections } from '@/hooks/usePassport';
+import {
+  useCreateCollection,
+  useDeleteVisit,
+  usePassport,
+  useUpdateVisit,
+  useUserCollections,
+  useUserVisits,
+} from '@/hooks/usePassport';
 import { useToast } from '@/hooks/useToast';
-import { AWARD_METADATA } from '@/types/passport';
+import {
+  AWARD_METADATA,
+  ICreateCollectionInput,
+  IPassportVisit,
+  IUpdateVisitInput,
+} from '@/types/passport';
 
 const ALL_AWARD_TYPES = Object.keys(AWARD_METADATA);
 
@@ -64,6 +81,83 @@ const RatingStars = ({ rating }: { rating: number }) => {
   );
 };
 
+const VisitRow = ({
+  visit,
+  canManage,
+  onEdit,
+  onDelete,
+}: {
+  visit: IPassportVisit;
+  canManage: boolean;
+  onEdit: (visit: IPassportVisit) => void;
+  onDelete: (visit: IPassportVisit) => void;
+}) => {
+  const churchName = visit.church?.name ?? 'A San Antonio church';
+
+  return (
+    <div className="flex items-center justify-between px-5 py-4">
+      <div className="min-w-0 flex-1">
+        {visit.church ? (
+          <Link
+            to={`/churches/${visit.church.slug}`}
+            className="text-sm font-medium text-blue-600 hover:text-blue-800 truncate block"
+          >
+            {visit.church.name}
+          </Link>
+        ) : (
+          <span className="text-sm font-medium text-gray-900 truncate block">{churchName}</span>
+        )}
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+          <span>{formatVisitDate(visit.visitedAt)}</span>
+          {visit.rating !== null && <RatingStars rating={visit.rating} />}
+          {visit.church?.neighborhood && (
+            <span className="inline-flex items-center gap-0.5">
+              <MapPin className="h-3 w-3" />
+              {visit.church.neighborhood}
+            </span>
+          )}
+        </div>
+        {visit.notes && (
+          <p className="mt-1 text-xs text-gray-400 italic">{truncateNotes(visit.notes)}</p>
+        )}
+      </div>
+      <div className="ml-3 flex flex-shrink-0 items-center gap-1">
+        {canManage && (
+          <>
+            <button
+              type="button"
+              onClick={() => onEdit(visit)}
+              aria-label={`Edit visit to ${churchName}`}
+              title="Edit visit"
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(visit)}
+              aria-label={`Delete visit to ${churchName}`}
+              title="Delete visit"
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </>
+        )}
+        {visit.church && (
+          <Link
+            to={`/churches/${visit.church.slug}`}
+            className="text-gray-300 hover:text-gray-500"
+            aria-label={`View ${visit.church.name}`}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const PassportPage = () => {
   const { id: routeUserId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -80,6 +174,22 @@ const PassportPage = () => {
   } = usePassport(userId);
 
   const { data: collections = [], isLoading: isCollectionsLoading } = useUserCollections(userId);
+
+  const createCollectionMutation = useCreateCollection();
+  const updateVisitMutation = useUpdateVisit();
+  const deleteVisitMutation = useDeleteVisit();
+
+  const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
+  const [editingVisit, setEditingVisit] = useState<IPassportVisit | null>(null);
+  const [deletingVisit, setDeletingVisit] = useState<IPassportVisit | null>(null);
+  const [showAllVisits, setShowAllVisits] = useState(false);
+  const [visitsPage, setVisitsPage] = useState(1);
+
+  const {
+    data: allVisitsResponse,
+    isLoading: isAllVisitsLoading,
+    error: allVisitsError,
+  } = useUserVisits(showAllVisits ? userId : null, visitsPage);
 
   // Redirect to login if viewing own passport while not authenticated
   useEffect(() => {
@@ -100,6 +210,68 @@ const PassportPage = () => {
     } catch {
       addToast({ message: 'Failed to copy link', variant: 'error' });
     }
+  };
+
+  const handleCreateCollection = async (input: ICreateCollectionInput) => {
+    try {
+      const created = await createCollectionMutation.mutateAsync(input);
+      setIsCreateCollectionOpen(false);
+      addToast({
+        message: `"${created.name}" is ready — happy collecting!`,
+        variant: 'success',
+      });
+      navigate(`/collections/${created.id}`);
+    } catch (createError) {
+      addToast({
+        message:
+          createError instanceof Error
+            ? createError.message
+            : 'Unable to create that collection right now.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleUpdateVisit = async (input: IUpdateVisitInput) => {
+    if (!editingVisit) return;
+
+    try {
+      await updateVisitMutation.mutateAsync({ visitId: editingVisit.id, input });
+      setEditingVisit(null);
+      addToast({ message: 'Visit updated', variant: 'success' });
+    } catch (updateError) {
+      addToast({
+        message:
+          updateError instanceof Error
+            ? updateError.message
+            : 'Unable to update that visit right now.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleDeleteVisit = async () => {
+    if (!deletingVisit) return;
+
+    try {
+      await deleteVisitMutation.mutateAsync(deletingVisit.id);
+      setDeletingVisit(null);
+      addToast({ message: 'Visit removed from your passport', variant: 'success' });
+    } catch (deleteError) {
+      setDeletingVisit(null);
+      addToast({
+        message:
+          deleteError instanceof Error
+            ? deleteError.message
+            : 'Unable to remove that visit right now.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleToggleAllVisits = () => {
+    setShowAllVisits((current) => !current);
+    setVisitsPage(1);
   };
 
   // Auth still loading
@@ -267,10 +439,77 @@ const PassportPage = () => {
         </div>
       </div>
 
-      {/* Recent Visits Section */}
+      {/* Visits Section */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Visits</h2>
-        {recentVisits.length === 0 ? (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {showAllVisits ? 'All Visits' : 'Recent Visits'}
+          </h2>
+          {stats.totalVisits > 0 && (
+            <button
+              type="button"
+              onClick={handleToggleAllVisits}
+              className="text-sm font-medium text-blue-600 hover:text-blue-800"
+            >
+              {showAllVisits
+                ? 'Show recent only'
+                : `View all ${stats.totalVisits} ${stats.totalVisits === 1 ? 'visit' : 'visits'}`}
+            </button>
+          )}
+        </div>
+        {showAllVisits ? (
+          isAllVisitsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+            </div>
+          ) : allVisitsError ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <p className="text-sm text-gray-500">{allVisitsError.message}</p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+                {(allVisitsResponse?.data ?? []).map((visit) => (
+                  <VisitRow
+                    key={visit.id}
+                    visit={visit}
+                    canManage={isOwnPassport}
+                    onEdit={setEditingVisit}
+                    onDelete={setDeletingVisit}
+                  />
+                ))}
+              </div>
+              {(allVisitsResponse?.meta.totalPages ?? 1) > 1 && (
+                <div className="mt-4 flex items-center justify-between gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setVisitsPage((current) => Math.max(1, current - 1))}
+                    disabled={visitsPage === 1}
+                    className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <p className="text-sm text-gray-500">
+                    Page {allVisitsResponse?.meta.page ?? visitsPage} of{' '}
+                    {allVisitsResponse?.meta.totalPages ?? 1}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVisitsPage((current) =>
+                        Math.min(allVisitsResponse?.meta.totalPages ?? current, current + 1),
+                      )
+                    }
+                    disabled={visitsPage >= (allVisitsResponse?.meta.totalPages ?? 1)}
+                    className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )
+        ) : recentVisits.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
             <Church className="mx-auto h-10 w-10 text-gray-300" />
             <p className="mt-3 text-sm text-gray-500">
@@ -290,37 +529,13 @@ const PassportPage = () => {
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
             {recentVisits.map((visit) => (
-              <div key={visit.id} className="flex items-center justify-between px-5 py-4">
-                <div className="min-w-0 flex-1">
-                  <Link
-                    to={`/churches/${visit.church.slug}`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-800 truncate block"
-                  >
-                    {visit.church.name}
-                  </Link>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                    <span>{formatVisitDate(visit.visitedAt)}</span>
-                    {visit.rating !== null && <RatingStars rating={visit.rating} />}
-                    {visit.church.neighborhood && (
-                      <span className="inline-flex items-center gap-0.5">
-                        <MapPin className="h-3 w-3" />
-                        {visit.church.neighborhood}
-                      </span>
-                    )}
-                  </div>
-                  {visit.notes && (
-                    <p className="mt-1 text-xs text-gray-400 italic">
-                      {truncateNotes(visit.notes)}
-                    </p>
-                  )}
-                </div>
-                <Link
-                  to={`/churches/${visit.church.slug}`}
-                  className="ml-3 flex-shrink-0 text-gray-300 hover:text-gray-500"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
+              <VisitRow
+                key={visit.id}
+                visit={visit}
+                canManage={isOwnPassport}
+                onEdit={setEditingVisit}
+                onDelete={setDeletingVisit}
+              />
             ))}
           </div>
         )}
@@ -331,13 +546,14 @@ const PassportPage = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Collections</h2>
           {isOwnPassport && (
-            <Link
-              to="/account"
+            <button
+              type="button"
+              onClick={() => setIsCreateCollectionOpen(true)}
               className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Plus className="h-3.5 w-3.5" />
               New Collection
-            </Link>
+            </button>
           )}
         </div>
         {isCollectionsLoading ? (
@@ -386,6 +602,49 @@ const PassportPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {isCreateCollectionOpen && (
+        <CreateCollectionModal
+          isPending={createCollectionMutation.isPending}
+          onSubmit={(input) => {
+            void handleCreateCollection(input);
+          }}
+          onClose={() => setIsCreateCollectionOpen(false)}
+        />
+      )}
+
+      {editingVisit && (
+        <EditVisitModal
+          churchName={editingVisit.church?.name ?? 'this church'}
+          initialNotes={editingVisit.notes}
+          initialRating={editingVisit.rating}
+          isPending={updateVisitMutation.isPending}
+          onSubmit={(input) => {
+            void handleUpdateVisit(input);
+          }}
+          onClose={() => setEditingVisit(null)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deletingVisit !== null}
+        title="Remove this visit?"
+        description={
+          deletingVisit
+            ? `Your ${formatVisitDate(deletingVisit.visitedAt)} visit to ${
+                deletingVisit.church?.name ?? 'this church'
+              } will be removed from your passport. This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Remove visit"
+        variant="destructive"
+        isPending={deleteVisitMutation.isPending}
+        onConfirm={() => {
+          void handleDeleteVisit();
+        }}
+        onCancel={() => setDeletingVisit(null)}
+      />
     </div>
   );
 };

@@ -1,18 +1,22 @@
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ToastProvider } from '@/hooks/ToastProvider';
-import { IChurchCollection, IPassport } from '@/types/passport';
+import { IChurchCollection, IPassport, IVisitsResponse } from '@/types/passport';
 
 import PassportPage from './PassportPage';
 
 const useAuthSessionMock = vi.fn();
 const usePassportMock = vi.fn();
 const useUserCollectionsMock = vi.fn();
+const useUserVisitsMock = vi.fn();
+const createCollectionMutateAsyncMock = vi.fn();
+const updateVisitMutateAsyncMock = vi.fn();
+const deleteVisitMutateAsyncMock = vi.fn();
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuthSession: () => useAuthSessionMock(),
@@ -21,7 +25,29 @@ vi.mock('@/hooks/useAuth', () => ({
 vi.mock('@/hooks/usePassport', () => ({
   usePassport: (userId: string | null) => usePassportMock(userId),
   useUserCollections: (userId: string | null) => useUserCollectionsMock(userId),
+  useUserVisits: (...args: [string | null, number?, number?]) => useUserVisitsMock(...args),
+  useCreateCollection: () => ({
+    mutateAsync: createCollectionMutateAsyncMock,
+    isPending: false,
+  }),
+  useUpdateVisit: () => ({
+    mutateAsync: updateVisitMutateAsyncMock,
+    isPending: false,
+  }),
+  useDeleteVisit: () => ({
+    mutateAsync: deleteVisitMutateAsyncMock,
+    isPending: false,
+  }),
 }));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  useUserVisitsMock.mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    error: null,
+  });
+});
 
 const MOCK_USER = {
   id: 'user-1',
@@ -123,6 +149,7 @@ const renderPassportPage = (route = '/passport'): ReturnType<typeof render> => {
           <Routes>
             <Route path="/passport" element={children} />
             <Route path="/users/:id/passport" element={children} />
+            <Route path="/collections/:id" element={<div data-testid="collection-route" />} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -239,7 +266,7 @@ describe('PassportPage', () => {
 
     renderPassportPage();
 
-    const cathedralLink = screen.getByRole('link', { name: /San Fernando Cathedral/i });
+    const cathedralLink = screen.getByRole('link', { name: 'San Fernando Cathedral' });
     expect(cathedralLink).toHaveAttribute('href', '/churches/san-fernando-cathedral');
   });
 
@@ -452,5 +479,226 @@ describe('PassportPage', () => {
     renderPassportPage();
 
     expect(screen.getByText('1 church')).toBeInTheDocument();
+  });
+
+  describe('create collection', () => {
+    it('opens the create-collection modal from the New Collection button', () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+
+      renderPassportPage();
+
+      expect(screen.queryByText('Create collection')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /new collection/i }));
+
+      expect(screen.getByRole('heading', { name: 'New collection' })).toBeInTheDocument();
+      expect(screen.getByLabelText(/^name/i)).toBeInTheDocument();
+    });
+
+    it('creates a collection and navigates to it', async () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+      createCollectionMutateAsyncMock.mockResolvedValue({
+        ...MOCK_COLLECTIONS[0],
+        id: 'col-new',
+        name: 'Historic Churches',
+      });
+
+      renderPassportPage();
+
+      fireEvent.click(screen.getByRole('button', { name: /new collection/i }));
+      fireEvent.change(screen.getByLabelText(/^name/i), {
+        target: { value: 'Historic Churches' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /create collection/i }));
+
+      await waitFor(() => {
+        expect(createCollectionMutateAsyncMock).toHaveBeenCalledWith({
+          name: 'Historic Churches',
+          isPublic: true,
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('collection-route')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('visit editing and deleting', () => {
+    it('shows edit and delete controls on own visits', () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+
+      renderPassportPage();
+
+      expect(
+        screen.getByRole('button', { name: 'Edit visit to San Fernando Cathedral' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Delete visit to San Fernando Cathedral' }),
+      ).toBeInTheDocument();
+    });
+
+    it('hides edit and delete controls on another user passport', () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport({
+        ...MOCK_PASSPORT,
+        user: { ...MOCK_PASSPORT.user, id: 'other-user', name: 'Other User' },
+      });
+      setupLoadedCollections([]);
+
+      renderPassportPage('/users/other-user/passport');
+
+      expect(screen.queryByRole('button', { name: /edit visit/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /delete visit/i })).not.toBeInTheDocument();
+    });
+
+    it('opens the edit modal prefilled and submits updated notes and rating', async () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+      updateVisitMutateAsyncMock.mockResolvedValue({});
+
+      renderPassportPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit visit to San Fernando Cathedral' }));
+
+      const notesField = screen.getByLabelText(/notes/i);
+      expect(notesField).toHaveValue('Beautiful service with wonderful music.');
+
+      fireEvent.change(notesField, { target: { value: 'A truly moving morning.' } });
+      fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+      await waitFor(() => {
+        expect(updateVisitMutateAsyncMock).toHaveBeenCalledWith({
+          visitId: 'visit-1',
+          input: { notes: 'A truly moving morning.', rating: 5 },
+        });
+      });
+    });
+
+    it('deletes a visit after confirming', async () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+      deleteVisitMutateAsyncMock.mockResolvedValue(undefined);
+
+      renderPassportPage();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Delete visit to San Fernando Cathedral' }),
+      );
+
+      expect(screen.getByText('Remove this visit?')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove visit' }));
+
+      await waitFor(() => {
+        expect(deleteVisitMutateAsyncMock).toHaveBeenCalledWith('visit-1');
+      });
+    });
+
+    it('does not delete when the confirmation is cancelled', () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+
+      renderPassportPage();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Delete visit to San Fernando Cathedral' }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(deleteVisitMutateAsyncMock).not.toHaveBeenCalled();
+      expect(screen.queryByText('Remove this visit?')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('full visit timeline', () => {
+    const MOCK_VISITS_RESPONSE: IVisitsResponse = {
+      data: [
+        {
+          id: 'visit-10',
+          userId: 'user-1',
+          churchId: 'church-10',
+          visitedAt: '2024-11-03T10:00:00.000Z',
+          notes: 'Loved the choir.',
+          rating: 4,
+          createdAt: '2024-11-03T12:00:00.000Z',
+          updatedAt: '2024-11-03T12:00:00.000Z',
+          church: {
+            id: 'church-10',
+            name: 'St. Mark Episcopal',
+            slug: 'st-mark-episcopal',
+            denomination: 'Episcopal',
+            denominationFamily: 'Anglican',
+            neighborhood: 'Alamo Heights',
+            coverImageUrl: null,
+            address: '315 E Pecan St',
+            city: 'San Antonio',
+          },
+        },
+      ],
+      meta: { page: 1, pageSize: 20, total: 12, totalPages: 2 },
+    };
+
+    it('shows a "View all" toggle when the user has visits', () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+
+      renderPassportPage();
+
+      expect(screen.getByRole('button', { name: 'View all 12 visits' })).toBeInTheDocument();
+    });
+
+    it('expands to the paginated timeline and pages through visits', () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+      useUserVisitsMock.mockReturnValue({
+        data: MOCK_VISITS_RESPONSE,
+        isLoading: false,
+        error: null,
+      });
+
+      renderPassportPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'View all 12 visits' }));
+
+      expect(screen.getByText('All Visits')).toBeInTheDocument();
+      expect(screen.getByText('St. Mark Episcopal')).toBeInTheDocument();
+      expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
+      expect(useUserVisitsMock).toHaveBeenLastCalledWith('user-1', 1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(useUserVisitsMock).toHaveBeenLastCalledWith('user-1', 2);
+    });
+
+    it('collapses back to recent visits', () => {
+      setupAuthenticatedUser();
+      setupLoadedPassport();
+      setupLoadedCollections();
+      useUserVisitsMock.mockReturnValue({
+        data: MOCK_VISITS_RESPONSE,
+        isLoading: false,
+        error: null,
+      });
+
+      renderPassportPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'View all 12 visits' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Show recent only' }));
+
+      expect(screen.getByText('Recent Visits')).toBeInTheDocument();
+      expect(screen.getByText('San Fernando Cathedral')).toBeInTheDocument();
+    });
   });
 });
