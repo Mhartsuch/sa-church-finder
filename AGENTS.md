@@ -86,5 +86,6 @@ npm run db:studio    # prisma studio UI
 - API spec: `docs/engineering/API_SPEC.md`
 - Coding conventions: `docs/engineering/CONVENTIONS.md`
 - Data models: `docs/engineering/DATA_MODELS.md`
+- Data pipeline: `docs/engineering/DATA_PIPELINE.md`
 - Decisions log: `docs/process/DECISIONS.md`
 - Product context: `docs/product/PROJECT_CONTEXT.md`
