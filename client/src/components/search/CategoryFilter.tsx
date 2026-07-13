@@ -5,6 +5,34 @@ import { countActiveFilters } from '@/lib/search-state';
 import { useSearchStore } from '@/stores/search-store';
 import type { IRibbonCategory } from '@/types/ribbon-category';
 
+// Fallback shown when the ribbon-categories API errors or returns no rows.
+// Mirrors the 6 default categories seeded by server/src/scripts/seed-ribbon-categories.ts.
+const FALLBACK_TIMESTAMP = new Date(0).toISOString();
+
+type DefaultCategorySeed = Pick<
+  IRibbonCategory,
+  'label' | 'icon' | 'slug' | 'filterType' | 'filterValue' | 'position'
+>;
+
+const DEFAULT_CATEGORY_SEEDS: DefaultCategorySeed[] = [
+  { label: 'Historic', icon: '🏛️', slug: 'historic', filterType: 'QUERY', filterValue: 'Historic', position: 0 },
+  { label: 'Contemporary', icon: '🎵', slug: 'contemporary', filterType: 'QUERY', filterValue: 'Contemporary', position: 1 },
+  { label: 'Traditional', icon: '🏠', slug: 'traditional', filterType: 'QUERY', filterValue: 'Traditional', position: 2 },
+  { label: 'Community', icon: '💜', slug: 'community', filterType: 'QUERY', filterValue: 'Community', position: 3 },
+  { label: 'Missions', icon: '🏛️', slug: 'missions', filterType: 'QUERY', filterValue: 'Mission', position: 4 },
+  { label: 'Megachurch', icon: '🏢', slug: 'megachurch', filterType: 'QUERY', filterValue: 'Megachurch', position: 5 },
+];
+
+const DEFAULT_CATEGORIES: IRibbonCategory[] = DEFAULT_CATEGORY_SEEDS.map((seed) => ({
+  ...seed,
+  id: `default-${seed.slug}`,
+  isVisible: true,
+  source: 'MANUAL',
+  isPinned: true,
+  createdAt: FALLBACK_TIMESTAMP,
+  updatedAt: FALLBACK_TIMESTAMP,
+}));
+
 interface CategoryFilterProps {
   compareCount?: number;
   onCompare?: () => void;
@@ -24,7 +52,11 @@ export const CategoryFilter = ({
   const setQuery = useSearchStore((state) => state.setQuery);
   const { data: ribbonData } = useRibbonCategories();
 
-  const categories: IRibbonCategory[] = ribbonData?.data ?? [];
+  // Fall back to the default chips when the API errors or has no rows,
+  // so the ribbon never collapses to just the "All" chip.
+  const categories: IRibbonCategory[] = ribbonData?.data?.length
+    ? ribbonData.data
+    : DEFAULT_CATEGORIES;
 
   const activeFilterCount = countActiveFilters(filters);
 

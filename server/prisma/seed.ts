@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
+import { seedRibbonCategories } from '../src/scripts/seed-ribbon-categories.js'
+
 const prisma = new PrismaClient()
 
 async function hashPassword(password: string): Promise<string> {
@@ -66,24 +68,10 @@ async function main() {
   console.log('\nNo demo churches seeded — use import:google-churches to populate.')
 
   // ── Seed ribbon categories ──
+  // Shared with the production backfill script (src/scripts/seed-ribbon-categories.ts)
+  // so the default list can't drift between the two.
   console.log('\nSeeding ribbon categories...')
-  const ribbonCategories = [
-    { label: 'Historic', icon: '🏛️', slug: 'historic', filterType: 'QUERY' as const, filterValue: 'Historic', position: 0 },
-    { label: 'Contemporary', icon: '🎵', slug: 'contemporary', filterType: 'QUERY' as const, filterValue: 'Contemporary', position: 1 },
-    { label: 'Traditional', icon: '🏠', slug: 'traditional', filterType: 'QUERY' as const, filterValue: 'Traditional', position: 2 },
-    { label: 'Community', icon: '💜', slug: 'community', filterType: 'QUERY' as const, filterValue: 'Community', position: 3 },
-    { label: 'Missions', icon: '🏛️', slug: 'missions', filterType: 'QUERY' as const, filterValue: 'Mission', position: 4 },
-    { label: 'Megachurch', icon: '🏢', slug: 'megachurch', filterType: 'QUERY' as const, filterValue: 'Megachurch', position: 5 },
-  ]
-
-  for (const cat of ribbonCategories) {
-    await prisma.ribbonCategory.upsert({
-      where: { slug: cat.slug },
-      update: { label: cat.label, icon: cat.icon, filterType: cat.filterType, filterValue: cat.filterValue, position: cat.position },
-      create: { ...cat, source: 'MANUAL', isVisible: true, isPinned: true },
-    })
-  }
-  console.log(`Seeded ${ribbonCategories.length} ribbon categories`)
+  await seedRibbonCategories(prisma)
 
   console.log('\n✅ Seed completed successfully!')
 }
