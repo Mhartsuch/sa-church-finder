@@ -28,6 +28,12 @@ const ChurchCardComponent = ({
   isSavePending = false,
 }: ChurchCardProps) => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  // Highest slide index whose image should be fetched. All carousel slides sit
+  // inside the visible viewport (only translated sideways), so loading="lazy"
+  // alone fetches every photo of every card up front — with a full grid that's
+  // dozens of full-size downloads. Instead only the current slide plus one
+  // slide of lookahead get a real <img>; the rest mount once the user browses.
+  const [maxEagerSlide, setMaxEagerSlide] = useState(1);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [heartPop, setHeartPop] = useState(false);
   const prevSavedRef = useRef(church.isSaved);
@@ -59,15 +65,18 @@ const ChurchCardComponent = ({
       event.stopPropagation();
       event.preventDefault();
       if (totalSlides <= 1) return;
-      setCurrentSlide((prev) =>
-        direction === 'next'
-          ? prev < totalSlides - 1
-            ? prev + 1
-            : 0
-          : prev > 0
-            ? prev - 1
-            : totalSlides - 1,
-      );
+      setCurrentSlide((prev) => {
+        const next =
+          direction === 'next'
+            ? prev < totalSlides - 1
+              ? prev + 1
+              : 0
+            : prev > 0
+              ? prev - 1
+              : totalSlides - 1;
+        setMaxEagerSlide((max) => Math.max(max, next + 1));
+        return next;
+      });
     },
     [totalSlides],
   );
@@ -131,13 +140,18 @@ const ChurchCardComponent = ({
           >
             {images.map((url, i) => (
               <div key={i} className="h-full min-w-full">
-                <img
-                  src={url}
-                  alt={`${church.name} photo ${i + 1}`}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                  onError={() => handleImageError(i)}
-                />
+                {i <= maxEagerSlide ? (
+                  <img
+                    src={url}
+                    alt={`${church.name} photo ${i + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    onError={() => handleImageError(i)}
+                  />
+                ) : (
+                  <div className="h-full w-full bg-muted" aria-hidden="true" />
+                )}
               </div>
             ))}
           </div>

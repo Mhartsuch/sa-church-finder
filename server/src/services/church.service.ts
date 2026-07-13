@@ -250,10 +250,44 @@ function getTimeCategoryFilter(time: string): [string, string] {
 
 // ── Main search ──
 
+// Anonymous search responses are identical for every signed-out visitor
+// (`isSaved` is always false without a session), and the homepage featured
+// rail plus the default search page hit the same handful of parameter
+// combinations over and over. A short process-local TTL cache turns those
+// hot queries into a memory lookup instead of a 4-query ranking pass.
+// Signed-in searches bypass the cache entirely.
+const ANON_SEARCH_CACHE_TTL_MS = 60 * 1000
+const ANON_SEARCH_CACHE_MAX_ENTRIES = 100
+
+const anonymousSearchCache = new Map<string, { payload: ISearchResponse; expiresAt: number }>()
+
 export async function searchChurches(
   params: ISearchParams,
   userId?: string,
 ): Promise<ISearchResponse> {
+  if (userId) {
+    return executeSearch(params, userId)
+  }
+
+  const key = JSON.stringify(params)
+  const cached = anonymousSearchCache.get(key)
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.payload
+  }
+
+  const payload = await executeSearch(params, undefined)
+
+  if (anonymousSearchCache.size >= ANON_SEARCH_CACHE_MAX_ENTRIES) {
+    // Evict the oldest entry (Map preserves insertion order).
+    const oldestKey = anonymousSearchCache.keys().next().value
+    if (oldestKey !== undefined) anonymousSearchCache.delete(oldestKey)
+  }
+  anonymousSearchCache.set(key, { payload, expiresAt: Date.now() + ANON_SEARCH_CACHE_TTL_MS })
+
+  return payload
+}
+
+async function executeSearch(params: ISearchParams, userId?: string): Promise<ISearchResponse> {
   const centerLat = params.lat ?? DEFAULT_CENTER_LAT
   const centerLng = params.lng ?? DEFAULT_CENTER_LNG
   const radius = params.radius ?? DEFAULT_RADIUS
@@ -915,6 +949,9 @@ export async function getFilterOptions(): Promise<IFilterOptionsPayload> {
  */
 export function invalidateFilterOptionsCache(): void {
   filterOptionsCache = null
+  // Callers invoke this on every church-data mutation, which is exactly when
+  // cached anonymous listings must refresh too.
+  anonymousSearchCache.clear()
 }
 
 // ── Church update ──

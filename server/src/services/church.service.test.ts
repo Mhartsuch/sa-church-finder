@@ -4,7 +4,7 @@
  * against the database require a running PostgreSQL instance.
  */
 
-import { searchChurches } from './church.service.js'
+import { invalidateFilterOptionsCache, searchChurches } from './church.service.js'
 
 // Mock prisma to avoid needing a database in CI
 jest.mock('../lib/prisma.js', () => ({
@@ -19,6 +19,13 @@ jest.mock('../lib/prisma.js', () => ({
 }))
 
 describe('church service', () => {
+  beforeEach(() => {
+    // Clears the anonymous search cache so each test sees real query calls.
+    invalidateFilterOptionsCache()
+    const prisma = jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock }
+    prisma.$queryRaw.mockClear()
+  })
+
   it('searchChurches returns proper response shape with empty results', async () => {
     const result = await searchChurches({})
     expect(result).toHaveProperty('data')
@@ -49,11 +56,6 @@ describe('church service', () => {
       return prisma.$queryRaw.mock.calls.map((call) => call[0] as { sql: string; values: unknown[] })
     }
 
-    beforeEach(() => {
-      const prisma = jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock }
-      prisma.$queryRaw.mockClear()
-    })
-
     it('applies the demotion term to the relevance ranking score', async () => {
       await searchChurches({})
       const mainQuery = getQueries().find((q) => q.sql.includes('ranking_score'))
@@ -69,6 +71,39 @@ describe('church service', () => {
       const mainQuery = getQueries().find((q) => q.sql.includes('ORDER BY'))
       expect(mainQuery).toBeDefined()
       expect(mainQuery!.sql).toMatch(/ORDER BY[\s\S]*"denominationFamily" = ANY[\s\S]*ASC/)
+    })
+  })
+
+  describe('anonymous search cache', () => {
+    const getMock = () =>
+      (jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock }).$queryRaw
+
+    it('serves repeat anonymous searches from cache without re-querying', async () => {
+      await searchChurches({ q: 'grace' })
+      const callsAfterFirst = getMock().mock.calls.length
+      expect(callsAfterFirst).toBeGreaterThan(0)
+
+      const second = await searchChurches({ q: 'grace' })
+      expect(getMock().mock.calls.length).toBe(callsAfterFirst)
+      expect(second).toHaveProperty('data')
+    })
+
+    it('bypasses the cache for signed-in searches', async () => {
+      await searchChurches({ q: 'grace' })
+      const callsAfterAnon = getMock().mock.calls.length
+
+      await searchChurches({ q: 'grace' }, 'user-123')
+      expect(getMock().mock.calls.length).toBeGreaterThan(callsAfterAnon)
+    })
+
+    it('refreshes after church-data mutations invalidate the cache', async () => {
+      await searchChurches({ q: 'grace' })
+      const callsAfterFirst = getMock().mock.calls.length
+
+      invalidateFilterOptionsCache()
+
+      await searchChurches({ q: 'grace' })
+      expect(getMock().mock.calls.length).toBeGreaterThan(callsAfterFirst)
     })
   })
 })
