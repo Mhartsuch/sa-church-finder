@@ -2,6 +2,7 @@ import { Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { HeartButton } from '@/components/church/HeartButton';
+import { usePrefetchChurch } from '@/hooks/useChurches';
 import { PhotoCarousel } from '@/components/church/PhotoCarousel';
 import {
   churchPhotos,
@@ -23,12 +24,18 @@ interface ChurchCardProps {
 export const ChurchCard = ({ church, eager, highlighted, onHover }: ChurchCardProps) => {
   const rating = getRating(church);
   const nextService = formatNextService(church.services);
+  const prefetch = usePrefetchChurch();
 
   return (
     <Link
       to={`/churches/${church.slug}`}
       className="group block rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900"
-      onMouseEnter={() => onHover?.(church.id)}
+      onMouseEnter={() => {
+        onHover?.(church.id);
+        prefetch(church.slug);
+      }}
+      onFocus={() => prefetch(church.slug)}
+      onTouchStart={() => prefetch(church.slug)}
       onMouseLeave={() => onHover?.(null)}
     >
       <div

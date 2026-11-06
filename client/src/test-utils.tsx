@@ -11,8 +11,13 @@ const LocationProbe = () => {
   return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
 };
 
-export const renderWithProviders = (ui: ReactElement, { route = '/', path = '*' } = {}) => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+export const createTestQueryClient = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+export const renderWithProviders = (
+  ui: ReactElement,
+  { route = '/', path = '*', queryClient = createTestQueryClient() } = {},
+) => {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>

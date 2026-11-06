@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  type QueryClient,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -14,7 +15,8 @@ import {
   fetchSavedChurches,
   toggleSaved,
 } from '@/api/churches';
-import { IChurch, IChurchFilters, ISearchResponse } from '@/types/church';
+import { ApiRequestError } from '@/lib/api-client';
+import { IChurch, IChurchFilters, IChurchSummary, ISearchResponse } from '@/types/church';
 
 export const PAGE_SIZE = 24;
 
@@ -29,12 +31,57 @@ export const useChurchSearch = (filters: IChurchFilters, bounds?: string) =>
     placeholderData: keepPreviousData,
   });
 
-export const useChurch = (slug: string | undefined) =>
-  useQuery({
-    queryKey: ['churches', 'detail', slug],
-    queryFn: () => fetchChurch(slug!),
+const detailQuery = (slug: string) => ({
+  queryKey: ['churches', 'detail', slug],
+  queryFn: () => fetchChurch(slug),
+  staleTime: 5 * 60 * 1000,
+  // A missing church won't appear on retry; only retry network/server errors.
+  retry: (failures: number, error: Error) =>
+    failures < 1 && !(error instanceof ApiRequestError && error.status < 500),
+});
+
+/** The card-sized copy of a church from any cached search page, if we have one. */
+const findCachedSummary = (queryClient: QueryClient, slug: string): IChurch | undefined => {
+  for (const [, data] of queryClient.getQueriesData<InfiniteData<ISearchResponse>>({
+    queryKey: ['churches', 'search'],
+  })) {
+    const match: IChurchSummary | undefined = data?.pages
+      .flatMap((page) => page.data)
+      .find((church) => church.slug === slug);
+    if (match) {
+      return {
+        ...match,
+        email: null,
+        pastorName: null,
+        yearEstablished: null,
+        googleMapsUrl: null,
+      };
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Church detail. Renders instantly from the browse grid's cached copy (name,
+ * photos, services) while the full record loads in the background.
+ */
+export const useChurch = (slug: string | undefined) => {
+  const queryClient = useQueryClient();
+  return useQuery({
+    ...detailQuery(slug ?? ''),
     enabled: Boolean(slug),
+    placeholderData: () => (slug ? findCachedSummary(queryClient, slug) : undefined),
   });
+};
+
+/** Warm the detail cache (and the profile page code) before the visitor clicks. */
+export const usePrefetchChurch = () => {
+  const queryClient = useQueryClient();
+  return (slug: string) => {
+    void import('@/pages/ChurchPage');
+    void queryClient.prefetchQuery(detailQuery(slug));
+  };
+};
 
 export const useFilterOptions = () =>
   useQuery({

@@ -1,8 +1,9 @@
 import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiRequestError } from '@/lib/api-client';
 import ChurchPage from '@/pages/ChurchPage';
-import { makeChurch, renderWithProviders } from '@/test-utils';
+import { createTestQueryClient, makeChurch, renderWithProviders } from '@/test-utils';
 
 // A plain function (not vi.fn) so rejected promises aren't re-tracked by the spy.
 let churchResponse: () => Promise<unknown> = () => Promise.resolve(null);
@@ -67,8 +68,24 @@ describe('ChurchPage', () => {
   });
 
   it('shows a friendly message for unknown churches', async () => {
-    churchResponse = () => Promise.reject(new Error('Not found'));
+    churchResponse = () => Promise.reject(new ApiRequestError('Not found', 404));
     renderWithProviders(<ChurchPage />, route);
     expect(await screen.findByText('We can’t find that church')).toBeInTheDocument();
+  });
+
+  it('renders instantly from the browse grid cache while the full profile loads', async () => {
+    churchResponse = () => new Promise(() => undefined); // never resolves
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(['churches', 'search', {}, null], {
+      pages: [{ data: [makeChurch()], meta: { page: 1, pageSize: 24, total: 1, totalPages: 1 } }],
+      pageParams: [1],
+    });
+    renderWithProviders(<ChurchPage />, { ...route, queryClient });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Grace Community Church' }),
+    ).toBeInTheDocument();
+    expect(screen.getByAltText('Sanctuary')).toBeInTheDocument();
+    expect(requestedSlugs).toContain('grace-community-church');
   });
 });

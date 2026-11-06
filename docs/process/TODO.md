@@ -18,8 +18,12 @@
       churches without photos rank last and show a placeholder.
 - [ ] Spot-check the top 50 churches for low-quality or off-topic photos and reorder via
       `displayOrder`.
-- [ ] Consider a paid Render instance for the API to remove cold starts (the `keepalive`
-      workflow only mitigates them).
+- [ ] **Fix API cold starts (the main cause of slow profile loads).** The free Render API
+      sleeps after ~15 idle minutes and takes 30–60s to wake. The `keepalive` workflow was
+      auto-disabled by GitHub on 2026-09-11 (`disabled_inactivity`), and even when enabled
+      GitHub only ran it every 2–5 hours. Best fix: upgrade the API to Render's Starter plan.
+      Free fallback: a 5-minute uptime monitor (e.g. UptimeRobot) on `/api/v1/health`, or
+      re-enable the workflow under Actions → keepalive.
 
 ## P2 — Nice to have
 
