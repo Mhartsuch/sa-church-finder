@@ -71,12 +71,15 @@ type MockedPrisma = {
 }
 
 const mockedPrisma = prisma as unknown as MockedPrisma
-const mockedIsEmailDeliveryConfigured =
-  isEmailDeliveryConfigured as jest.MockedFunction<typeof isEmailDeliveryConfigured>
-const mockedSendEmailVerificationEmail =
-  sendEmailVerificationEmail as jest.MockedFunction<typeof sendEmailVerificationEmail>
-const mockedSendPasswordResetEmail =
-  sendPasswordResetEmail as jest.MockedFunction<typeof sendPasswordResetEmail>
+const mockedIsEmailDeliveryConfigured = isEmailDeliveryConfigured as jest.MockedFunction<
+  typeof isEmailDeliveryConfigured
+>
+const mockedSendEmailVerificationEmail = sendEmailVerificationEmail as jest.MockedFunction<
+  typeof sendEmailVerificationEmail
+>
+const mockedSendPasswordResetEmail = sendPasswordResetEmail as jest.MockedFunction<
+  typeof sendPasswordResetEmail
+>
 const fetchMock = jest.fn()
 const originalFetch = global.fetch
 const originalResetPreviewSetting = process.env.AUTH_EXPOSE_RESET_PREVIEW
@@ -90,7 +93,6 @@ const baseUser = {
   email: 'user@example.com',
   name: 'Test User',
   avatarUrl: null,
-  role: 'USER',
   emailVerified: false,
   createdAt: new Date('2026-03-28T00:00:00.000Z'),
 }
@@ -121,17 +123,14 @@ describe('auth routes', () => {
     mockedIsEmailDeliveryConfigured.mockReturnValue(false)
     mockedSendEmailVerificationEmail.mockResolvedValue(undefined)
     mockedSendPasswordResetEmail.mockResolvedValue(undefined)
-    mockedPrisma.$transaction.mockImplementation((operations: unknown[]) =>
-      Promise.all(operations),
-    )
+    mockedPrisma.$transaction.mockImplementation((operations: unknown[]) => Promise.all(operations))
     mockedPrisma.emailVerificationToken.deleteMany.mockResolvedValue({ count: 0 })
     mockedPrisma.emailVerificationToken.create.mockResolvedValue({ id: 'verify-token-1' })
     delete process.env.AUTH_EXPOSE_RESET_PREVIEW
     delete process.env.AUTH_EXPOSE_VERIFICATION_PREVIEW
     process.env.GOOGLE_CLIENT_ID = 'google-client-id'
     process.env.GOOGLE_CLIENT_SECRET = 'google-client-secret'
-    process.env.GOOGLE_CALLBACK_URL =
-      'http://localhost:3001/api/v1/auth/google/callback'
+    process.env.GOOGLE_CALLBACK_URL = 'http://localhost:3001/api/v1/auth/google/callback'
   })
 
   afterAll(() => {
@@ -190,7 +189,6 @@ describe('auth routes', () => {
     expect(registerResponse.body.data).toMatchObject({
       email: 'new@example.com',
       name: 'New User',
-      role: 'user',
       emailVerified: false,
     })
     expect(mockedPrisma.user.create).toHaveBeenCalledWith(
@@ -405,9 +403,7 @@ describe('auth routes', () => {
 
     const redirectUrl = new URL(callbackResponse.headers.location)
 
-    expect(`${redirectUrl.origin}${redirectUrl.pathname}`).toBe(
-      'http://localhost:5173/login',
-    )
+    expect(`${redirectUrl.origin}${redirectUrl.pathname}`).toBe('http://localhost:5173/login')
     expect(redirectUrl.searchParams.get('authError')).toBe('google_session_expired')
     expect(redirectUrl.searchParams.get('returnTo')).toBe('/churches/grace-community')
     expect(fetchMock).not.toHaveBeenCalled()
@@ -425,9 +421,7 @@ describe('auth routes', () => {
 
     const redirectUrl = new URL(response.headers.location)
 
-    expect(`${redirectUrl.origin}${redirectUrl.pathname}`).toBe(
-      'http://localhost:5173/login',
-    )
+    expect(`${redirectUrl.origin}${redirectUrl.pathname}`).toBe('http://localhost:5173/login')
     expect(redirectUrl.searchParams.get('authError')).toBe('google_unavailable')
     expect(redirectUrl.searchParams.get('returnTo')).toBe('/churches/grace-community')
   })
@@ -448,9 +442,7 @@ describe('auth routes', () => {
     expect(response.body.data).toMatchObject({
       status: 'sent',
     })
-    expect(response.body.data.previewUrl).toMatch(
-      /^http:\/\/localhost:5173\/verify-email\?token=/,
-    )
+    expect(response.body.data.previewUrl).toMatch(/^http:\/\/localhost:5173\/verify-email\?token=/)
     expect(mockedPrisma.emailVerificationToken.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -502,9 +494,7 @@ describe('auth routes', () => {
       expect.objectContaining({
         email: 'user@example.com',
         name: 'Test User',
-        verificationUrl: expect.stringMatching(
-          /^http:\/\/localhost:5173\/verify-email\?token=/,
-        ),
+        verificationUrl: expect.stringMatching(/^http:\/\/localhost:5173\/verify-email\?token=/),
       }),
     )
   })
@@ -546,7 +536,6 @@ describe('auth routes', () => {
     expect(loginResponse.status).toBe(200)
     expect(loginResponse.body.data).toMatchObject({
       email: 'user@example.com',
-      role: 'user',
     })
 
     const meResponse = await agent.get('/api/v1/auth/me')
@@ -729,9 +718,7 @@ describe('auth routes', () => {
     expect(mockedSendPasswordResetEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'user@example.com',
-        resetUrl: expect.stringMatching(
-          /^http:\/\/localhost:5173\/reset-password\?token=/,
-        ),
+        resetUrl: expect.stringMatching(/^http:\/\/localhost:5173\/reset-password\?token=/),
       }),
     )
   })
@@ -800,9 +787,9 @@ describe('auth routes', () => {
         }),
       }),
     )
-    await expect(
-      bcrypt.compare('newpassword123', userUpdateArgs.data.passwordHash),
-    ).resolves.toBe(true)
+    await expect(bcrypt.compare('newpassword123', userUpdateArgs.data.passwordHash)).resolves.toBe(
+      true,
+    )
   })
 
   it('rejects reset attempts with an invalid or expired token', async () => {

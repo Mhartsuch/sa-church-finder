@@ -19,8 +19,6 @@ const SUBPAGE_PATTERNS: RegExp[] = [
   /\/ministries\/?$/i,
   /\/contact(?:-us)?\/?$/i,
   /\/visit\/?$/i,
-  /\/events\/?$/i,
-  /\/calendar\/?$/i,
 ]
 
 // Pages we explicitly do NOT want to crawl.

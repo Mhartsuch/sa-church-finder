@@ -1,220 +1,83 @@
-import { QueryKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-import { DEFAULT_RADIUS, PAGE_SIZE, SA_CENTER } from '@/constants';
 import {
-  fetchChurchBySlug,
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
+
+import {
+  fetchChurch,
   fetchChurches,
   fetchFilterOptions,
   fetchSavedChurches,
-  toggleSavedChurch,
-  updateChurch,
+  toggleSaved,
 } from '@/api/churches';
-import { useSearchStore } from '@/stores/search-store';
-import {
-  IChurch,
-  IFilterOptions,
-  ISavedChurchesParams,
-  ISavedChurchesResponse,
-  ISearchParams,
-  ISearchResponse,
-  IUpdateChurchInput,
-} from '@/types/church';
+import { IChurch, IChurchFilters, ISearchResponse } from '@/types/church';
 
-const STALE_TIME = 60000; // 60 seconds
-const FILTER_OPTIONS_STALE_TIME = 300000; // 5 minutes — filter options change rarely
+export const PAGE_SIZE = 24;
 
-export const CHURCHES_QUERY_KEY = ['churches'] as const;
-export const CHURCH_QUERY_KEY = ['church'] as const;
-export const SAVED_CHURCHES_QUERY_KEY = ['saved-churches'] as const;
-export const FILTER_OPTIONS_QUERY_KEY = ['filter-options'] as const;
-
-export const useChurches = (params: ISearchParams) => {
-  return useQuery<ISearchResponse, Error>({
-    queryKey: [...CHURCHES_QUERY_KEY, params],
-    queryFn: () => fetchChurches(params),
-    staleTime: STALE_TIME,
-    enabled: true,
+export const useChurchSearch = (filters: IChurchFilters, bounds?: string) =>
+  useInfiniteQuery({
+    queryKey: ['churches', 'search', filters, bounds ?? null],
+    queryFn: ({ pageParam }) =>
+      fetchChurches({ ...filters, bounds, page: pageParam, pageSize: PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.meta.page < last.meta.totalPages ? last.meta.page + 1 : undefined,
+    placeholderData: keepPreviousData,
   });
-};
 
-export const useChurchSearchParams = () => {
-  const query = useSearchStore((state) => state.query);
-  const filters = useSearchStore((state) => state.filters);
-  const sort = useSearchStore((state) => state.sort);
-  const page = useSearchStore((state) => state.page);
-  const mapBounds = useSearchStore((state) => state.mapBounds);
-  const userLocation = useSearchStore((state) => state.userLocation);
+export const useChurch = (slug: string | undefined) =>
+  useQuery({
+    queryKey: ['churches', 'detail', slug],
+    queryFn: () => fetchChurch(slug!),
+    enabled: Boolean(slug),
+  });
 
-  const boundsString = mapBounds
-    ? `${mapBounds.swLat},${mapBounds.swLng},${mapBounds.neLat},${mapBounds.neLng}`
-    : undefined;
-
-  // Resolve the search center in priority order:
-  //   1. Map bounds — the user is actively exploring a specific area on the map.
-  //      Using the bounds midpoint keeps the query key stable while the user
-  //      pans without applying; only "Search this area" triggers a refetch.
-  //   2. User location — the user opted in to "find near me".
-  //   3. San Antonio default — cold start / anonymous browse.
-  let searchLat = SA_CENTER.lat;
-  let searchLng = SA_CENTER.lng;
-  if (mapBounds) {
-    searchLat = (mapBounds.swLat + mapBounds.neLat) / 2;
-    searchLng = (mapBounds.swLng + mapBounds.neLng) / 2;
-  } else if (userLocation) {
-    searchLat = userLocation.lat;
-    searchLng = userLocation.lng;
-  }
-
-  return {
-    lat: searchLat,
-    lng: searchLng,
-    // Explicit user-selected radius wins over the hard-coded default, so the
-    // "Distance" filter chip actually changes the query key and triggers a
-    // refetch. Falling back to DEFAULT_RADIUS keeps the legacy behaviour for
-    // everyone who never opens the filter panel.
-    radius: filters.radius ?? DEFAULT_RADIUS,
-    q: query || undefined,
-    denomination: filters.denomination,
-    day: filters.day,
-    time: filters.time,
-    languages: filters.languages,
-    amenities: filters.amenities,
-    wheelchairAccessible: filters.wheelchairAccessible,
-    goodForChildren: filters.goodForChildren,
-    goodForGroups: filters.goodForGroups,
-    hasPhotos: filters.hasPhotos,
-    isClaimed: filters.isClaimed,
-    openNow: filters.openNow,
-    minRating: filters.minRating,
-    neighborhood: filters.neighborhood,
-    serviceType: filters.serviceType,
-    sort,
-    page,
-    pageSize: PAGE_SIZE,
-    bounds: boundsString,
-  } satisfies ISearchParams;
-};
-
-export const useFilterOptions = () => {
-  return useQuery<IFilterOptions, Error>({
-    queryKey: [...FILTER_OPTIONS_QUERY_KEY],
+export const useFilterOptions = () =>
+  useQuery({
+    queryKey: ['filter-options'],
     queryFn: fetchFilterOptions,
-    staleTime: FILTER_OPTIONS_STALE_TIME,
+    staleTime: 30 * 60 * 1000,
   });
-};
 
-export const useChurch = (slug: string) => {
-  return useQuery<IChurch, Error>({
-    queryKey: [...CHURCH_QUERY_KEY, slug],
-    queryFn: () => fetchChurchBySlug(slug),
-    staleTime: STALE_TIME,
-    enabled: !!slug,
-  });
-};
-
-export const useSavedChurches = (userId: string | null, params?: ISavedChurchesParams) => {
-  return useQuery<ISavedChurchesResponse, Error>({
-    queryKey: [...SAVED_CHURCHES_QUERY_KEY, userId, params],
-    queryFn: () => fetchSavedChurches(userId!, params),
-    staleTime: STALE_TIME,
+export const useSavedChurches = (userId: string | undefined) =>
+  useQuery({
+    queryKey: ['saved', userId],
+    queryFn: () => fetchSavedChurches(userId!),
     enabled: Boolean(userId),
   });
-};
 
-export const useToggleSavedChurch = () => {
+/** Toggle a church's saved state, optimistically updating every cached copy. */
+export const useToggleSaved = () => {
   const queryClient = useQueryClient();
 
-  type ToggleContext = {
-    previousSearch: [QueryKey, ISearchResponse | undefined][];
-    previousChurch: [QueryKey, IChurch | undefined][];
+  const setSaved = (churchId: string, saved: boolean) => {
+    queryClient.setQueriesData<InfiniteData<ISearchResponse>>(
+      { queryKey: ['churches', 'search'] },
+      (data) =>
+        data && {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            data: page.data.map((church) =>
+              church.id === churchId ? { ...church, isSaved: saved } : church,
+            ),
+          })),
+        },
+    );
+    queryClient.setQueriesData<IChurch>({ queryKey: ['churches', 'detail'] }, (church) =>
+      church && church.id === churchId ? { ...church, isSaved: saved } : church,
+    );
   };
 
-  return useMutation<{ churchId: string; saved: boolean }, Error, string, ToggleContext>({
-    mutationFn: toggleSavedChurch,
-    onMutate: async (churchId) => {
-      // Cancel in-flight fetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries({ queryKey: CHURCHES_QUERY_KEY });
-      await queryClient.cancelQueries({ queryKey: CHURCH_QUERY_KEY });
-
-      // Snapshot the previous values for rollback
-      const previousSearch = queryClient.getQueriesData<ISearchResponse>({
-        queryKey: CHURCHES_QUERY_KEY,
-      });
-      const previousChurch = queryClient.getQueriesData<IChurch>({
-        queryKey: CHURCH_QUERY_KEY,
-      });
-
-      // Optimistically toggle isSaved in search results
-      queryClient.setQueriesData<ISearchResponse>({ queryKey: CHURCHES_QUERY_KEY }, (current) =>
-        current
-          ? {
-              ...current,
-              data: current.data.map((church) =>
-                church.id === churchId ? { ...church, isSaved: !church.isSaved } : church,
-              ),
-            }
-          : current,
-      );
-
-      // Optimistically toggle isSaved in church detail
-      queryClient.setQueriesData<IChurch>({ queryKey: CHURCH_QUERY_KEY }, (current) =>
-        current && current.id === churchId ? { ...current, isSaved: !current.isSaved } : current,
-      );
-
-      return { previousSearch, previousChurch };
-    },
-    onError: (_error, _churchId, context) => {
-      // Roll back to the previous values on failure
-      if (context?.previousSearch) {
-        for (const [queryKey, data] of context.previousSearch) {
-          queryClient.setQueryData(queryKey, data);
-        }
-      }
-      if (context?.previousChurch) {
-        for (const [queryKey, data] of context.previousChurch) {
-          queryClient.setQueryData(queryKey, data);
-        }
-      }
-    },
-    onSettled: () => {
-      // Refetch to ensure server state is in sync
-      void queryClient.invalidateQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY });
-    },
-  });
-};
-
-export const useUpdateChurch = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<IChurch, Error, { churchId: string; input: IUpdateChurchInput }>({
-    mutationFn: ({ churchId, input }) => updateChurch(churchId, input),
-    onSuccess: (updatedChurch) => {
-      // Update the church detail cache
-      queryClient.setQueriesData<IChurch>({ queryKey: CHURCH_QUERY_KEY }, (current) =>
-        current && current.id === updatedChurch.id ? updatedChurch : current,
-      );
-
-      // Update the search results cache with changed fields
-      queryClient.setQueriesData<ISearchResponse>({ queryKey: CHURCHES_QUERY_KEY }, (current) =>
-        current
-          ? {
-              ...current,
-              data: current.data.map((church) =>
-                church.id === updatedChurch.id ? { ...church, ...updatedChurch } : church,
-              ),
-            }
-          : current,
-      );
-
-      // Invalidate leader portal church queries so the portal refreshes
-      void queryClient.invalidateQueries({
-        queryKey: ['leaders-portal', 'church'],
-      });
-
-      // Invalidate filter options in case languages/amenities changed
-      void queryClient.invalidateQueries({
-        queryKey: FILTER_OPTIONS_QUERY_KEY,
-      });
-    },
+  return useMutation({
+    mutationFn: ({ churchId }: { churchId: string; saved: boolean }) => toggleSaved(churchId),
+    onMutate: ({ churchId, saved }) => setSaved(churchId, saved),
+    onError: (_error, { churchId, saved }) => setSaved(churchId, !saved),
+    onSuccess: ({ churchId, saved }) => setSaved(churchId, saved),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['saved'] }),
   });
 };

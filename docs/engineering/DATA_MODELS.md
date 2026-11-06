@@ -1,389 +1,170 @@
 # Data Models
 
-> Database schema design for SA Church Finder. This document is the reference for the Prisma schema. Any changes here must be reflected in `schema.prisma`.
+> Reference for the v2 (lean) schema. `server/prisma/schema.prisma` is the single
+> source of truth; keep this file in sync with it. Table names are snake_case
+> plural; column names match the Prisma field names (camelCase, quoted in SQL).
 
-## Entity Relationship Diagram
+## Relationships
 
 ```
-┌─────────────┐       ┌─────────────┐       ┌──────────────┐
-│   users     │──┐    │  churches   │──┐    │   services   │
-│             │  │    │             │  │    │              │
-│ id          │  │    │ id          │  │    │ id           │
-│ email       │  │    │ name        │  │    │ church_id FK │
-│ name        │  │    │ slug        │  │    │ day_of_week  │
-│ avatar_url  │  │    │ denomination│  │    │ start_time   │
-│ role        │  │    │ lat/lng     │  │    │ type         │
-│ ...         │  │    │ ...         │  │    │ language     │
-└─────────────┘  │    └─────────────┘  │    └──────────────┘
-      │          │          │          │
-      │          │          │          │
-      ▼          │          ▼          │
-┌─────────────┐  │    ┌─────────────┐  │    ┌──────────────┐
-│  reviews    │  │    │   events    │  │    │ church_photos│
-│             │  │    │             │  │    │              │
-│ id          │  │    │ id          │  │    │ id           │
-│ user_id FK  │  │    │ church_id FK│  │    │ church_id FK │
-│ church_id FK│  │    │ title       │  │    │ url          │
-│ rating      │  │    │ start_time  │  │    │ order        │
-│ body        │  │    │ type        │  │    │ alt_text     │
-│ ...         │  │    │ ...         │  │    └──────────────┘
-└─────────────┘  │    └─────────────┘
-                 │
-                 ▼
-          ┌──────────────────┐
-          │user_saved_churches│
-          │                  │
-          │ user_id FK       │
-          │ church_id FK     │
-          │ saved_at         │
-          └──────────────────┘
+users ──< reviews >── churches ──< church_services
+  │                      │ ──< church_photos
+  └──< user_saved_churches >┘ ──1 enrichment_states
+users ──< password_reset_tokens
+users ──< email_verification_tokens
 ```
+
+Deleting a user cascades to their reviews, saved churches and tokens. Deleting a
+church cascades to its services, photos, reviews, saves and enrichment state.
 
 ## Tables
 
 ### users
 
-| Column         | Type         | Constraints              | Notes                                |
-| -------------- | ------------ | ------------------------ | ------------------------------------ |
-| id             | UUID         | PK, default gen          |                                      |
-| email          | VARCHAR(255) | UNIQUE, NOT NULL         |                                      |
-| password_hash  | VARCHAR(255) | NULLABLE                 | Null for OAuth-only users            |
-| name           | VARCHAR(100) | NOT NULL                 | Display name                         |
-| avatar_url     | TEXT         | NULLABLE                 | Profile image URL                    |
-| role           | ENUM         | NOT NULL, default 'user' | 'user', 'church_admin', 'site_admin' |
-| google_id      | VARCHAR(255) | UNIQUE, NULLABLE         | Google OAuth subject ID              |
-| email_verified | BOOLEAN      | default false            |                                      |
-| deactivated_at | TIMESTAMP    | NULLABLE                 | Soft-delete timestamp                |
-| created_at     | TIMESTAMP    | default now()            |                                      |
-| updated_at     | TIMESTAMP    | auto-update              |                                      |
+| Column        | Type      | Constraints      | Notes                            |
+| ------------- | --------- | ---------------- | -------------------------------- |
+| id            | UUID      | PK               |                                  |
+| email         | TEXT      | UNIQUE, NOT NULL | Lower-cased on write             |
+| passwordHash  | TEXT      | NULLABLE         | bcrypt; null for Google-only     |
+| name          | TEXT      | NOT NULL         | Display name                     |
+| avatarUrl     | TEXT      | NULLABLE         | Set from the Google profile only |
+| googleId      | TEXT      | UNIQUE, NULLABLE | Google OAuth subject             |
+| emailVerified | BOOLEAN   | default false    |                                  |
+| createdAt     | TIMESTAMP | default now()    |                                  |
+| updatedAt     | TIMESTAMP | auto-update      |                                  |
 
 ### churches
 
-| Column                | Type             | Constraints             | Notes                                                     |
-| --------------------- | ---------------- | ----------------------- | --------------------------------------------------------- |
-| id                    | UUID             | PK, default gen         |                                                           |
-| name                  | VARCHAR(200)     | NOT NULL                |                                                           |
-| slug                  | VARCHAR(250)     | UNIQUE, NOT NULL        | URL-friendly identifier                                   |
-| denomination          | VARCHAR(100)     | NULLABLE                | e.g., "Southern Baptist", "Catholic"                      |
-| denomination_family   | VARCHAR(50)      | NULLABLE                | e.g., "Baptist", "Catholic", "Non-denominational"         |
-| description           | TEXT             | NULLABLE                | Rich text about the church                                |
-| address               | VARCHAR(300)     | NOT NULL                | Full street address                                       |
-| city                  | VARCHAR(100)     | default 'San Antonio'   |                                                           |
-| state                 | VARCHAR(2)       | default 'TX'            |                                                           |
-| zip_code              | VARCHAR(10)      | NOT NULL                |                                                           |
-| neighborhood          | VARCHAR(100)     | NULLABLE                | e.g., "Alamo Heights", "Stone Oak"                        |
-| latitude              | DECIMAL(10,7)    | NOT NULL                |                                                           |
-| longitude             | DECIMAL(10,7)    | NOT NULL                |                                                           |
-| location              | GEOGRAPHY(Point) | NOT NULL                | PostGIS point for spatial queries                         |
-| phone                 | VARCHAR(20)      | NULLABLE                |                                                           |
-| email                 | VARCHAR(255)     | NULLABLE                |                                                           |
-| website               | TEXT             | NULLABLE                |                                                           |
-| pastor_name           | VARCHAR(150)     | NULLABLE                |                                                           |
-| year_established      | INTEGER          | NULLABLE                |                                                           |
-| avg_rating            | DECIMAL(2,1)     | default 0.0             | Cached aggregate from local user reviews                  |
-| review_count          | INTEGER          | default 0               | Cached count of local user reviews                        |
-| google_rating         | DECIMAL(3,2)     | NULLABLE                | Rating from Google Places API                             |
-| google_review_count   | INTEGER          | NULLABLE                | Review count from Google Places API                       |
-| is_claimed            | BOOLEAN          | default false           | Whether a church admin has claimed it                     |
-| claimed_by            | UUID             | FK → users.id, NULLABLE |                                                           |
-| languages             | TEXT[]           | default []              | Array of languages                                        |
-| amenities             | TEXT[]           | default []              | e.g., ['parking', 'wheelchair', 'childcare']              |
-| cover_image_url       | TEXT             | NULLABLE                | Primary listing photo                                     |
-| google_place_id       | TEXT             | UNIQUE, NULLABLE        | Google Places API ID for import deduplication             |
-| business_status       | VARCHAR(50)      | NULLABLE                | "OPERATIONAL", "CLOSED_TEMPORARILY", "CLOSED_PERMANENTLY" |
-| google_maps_url       | TEXT             | NULLABLE                | Direct link to Google Maps listing                        |
-| primary_type          | VARCHAR(50)      | NULLABLE                | Google place type, e.g. "church"                          |
-| good_for_children     | BOOLEAN          | NULLABLE                | From Google Places accessibility data                     |
-| good_for_groups       | BOOLEAN          | NULLABLE                | From Google Places accessibility data                     |
-| wheelchair_accessible | BOOLEAN          | NULLABLE                | From Google Places accessibility data                     |
-| created_at            | TIMESTAMP        | default now()           |                                                           |
-| updated_at            | TIMESTAMP        | auto-update             |                                                           |
+| Column                                               | Type                  | Constraints            | Notes                                                       |
+| ---------------------------------------------------- | --------------------- | ---------------------- | ----------------------------------------------------------- |
+| id                                                   | UUID                  | PK                     |                                                             |
+| name                                                 | TEXT                  | NOT NULL               |                                                             |
+| slug                                                 | TEXT                  | UNIQUE, NOT NULL       | URL identifier                                              |
+| denomination                                         | TEXT                  | NULLABLE               | e.g. "Southern Baptist"                                     |
+| denominationFamily                                   | TEXT                  | NULLABLE, indexed      | e.g. "Baptist" — the search filter value                    |
+| description                                          | TEXT                  | NULLABLE               |                                                             |
+| address                                              | TEXT                  | NOT NULL               |                                                             |
+| city / state                                         | TEXT                  | default San Antonio/TX |                                                             |
+| zipCode                                              | TEXT                  | NOT NULL               |                                                             |
+| neighborhood                                         | TEXT                  | NULLABLE               | Derived from zip by `enrich-details`                        |
+| latitude / longitude                                 | DECIMAL(10,8)/(11,8)  | NOT NULL               |                                                             |
+| location                                             | geography(Point,4326) | NULLABLE, GiST index   | Maintained by a DB trigger from lat/lng (raw SQL migration) |
+| phone, email, website, pastorName                    | TEXT                  | NULLABLE               |                                                             |
+| yearEstablished                                      | INT                   | NULLABLE               |                                                             |
+| avgRating                                            | DECIMAL(3,2)          | default 0              | Recomputed from `reviews` on every review write/delete      |
+| reviewCount                                          | INT                   | default 0              | Same                                                        |
+| googleRating                                         | DECIMAL(3,2)          | NULLABLE               | From Google Places                                          |
+| googleReviewCount                                    | INT                   | NULLABLE               |                                                             |
+| languages, amenities                                 | TEXT[]                | default []             |                                                             |
+| coverImageUrl                                        | TEXT                  | NULLABLE               |                                                             |
+| googlePlaceId                                        | TEXT                  | UNIQUE, NULLABLE       | Import dedup key                                            |
+| businessStatus                                       | TEXT                  | NULLABLE, indexed      | `CLOSED_PERMANENTLY` rows are hidden from search            |
+| googleMapsUrl, primaryType                           | TEXT                  | NULLABLE               |                                                             |
+| goodForChildren, goodForGroups, wheelchairAccessible | BOOLEAN               | NULLABLE               | null = unknown                                              |
+| createdAt / updatedAt                                | TIMESTAMP             |                        |                                                             |
 
-**Indexes:**
-
-- `location` — GiST spatial index (PostGIS)
-- `slug` — UNIQUE B-tree
-- `denomination_family` — B-tree (filter queries)
-- `(city, state)` — composite B-tree
-- `name` — GIN trigram index (fuzzy text search)
+Indexes: `slug`, `denominationFamily`, `(latitude, longitude)`, GiST on `location`, `businessStatus`.
 
 ### church_services
 
-| Column           | Type         | Constraints                | Notes                                                        |
-| ---------------- | ------------ | -------------------------- | ------------------------------------------------------------ |
-| id               | UUID         | PK, default gen            |                                                              |
-| church_id        | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                            |
-| day_of_week      | SMALLINT     | NOT NULL                   | 0=Sunday, 1=Monday, ... 6=Saturday                           |
-| start_time       | TIME         | NOT NULL                   | e.g., '09:00'                                                |
-| end_time         | TIME         | NULLABLE                   |                                                              |
-| service_type     | VARCHAR(50)  | NOT NULL                   | 'traditional', 'contemporary', 'blended', 'youth', 'spanish' |
-| language         | VARCHAR(30)  | default 'English'          |                                                              |
-| description      | VARCHAR(200) | NULLABLE                   | Optional notes                                               |
-| is_auto_imported | BOOLEAN      | default false              | true if auto-generated from Google opening hours             |
+| Column                | Type      | Constraints            | Notes                                     |
+| --------------------- | --------- | ---------------------- | ----------------------------------------- |
+| id                    | UUID      | PK                     |                                           |
+| churchId              | UUID      | FK → churches, CASCADE |                                           |
+| dayOfWeek             | INT       | NOT NULL               | 0 = Sunday … 6 = Saturday                 |
+| startTime             | TEXT      | NOT NULL               | `HH:MM` 24-hour                           |
+| endTime               | TEXT      | NULLABLE               |                                           |
+| serviceType           | TEXT      | NOT NULL               | e.g. "Worship", "Mass"                    |
+| language              | TEXT      | default "English"      |                                           |
+| description           | TEXT      | NULLABLE               |                                           |
+| isAutoImported        | BOOLEAN   | default false          | Pipeline replaces only auto-imported rows |
+| createdAt / updatedAt | TIMESTAMP |                        |                                           |
 
 ### church_photos
 
-| Column           | Type         | Constraints                | Notes                                       |
-| ---------------- | ------------ | -------------------------- | ------------------------------------------- |
-| id               | UUID         | PK, default gen            |                                             |
-| church_id        | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                           |
-| url              | TEXT         | NOT NULL                   | Cloudinary URL                              |
-| alt_text         | VARCHAR(200) | NULLABLE                   | Accessibility text                          |
-| display_order    | SMALLINT     | default 0                  | Sort order in carousel                      |
-| uploaded_by      | UUID         | FK → users.id, NULLABLE    |                                             |
-| google_photo_ref | TEXT         | NULLABLE                   | Google Places photo resource name for dedup |
-| created_at       | TIMESTAMP    | default now()              |                                             |
+| Column         | Type      | Constraints            | Notes                                 |
+| -------------- | --------- | ---------------------- | ------------------------------------- |
+| id             | UUID      | PK                     |                                       |
+| churchId       | UUID      | FK → churches, CASCADE |                                       |
+| url            | TEXT      | NOT NULL               | Supabase Storage URL (Google import)  |
+| altText        | TEXT      | NULLABLE               |                                       |
+| displayOrder   | INT       | default 0              | Ascending order in grid/mosaic        |
+| googlePhotoRef | TEXT      | NULLABLE               | Google photo resource name, for dedup |
+| createdAt      | TIMESTAMP | default now()          |                                       |
 
 ### reviews
 
-| Column            | Type         | Constraints                | Notes                     |
-| ----------------- | ------------ | -------------------------- | ------------------------- |
-| id                | UUID         | PK, default gen            |                           |
-| user_id           | UUID         | FK → users.id, NOT NULL    | ON DELETE CASCADE         |
-| church_id         | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE         |
-| rating            | DECIMAL(2,1) | NOT NULL                   | 1.0–5.0 in 0.5 increments |
-| body              | TEXT         | NOT NULL                   | 50–2000 characters        |
-| welcome_rating    | SMALLINT     | NULLABLE                   | 1–5 sub-rating            |
-| worship_rating    | SMALLINT     | NULLABLE                   | 1–5 sub-rating            |
-| sermon_rating     | SMALLINT     | NULLABLE                   | 1–5 sub-rating            |
-| facilities_rating | SMALLINT     | NULLABLE                   | 1–5 sub-rating            |
-| helpful_count     | INTEGER      | default 0                  | Cached vote count         |
-| is_flagged        | BOOLEAN      | default false              | Flagged for moderation    |
-| response_body     | TEXT         | NULLABLE                   | Church leader's reply     |
-| responded_at      | TIMESTAMP    | NULLABLE                   | When response was posted  |
-| created_at        | TIMESTAMP    | default now()              |                           |
-| updated_at        | TIMESTAMP    | auto-update                |                           |
+| Column                | Type         | Constraints            | Notes                    |
+| --------------------- | ------------ | ---------------------- | ------------------------ |
+| id                    | UUID         | PK                     |                          |
+| userId                | UUID         | FK → users, CASCADE    |                          |
+| churchId              | UUID         | FK → churches, CASCADE |                          |
+| rating                | DECIMAL(3,2) | NOT NULL               | API accepts integers 1–5 |
+| body                  | TEXT         | NOT NULL               | 10–2000 chars            |
+| createdAt / updatedAt | TIMESTAMP    |                        |                          |
 
-**Constraints:**
-
-- UNIQUE(user_id, church_id) — one review per user per church
-- CHECK(rating >= 1.0 AND rating <= 5.0)
-- CHECK(char_length(body) >= 50)
-
-### review_votes
-
-| Column     | Type      | Constraints               | Notes |
-| ---------- | --------- | ------------------------- | ----- |
-| user_id    | UUID      | FK → users.id, NOT NULL   |       |
-| review_id  | UUID      | FK → reviews.id, NOT NULL |       |
-| created_at | TIMESTAMP | default now()             |       |
-
-**PK:** (user_id, review_id)
-
-### events
-
-| Column            | Type         | Constraints                | Notes                                                                                                                                                                                                                         |
-| ----------------- | ------------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| id                | UUID         | PK, default gen            |                                                                                                                                                                                                                               |
-| church_id         | UUID         | FK → churches.id, NOT NULL | ON DELETE CASCADE                                                                                                                                                                                                             |
-| title             | VARCHAR(200) | NOT NULL                   |                                                                                                                                                                                                                               |
-| description       | TEXT         | NULLABLE                   |                                                                                                                                                                                                                               |
-| event_type        | VARCHAR(50)  | NOT NULL                   | 'service', 'community', 'volunteer', 'study', 'youth', 'other'                                                                                                                                                                |
-| start_time        | TIMESTAMP    | NOT NULL                   |                                                                                                                                                                                                                               |
-| end_time          | TIMESTAMP    | NULLABLE                   |                                                                                                                                                                                                                               |
-| location_override | VARCHAR(300) | NULLABLE                   | If different from church address                                                                                                                                                                                              |
-| is_recurring      | BOOLEAN      | default false              |                                                                                                                                                                                                                               |
-| recurrence_rule   | VARCHAR(255) | NULLABLE                   | iCal RRULE body — supports `FREQ=DAILY\|WEEKLY\|MONTHLY`, `INTERVAL`, `BYDAY` (weekly only), `COUNT`, and `UNTIL`. Parsed and canonicalized on write; expanded into occurrences on read (see `server/src/lib/recurrence.ts`). |
-| created_by        | UUID         | FK → users.id, NULLABLE    |                                                                                                                                                                                                                               |
-| is_auto_imported  | BOOLEAN      | default false              | Set true for events populated by the website enrichment pipeline. The pipeline replaces all auto-imported rows on each run; hand-curated events (`is_auto_imported=false`) are preserved.                                     |
-| source_url        | TEXT         | NULLABLE                   | Page where the event was scraped from (for auto-imported events).                                                                                                                                                             |
-| created_at        | TIMESTAMP    | default now()              |                                                                                                                                                                                                                               |
-| updated_at        | TIMESTAMP    | auto-update                |                                                                                                                                                                                                                               |
-
-**Indexes:** (church_id, is_auto_imported)
-
-### church_claims
-
-| Column             | Type         | Constraints                | Notes                             |
-| ------------------ | ------------ | -------------------------- | --------------------------------- |
-| id                 | UUID         | PK, default gen            |                                   |
-| church_id          | UUID         | FK → churches.id, NOT NULL |                                   |
-| user_id            | UUID         | FK → users.id, NOT NULL    |                                   |
-| role_title         | VARCHAR(100) | NOT NULL                   | e.g., "Pastor", "Office Manager"  |
-| verification_email | VARCHAR(255) | NOT NULL                   | Church domain email               |
-| status             | ENUM         | default 'pending'          | 'pending', 'approved', 'rejected' |
-| reviewed_by        | UUID         | FK → users.id, NULLABLE    | Site admin who reviewed           |
-| created_at         | TIMESTAMP    | default now()              |                                   |
-| reviewed_at        | TIMESTAMP    | NULLABLE                   |                                   |
-
-### password_reset_tokens
-
-| Column     | Type         | Constraints             | Notes                                   |
-| ---------- | ------------ | ----------------------- | --------------------------------------- |
-| id         | UUID         | PK, default gen         |                                         |
-| user_id    | UUID         | FK → users.id, NOT NULL | ON DELETE CASCADE                       |
-| token_hash | VARCHAR(255) | NOT NULL                | SHA-256 hash of the reset token         |
-| expires_at | TIMESTAMP    | NOT NULL                | Token expiration (1 hour from creation) |
-| used_at    | TIMESTAMP    | NULLABLE                | Set when token is consumed              |
-| created_at | TIMESTAMP    | default now()           |                                         |
-
-### email_verification_tokens
-
-| Column     | Type         | Constraints              | Notes                                             |
-| ---------- | ------------ | ------------------------ | ------------------------------------------------- |
-| id         | UUID         | PK, default gen          |                                                   |
-| user_id    | UUID         | FK -> users.id, NOT NULL | ON DELETE CASCADE                                 |
-| token_hash | VARCHAR(255) | NOT NULL                 | SHA-256 hash of the verification token            |
-| expires_at | TIMESTAMP    | NOT NULL                 | Token expiration (default 24 hours from creation) |
-| used_at    | TIMESTAMP    | NULLABLE                 | Set when the verification link is consumed        |
-| created_at | TIMESTAMP    | default now()            |                                                   |
+Unique: `(userId, churchId)` — one review per user per church.
 
 ### user_saved_churches
 
-| Column    | Type      | Constraints                | Notes             |
-| --------- | --------- | -------------------------- | ----------------- |
-| user_id   | UUID      | FK → users.id, NOT NULL    | ON DELETE CASCADE |
-| church_id | UUID      | FK → churches.id, NOT NULL | ON DELETE CASCADE |
-| saved_at  | TIMESTAMP | default now()              |                   |
+| Column   | Type      | Constraints            |
+| -------- | --------- | ---------------------- |
+| userId   | UUID      | FK → users, CASCADE    |
+| churchId | UUID      | FK → churches, CASCADE |
+| savedAt  | TIMESTAMP | default now()          |
 
-**PK:** (user_id, church_id)
+PK: `(userId, churchId)`.
 
-### church_visits
+### password_reset_tokens / email_verification_tokens
 
-| Column     | Type      | Constraints                | Notes                     |
-| ---------- | --------- | -------------------------- | ------------------------- |
-| id         | UUID      | PK, default gen            |                           |
-| user_id    | UUID      | FK → users.id, NOT NULL    | ON DELETE CASCADE         |
-| church_id  | UUID      | FK → churches.id, NOT NULL | ON DELETE CASCADE         |
-| visited_at | DATE      | NOT NULL                   | Date of the visit         |
-| notes      | TEXT      | NULLABLE                   | Personal notes (max 1000) |
-| rating     | INTEGER   | NULLABLE                   | Personal 1–5 rating       |
-| created_at | TIMESTAMP | default now()              |                           |
-| updated_at | TIMESTAMP | auto-update                |                           |
+| Column    | Type      | Constraints         | Notes                                          |
+| --------- | --------- | ------------------- | ---------------------------------------------- |
+| id        | UUID      | PK                  |                                                |
+| userId    | UUID      | FK → users, CASCADE |                                                |
+| tokenHash | TEXT      | UNIQUE              | SHA-256 of the raw token                       |
+| expiresAt | TIMESTAMP | NOT NULL            | Reset: 60 min; verify: 24 h (env-configurable) |
+| usedAt    | TIMESTAMP | NULLABLE            |                                                |
+| createdAt | TIMESTAMP | default now()       |                                                |
 
-**Constraints:** UNIQUE(user_id, church_id, visited_at) — one visit per church per day.
+### user_sessions
 
-**Indexes:** user_id
-
-### church_collections
-
-| Column      | Type         | Constraints             | Notes                         |
-| ----------- | ------------ | ----------------------- | ----------------------------- |
-| id          | UUID         | PK, default gen         |                               |
-| user_id     | UUID         | FK → users.id, NOT NULL | ON DELETE CASCADE             |
-| name        | VARCHAR(100) | NOT NULL                |                               |
-| description | TEXT         | NULLABLE                | Max 500 chars                 |
-| slug        | VARCHAR(150) | NOT NULL                | URL-friendly, unique per user |
-| is_public   | BOOLEAN      | default true            |                               |
-| created_at  | TIMESTAMP    | default now()           |                               |
-| updated_at  | TIMESTAMP    | auto-update             |                               |
-
-**Constraints:** UNIQUE(user_id, slug)
-
-**Indexes:** user_id
-
-### church_collection_items
-
-| Column        | Type      | Constraints                          | Notes             |
-| ------------- | --------- | ------------------------------------ | ----------------- |
-| collection_id | UUID      | FK → church_collections.id, NOT NULL | ON DELETE CASCADE |
-| church_id     | UUID      | FK → churches.id, NOT NULL           | ON DELETE CASCADE |
-| notes         | TEXT      | NULLABLE                             | Max 500 chars     |
-| added_at      | TIMESTAMP | default now()                        |                   |
-
-**PK:** (collection_id, church_id)
-
-### user_awards
-
-| Column     | Type        | Constraints             | Notes                        |
-| ---------- | ----------- | ----------------------- | ---------------------------- |
-| id         | UUID        | PK, default gen         |                              |
-| user_id    | UUID        | FK → users.id, NOT NULL | ON DELETE CASCADE            |
-| award_type | VARCHAR(50) | NOT NULL                | Award identifier (enum-like) |
-| earned_at  | TIMESTAMP   | default now()           |                              |
-
-**Constraints:** UNIQUE(user_id, award_type) — one of each award per user.
-
-**Indexes:** user_id
-
-**Award types:** FIRST_VISIT, EXPLORER_5, DEVOTED_10, PILGRIM_25, DENOMINATION_DIVERSITY, NEIGHBORHOOD_EXPLORER, REGULAR, REVIEWER
-
----
-
-### forum_posts
-
-| Column     | Type      | Constraints             | Notes                                                                          |
-| ---------- | --------- | ----------------------- | ------------------------------------------------------------------------------ |
-| id         | CUID      | PK, default gen         |                                                                                |
-| title      | TEXT      | NOT NULL                | 3–200 characters                                                               |
-| body       | TEXT      | NOT NULL                | 10–5000 characters                                                             |
-| category   | TEXT      | default 'general'       | One of: `general`, `recommendations`, `prayer-requests`, `events`, `newcomers` |
-| author_id  | TEXT      | FK → users.id, NOT NULL | ON DELETE CASCADE                                                              |
-| is_pinned  | BOOLEAN   | default false           | Pinned posts sort first in all views                                           |
-| is_locked  | BOOLEAN   | default false           | Locked posts reject new replies                                                |
-| view_count | INTEGER   | default 0               | Incremented on each detail fetch                                               |
-| created_at | TIMESTAMP | default now()           |                                                                                |
-| updated_at | TIMESTAMP | auto-update             |                                                                                |
-
-**Indexes:** category, author_id, created_at
-
-### forum_replies
-
-| Column     | Type      | Constraints                   | Notes             |
-| ---------- | --------- | ----------------------------- | ----------------- |
-| id         | CUID      | PK, default gen               |                   |
-| body       | TEXT      | NOT NULL                      | 1–5000 characters |
-| post_id    | TEXT      | FK → forum_posts.id, NOT NULL | ON DELETE CASCADE |
-| author_id  | TEXT      | FK → users.id, NOT NULL       | ON DELETE CASCADE |
-| created_at | TIMESTAMP | default now()                 |                   |
-| updated_at | TIMESTAMP | auto-update                   |                   |
-
-**Indexes:** post_id, author_id
-
----
-
-### ribbon_categories
-
-| Column       | Type                        | Constraints    | Notes                                        |
-| ------------ | --------------------------- | -------------- | -------------------------------------------- |
-| id           | UUID                        | PK             | auto-generated                               |
-| label        | TEXT                        | NOT NULL       | Display name on the chip                     |
-| icon         | TEXT                        | default '⛪'   | Emoji icon                                   |
-| slug         | TEXT                        | UNIQUE         | URL-safe identifier                          |
-| filter_type  | ribbon_category_filter_type | NOT NULL       | QUERY or DENOMINATION                        |
-| filter_value | TEXT                        | NOT NULL       | Value used for filtering                     |
-| position     | INTEGER                     | default 0      | Sort order (lower = further left)            |
-| is_visible   | BOOLEAN                     | default true   | Admin can hide without deleting              |
-| source       | ribbon_category_source      | default MANUAL | MANUAL (admin) or AUTO (generated from data) |
-| is_pinned    | BOOLEAN                     | default false  | Pinned categories survive auto-gen sweeps    |
-| created_at   | TIMESTAMP                   | default now()  |                                              |
-| updated_at   | TIMESTAMP                   | auto-updated   |                                              |
-
-**Indexes:** slug (unique), position, is_visible
-
-**Enums:**
-
-- `ribbon_category_source`: MANUAL, AUTO
-- `ribbon_category_filter_type`: QUERY, DENOMINATION
-
----
+`connect-pg-simple`-compatible session table (`sid`, `sess`, `expire`), created by
+raw SQL migration and accessed by `lib/prisma-session-store.ts`. Not a Prisma model.
 
 ### enrichment_states
 
-Tracks progress of the website enrichment pipeline (v2) so runs are
-resumable after interruption or Claude CLI rate limits.
+Resumable progress for the website enrichment pipeline (`enrich-website-v2`).
 
-| Column         | Type      | Constraints              | Notes                                                                                   |
-| -------------- | --------- | ------------------------ | --------------------------------------------------------------------------------------- |
-| id             | UUID      | PK                       | auto-generated                                                                          |
-| church_id      | TEXT      | FK → churches.id, UNIQUE | ON DELETE CASCADE. One state row per church.                                            |
-| version        | TEXT      | default 'v2'             | Pipeline version identifier                                                             |
-| status         | TEXT      | NOT NULL                 | pending \| fetched \| extracted \| applied \| skipped_no_data \| failed \| rate_limited |
-| pages_fetched  | JSONB     | default '[]'             | Array of `{url, statusCode, bytes, fetchedAt, fromCache}`                               |
-| extracted_data | JSONB     | nullable                 | Last ExtractedChurchData snapshot                                                       |
-| confidence     | FLOAT     | nullable                 | 0.0–1.0                                                                                 |
-| source         | TEXT      | nullable                 | e.g. `json-ld`, `claude-ai`, `merged`                                                   |
-| last_error     | TEXT      | nullable                 | Most recent failure message                                                             |
-| attempts       | INTEGER   | default 0                | Incremented on each fetch attempt                                                       |
-| started_at     | TIMESTAMP | default now()            |                                                                                         |
-| completed_at   | TIMESTAMP | nullable                 | Set when terminal state reached                                                         |
-| updated_at     | TIMESTAMP | auto-updated             |                                                                                         |
+| Column                              | Type      | Notes                                                                             |
+| ----------------------------------- | --------- | --------------------------------------------------------------------------------- |
+| id                                  | UUID      | PK                                                                                |
+| churchId                            | UUID      | FK → churches, CASCADE, UNIQUE                                                    |
+| version                             | TEXT      | default "v2"                                                                      |
+| status                              | TEXT      | pending · fetched · extracted · applied · skipped_no_data · failed · rate_limited |
+| pagesFetched                        | JSONB     | `[{ url, statusCode, bytes, fetchedAt, fromCache }]`                              |
+| extractedData                       | JSONB     | Last extraction snapshot                                                          |
+| confidence                          | FLOAT     | 0.0–1.0                                                                           |
+| source                              | TEXT      | `json-ld`, `claude-ai`, `merged`, …                                               |
+| lastError                           | TEXT      |                                                                                   |
+| attempts                            | INT       | default 0                                                                         |
+| startedAt / completedAt / updatedAt | TIMESTAMP |                                                                                   |
 
-**Indexes:** church_id (unique), (status, version)
+Index: `(status, version)`.
 
-The pipeline script (`npm run enrich:website-v2`) consults this table to
-skip already-applied churches and to resume interrupted runs.
+## Enums
+
+None. (v1 enums `role`, `claim_status`, `ribbon_category_source` and
+`ribbon_category_filter_type` were dropped.)
+
+## Migration history note
+
+`20261106000000_lean_overhaul` dropped the v1 tables `events`, `forum_posts`,
+`forum_replies`, `church_visits`, `church_collections`, `church_collection_items`,
+`user_awards`, `church_claims`, `review_votes`, `ribbon_categories`; the columns
+`users.role`, `users.deactivatedAt`, `churches.isClaimed`, `churches.claimedById`,
+`church_photos.uploadedById` and the review sub-rating/vote/flag/response columns;
+and the enums listed above. Rows in those tables were destroyed on deploy.
 
 ---
 
-_Last updated: 2026-04-14 — added enrichment_states + events.is_auto_imported/source_url for resumable website enrichment (v2)._
+_Last updated: 2026-11-06 — v2 lean overhaul._

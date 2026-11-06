@@ -51,7 +51,6 @@ const baseUser = {
   email: 'user@example.com',
   name: 'Test User',
   avatarUrl: null,
-  role: 'USER',
   emailVerified: false,
   createdAt: new Date('2026-03-28T00:00:00.000Z'),
 }
@@ -162,11 +161,18 @@ describe('saved church routes', () => {
           website: null,
           avgRating: '4.8',
           reviewCount: 12,
-          isClaimed: false,
+          googleRating: null,
+          googleReviewCount: null,
           languages: ['English'],
           amenities: ['Childcare'],
           coverImageUrl: null,
+          businessStatus: 'OPERATIONAL',
+          goodForChildren: true,
+          goodForGroups: null,
+          wheelchairAccessible: null,
           services: [],
+          photos: [{ id: 'photo-1', url: 'https://img/1.jpg', altText: null, displayOrder: 0 }],
+          savedByUsers: [{ userId: 'user-1' }],
         },
       },
     ])
@@ -178,8 +184,13 @@ describe('saved church routes', () => {
     expect(ownSavedResponse.body.data[0]).toMatchObject({
       id: 'church-1',
       name: 'Grace Fellowship',
+      latitude: 29.4241,
+      avgRating: 4.8,
       isSaved: true,
+      savedAt: '2026-03-28T12:00:00.000Z',
+      photos: [{ id: 'photo-1', url: 'https://img/1.jpg', altText: null, displayOrder: 0 }],
     })
+    expect(ownSavedResponse.body.data[0]).not.toHaveProperty('savedByUsers')
     expect(ownSavedResponse.body.meta).toMatchObject({
       page: 1,
       pageSize: 20,

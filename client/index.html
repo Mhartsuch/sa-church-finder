@@ -2,69 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Weights 300 (font-light) and 800 (font-extrabold) are used on HomePage/Header. -->
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
     />
-    <!-- Warm up the API origin (prod host; harmless in dev). -->
     <link rel="preconnect" href="https://sa-church-finder-api.onrender.com" crossorigin />
-    <link rel="preconnect" href="https://images.unsplash.com" />
-    <link rel="dns-prefetch" href="https://images.unsplash.com" />
-    <link rel="preconnect" href="https://api.mapbox.com" />
-    <link rel="dns-prefetch" href="https://api.mapbox.com" />
-    <!-- Homepage hero background — keep in sync with src/pages/HomePage.tsx. -->
-    <link
-      rel="preload"
-      as="image"
-      fetchpriority="high"
-      href="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1400&q=80"
-    />
+    <title>SA Church Finder · Find your church home</title>
     <meta
       name="description"
-      content="Discover churches across San Antonio with neighborhood search, detailed profiles, and community-driven reviews."
+      content="Find a church home in San Antonio. Browse photos, service times, and reviews from local churches."
     />
-    <meta name="application-name" content="SA Church Finder" />
-    <meta name="theme-color" content="#0f766e" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="SA Churches" />
-    <meta name="robots" content="index,follow" />
-    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="geo.region" content="US-TX" />
     <meta name="geo.placename" content="San Antonio" />
     <link rel="canonical" href="https://sachurchfinder.com/" />
     <meta property="og:site_name" content="SA Church Finder" />
-    <meta property="og:title" content="SA Church Finder" />
+    <meta property="og:title" content="SA Church Finder · Find your church home" />
     <meta
       property="og:description"
-      content="Discover churches across San Antonio with neighborhood search, detailed profiles, and community-driven reviews."
+      content="Find a church home in San Antonio. Browse photos, service times, and reviews from local churches."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://sachurchfinder.com/" />
-    <meta property="og:locale" content="en_US" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="SA Church Finder" />
-    <meta
-      name="twitter:description"
-      content="Discover churches across San Antonio with neighborhood search, detailed profiles, and community-driven reviews."
-    />
-    <title>SA Church Finder</title>
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
-    <script>
-      (function () {
-        var t = localStorage.getItem('church-finder-theme');
-        if (t === 'dark') document.documentElement.dataset.theme = 'dark';
-      })();
-    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

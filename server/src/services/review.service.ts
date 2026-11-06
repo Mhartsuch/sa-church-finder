@@ -1,47 +1,24 @@
-import { ClaimStatus, Prisma, Role } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 import prisma from '../lib/prisma.js'
-import logger from '../lib/logger.js'
 import { AppError, ConflictError, NotFoundError } from '../middleware/error-handler.js'
 import {
-  sendNewReviewNotification,
-  sendReviewResponseNotification,
-} from './notification-email.service.js'
-import {
-  ICreateReviewInput,
-  IFlaggedReview,
-  IFlaggedReviewListResponse,
-  IFlaggedReviewResolutionResult,
   IReview,
-  IReviewFlagResult,
-  IReviewHelpfulVoteResult,
+  IReviewInput,
   IReviewListParams,
   IReviewListResponse,
-  IResolveFlaggedReviewInput,
-  IReviewResponseDeleteResult,
-  IReviewResponseInput,
-  IReviewResponseResult,
   IUserReview,
-  IUserReviewHistoryResponse,
-  IUpdateReviewInput,
   ReviewSort,
 } from '../types/review.types.js'
 
-const DEFAULT_PAGE = 1
 const DEFAULT_PAGE_SIZE = 10
 const MAX_PAGE_SIZE = 50
 
-const reviewInclude = Prisma.validator<Prisma.ReviewInclude>()({
-  user: {
-    select: {
-      id: true,
-      name: true,
-      avatarUrl: true,
-    },
-  },
-})
+const reviewInclude = {
+  user: { select: { id: true, name: true, avatarUrl: true } },
+} satisfies Prisma.ReviewInclude
 
-const reviewWithChurchInclude = Prisma.validator<Prisma.ReviewInclude>()({
+const userReviewInclude = {
   ...reviewInclude,
   church: {
     select: {
@@ -49,160 +26,63 @@ const reviewWithChurchInclude = Prisma.validator<Prisma.ReviewInclude>()({
       name: true,
       slug: true,
       denomination: true,
-      city: true,
-      state: true,
       neighborhood: true,
+      coverImageUrl: true,
     },
   },
-})
+} satisfies Prisma.ReviewInclude
 
 type ReviewRecord = Prisma.ReviewGetPayload<{ include: typeof reviewInclude }>
-type ReviewWithChurchRecord = Prisma.ReviewGetPayload<{
-  include: typeof reviewWithChurchInclude
-}>
 
-const toNumber = (value: unknown): number => {
-  if (typeof value === 'number') {
-    return value
-  }
-
-  return Number(value) || 0
-}
-
-const toDecimal = (value: number): Prisma.Decimal => {
-  const normalizedValue = Math.min(5, Math.max(0, value))
-  return new Prisma.Decimal(normalizedValue.toFixed(2))
+const ORDER_BY: Record<ReviewSort, Prisma.ReviewOrderByWithRelationInput[]> = {
+  recent: [{ createdAt: 'desc' }],
+  highest: [{ rating: 'desc' }, { createdAt: 'desc' }],
+  lowest: [{ rating: 'asc' }, { createdAt: 'desc' }],
 }
 
 const mapReview = (review: ReviewRecord): IReview => ({
   id: review.id,
   churchId: review.churchId,
   userId: review.userId,
-  rating: toNumber(review.rating),
+  rating: Number(review.rating),
   body: review.body,
-  welcomeRating: review.welcomeRating,
-  worshipRating: review.worshipRating,
-  sermonRating: review.sermonRating,
-  facilitiesRating: review.facilitiesRating,
-  helpfulCount: review.helpfulCount,
-  viewerHasVotedHelpful: false,
-  responseBody: review.responseBody,
-  respondedAt: review.respondedAt,
   createdAt: review.createdAt,
   updatedAt: review.updatedAt,
-  user: {
-    id: review.user.id,
-    name: review.user.name,
-    avatarUrl: review.user.avatarUrl,
-  },
+  user: { id: review.user.id, name: review.user.name, avatarUrl: review.user.avatarUrl },
 })
 
-const mapReviewWithViewerVote = (
-  review: ReviewRecord,
-  viewerHasVotedHelpful: boolean,
-): IReview => ({
-  ...mapReview(review),
-  viewerHasVotedHelpful,
-})
-
-const mapUserReview = (review: ReviewWithChurchRecord): IUserReview => ({
-  ...mapReviewWithViewerVote(review, false),
-  church: {
-    id: review.church.id,
-    name: review.church.name,
-    slug: review.church.slug,
-    denomination: review.church.denomination,
-    city: review.church.city,
-    state: review.church.state,
-    neighborhood: review.church.neighborhood,
-  },
-})
-
-const mapFlaggedReview = (review: ReviewWithChurchRecord): IFlaggedReview => ({
-  ...mapUserReview(review),
-  flaggedAt: review.updatedAt,
-})
-
-const getReviewOrderBy = (sort: ReviewSort): Prisma.ReviewOrderByWithRelationInput[] => {
-  switch (sort) {
-    case 'highest':
-      return [{ rating: 'desc' }, { createdAt: 'desc' }]
-    case 'lowest':
-      return [{ rating: 'asc' }, { createdAt: 'desc' }]
-    case 'helpful':
-      return [{ helpfulCount: 'desc' }, { createdAt: 'desc' }]
-    case 'recent':
-    default:
-      return [{ createdAt: 'desc' }]
-  }
+const assertChurchExists = async (churchId: string): Promise<void> => {
+  const church = await prisma.church.findUnique({ where: { id: churchId }, select: { id: true } })
+  if (!church) throw new NotFoundError('Church not found')
 }
 
-const computeCreateAggregate = (
-  currentAverage: number,
-  currentCount: number,
-  newRating: number,
-): { avgRating: number; reviewCount: number } => {
-  const reviewCount = currentCount + 1
-  const avgRating = (currentAverage * currentCount + newRating) / reviewCount
-
-  return {
-    avgRating,
-    reviewCount,
+const findOwnReview = async (reviewId: string, userId: string): Promise<ReviewRecord> => {
+  const review = await prisma.review.findUnique({ where: { id: reviewId }, include: reviewInclude })
+  if (!review) throw new NotFoundError('Review not found')
+  if (review.userId !== userId) {
+    throw new AppError(403, 'FORBIDDEN', 'You can only change your own reviews')
   }
+  return review
 }
 
-const computeUpdateAggregate = (
-  currentAverage: number,
-  currentCount: number,
-  oldRating: number,
-  newRating: number,
-): { avgRating: number; reviewCount: number } => {
-  if (currentCount <= 0) {
-    return {
-      avgRating: newRating,
-      reviewCount: 1,
-    }
-  }
+/**
+ * Recomputes a church's avgRating/reviewCount from its reviews. Recomputing
+ * (rather than incrementally adjusting) keeps the aggregate correct even when
+ * writes race or rows are removed by cascade (e.g. account deletion).
+ */
+export async function refreshChurchRating(churchId: string): Promise<void> {
+  const aggregate = await prisma.review.aggregate({
+    where: { churchId },
+    _avg: { rating: true },
+    _count: { _all: true },
+  })
+  const avg = aggregate._avg.rating == null ? 0 : Number(aggregate._avg.rating)
 
-  const avgRating = (currentAverage * currentCount - oldRating + newRating) / currentCount
-
-  return {
-    avgRating,
-    reviewCount: currentCount,
-  }
-}
-
-const computeDeleteAggregate = (
-  currentAverage: number,
-  currentCount: number,
-  deletedRating: number,
-): { avgRating: number; reviewCount: number } => {
-  const reviewCount = Math.max(0, currentCount - 1)
-
-  if (reviewCount === 0) {
-    return {
-      avgRating: 0,
-      reviewCount: 0,
-    }
-  }
-
-  const avgRating = (currentAverage * currentCount - deletedRating) / reviewCount
-
-  return {
-    avgRating,
-    reviewCount,
-  }
-}
-
-const updateChurchAggregates = async (
-  churchId: string,
-  values: { avgRating: number; reviewCount: number },
-): Promise<void> => {
   await prisma.church.update({
     where: { id: churchId },
     data: {
-      avgRating: toDecimal(values.avgRating),
-      reviewCount: values.reviewCount,
+      avgRating: new Prisma.Decimal(avg.toFixed(2)),
+      reviewCount: aggregate._count._all,
     },
   })
 }
@@ -212,657 +92,99 @@ export async function getChurchReviews(
   params: IReviewListParams,
   currentUserId?: string,
 ): Promise<IReviewListResponse> {
-  const church = await prisma.church.findUnique({
-    where: { id: churchId },
-    select: { id: true },
-  })
-
-  if (!church) {
-    throw new NotFoundError('Church not found')
-  }
+  await assertChurchExists(churchId)
 
   const sort = params.sort ?? 'recent'
-  const page = Math.max(DEFAULT_PAGE, params.page ?? DEFAULT_PAGE)
+  const page = Math.max(1, params.page ?? 1)
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
-  const skip = (page - 1) * pageSize
 
-  const where = {
-    churchId,
-    isFlagged: false,
-  }
-
-  const total = await prisma.review.count({ where })
-  const reviews = await prisma.review.findMany({
-    where,
-    orderBy: getReviewOrderBy(sort),
-    skip,
-    take: pageSize,
-    include: reviewInclude,
-  })
-  const votedReviewIds =
-    currentUserId && reviews.length > 0
-      ? new Set(
-          (
-            await prisma.reviewVote.findMany({
-              where: {
-                userId: currentUserId,
-                reviewId: {
-                  in: reviews.map((review) => review.id),
-                },
-              },
-              select: {
-                reviewId: true,
-              },
-            })
-          ).map((vote) => vote.reviewId),
-        )
-      : new Set<string>()
-
-  const currentUserReview = currentUserId
-    ? await prisma.review.findUnique({
-        where: {
-          userId_churchId: {
-            userId: currentUserId,
-            churchId,
-          },
-        },
-        include: reviewInclude,
-      })
-    : null
+  const [total, reviews, currentUserReview] = await Promise.all([
+    prisma.review.count({ where: { churchId } }),
+    prisma.review.findMany({
+      where: { churchId },
+      orderBy: ORDER_BY[sort],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: reviewInclude,
+    }),
+    currentUserId
+      ? prisma.review.findUnique({
+          where: { userId_churchId: { userId: currentUserId, churchId } },
+          include: reviewInclude,
+        })
+      : null,
+  ])
 
   return {
-    data: reviews.map((review) => mapReviewWithViewerVote(review, votedReviewIds.has(review.id))),
-    meta: {
-      page,
-      pageSize,
-      total,
-      totalPages: Math.ceil(total / pageSize),
-      sort,
-    },
-    currentUserReview: currentUserReview ? mapReviewWithViewerVote(currentUserReview, false) : null,
+    data: reviews.map(mapReview),
+    meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize), sort },
+    currentUserReview: currentUserReview ? mapReview(currentUserReview) : null,
   }
 }
 
 export async function createReview(
   userId: string,
   churchId: string,
-  input: ICreateReviewInput,
+  input: IReviewInput,
 ): Promise<IReview> {
-  const church = await prisma.church.findUnique({
-    where: { id: churchId },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      avgRating: true,
-      reviewCount: true,
-    },
-  })
+  await assertChurchExists(churchId)
 
-  if (!church) {
-    throw new NotFoundError('Church not found')
-  }
-
-  const existingReview = await prisma.review.findUnique({
-    where: {
-      userId_churchId: {
-        userId,
-        churchId,
-      },
-    },
+  const existing = await prisma.review.findUnique({
+    where: { userId_churchId: { userId, churchId } },
     select: { id: true },
   })
-
-  if (existingReview) {
-    throw new ConflictError('You have already reviewed this church')
-  }
+  if (existing) throw new ConflictError('You have already reviewed this church')
 
   const review = await prisma.review.create({
-    data: {
-      userId,
-      churchId,
-      rating: toDecimal(input.rating),
-      body: input.body,
-      welcomeRating: input.welcomeRating ?? null,
-      worshipRating: input.worshipRating ?? null,
-      sermonRating: input.sermonRating ?? null,
-      facilitiesRating: input.facilitiesRating ?? null,
-    },
+    data: { userId, churchId, rating: input.rating, body: input.body },
     include: reviewInclude,
   })
-
-  await updateChurchAggregates(
-    church.id,
-    computeCreateAggregate(toNumber(church.avgRating), church.reviewCount, input.rating),
-  )
-
-  // Fire-and-forget: notify church admins of the new review
-  void notifyChurchAdminsOfReview(church, review, input.rating)
+  await refreshChurchRating(churchId)
 
   return mapReview(review)
 }
 
-async function notifyChurchAdminsOfReview(
-  church: { id: string; name: string; slug: string },
-  review: { user: { name: string }; body: string },
-  rating: number,
-): Promise<void> {
-  try {
-    const adminClaims = await prisma.churchClaim.findMany({
-      where: { churchId: church.id, status: ClaimStatus.APPROVED },
-      include: { user: { select: { email: true, name: true } } },
-    })
-
-    for (const claim of adminClaims) {
-      void sendNewReviewNotification({
-        adminEmail: claim.user.email,
-        adminName: claim.user.name,
-        churchName: church.name,
-        churchSlug: church.slug,
-        reviewerName: review.user.name,
-        rating,
-        reviewExcerpt: review.body,
-      })
-    }
-  } catch (error) {
-    logger.error({ error, churchId: church.id }, 'Failed to notify church admins of new review')
-  }
-}
-
 export async function updateReview(
   reviewId: string,
-  requesterUserId: string,
-  input: IUpdateReviewInput,
+  userId: string,
+  input: Partial<IReviewInput>,
 ): Promise<IReview> {
-  const existingReview = await prisma.review.findUnique({
-    where: { id: reviewId },
-    include: reviewInclude,
-  })
+  const existing = await findOwnReview(reviewId, userId)
 
-  if (!existingReview) {
-    throw new NotFoundError('Review not found')
-  }
-
-  if (existingReview.userId !== requesterUserId) {
-    throw new AppError(403, 'FORBIDDEN', 'You can only edit your own reviews')
-  }
-
-  const church = await prisma.church.findUnique({
-    where: { id: existingReview.churchId },
-    select: {
-      id: true,
-      avgRating: true,
-      reviewCount: true,
-    },
-  })
-
-  if (!church) {
-    throw new NotFoundError('Church not found')
-  }
-
-  const nextRating = input.rating ?? toNumber(existingReview.rating)
-  const updatedReview = await prisma.review.update({
+  const review = await prisma.review.update({
     where: { id: reviewId },
     data: {
-      ...(input.rating !== undefined ? { rating: toDecimal(input.rating) } : {}),
+      ...(input.rating !== undefined ? { rating: input.rating } : {}),
       ...(input.body !== undefined ? { body: input.body } : {}),
-      ...(input.welcomeRating !== undefined ? { welcomeRating: input.welcomeRating } : {}),
-      ...(input.worshipRating !== undefined ? { worshipRating: input.worshipRating } : {}),
-      ...(input.sermonRating !== undefined ? { sermonRating: input.sermonRating } : {}),
-      ...(input.facilitiesRating !== undefined ? { facilitiesRating: input.facilitiesRating } : {}),
     },
     include: reviewInclude,
   })
 
-  if (nextRating !== toNumber(existingReview.rating)) {
-    await updateChurchAggregates(
-      church.id,
-      computeUpdateAggregate(
-        toNumber(church.avgRating),
-        church.reviewCount,
-        toNumber(existingReview.rating),
-        nextRating,
-      ),
-    )
+  if (input.rating !== undefined && input.rating !== Number(existing.rating)) {
+    await refreshChurchRating(review.churchId)
   }
 
-  return mapReview(updatedReview)
+  return mapReview(review)
 }
 
 export async function deleteReview(
   reviewId: string,
-  requesterUserId: string,
+  userId: string,
 ): Promise<{ id: string; churchId: string }> {
-  const existingReview = await prisma.review.findUnique({
-    where: { id: reviewId },
-    include: {
-      user: {
-        select: {
-          id: true,
-        },
-      },
-    },
-  })
+  const existing = await findOwnReview(reviewId, userId)
 
-  if (!existingReview) {
-    throw new NotFoundError('Review not found')
-  }
+  await prisma.review.delete({ where: { id: reviewId } })
+  await refreshChurchRating(existing.churchId)
 
-  if (existingReview.userId !== requesterUserId) {
-    const requester = await prisma.user.findUnique({
-      where: { id: requesterUserId },
-      select: {
-        role: true,
-      },
-    })
-
-    if (!requester || requester.role !== Role.SITE_ADMIN) {
-      throw new AppError(403, 'FORBIDDEN', 'You can only delete your own reviews')
-    }
-  }
-
-  const church = await prisma.church.findUnique({
-    where: { id: existingReview.churchId },
-    select: {
-      id: true,
-      avgRating: true,
-      reviewCount: true,
-    },
-  })
-
-  if (!church) {
-    throw new NotFoundError('Church not found')
-  }
-
-  await prisma.review.delete({
-    where: { id: reviewId },
-  })
-
-  await updateChurchAggregates(
-    church.id,
-    computeDeleteAggregate(
-      toNumber(church.avgRating),
-      church.reviewCount,
-      toNumber(existingReview.rating),
-    ),
-  )
-
-  return {
-    id: reviewId,
-    churchId: existingReview.churchId,
-  }
+  return { id: reviewId, churchId: existing.churchId }
 }
 
-export async function getUserReviewHistory(userId: string): Promise<IUserReviewHistoryResponse> {
+export async function getUserReviews(userId: string): Promise<IUserReview[]> {
   const reviews = await prisma.review.findMany({
-    where: {
-      userId,
-    },
-    orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-    include: reviewWithChurchInclude,
+    where: { userId },
+    orderBy: [{ updatedAt: 'desc' }],
+    include: userReviewInclude,
   })
 
-  return {
-    data: reviews.map(mapUserReview),
-    meta: {
-      total: reviews.length,
-    },
-  }
-}
-
-export async function addHelpfulVote(
-  reviewId: string,
-  userId: string,
-): Promise<IReviewHelpfulVoteResult> {
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: {
-      id: true,
-      userId: true,
-      helpfulCount: true,
-    },
-  })
-
-  if (!review) {
-    throw new NotFoundError('Review not found')
-  }
-
-  if (review.userId === userId) {
-    throw new AppError(400, 'OWN_REVIEW_HELPFUL_VOTE', 'You cannot mark your own review as helpful')
-  }
-
-  const existingVote = await prisma.reviewVote.findUnique({
-    where: {
-      userId_reviewId: {
-        userId,
-        reviewId,
-      },
-    },
-    select: {
-      reviewId: true,
-    },
-  })
-
-  if (existingVote) {
-    throw new ConflictError('You have already marked this review as helpful')
-  }
-
-  const [, updatedReview] = await prisma.$transaction([
-    prisma.reviewVote.create({
-      data: {
-        userId,
-        reviewId,
-      },
-    }),
-    prisma.review.update({
-      where: { id: reviewId },
-      data: {
-        helpfulCount: {
-          increment: 1,
-        },
-      },
-      select: {
-        helpfulCount: true,
-      },
-    }),
-  ])
-
-  return {
-    reviewId,
-    helpfulCount: updatedReview.helpfulCount,
-    viewerHasVotedHelpful: true,
-  }
-}
-
-export async function flagReview(reviewId: string, userId: string): Promise<IReviewFlagResult> {
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: {
-      id: true,
-      userId: true,
-      isFlagged: true,
-    },
-  })
-
-  if (!review) {
-    throw new NotFoundError('Review not found')
-  }
-
-  if (review.userId === userId) {
-    throw new AppError(400, 'OWN_REVIEW_FLAG', 'You cannot flag your own review')
-  }
-
-  if (review.isFlagged) {
-    return {
-      reviewId,
-      status: 'already-flagged',
-    }
-  }
-
-  await prisma.review.update({
-    where: { id: reviewId },
-    data: {
-      isFlagged: true,
-    },
-  })
-
-  return {
-    reviewId,
-    status: 'flagged',
-  }
-}
-
-export async function removeHelpfulVote(
-  reviewId: string,
-  userId: string,
-): Promise<IReviewHelpfulVoteResult> {
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: {
-      id: true,
-      helpfulCount: true,
-    },
-  })
-
-  if (!review) {
-    throw new NotFoundError('Review not found')
-  }
-
-  const existingVote = await prisma.reviewVote.findUnique({
-    where: {
-      userId_reviewId: {
-        userId,
-        reviewId,
-      },
-    },
-    select: {
-      reviewId: true,
-    },
-  })
-
-  if (!existingVote) {
-    throw new NotFoundError('Helpful vote not found')
-  }
-
-  const nextHelpfulCount = Math.max(0, review.helpfulCount - 1)
-
-  await prisma.$transaction([
-    prisma.reviewVote.delete({
-      where: {
-        userId_reviewId: {
-          userId,
-          reviewId,
-        },
-      },
-    }),
-    prisma.review.update({
-      where: { id: reviewId },
-      data: {
-        helpfulCount: nextHelpfulCount,
-      },
-    }),
-  ])
-
-  return {
-    reviewId,
-    helpfulCount: nextHelpfulCount,
-    viewerHasVotedHelpful: false,
-  }
-}
-
-export async function getFlaggedReviews(): Promise<IFlaggedReviewListResponse> {
-  const reviews = await prisma.review.findMany({
-    where: {
-      isFlagged: true,
-    },
-    orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-    include: reviewWithChurchInclude,
-  })
-
-  return {
-    data: reviews.map(mapFlaggedReview),
-    meta: {
-      total: reviews.length,
-    },
-  }
-}
-
-export async function resolveFlaggedReview(
-  reviewId: string,
-  moderatorUserId: string,
-  input: IResolveFlaggedReviewInput,
-): Promise<IFlaggedReviewResolutionResult> {
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: {
-      id: true,
-      isFlagged: true,
-    },
-  })
-
-  if (!review?.isFlagged) {
-    throw new NotFoundError('Flagged review not found')
-  }
-
-  if (input.status === 'removed') {
-    await deleteReview(reviewId, moderatorUserId)
-
-    return {
-      reviewId,
-      status: 'removed',
-    }
-  }
-
-  await prisma.review.update({
-    where: { id: reviewId },
-    data: {
-      isFlagged: false,
-    },
-  })
-
-  return {
-    reviewId,
-    status: 'approved',
-  }
-}
-
-/**
- * Authorize that a user can respond to reviews for a church.
- * SITE_ADMIN can respond to any church's reviews.
- * CHURCH_ADMIN can only respond to reviews on churches they claimed.
- */
-const authorizeReviewResponder = async (userId: string, churchId: string): Promise<void> => {
-  const [user, church] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, role: true },
-    }),
-    prisma.church.findUnique({
-      where: { id: churchId },
-      select: { id: true, claimedById: true, isClaimed: true },
-    }),
-  ])
-
-  if (!user) {
-    throw new AppError(401, 'AUTH_ERROR', 'Not authenticated')
-  }
-
-  if (!church) {
-    throw new NotFoundError('Church not found')
-  }
-
-  if (user.role === Role.SITE_ADMIN) {
-    return
-  }
-
-  if (user.role === Role.CHURCH_ADMIN && church.isClaimed && church.claimedById === user.id) {
-    return
-  }
-
-  throw new AppError(
-    403,
-    'FORBIDDEN',
-    'You do not have permission to respond to reviews for this church',
-  )
-}
-
-export async function respondToReview(
-  reviewId: string,
-  userId: string,
-  input: IReviewResponseInput,
-): Promise<IReviewResponseResult> {
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: {
-      id: true,
-      churchId: true,
-      responseBody: true,
-      user: { select: { email: true, name: true } },
-      church: { select: { name: true, slug: true } },
-    },
-  })
-
-  if (!review) {
-    throw new NotFoundError('Review not found')
-  }
-
-  await authorizeReviewResponder(userId, review.churchId)
-
-  const trimmedBody = input.body.trim()
-  const now = new Date()
-  await prisma.review.update({
-    where: { id: reviewId },
-    data: {
-      responseBody: trimmedBody,
-      respondedAt: now,
-    },
-  })
-
-  // Fire-and-forget: notify the reviewer only the first time a response
-  // is posted. Editing an existing response does not re-notify.
-  if (!review.responseBody) {
-    void notifyReviewerOfResponse(
-      review.user.email,
-      review.user.name,
-      review.church.name,
-      review.church.slug,
-      trimmedBody,
-    )
-  }
-
-  return {
-    reviewId,
-    responseBody: trimmedBody,
-    respondedAt: now,
-  }
-}
-
-async function notifyReviewerOfResponse(
-  reviewerEmail: string,
-  reviewerName: string | null,
-  churchName: string,
-  churchSlug: string,
-  responseExcerpt: string,
-): Promise<void> {
-  try {
-    await sendReviewResponseNotification({
-      reviewerEmail,
-      reviewerName,
-      churchName,
-      churchSlug,
-      responseExcerpt,
-    })
-  } catch (error) {
-    logger.error({ error, reviewerEmail }, 'Failed to notify reviewer of response')
-  }
-}
-
-export async function deleteReviewResponse(
-  reviewId: string,
-  userId: string,
-): Promise<IReviewResponseDeleteResult> {
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: { id: true, churchId: true, responseBody: true },
-  })
-
-  if (!review) {
-    throw new NotFoundError('Review not found')
-  }
-
-  if (!review.responseBody) {
-    throw new NotFoundError('No response exists on this review')
-  }
-
-  await authorizeReviewResponder(userId, review.churchId)
-
-  await prisma.review.update({
-    where: { id: reviewId },
-    data: {
-      responseBody: null,
-      respondedAt: null,
-    },
-  })
-
-  return { reviewId }
+  return reviews.map((review) => ({ ...mapReview(review), church: review.church }))
 }

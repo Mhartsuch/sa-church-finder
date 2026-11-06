@@ -135,35 +135,4 @@ GET /api/v1/churches/:slug
 
 ## Project Structure
 
-```text
-sa-church-finder/
-|-- client/                 # React + Vite + TypeScript frontend
-|   |-- src/
-|   |   |-- pages/          # Home, search, church profile
-|   |   |-- components/
-|   |   |   |-- church/     # Cards, lists, skeleton states
-|   |   |   |-- map/        # MapContainer, InteractiveMap, fallback map
-|   |   |   |-- search/     # Search/filter UI
-|   |   |   `-- layout/     # Header, shared layout
-|   |   |-- hooks/          # React Query, URL state
-|   |   |-- api/            # Church API client
-|   |   |-- stores/         # Zustand search store
-|   |   |-- types/          # Church/search types
-|   |   `-- utils/          # Formatting helpers
-|   `-- ...config files
-|-- server/                 # Express + TypeScript backend
-|   |-- src/
-|   |   |-- routes/         # church.routes.ts, auth.routes.ts
-|   |   |-- middleware/     # validate.ts, error-handler.ts
-|   |   |-- services/       # Prisma/PostGIS query services
-|   |   |-- schemas/        # Zod validation schemas
-|   |   |-- types/          # IChurch, ISearchParams, ISearchResponse
-|   |   `-- lib/            # Logger, Prisma client
-|   `-- prisma/
-|       |-- schema.prisma   # Prisma schema with PostGIS support
-|       |-- migrations/     # Committed SQL migrations
-|       `-- seed.ts         # Database seeder
-|-- docker-compose.yml      # Local PostgreSQL + PostGIS
-|-- render.yaml             # Render blueprint
-`-- package.json            # Root scripts
-```
+See `AGENTS.md` (repo map) and `docs/engineering/ARCHITECTURE.md`.

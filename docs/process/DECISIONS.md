@@ -12,6 +12,15 @@
 
 ## Decisions
 
+### DEC-025: Lean overhaul — refocus on photo-first discovery and clean filters
+
+- **Date:** 2026-11-06
+- **Status:** ACTIVE
+- **Decision:** Rebuild the client from scratch as a classic-Airbnb-style browse grid + profile, and cut events, forum, passport/collections/awards, compare, church claims/leader portal/editing/photo uploads/analytics, review extras (sub-ratings, votes, flags, responses), managed ribbon categories, user roles/avatars/deactivation, and the PWA service worker. A migration drops the related tables and columns. See `specs/lean-overhaul.md`.
+- **Alternatives Considered:** Refactor in place (less visual impact, keeps the sprawl); full restart of the server too (throws away a solid search/auth core and the data pipeline).
+- **Reasoning:** The site had grown to ~71k lines across 24 routes while the core experience (finding a church through great photos and simple filters) was buried and several features were broken. A smaller surface is easier to keep working, faster to load, and matches the product goal.
+- **Supersedes:** DEC-008 (helpful votes) and any decision that exists only to support a cut feature.
+
 ### DEC-024: Demote (never exclude) LDS temples and Kingdom Halls in default result ordering
 
 - **Date:** 2026-07-13

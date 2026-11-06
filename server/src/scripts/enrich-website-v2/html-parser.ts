@@ -1,6 +1,5 @@
 import type {
   ExtractedChurchData,
-  ExtractedEvent,
   ExtractedService,
   ExtractedSocialLinks,
   ExtractedStaffMember,
@@ -166,52 +165,6 @@ function parseSameAs(raw: unknown): ExtractedSocialLinks {
   return result
 }
 
-function matchesEventType(typeField: string | string[] | undefined): boolean {
-  if (!typeField) return false
-  const types = Array.isArray(typeField) ? typeField : [typeField]
-  return types.some((t) => /event/i.test(t))
-}
-
-function parseJsonLdEvent(obj: JsonLdObject): ExtractedEvent | null {
-  const name = typeof obj.name === 'string' ? obj.name.trim() : null
-  const startDate = typeof obj['startDate'] === 'string' ? (obj['startDate'] as string) : null
-  if (!name || !startDate) return null
-
-  // Validate + normalize to ISO 8601
-  const startIso = new Date(startDate).toISOString()
-  if (isNaN(new Date(startDate).getTime())) return null
-
-  // Skip events in the past
-  if (new Date(startDate).getTime() < Date.now() - 24 * 60 * 60 * 1000) return null
-
-  const endRaw = typeof obj['endDate'] === 'string' ? (obj['endDate'] as string) : null
-  const endIso =
-    endRaw && !isNaN(new Date(endRaw).getTime()) ? new Date(endRaw).toISOString() : null
-
-  const description =
-    typeof obj['description'] === 'string' ? (obj['description'] as string).slice(0, 2000) : null
-  const url = typeof obj['url'] === 'string' ? (obj['url'] as string) : null
-
-  let locationOverride: string | null = null
-  const loc = obj['location']
-  if (loc && typeof loc === 'object' && !Array.isArray(loc)) {
-    const locName = (loc as Record<string, unknown>).name
-    if (typeof locName === 'string') locationOverride = locName.slice(0, 200)
-  } else if (typeof loc === 'string') {
-    locationOverride = loc.slice(0, 200)
-  }
-
-  return {
-    title: name.slice(0, 200),
-    description,
-    eventType: 'other',
-    startTime: startIso,
-    endTime: endIso,
-    locationOverride,
-    sourceUrl: url,
-  }
-}
-
 function tryJsonLd(html: string): Partial<ExtractedChurchData> | null {
   const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
   let match: RegExpExecArray | null = null
@@ -232,21 +185,9 @@ function tryJsonLd(html: string): Partial<ExtractedChurchData> | null {
     }
   }
 
-  // Harvest any Event-typed JSON-LD objects across the page
-  const events: ExtractedEvent[] = []
-  for (const obj of results) {
-    if (matchesEventType(obj['@type'])) {
-      const ev = parseJsonLdEvent(obj)
-      if (ev) events.push(ev)
-    }
-  }
-
   const churchObj = results.find((obj) => matchesChurchType(obj['@type']))
 
-  // If we found events but no church object, still return what we have.
-  if (!churchObj) {
-    return events.length > 0 ? { events } : null
-  }
+  if (!churchObj) return null
 
   const services = churchObj.openingHours ? parseOpeningHours(churchObj.openingHours) : []
   const staff = extractEmployees(churchObj.employee)
@@ -273,7 +214,6 @@ function tryJsonLd(html: string): Partial<ExtractedChurchData> | null {
     services,
     staff,
     socialLinks: parseSameAs(churchObj.sameAs),
-    events,
   }
 }
 
@@ -653,17 +593,6 @@ function mergeData(
   if (patch.parkingInfo && !out.parkingInfo) out.parkingInfo = patch.parkingInfo
   if (patch.dressCode && !out.dressCode) out.dressCode = patch.dressCode
 
-  if (patch.events && patch.events.length > 0) {
-    const seen = new Set(out.events.map((e) => `${e.title.toLowerCase()}-${e.startTime}`))
-    for (const e of patch.events) {
-      const key = `${e.title.toLowerCase()}-${e.startTime}`
-      if (!seen.has(key)) {
-        out.events.push(e)
-        seen.add(key)
-      }
-    }
-  }
-
   return out
 }
 
@@ -775,7 +704,6 @@ export function hasAnyData(data: ExtractedChurchData): boolean {
     data.languages.length > 0 ||
     data.staff.length > 0 ||
     data.services.length > 0 ||
-    data.events.length > 0 ||
     data.ministries.length > 0 ||
     data.affiliations.length > 0 ||
     data.serviceStyle !== null ||

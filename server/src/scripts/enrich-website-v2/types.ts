@@ -24,7 +24,6 @@ export interface EnrichV2Stats {
   pass1Extracted: number
   pass2Extracted: number
   servicesCreated: number
-  eventsCreated: number
   fieldsUpdated: number
   lowConfidenceFlagged: number
   skippedNoWebsite: number
@@ -43,16 +42,6 @@ export interface ExtractedService {
   endTime: string | null
   serviceType: string
   language: string
-}
-
-export interface ExtractedEvent {
-  title: string
-  description: string | null
-  eventType: string
-  startTime: string // ISO 8601
-  endTime: string | null // ISO 8601 or null
-  locationOverride: string | null
-  sourceUrl: string | null
 }
 
 export interface ExtractedStaffMember {
@@ -99,7 +88,6 @@ export interface ExtractedChurchData {
   newVisitorUrl: string | null
   parkingInfo: string | null
   dressCode: string | null
-  events: ExtractedEvent[]
   confidence: number
   confidenceLevel: ConfidenceLevel
   source: ExtractionSource
@@ -134,7 +122,6 @@ export function createEmptyStats(): EnrichV2Stats {
     pass1Extracted: 0,
     pass2Extracted: 0,
     servicesCreated: 0,
-    eventsCreated: 0,
     fieldsUpdated: 0,
     lowConfidenceFlagged: 0,
     skippedNoWebsite: 0,
@@ -177,7 +164,6 @@ export function emptyExtracted(): ExtractedChurchData {
     newVisitorUrl: null,
     parkingInfo: null,
     dressCode: null,
-    events: [],
     confidence: 0,
     confidenceLevel: 'low',
     source: 'html-pattern',

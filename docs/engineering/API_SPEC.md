@@ -1,1170 +1,238 @@
-# API Specification
+# API Specification (v2)
 
-> REST API endpoints for SA Church Finder. All endpoints are prefixed with `/api/v1`. Responses use a consistent envelope format.
+> REST API for SA Church Finder. All endpoints except `/sitemap.xml` are
+> prefixed with `/api/v1`. This is the complete public surface — anything not
+> listed here returns `404`.
 
-## Response Envelope
+## Conventions
 
-```json
+```jsonc
 // Success
-{
-  "data": { ... },
-  "meta": { "page": 1, "pageSize": 20, "total": 150 }
-}
+{ "data": { ... }, "meta": { ... } }
 
 // Error
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Rating must be between 1 and 5",
-    "details": { "field": "rating", "received": 6 }
-  }
-}
+{ "error": { "code": "VALIDATION_ERROR", "message": "...", "details": { ... } } }
 ```
 
-## Authentication
+- Auth is session-based (HTTP-only cookie). Protected routes return `401 AUTH_ERROR`
+  without a session; `/users/:id/*` routes return `403 FORBIDDEN` when `:id` is not
+  the signed-in user.
+- Invalid input returns `400 VALIDATION_ERROR`; missing resources `404 NOT_FOUND`;
+  duplicates `409 CONFLICT`. Auth mutation endpoints are rate limited (`429 RATE_LIMITED`).
+- Dates are ISO 8601 strings. Nullable fields are always present (as `null`).
+- Cache: `/auth/*` and all mutations are `no-store`; `/churches/filter-options` is
+  `private, max-age=30, stale-while-revalidate=120`; other GETs are `private, no-cache`.
 
-- Session-based with HTTP-only cookies
-- Protected routes return `401 Unauthorized` if no session
-- Role-restricted routes return `403 Forbidden` if insufficient role
+## Shared shapes
+
+```ts
+type ChurchService = {
+  id: string;
+  churchId: string;
+  dayOfWeek: number; // 0 = Sunday … 6 = Saturday
+  startTime: string; // "HH:MM"
+  endTime: string | null;
+  serviceType: string;
+  language: string;
+  description: string | null;
+};
+
+type ChurchPhoto = {
+  id: string;
+  url: string;
+  altText: string | null;
+  displayOrder: number;
+};
+
+type ChurchSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  denomination: string | null;
+  denominationFamily: string | null;
+  description: string | null;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  neighborhood: string | null;
+  latitude: number;
+  longitude: number;
+  phone: string | null;
+  website: string | null;
+  avgRating: number;
+  reviewCount: number;
+  googleRating: number | null;
+  googleReviewCount: number | null;
+  languages: string[];
+  amenities: string[];
+  coverImageUrl: string | null;
+  businessStatus: string | null;
+  goodForChildren: boolean | null;
+  goodForGroups: boolean | null;
+  wheelchairAccessible: boolean | null;
+  isSaved: boolean;
+  distance?: number; // miles from search center, search results only
+  photos: ChurchPhoto[]; // first 5 by displayOrder
+  services: ChurchService[]; // ordered by dayOfWeek, startTime
+};
+
+type Church = ChurchSummary & {
+  // detail: photos = ALL photos by displayOrder
+  email: string | null;
+  pastorName: string | null;
+  yearEstablished: number | null;
+  googleMapsUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type Review = {
+  id: string;
+  churchId: string;
+  userId: string;
+  rating: number; // integer 1–5
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  user: { id: string; name: string; avatarUrl: string | null };
+};
+
+type AuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+  emailVerified: boolean;
+  createdAt: string;
+};
+```
 
 ---
 
-## Endpoints
+## Health
 
-### Churches
+#### `GET /health`
+
+`200` (or `503` when the database is unreachable):
+`{ status: "ok"|"degraded", version, commit, timestamp, uptime, environment, database: { connected, latencyMs?, error? }, integrations: { emailDelivery, errorMonitoring, googleOAuth } }`
+(each integration is `{ configured, status }`). Not wrapped in the envelope.
+
+## Churches
 
 #### `GET /churches`
 
-Search and list churches.
+Search. Response: `{ data: ChurchSummary[], meta: { page, pageSize, total, totalPages, center: { lat, lng } } }`.
 
-| Param                | Type    | Required | Notes                                                                                                                         |
-| -------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| lat                  | number  | No       | Center latitude (default: 29.4241)                                                                                            |
-| lng                  | number  | No       | Center longitude (default: -98.4936)                                                                                          |
-| radius               | number  | No       | Search radius in miles (default: 10, max: 25)                                                                                 |
-| q                    | string  | No       | Text search query (name, description, amenities, service types)                                                               |
-| denomination         | string  | No       | Denomination-family filter. Accepts a single value or a comma-separated list — multiple values OR-combine (case-insensitive). |
-| neighborhood         | string  | No       | Case-insensitive exact match on the `neighborhood` column                                                                     |
-| day                  | number  | No       | Filter by service day (0=Sun–6=Sat)                                                                                           |
-| time                 | string  | No       | Filter by service time range ('morning','afternoon','evening')                                                                |
-| serviceType          | string  | No       | Case-insensitive match on `church_services.serviceType` (e.g. 'traditional', 'contemporary')                                  |
-| language             | string  | No       | Service language filter. Accepts a single value or a comma-separated list — multiple values OR-combine.                       |
-| amenities            | string  | No       | Comma-separated amenity names. Matching is case-insensitive and AND-combined (church must offer all).                         |
-| minRating            | number  | No       | 0–5. Floor on effective rating (local `avgRating` if the church has reviews, else `googleRating`).                            |
-| wheelchairAccessible | boolean | No       | When `true`, only return churches confirmed wheelchair accessible. Omit or `false` disables.                                  |
-| goodForChildren      | boolean | No       | When `true`, only return churches confirmed family-friendly. Omit or `false` disables.                                        |
-| goodForGroups        | boolean | No       | When `true`, only return churches confirmed suitable for groups. Omit or `false` disables.                                    |
-| hasPhotos            | boolean | No       | When `true`, only return churches with at least one uploaded photo.                                                           |
-| isClaimed            | boolean | No       | When `true`, only return churches that have been claimed/verified by a church leader.                                         |
-| sort                 | string  | No       | 'relevance' (default), 'distance', 'rating', 'name'                                                                           |
-| page                 | number  | No       | Page number (default: 1)                                                                                                      |
-| pageSize             | number  | No       | Results per page (default: 20, max: 50). Values above 50 are rejected with 400.                                               |
-| bounds               | string  | No       | Viewport bounding box 'sw_lat,sw_lng,ne_lat,ne_lng'                                                                           |
+| Param                                                                   | Type                                                      | Notes                                                |
+| ----------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| `q`                                                                     | string ≤ 200                                              | Name, description, amenities, service types          |
+| `denomination`                                                          | csv                                                       | Denomination families, OR-combined, case-insensitive |
+| `day`                                                                   | 0–6                                                       | Has a service that day                               |
+| `time`                                                                  | `morning` \| `afternoon` \| `evening`                     | Service start <12:00, 12–17, ≥17:00                  |
+| `language`                                                              | csv                                                       | OR-combined                                          |
+| `amenities`                                                             | csv                                                       | AND-combined, exact (case-insensitive)               |
+| `wheelchairAccessible`, `goodForChildren`, `goodForGroups`, `hasPhotos` | `true`/`false`/`1`/`0`                                    | Only `true` filters; unknown (null) never matches    |
+| `minRating`                                                             | 0–5                                                       | Local avg when reviewed, else Google rating          |
+| `neighborhood`                                                          | string                                                    | Exact, case-insensitive                              |
+| `sort`                                                                  | `relevance` (default) \| `distance` \| `rating` \| `name` | `rating` is Bayesian-weighted                        |
+| `lat`, `lng`, `radius`                                                  | number; radius ≤ 25 mi (default 10)                       | Default center is downtown San Antonio               |
+| `bounds`                                                                | `swLat,swLng,neLat,neLng`                                 | Replaces the radius filter when valid                |
+| `page`, `pageSize`                                                      | int; pageSize ≤ 50 (default 20)                           |                                                      |
 
-> Boolean flags accept `'true'`, `'false'`, `'1'`, or `'0'`. They are intentionally restrictive —
-> a NULL value on the church row means "unknown" and will NOT satisfy a `true` filter, so only
-> churches with confirmed accessibility/community data are returned when the flag is on.
-
-**Response:** Array of church summary objects with distance.
-
----
+Permanently closed churches are always excluded. Relevance ranking rewards
+photos (churches without photos always rank last), profile completeness,
+service variety, rating/review volume, proximity, freshness, accessibility and
+operational status; Latter-day Saints and Jehovah's Witnesses are demoted (not
+excluded) in default orderings. Anonymous responses are cached in-process for 60s.
 
 #### `GET /churches/filter-options`
 
-Returns the distinct values that populate the client's filter panel. Data is
-derived from real database content so the options always match what can be
-found via the search endpoint. Cached for 5 minutes.
-
-**Response:**
-
-```json
-{
-  "data": {
-    "denominations": [
-      { "value": "Baptist", "count": 42 },
-      { "value": "Catholic", "count": 38 },
-      { "value": "Non-denominational", "count": 24 }
-    ],
-    "languages":     ["English", "Spanish", ...],
-    "amenities":     ["Parking", "Nursery", "WiFi", ...],
-    "neighborhoods": ["Alamo Heights", "Stone Oak", "Downtown", ...],
-    "serviceTypes":  ["Traditional", "Contemporary", "Bilingual", ...]
-  }
-}
-```
-
-`denominations` returns `{ value, count }` tuples sorted by `count`
-descending (tiebreaker: alphabetical on `value`). `count` is the number
-of operational churches in each family; `CLOSED_PERMANENTLY` churches
-are excluded to match the behaviour of `GET /churches`. The UI uses
-the count to sort and label chips ("Baptist · 42"). All other filter
-arrays remain plain string arrays.
-
----
+`{ data: { denominations: { value, count }[], languages: string[], amenities: string[], neighborhoods: string[] } }`
+— derived from non-closed churches; denominations sorted by count desc. Cached in-process for 5 minutes.
 
 #### `GET /churches/:slug`
 
-Get full church profile by slug.
+`{ data: Church }` — `404` for unknown slugs.
 
-**Response:** Complete church object with services, photos, upcoming events, and aggregate review data.
+#### `POST /churches/:id/save` _(auth)_
 
----
+Toggles the saved state. `{ data: { churchId, saved: boolean } }`. `404` for unknown churches.
 
-#### `PATCH /churches/:id` _(church_admin or site_admin)_
-
-Update editable church listing fields. Only included fields are changed (PATCH semantics). String fields accept `null` to clear the value.
-
-**Request body** (all fields optional):
-
-| Field                  | Type              | Constraints                    |
-| ---------------------- | ----------------- | ------------------------------ |
-| `description`          | `string \| null`  | Max 5,000 chars                |
-| `phone`                | `string \| null`  | Max 30 chars                   |
-| `email`                | `string \| null`  | Valid email, max 255 chars     |
-| `website`              | `string \| null`  | Max 500 chars                  |
-| `pastorName`           | `string \| null`  | Max 255 chars                  |
-| `yearEstablished`      | `number \| null`  | Integer, 1500–current year     |
-| `languages`            | `string[]`        | Max 20 items, each 1–100 chars |
-| `amenities`            | `string[]`        | Max 50 items, each 1–100 chars |
-| `goodForChildren`      | `boolean \| null` |                                |
-| `goodForGroups`        | `boolean \| null` |                                |
-| `wheelchairAccessible` | `boolean \| null` |                                |
-
-**Response:** `{ data: Church, message: "Church updated successfully" }`
-
-**Errors:** `401` not authenticated, `403` not authorized, `404` church not found, `400` validation failed.
-
----
-
-### Church Photos
-
-#### `GET /churches/:churchId/photos`
-
-List all photos for a church, ordered by `displayOrder` ascending.
-
-**Response:**
-
-```json
-{
-  "data": [
-    {
-      "id": "uuid",
-      "churchId": "uuid",
-      "url": "/uploads/church-photos/abc123.jpg",
-      "altText": "Church exterior",
-      "displayOrder": 0,
-      "createdAt": "2026-04-13T00:00:00.000Z"
-    }
-  ],
-  "meta": { "total": 1 }
-}
-```
-
----
-
-#### `POST /churches/:churchId/photos` _(church_admin or site_admin)_
-
-Upload a photo. Accepts `multipart/form-data`.
-
-| Field   | Type   | Required | Notes                                                        |
-| ------- | ------ | -------- | ------------------------------------------------------------ |
-| photo   | file   | Yes      | JPEG, PNG, or WebP. Max 10 MB.                               |
-| altText | string | No       | Accessibility description for screen readers (max 300 chars) |
-
-**Flow:** Backend saves the file to `uploads/church-photos/` on disk and creates a database record. The photo is appended to the end of the display order.
-
-**Returns:** `201` with the created photo object.
-
----
-
-#### `PATCH /churches/photos/:photoId` _(church_admin or site_admin)_
-
-Update the alt text of a photo.
-
-| Field   | Type          | Required | Notes                          |
-| ------- | ------------- | -------- | ------------------------------ |
-| altText | string / null | Yes      | New alt text, or null to clear |
-
----
-
-#### `PUT /churches/:churchId/photos/reorder` _(church_admin or site_admin)_
-
-Reorder photos for a church.
-
-| Field    | Type  | Required | Notes                                                             |
-| -------- | ----- | -------- | ----------------------------------------------------------------- |
-| ordering | array | Yes      | Array of `{ photoId: string, displayOrder: number }` (1–50 items) |
-
-**Returns:** The full list of photos in the new order.
-
----
-
-#### `DELETE /churches/photos/:photoId` _(church_admin or site_admin)_
-
-Delete a photo. Removes the database record and attempts to clean up the file from disk.
-
----
-
-### Reviews
+## Reviews
 
 #### `GET /churches/:churchId/reviews`
 
-List reviews for a church.
+Query: `page` (default 1), `pageSize` (≤ 50, default 10), `sort` = `recent` (default) | `highest` | `lowest`.
 
-| Param    | Type   | Required | Notes                                              |
-| -------- | ------ | -------- | -------------------------------------------------- |
-| sort     | string | No       | 'recent' (default), 'highest', 'lowest', 'helpful' |
-| page     | number | No       | Page number (default: 1)                           |
-| pageSize | number | No       | Results per page (default: 10, max: 50)            |
-
----
-
-#### `POST /churches/:churchId/reviews` _(authenticated)_
-
-Create a review.
-
-| Field             | Type   | Required | Notes                |
-| ----------------- | ------ | -------- | -------------------- |
-| rating            | number | Yes      | 1.0–5.0 in 0.5 steps |
-| body              | string | Yes      | 50–2000 characters   |
-| welcome_rating    | number | No       | 1–5                  |
-| worship_rating    | number | No       | 1–5                  |
-| sermon_rating     | number | No       | 1–5                  |
-| facilities_rating | number | No       | 1–5                  |
-
----
-
-#### `PATCH /reviews/:id` _(review owner)_
-
-Edit own review.
-
----
-
-#### `DELETE /reviews/:id` _(review owner or site_admin)_
-
-Delete a review.
-
----
-
-#### `POST /reviews/:id/helpful` _(authenticated)_
-
-Mark a review as helpful.
-
----
-
-#### `DELETE /reviews/:id/helpful` _(authenticated)_
-
-Remove the current user's helpful vote from a review.
-
----
-
-#### `POST /reviews/:id/flag` _(authenticated)_
-
-Flag a review for moderation.
-
----
-
-#### `POST /reviews/:id/response` _(church_admin or site_admin)_
-
-Add or update a church leader's response to a review. The authenticated user must be the church's claimant or a site admin.
-
-| Field | Type   | Required | Notes             |
-| ----- | ------ | -------- | ----------------- |
-| body  | string | Yes      | 1–2000 characters |
-
-**Response:** `{ data: { reviewId, responseBody, respondedAt }, message }`
-
-**Errors:** `401` not authenticated, `403` not the church's claimant, `404` review not found.
-
----
-
-#### `DELETE /reviews/:id/response` _(church_admin or site_admin)_
-
-Remove the church leader's response from a review. Same authorization as `POST`.
-
-**Response:** `{ data: { reviewId }, message }`
-
----
-
-### Church Services
-
-#### `POST /churches/:churchId/services` _(church_admin or site_admin)_
-
-Add a new service time. The authenticated user must be the church's claimant or a site admin.
-
-| Field       | Type   | Required | Notes                        |
-| ----------- | ------ | -------- | ---------------------------- |
-| dayOfWeek   | number | Yes      | 0=Sunday through 6=Saturday  |
-| startTime   | string | Yes      | HH:MM format (e.g., '09:00') |
-| endTime     | string | No       | HH:MM format                 |
-| serviceType | string | Yes      | e.g., 'Sunday Worship'       |
-| language    | string | No       | Default: 'English'           |
-| description | string | No       | Max 500 chars                |
-
-**Response:** `{ data: ChurchService, message: "Service time created successfully" }`
-
-**Errors:** `401` not authenticated, `403` not authorized, `404` church not found, `400` validation failed.
-
----
-
-#### `PATCH /services/:id` _(church_admin or site_admin)_
-
-Update an existing service time. At least one field must be provided.
-
----
-
-#### `DELETE /services/:id` _(church_admin or site_admin)_
-
-Remove a service time.
-
----
-
-### Events
-
-#### `GET /events`
-
-Aggregated upcoming events across all churches for the public discovery feed. Results are ordered
-by `startTime` ascending and paginated. Recurring events are expanded server-side into concrete
-occurrences that intersect the requested window; each occurrence is returned as a separate item
-with a unique `occurrenceId` while `id` still points back to the stored series row.
-
-| Param          | Type    | Required | Notes                                                                                                                                                                                                                                                                                                                                                                                    |
-| -------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| type           | string  | No       | Multi-select event_type filter, OR-combined. Accepts a single value (`type=service`), a comma-separated list (`type=service,community`), or repeated `type=` query params. Duplicate values are deduped. When more than one value is supplied the response returns events matching any of them.                                                                                          |
-| from           | string  | No       | ISO 8601 datetime (default: now — only future events)                                                                                                                                                                                                                                                                                                                                    |
-| to             | string  | No       | ISO 8601 datetime; must be on or after `from` (defaults to `from + 90 days` when omitted)                                                                                                                                                                                                                                                                                                |
-| q              | string  | No       | Case-insensitive search over title, description, and church name                                                                                                                                                                                                                                                                                                                         |
-| page           | integer | No       | 1-indexed (default: 1)                                                                                                                                                                                                                                                                                                                                                                   |
-| pageSize       | integer | No       | Default 20, maximum 50                                                                                                                                                                                                                                                                                                                                                                   |
-| savedOnly      | boolean | No       | When `true`, restricts the feed to churches saved by the authenticated user. Requires a session.                                                                                                                                                                                                                                                                                         |
-| timeOfDay      | string  | No       | One of `morning` (05:00–11:59), `afternoon` (12:00–16:59), or `evening` (17:00–21:59), San Antonio local time. Filters expanded occurrences whose `startTime` falls inside the bucket.                                                                                                                                                                                                   |
-| neighborhood   | string  | No       | Multi-select San Antonio neighborhood filter, OR-combined. Accepts a single value (`neighborhood=Downtown`), a comma-separated list (`neighborhood=Downtown,Alamo Heights`), or repeated `neighborhood=` query params. Matching is case-insensitive against `church.neighborhood`. Values typically come from `/churches/filter-options` (`neighborhoods[]`). Max length 120 per token.  |
-| denomination   | string  | No       | Multi-select denomination-family filter, OR-combined. Accepts a single value (`denomination=Baptist`), a comma-separated list (`denomination=Baptist,Methodist`), or repeated `denomination=` query params. Matching is case-insensitive against `church.denominationFamily`. Values typically come from `/churches/filter-options` (`denominations[].value`). Max length 120 per token. |
-| accessibleOnly | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as wheelchair accessible (`church.wheelchairAccessible = true`). Churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                                              |
-| familyFriendly | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as good for children (`church.goodForChildren = true`). Mirrors `accessibleOnly` — churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                            |
-| groupFriendly  | boolean | No       | When `true`, restricts the feed to events hosted by churches flagged as good for groups (`church.goodForGroups = true`). Mirrors `familyFriendly` — churches where the field is `false` or `null` (unknown) are excluded. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                                |
-| verifiedOnly   | boolean | No       | When `true`, restricts the feed to events hosted by verified / claimed churches (`church.isClaimed = true`). Unclaimed churches are excluded so visitors know each listing has been confirmed by a church leader. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                                                        |
-| language       | string  | No       | Multi-select service-language filter, OR-combined. Accepts a single value (`language=Spanish`), a comma-separated list (`language=English,Spanish`), or repeated `language=` query params. Matches a church whose `languages` array contains any of the listed values. Values typically come from `/churches/filter-options` (`languages[]`). Max length 60 per token.                   |
-
-**Response:**
-
-```json
+```jsonc
 {
-  "data": [
-    {
-      "id": "...",
-      "occurrenceId": "...::2026-05-03T14:00:00.000Z",
-      "churchId": "...",
-      "title": "Sunday Worship",
-      "description": "Weekly gathering",
-      "eventType": "service",
-      "startTime": "2026-05-03T14:00:00.000Z",
-      "endTime": "2026-05-03T15:30:00.000Z",
-      "seriesStartTime": "2026-05-03T14:00:00.000Z",
-      "locationOverride": null,
-      "isRecurring": true,
-      "recurrenceRule": "FREQ=WEEKLY",
-      "isOccurrence": true,
-      "church": {
-        "id": "...",
-        "slug": "grace-church",
-        "name": "Grace Church",
-        "city": "San Antonio",
-        "denomination": "Non-denominational",
-        "neighborhood": "Downtown",
-        "coverImageUrl": "https://..."
-      }
-    }
-  ],
-  "meta": {
-    "total": 42,
-    "page": 1,
-    "pageSize": 20,
-    "totalPages": 3,
-    "filters": {
-      "type": ["service", "community"],
-      "from": "...",
-      "to": "...",
-      "q": "...",
-      "savedOnly": true,
-      "timeOfDay": "morning",
-      "neighborhood": ["Downtown", "Alamo Heights"],
-      "denomination": ["Baptist", "Methodist"],
-      "accessibleOnly": true,
-      "familyFriendly": true,
-      "groupFriendly": true,
-      "verifiedOnly": true,
-      "language": ["English", "Spanish"]
-    }
-  }
+  "data": [Review],
+  "meta": { "page": 1, "pageSize": 10, "total": 23, "totalPages": 3, "sort": "recent" },
+  "currentUserReview": Review | null   // signed-in user's review of this church
 }
 ```
 
-`total` reflects the count of expanded occurrences inside the window, not the number of stored
-event rows, so pagination operates on the post-expansion list.
+#### `POST /churches/:churchId/reviews` _(auth)_
 
-**Errors:**
+Body `{ rating: 1–5 integer, body: string 10–2000 }` → `201 { data: Review }`.
+`409` if the user already reviewed this church; `404` for unknown churches.
 
-- `400 VALIDATION_ERROR` — any unknown `type` value (even one inside a list), malformed ISO dates, or `to` before `from`.
-- `401 AUTH_ERROR` — `savedOnly=true` was sent without an authenticated session.
+#### `PATCH /reviews/:id` _(auth, owner)_
 
----
+Body `{ rating?, body? }` (at least one) → `{ data: Review }`. `403` when not the owner.
 
-#### `GET /churches/:slug/events`
+#### `DELETE /reviews/:id` _(auth, owner)_
 
-List upcoming events for a church by slug. Recurring events are expanded into occurrences by
-default; pass `expand=false` to receive the raw stored series rows instead (used by the church
-admin leaders portal where administrators manage the series template, not individual dates).
+`{ data: { id, churchId } }`. `403` when not the owner.
 
-| Param  | Type    | Required | Notes                                                                  |
-| ------ | ------- | -------- | ---------------------------------------------------------------------- |
-| type   | string  | No       | Filter by event_type                                                   |
-| from   | string  | No       | Start date ISO 8601 (default: today)                                   |
-| to     | string  | No       | End date ISO 8601 (defaults to `from + 90 days` when `expand` is true) |
-| expand | boolean | No       | `false` to skip RRULE expansion; defaults to `true`                    |
+Every create, rating change and delete recomputes the church's `avgRating` and `reviewCount`.
 
-**Response:** `{ data, meta: { total, filters: { ..., expand } } }` where `data` is an array of
-church events (or occurrences) ordered by `startTime`. Each item is an `IChurchEvent` payload
-with the same occurrence-aware shape as the aggregated feed above.
-
----
-
-#### `POST /churches/:churchId/events` _(church_admin or site_admin)_
-
-Publish a new event. The authenticated user must either be a site admin or a church admin whose `claimedById` matches the church being targeted.
-
-| Field            | Type    | Required | Notes                                                                 |
-| ---------------- | ------- | -------- | --------------------------------------------------------------------- |
-| title            | string  | Yes      | 2–200 characters                                                      |
-| eventType        | string  | Yes      | One of `service`, `community`, `volunteer`, `study`, `youth`, `other` |
-| startTime        | string  | Yes      | ISO 8601 datetime                                                     |
-| endTime          | string  | No       | ISO 8601 datetime; must be strictly after `startTime` when provided   |
-| description      | string  | No       | Max 5000 characters                                                   |
-| locationOverride | string  | No       | Max 200 characters; leave empty to use the church address             |
-| isRecurring      | boolean | No       | Defaults to `false`                                                   |
-| recurrenceRule   | string  | No       | RRULE string when `isRecurring` is `true` (see below)                 |
-
-**Recurrence rules.** `recurrenceRule` must be a valid iCal RRULE body when `isRecurring=true`
-(and must be empty otherwise). The server parses the rule on write, stores it in canonical
-form (dropping `INTERVAL=1`, sorting `BYDAY` into week order), and expands it into occurrences
-on read. Only the following subset is supported:
-
-| Part       | Notes                                                           |
-| ---------- | --------------------------------------------------------------- |
-| `FREQ`     | `DAILY`, `WEEKLY`, or `MONTHLY`                                 |
-| `INTERVAL` | Positive integer; default `1`                                   |
-| `BYDAY`    | Weekday codes (`SU`, `MO`, … `SA`); only with `FREQ=WEEKLY`     |
-| `COUNT`    | Positive integer; mutually exclusive with `UNTIL`               |
-| `UNTIL`    | `YYYYMMDDTHHMMSSZ` or ISO 8601; mutually exclusive with `COUNT` |
-
-Invalid rules return `400 VALIDATION_ERROR` with a descriptive message.
-
-**Errors:**
-
-- `400 VALIDATION_ERROR` — invalid body shape or `endTime` ≤ `startTime`.
-- `401 AUTH_ERROR` — missing session.
-- `403 FORBIDDEN` — the user does not manage the church.
-- `404 NOT_FOUND` — the church does not exist.
-
----
-
-#### `PATCH /events/:id` _(church_admin or site_admin)_
-
-Update an existing event. Same authorization and validation rules as `POST /churches/:churchId/events`. At least one field must be provided.
-
----
-
-#### `DELETE /events/:id` _(church_admin or site_admin)_
-
-Delete an event. Authorization matches the create/update endpoints.
-
----
-
-#### `GET /events.ics`
-
-Aggregated **iCalendar (RFC 5545)** feed for every church. Designed to be subscribed to from a
-calendar app (Apple Calendar, Google Calendar, Outlook) so upcoming events stay in sync with a
-user's personal calendar.
-
-| Param          | Type             | Required | Notes                                                                                                                                                                                                                                                                                                                                                                    |
-| -------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| type           | string\|string[] | No       | Multi-select event-type filter. Accepts a single value (`type=service`), a comma-separated list (`type=service,community`), or repeated params (`type=service&type=community`). Values are deduped.                                                                                                                                                                      |
-| denomination   | string\|string[] | No       | Multi-select denomination-family filter. Same wire format as `type` (single value, comma-separated, or repeated). Matching is case-insensitive against `church.denominationFamily`; values longer than 120 characters are silently dropped so a bookmarked URL cannot 400 the subscribed feed.                                                                           |
-| neighborhood   | string\|string[] | No       | Multi-select San Antonio neighborhood filter. Same wire format as `denomination` (single value, comma-separated, or repeated). Matching is case-insensitive against `church.neighborhood`. Values longer than 120 characters cause a `400` (strict bound, matching the JSON feed contract).                                                                              |
-| language       | string\|string[] | No       | Multi-select service-language filter. Same wire format as `denomination` (single value, comma-separated, or repeated). Matches `church.languages` via `hasSome`; values flow through `/churches/filter-options` so the canonical casing already present in the database is preserved.                                                                                    |
-| accessibleOnly | boolean          | No       | Restrict the feed to events at churches flagged as wheelchair accessible (`church.wheelchairAccessible = true`, excluding `false` and `null`). Mirrors the JSON feed; accepts `true`, `1`, `yes`, or `on` so URL share-links from any surface resolve identically. Anything else 400s.                                                                                   |
-| familyFriendly | boolean          | No       | Restrict the feed to events at churches flagged as good for children (`church.goodForChildren = true`, excluding `false` and `null`). Mirrors the JSON feed; accepts the same boolean-ish aliases as `accessibleOnly`. Anything else 400s.                                                                                                                               |
-| groupFriendly  | boolean          | No       | Restrict the feed to events at churches flagged as good for groups (`church.goodForGroups = true`, excluding `false` and `null`). Mirrors the JSON feed; accepts the same boolean-ish aliases as `accessibleOnly`. Anything else 400s.                                                                                                                                   |
-| verifiedOnly   | boolean          | No       | Restrict the feed to events at verified / claimed churches (`church.isClaimed = true`). Unclaimed churches are excluded. Mirrors the JSON feed; accepts the same boolean-ish aliases as `accessibleOnly`. Anything else 400s.                                                                                                                                            |
-| timeOfDay      | string           | No       | Restrict the feed to occurrences whose local start time falls inside a named bucket: `morning` (05:00–11:59), `afternoon` (12:00–16:59), or `evening` (17:00–21:59), evaluated in San Antonio local time (`America/Chicago`). Mirrors the JSON feed; every RRULE occurrence shares the same hour-of-day so filtering is applied at the base event. Any other value 400s. |
-| q              | string           | No       | Keyword search (1–200 chars, trimmed). Mirrors the JSON feed; narrows the calendar to events whose title, description, or host church name contains the keyword (case-insensitive). Empty / whitespace-only values collapse to "no filter"; values longer than 200 characters 400.                                                                                       |
-
-**Response headers:** `Content-Type: text/calendar; charset=utf-8`,
-`Cache-Control: public, max-age=300`, `Content-Disposition: inline; filename="sa-church-finder<-type[-type…]><-family[-family…]><-neighborhood[-neighborhood…]><-language[-language…]><-accessible><-family-friendly><-group-friendly><-verified><-timeOfDay><-matching-keyword>-events.ics"`.
-Selected filters are enumerated in the filename (e.g. `sa-church-finder-service-community-baptist-downtown-spanish-accessible-family-friendly-group-friendly-verified-evening-matching-bible-events.ics`) so downloaded feeds stay self-describing.
-Denomination, neighborhood, and language names are lowercased and any non-alphanumeric characters collapsed to hyphens for the filename so the download is filesystem-safe; the wheelchair-accessible toggle adds a static `accessible` segment when on, the family-friendly toggle adds a static `family-friendly` segment when on, the group-friendly toggle adds a static `group-friendly` segment when on, the verified-only toggle adds a static `verified` segment when on, the time-of-day toggle adds its bucket label (`morning` / `afternoon` / `evening`), and the keyword filter adds a `matching-<slug>` segment (slugified the same way as the list-valued filters).
-When multiple church-level filters (denomination, neighborhood, language, accessibleOnly, familyFriendly, groupFriendly, verifiedOnly) are supplied the predicates `AND`-compose — e.g. `(neighborhood OR …) AND (denomination OR …) AND (languages hasSome …) AND (wheelchairAccessible = true) AND (goodForChildren = true) AND (goodForGroups = true) AND (isClaimed = true)` — so visitors get only events at churches matching every axis. Time-of-day narrows the resulting rows in-memory by local hour, so it composes cleanly with every other axis without contributing a `church` sub-clause. Keyword narrows the event rows via a case-insensitive `contains` match on title, description, and `church.name`, `AND`-composed with the lookback window so it composes cleanly with every other axis.
-
-The document emits one `VEVENT` per stored row. Recurring series pass their canonical `RRULE`
-straight through so calendar clients expand occurrences natively. Non-recurring events that
-already ended more than a week ago are omitted; future entries are capped at 500 per feed.
-
----
-
-#### `GET /churches/:slug/events.ics`
-
-Per-church iCalendar feed with the same shape as `/events.ics`. The calendar name is
-`"<Church Name> — Events"` so subscribers can distinguish feeds in their calendar app sidebar.
-
-| Param | Type   | Required | Notes                                       |
-| ----- | ------ | -------- | ------------------------------------------- |
-| type  | string | No       | Filter by event type, same values as above. |
-
-Returns `404 NOT_FOUND` when the slug does not exist.
-
----
-
-### Auth
-
-#### `POST /auth/register`
-
-Register with email/password.
-
-| Field    | Type   | Required       |
-| -------- | ------ | -------------- |
-| email    | string | Yes            |
-| password | string | Yes (8+ chars) |
-| name     | string | Yes            |
-
-**Notes:** Creates the session immediately and also issues an email-verification token for the new account.
-
----
-
-#### `POST /auth/login`
-
-Login with email/password. Sets session cookie.
-
----
-
-#### `POST /auth/logout`
-
-Destroy session. Clears cookie.
-
----
-
-#### `GET /auth/google`
-
-Initiate Google OAuth flow. Redirects to Google.
-
-**Notes:** Accepts an optional `returnTo` query parameter for the frontend path to land on after authentication. Unsafe or auth-page values fall back to `/account`.
-
----
-
-#### `GET /auth/google/callback`
-
-Google OAuth callback. Sets session and redirects to frontend.
-
-**Notes:** On callback failure, redirects to the frontend login page with an `authError` query parameter instead of returning JSON.
-
----
-
-#### `GET /auth/me`
-
-Get current authenticated user profile.
-
----
-
-#### `POST /auth/forgot-password`
-
-Send password reset email.
-
----
-
-#### `POST /auth/verify-email/resend`
-
-Issue a fresh email verification token for the current authenticated user.
-
-**Notes:** In local development, the response may include a preview verification URL when `AUTH_EXPOSE_VERIFICATION_PREVIEW=true`.
-
----
-
-#### `POST /auth/verify-email`
-
-Verify an email address with a token.
-
-| Field | Type   | Required |
-| ----- | ------ | -------- |
-| token | string | Yes      |
-
----
-
-#### `POST /auth/reset-password`
-
-Reset password with token.
-
----
-
-#### `POST /auth/change-password` _(authenticated)_
-
-Change password for the currently authenticated user.
-
-| Field           | Type   | Required       |
-| --------------- | ------ | -------------- |
-| currentPassword | string | Yes            |
-| newPassword     | string | Yes (8+ chars) |
-
-**Notes:** Returns 400 for Google-only users who have no password set.
-
----
-
-### User
-
-#### `GET /users/:id/claims`
-
-Get a user's church claim requests. _(authenticated, own profile only)_
-
----
-
-#### `GET /users/:id/reviews`
-
-Get all reviews by a user.
-
----
+## Users _(auth, own account only)_
 
 #### `GET /users/:id/saved`
 
-Get user's saved churches. _(authenticated, own profile only)_
+Query `page`, `pageSize` (≤ 100, default 20). Most recently saved first.
+`{ data: (ChurchSummary & { savedAt: string })[], meta: { page, pageSize, total, totalPages } }`.
 
----
+#### `GET /users/:id/reviews`
 
-#### `PATCH /users/:id/profile` _(authenticated, own profile only)_
+`{ data: (Review & { church: { id, name, slug, denomination, neighborhood, coverImageUrl } })[], meta: { total } }`, most recently updated first.
 
-Update user profile information.
+#### `PATCH /users/:id/profile`
 
-| Field | Type   | Required |
-| ----- | ------ | -------- |
-| name  | string | No       |
-| email | string | No       |
+Body `{ name: string 1–100 }` → `{ data: AuthUser }`.
 
-**Notes:** At least one field is required. Changing email sets `emailVerified` to false and issues a new verification token.
+#### `DELETE /users/:id`
 
----
+Body `{ password?: string }` — required (`400 PASSWORD_REQUIRED` / `400 INVALID_PASSWORD`)
+when the account has a password; Google-only accounts omit it. Permanently deletes
+the user (reviews, saves and tokens cascade; affected church ratings are
+recomputed), destroys the session and clears the cookie. `{ data: { deleted: true } }`.
 
-#### `POST /users/:id/avatar` _(authenticated, own profile only)_
+## Auth
 
-Upload a profile photo. Accepts multipart/form-data with an `avatar` file field.
+All return `{ data, message }` unless noted. `data` is an `AuthUser` where a user is returned.
 
-**Constraints:** JPEG, PNG, WebP, or GIF. Max 5 MB.
+| Method | Path                        | Body / notes                                                                             |
+| ------ | --------------------------- | ---------------------------------------------------------------------------------------- |
+| POST   | `/auth/register`            | `{ email, password (8–72), name }` → `201`, signs in, sends verification + welcome email |
+| POST   | `/auth/login`               | `{ email, password }` → `AuthUser`; `401` on bad credentials                             |
+| POST   | `/auth/logout`              | Destroys the session                                                                     |
+| GET    | `/auth/me`                  | `{ data: AuthUser }`; `401` without a session                                            |
+| GET    | `/auth/google`              | Redirects to Google. Optional `returnTo` (safe client path; default `/account`)          |
+| GET    | `/auth/google/callback`     | Signs in/links by Google id or email, redirects to the client (`?authError=` on failure) |
+| POST   | `/auth/forgot-password`     | `{ email }` → always the same generic message                                            |
+| POST   | `/auth/reset-password`      | `{ token, password }`                                                                    |
+| POST   | `/auth/change-password`     | _(auth)_ `{ currentPassword, newPassword }`; `400 NO_PASSWORD` for Google-only accounts  |
+| POST   | `/auth/verify-email`        | `{ token }` → `{ status: "verified" \| "already-verified" }`                             |
+| POST   | `/auth/verify-email/resend` | _(auth)_ → `{ status: "sent" \| "already-verified", previewUrl? }`                       |
 
----
+`previewUrl` (verification/reset links) is only exposed outside production when
+`AUTH_EXPOSE_VERIFICATION_PREVIEW` / `AUTH_EXPOSE_RESET_PREVIEW` is `true`.
 
-#### `DELETE /users/:id/avatar` _(authenticated, own profile only)_
+## Sitemap
 
-Remove the user's profile photo.
+#### `GET /sitemap.xml`
 
----
-
-#### `POST /users/:id/deactivate` _(authenticated, own profile only)_
-
-Soft-delete the user account.
-
-| Field    | Type   | Required                                         |
-| -------- | ------ | ------------------------------------------------ |
-| password | string | Yes for password users, optional for Google-only |
-
-**Notes:** Sets `deactivatedAt` timestamp and destroys the session. Deactivated users cannot log in. Contact support to reactivate.
-
----
-
-#### `POST /churches/:id/save` _(authenticated)_
-
-Toggle save/unsave a church.
-
----
-
-### Admin
-
-#### `GET /admin/claims` _(site_admin)_
-
-List pending church claim requests.
-
----
-
-#### `PATCH /admin/claims/:id` _(site_admin)_
-
-Approve or reject a claim.
-
-| Field  | Type   | Required                       |
-| ------ | ------ | ------------------------------ |
-| status | string | Yes ('approved' or 'rejected') |
-
----
-
-#### `GET /admin/flagged-reviews` _(site_admin)_
-
-List flagged reviews for moderation.
-
----
-
-#### `PATCH /admin/flagged-reviews/:id` _(site_admin)_
-
-Resolve a flagged review.
-
-| Field  | Type   | Required                      |
-| ------ | ------ | ----------------------------- |
-| status | string | Yes ('approved' or 'removed') |
-
-**Notes:** `approved` clears the flag and keeps the review; `removed` deletes the review and refreshes the church's aggregate rating.
-
----
-
-### Analytics
-
-#### `GET /analytics/churches/:churchId` _(church_admin or site_admin)_
-
-Analytics for a single church. Requires an approved claim on the church (or site admin).
-
-**Response:** church id/name plus rating, review, save, and visit aggregates, including six-month trend buckets and 30-day counts.
-
----
-
-#### `GET /analytics/my-churches` _(authenticated)_
-
-Analytics for every church the caller manages — site admins receive all churches, other users receive the churches they hold approved claims on.
-
-**Response:** array of the same analytics objects returned by `GET /analytics/churches/:churchId`.
-
----
-
-### Church Claims
-
-#### `POST /churches/:id/claim` _(authenticated)_
-
-Submit a claim request for a church.
-
-| Field              | Type   | Required |
-| ------------------ | ------ | -------- |
-| role_title         | string | Yes      |
-| verification_email | string | Yes      |
-
----
-
-#### `GET /churches/:id/admins` _(church_admin or site_admin)_
-
-List the approved admins for a church. Callers must be a site admin or hold an approved claim on the church themselves.
-
-**Response:** array of admins (user id, name, email, role title, approval date).
-
----
-
-#### `DELETE /churches/:id/admins/:adminUserId` _(church_admin or site_admin)_
-
-Revoke a user's church-admin access by retiring their approved claim.
-
----
-
-### Church Visits (Passport)
-
-#### `POST /churches/:id/visits` _(authenticated)_
-
-Log a visit to a church.
-
-| Field     | Type   | Required | Notes                 |
-| --------- | ------ | -------- | --------------------- |
-| visitedAt | string | Yes      | ISO date (YYYY-MM-DD) |
-| notes     | string | No       | Max 1000 chars        |
-| rating    | number | No       | 1–5 integer           |
-
-**Response:** `{ data: ChurchVisit, meta: { newAwards: Award[] }, message }`
-
-**Constraints:** One visit per user per church per day (unique on userId + churchId + visitedAt).
-
----
-
-#### `PATCH /visits/:id` _(visit owner)_
-
-Update visit notes or rating.
-
----
-
-#### `DELETE /visits/:id` _(visit owner)_
-
-Remove a visit record.
-
----
-
-#### `GET /users/:id/visits` _(public)_
-
-List a user's church visits with church info.
-
-| Param    | Type   | Required | Notes                |
-| -------- | ------ | -------- | -------------------- |
-| page     | number | No       | Default: 1           |
-| pageSize | number | No       | Default: 20, max: 50 |
-
----
-
-#### `GET /users/:id/passport` _(public)_
-
-Get a user's passport — stats, awards, and recent visits.
-
-**Response:**
-
-```json
-{
-  "data": {
-    "user": { "id", "name", "avatarUrl", "createdAt" },
-    "stats": {
-      "totalVisits": 15,
-      "uniqueChurches": 12,
-      "denominationsVisited": 4,
-      "neighborhoodsVisited": 6,
-      "collectionsCount": 3,
-      "reviewCount": 8
-    },
-    "awards": [
-      { "awardType": "FIRST_VISIT", "earnedAt": "..." }
-    ],
-    "recentVisits": [
-      { "id", "visitedAt", "rating", "notes", "church": { "name", "slug", ... } }
-    ]
-  }
-}
-```
-
----
-
-### Collections
-
-#### `POST /collections` _(authenticated)_
-
-Create a new collection.
-
-| Field       | Type    | Required | Notes         |
-| ----------- | ------- | -------- | ------------- |
-| name        | string  | Yes      | 1–100 chars   |
-| description | string  | No       | Max 500 chars |
-| isPublic    | boolean | No       | Default: true |
-
----
-
-#### `GET /users/:id/collections` _(public for public collections, owner sees all)_
-
-List a user's collections.
-
----
-
-#### `GET /collections/:id` _(public if isPublic, owner always)_
-
-Get a collection with its churches.
-
----
-
-#### `PATCH /collections/:id` _(collection owner)_
-
-Update collection name, description, or visibility.
-
----
-
-#### `DELETE /collections/:id` _(collection owner)_
-
-Delete a collection (cascade removes items).
-
----
-
-#### `POST /collections/:id/churches/:churchId` _(collection owner)_
-
-Add a church to a collection.
-
-| Field | Type   | Required | Notes         |
-| ----- | ------ | -------- | ------------- |
-| notes | string | No       | Max 500 chars |
-
----
-
-#### `DELETE /collections/:id/churches/:churchId` _(collection owner)_
-
-Remove a church from a collection.
-
----
-
-## Rate Limiting
-
-Enforced today (in-house fixed-window limiter, per IP, per server instance —
-see `server/src/middleware/rate-limit.ts`):
-
-- Credential endpoints (`POST /auth/register`, `/auth/login`,
-  `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`,
-  `/auth/verify-email/resend`, `/auth/change-password`): a shared budget of
-  **5 requests/minute per IP**. Exceeding it returns `429` with code
-  `RATE_LIMITED`, plus `RateLimit-Limit`/`RateLimit-Remaining`/`RateLimit-Reset`
-  and `Retry-After` headers.
-
-Planned (not yet enforced):
-
-- Write endpoints (POST/PATCH/DELETE): 30 requests/minute per user
-- Read endpoints: 100 requests/minute per IP
-- Search endpoint: 60 requests/minute per IP
-
-## Pagination
-
-- All list endpoints use page-based pagination
-- Default pageSize: 20, max: 50
-- Response meta includes: `page`, `pageSize`, `total`, `totalPages`
-
----
-
-## Ribbon Categories
-
-### GET /ribbon-categories
-
-Returns visible ribbon categories ordered by position. Cached server-side (5 min TTL).
-
-**Auth:** None (public)
-
-**Response:**
-
-```json
-{
-  "data": [
-    {
-      "id": "uuid",
-      "label": "Historic",
-      "icon": "🏛️",
-      "slug": "historic",
-      "filterType": "QUERY",
-      "filterValue": "Historic",
-      "position": 0,
-      "isVisible": true,
-      "source": "MANUAL",
-      "isPinned": true,
-      "createdAt": "2026-04-13T...",
-      "updatedAt": "2026-04-13T..."
-    }
-  ]
-}
-```
-
-### GET /admin/ribbon-categories
-
-Returns all ribbon categories (including hidden) ordered by position.
-
-**Auth:** SITE_ADMIN
-
-### POST /admin/ribbon-categories
-
-Create a new ribbon category.
-
-**Auth:** SITE_ADMIN
-
-| Field       | Type    | Required | Notes                              |
-| ----------- | ------- | -------- | ---------------------------------- |
-| label       | string  | Yes      | 1-50 chars                         |
-| icon        | string  | No       | Emoji, defaults to ⛪              |
-| slug        | string  | No       | Auto-derived from label if omitted |
-| filterType  | string  | Yes      | "QUERY" or "DENOMINATION"          |
-| filterValue | string  | Yes      | Value used for filtering           |
-| position    | number  | No       | Auto-appended if omitted           |
-| isVisible   | boolean | No       | Defaults to true                   |
-| isPinned    | boolean | No       | Defaults to false                  |
-
-### PATCH /admin/ribbon-categories/:id
-
-Update a ribbon category. At least one field required.
-
-**Auth:** SITE_ADMIN
-
-### DELETE /admin/ribbon-categories/:id
-
-Delete a ribbon category.
-
-**Auth:** SITE_ADMIN
-
-### POST /admin/ribbon-categories/reorder
-
-Bulk reorder categories by providing an ordered array of IDs.
-
-**Auth:** SITE_ADMIN
-
-| Field | Type     | Required | Notes                  |
-| ----- | -------- | -------- | ---------------------- |
-| ids   | string[] | Yes      | Ordered array of UUIDs |
-
-### POST /admin/ribbon-categories/auto-generate
-
-Auto-generate denomination categories from church data. Creates/updates AUTO-sourced categories based on the most popular denominations. Never touches MANUAL or pinned categories.
-
-**Auth:** SITE_ADMIN
-
-| Field | Type   | Required | Notes                      |
-| ----- | ------ | -------- | -------------------------- |
-| limit | number | No       | Max categories (default 6) |
-
-**Response:**
-
-```json
-{
-  "data": { "created": 3, "updated": 1, "removed": 0 },
-  "message": "Auto-generation complete: 3 created, 1 updated, 0 removed"
-}
-```
-
----
-
-### Forum
-
-Community discussion forum for church visitors and leaders.
-
-#### `GET /forum/posts`
-
-List forum posts with filtering and pagination.
-
-| Param    | Type   | Required | Notes                                                                         |
-| -------- | ------ | -------- | ----------------------------------------------------------------------------- |
-| category | string | No       | One of `general`, `recommendations`, `prayer-requests`, `events`, `newcomers` |
-| sort     | string | No       | `recent` (default), `popular` (by views), `most-replies`                      |
-| page     | number | No       | Page number (default: 1)                                                      |
-| pageSize | number | No       | Results per page (default: 20, max: 50)                                       |
-
-**Response:**
-
-```json
-{
-  "data": [
-    {
-      "id": "...",
-      "title": "Best churches for newcomers?",
-      "body": "Just moved to SA...",
-      "category": "newcomers",
-      "authorId": "...",
-      "author": { "id": "...", "name": "Jane", "avatarUrl": null },
-      "isPinned": false,
-      "isLocked": false,
-      "viewCount": 42,
-      "replyCount": 5,
-      "createdAt": "...",
-      "updatedAt": "..."
-    }
-  ],
-  "meta": {
-    "page": 1,
-    "pageSize": 20,
-    "total": 35,
-    "totalPages": 2,
-    "sort": "recent",
-    "category": null
-  }
-}
-```
-
-Pinned posts are always sorted first regardless of sort option.
-
----
-
-#### `GET /forum/posts/:id`
-
-Get a single forum post with all replies. Increments the post's view count.
-
-**Response:**
-
-```json
-{
-  "data": {
-    "id": "...",
-    "title": "...",
-    "body": "...",
-    "category": "general",
-    "authorId": "...",
-    "author": { "id": "...", "name": "...", "avatarUrl": null },
-    "isPinned": false,
-    "isLocked": false,
-    "viewCount": 43,
-    "replyCount": 2,
-    "createdAt": "...",
-    "updatedAt": "...",
-    "replies": [
-      {
-        "id": "...",
-        "body": "Great question!",
-        "postId": "...",
-        "authorId": "...",
-        "author": { "id": "...", "name": "...", "avatarUrl": null },
-        "createdAt": "...",
-        "updatedAt": "..."
-      }
-    ]
-  }
-}
-```
-
-**Errors:** `404` post not found.
-
----
-
-#### `POST /forum/posts` _(authenticated)_
-
-Create a new forum post.
-
-| Field    | Type   | Required | Notes                                                                                             |
-| -------- | ------ | -------- | ------------------------------------------------------------------------------------------------- |
-| title    | string | Yes      | 3–200 characters                                                                                  |
-| body     | string | Yes      | 10–5000 characters                                                                                |
-| category | string | No       | Default: `general`. One of `general`, `recommendations`, `prayer-requests`, `events`, `newcomers` |
-
-**Response:** `{ data: ForumPost, message: "Post created successfully" }`
-
-**Errors:** `400` validation failed, `401` not authenticated.
-
----
-
-#### `PATCH /forum/posts/:id` _(post owner)_
-
-Update an existing forum post. At least one field must be provided. Only the post author can edit.
-
-| Field    | Type   | Required | Notes              |
-| -------- | ------ | -------- | ------------------ |
-| title    | string | No       | 3–200 characters   |
-| body     | string | No       | 10–5000 characters |
-| category | string | No       | Valid category     |
-
-**Response:** `{ data: ForumPost, message: "Post updated successfully" }`
-
-**Errors:** `400` validation failed, `401` not authenticated, `403` not the post author, `404` post not found.
-
----
-
-#### `DELETE /forum/posts/:id` _(post owner or site_admin)_
-
-Delete a forum post and all its replies (cascade).
-
-**Response:** `{ data: { id, deleted: true }, message: "Post deleted successfully" }`
-
-**Errors:** `401` not authenticated, `403` not the post author or site admin, `404` post not found.
-
----
-
-#### `POST /forum/posts/:id/replies` _(authenticated)_
-
-Add a reply to a forum post. Blocked if the post is locked.
-
-| Field | Type   | Required | Notes             |
-| ----- | ------ | -------- | ----------------- |
-| body  | string | Yes      | 1–5000 characters |
-
-**Response:** `{ data: ForumReply, message: "Reply created successfully" }`
-
-**Errors:** `400` validation failed, `401` not authenticated, `403` post is locked, `404` post not found.
-
----
-
-#### `DELETE /forum/replies/:id` _(reply owner or site_admin)_
-
-Delete a forum reply.
-
-**Response:** `{ data: { id, deleted: true }, message: "Reply deleted successfully" }`
-
-**Errors:** `401` not authenticated, `403` not the reply author or site admin, `404` reply not found.
-
----
-
-_Last updated: 2026-04-13 — added forum endpoints, ribbon categories, and church passport endpoints._
+XML sitemap of `/`, `/privacy`, `/terms` and every non-closed `/churches/:slug`.

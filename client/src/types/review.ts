@@ -1,10 +1,6 @@
-export type ReviewSort = 'recent' | 'highest' | 'lowest' | 'helpful';
+import { IPageMeta } from '@/types/church';
 
-export interface IReviewAuthor {
-  id: string;
-  name: string;
-  avatarUrl: string | null;
-}
+export type ReviewSort = 'recent' | 'highest' | 'lowest';
 
 export interface IReview {
   id: string;
@@ -12,116 +8,29 @@ export interface IReview {
   userId: string;
   rating: number;
   body: string;
-  welcomeRating: number | null;
-  worshipRating: number | null;
-  sermonRating: number | null;
-  facilitiesRating: number | null;
-  helpfulCount: number;
-  viewerHasVotedHelpful: boolean;
-  responseBody: string | null;
-  respondedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  user: IReviewAuthor;
-}
-
-export interface ReviewHelpfulVoteResult {
-  reviewId: string;
-  helpfulCount: number;
-  viewerHasVotedHelpful: boolean;
-}
-
-export interface ReviewFlagResult {
-  reviewId: string;
-  status: 'flagged' | 'already-flagged';
-}
-
-export interface IReviewChurchSummary {
-  id: string;
-  name: string;
-  slug: string;
-  denomination: string | null;
-  city: string;
-  state: string;
-  neighborhood: string | null;
+  user: { id: string; name: string; avatarUrl: string | null };
 }
 
 export interface IUserReview extends IReview {
-  church: IReviewChurchSummary;
-}
-
-export interface IFlaggedReview extends IUserReview {
-  flaggedAt: string;
+  church: {
+    id: string;
+    name: string;
+    slug: string;
+    denomination: string | null;
+    neighborhood: string | null;
+    coverImageUrl: string | null;
+  };
 }
 
 export interface IChurchReviewsResponse {
   data: IReview[];
-  meta: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-    sort: ReviewSort;
-  };
+  meta: IPageMeta & { sort: ReviewSort };
   currentUserReview: IReview | null;
 }
 
-export interface IUserReviewsResponse {
-  data: IUserReview[];
-  meta: {
-    total: number;
-  };
-}
-
-export interface IFlaggedReviewsResponse {
-  data: IFlaggedReview[];
-  meta: {
-    total: number;
-  };
-}
-
-export interface IReviewListParams {
-  sort?: ReviewSort;
-  page?: number;
-  pageSize?: number;
-}
-
-export interface CreateReviewInput {
-  churchId: string;
+export interface IReviewInput {
   rating: number;
   body: string;
-  welcomeRating?: number | null;
-  worshipRating?: number | null;
-  sermonRating?: number | null;
-  facilitiesRating?: number | null;
-}
-
-export interface UpdateReviewInput {
-  reviewId: string;
-  rating: number;
-  body: string;
-  welcomeRating?: number | null;
-  worshipRating?: number | null;
-  sermonRating?: number | null;
-  facilitiesRating?: number | null;
-}
-
-export interface ResolveFlaggedReviewInput {
-  reviewId: string;
-  status: 'approved' | 'removed';
-}
-
-export interface ResolveFlaggedReviewResult {
-  reviewId: string;
-  status: 'approved' | 'removed';
-}
-
-export interface ReviewResponseResult {
-  reviewId: string;
-  responseBody: string;
-  respondedAt: string;
-}
-
-export interface ReviewResponseDeleteResult {
-  reviewId: string;
 }

@@ -8,13 +8,6 @@ const BASE_URL = 'https://sachurchfinder.com'
 
 const STATIC_PAGES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
-  { path: '/search', changefreq: 'daily', priority: '0.9' },
-  { path: '/events', changefreq: 'daily', priority: '0.8' },
-  { path: '/forum', changefreq: 'weekly', priority: '0.5' },
-  { path: '/help-center', changefreq: 'monthly', priority: '0.3' },
-  { path: '/safety-information', changefreq: 'monthly', priority: '0.3' },
-  { path: '/accessibility', changefreq: 'monthly', priority: '0.3' },
-  { path: '/report-a-concern', changefreq: 'monthly', priority: '0.3' },
   { path: '/privacy', changefreq: 'monthly', priority: '0.2' },
   { path: '/terms', changefreq: 'monthly', priority: '0.2' },
 ]
@@ -34,8 +27,9 @@ const escapeXml = (str: string): string =>
 router.get('/sitemap.xml', async (_req: Request, res: Response) => {
   try {
     const churches = await prisma.church.findMany({
+      // `not` alone would also drop rows whose status is NULL.
       where: {
-        businessStatus: { not: 'CLOSED_PERMANENTLY' },
+        OR: [{ businessStatus: null }, { businessStatus: { not: 'CLOSED_PERMANENTLY' } }],
       },
       select: {
         slug: true,

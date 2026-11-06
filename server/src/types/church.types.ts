@@ -1,169 +1,101 @@
 /**
- * Church domain types and interfaces
+ * Church domain types
  */
-
-export type ChurchClaimStatus = 'pending' | 'approved' | 'rejected'
-
-export interface IViewerChurchClaim {
-  id: string
-  status: ChurchClaimStatus
-  roleTitle: string
-  verificationEmail: string
-  createdAt: Date
-  reviewedAt?: Date | null
-}
 
 export interface IChurchService {
   id: string
   churchId: string
   dayOfWeek: number
   startTime: string
-  endTime?: string | null
+  endTime: string | null
   serviceType: string
   language: string
-  description?: string | null
-  isAutoImported?: boolean
-  createdAt: Date
-  updatedAt: Date
+  description: string | null
 }
 
 export interface IChurchPhoto {
   id: string
   url: string
-  altText?: string | null
+  altText: string | null
   displayOrder: number
 }
 
-export interface IChurch {
-  id: string
-  name: string
-  slug: string
-  denomination?: string | null
-  denominationFamily?: string | null
-  description?: string | null
-  address: string
-  city: string
-  state: string
-  zipCode: string
-  neighborhood?: string | null
-  latitude: number
-  longitude: number
-  phone?: string | null
-  email?: string | null
-  website?: string | null
-  pastorName?: string | null
-  yearEstablished?: number | null
-  avgRating: number
-  reviewCount: number
-  googleRating?: number | null
-  googleReviewCount?: number | null
-  isClaimed: boolean
-  isSaved?: boolean
-  claimedById?: string | null
-  languages: string[]
-  amenities: string[]
-  coverImageUrl?: string | null
-  businessStatus?: string | null
-  googleMapsUrl?: string | null
-  primaryType?: string | null
-  goodForChildren?: boolean | null
-  goodForGroups?: boolean | null
-  wheelchairAccessible?: boolean | null
-  photos?: IChurchPhoto[]
-  viewerClaim?: IViewerChurchClaim | null
-  createdAt: Date
-  updatedAt: Date
-  services: IChurchService[]
-}
-
+/** Card-sized church payload used by search and saved churches. */
 export interface IChurchSummary {
   id: string
   name: string
   slug: string
-  denomination?: string | null
-  denominationFamily?: string | null
-  description?: string | null
+  denomination: string | null
+  denominationFamily: string | null
+  description: string | null
   address: string
   city: string
   state: string
   zipCode: string
-  neighborhood?: string | null
+  neighborhood: string | null
   latitude: number
   longitude: number
-  phone?: string | null
-  email?: string | null
-  website?: string | null
+  phone: string | null
+  website: string | null
   avgRating: number
   reviewCount: number
-  googleRating?: number | null
-  googleReviewCount?: number | null
-  isClaimed: boolean
-  isSaved?: boolean
+  googleRating: number | null
+  googleReviewCount: number | null
   languages: string[]
   amenities: string[]
-  coverImageUrl?: string | null
-  businessStatus?: string | null
-  goodForChildren?: boolean | null
-  goodForGroups?: boolean | null
-  wheelchairAccessible?: boolean | null
+  coverImageUrl: string | null
+  businessStatus: string | null
+  goodForChildren: boolean | null
+  goodForGroups: boolean | null
+  wheelchairAccessible: boolean | null
+  isSaved: boolean
+  /** Miles from the search center (search results only). */
   distance?: number
-  photos?: IChurchPhoto[]
+  /** First few photos, ordered by displayOrder. */
+  photos: IChurchPhoto[]
   services: IChurchService[]
 }
 
+/** Full church profile payload — all photos. */
+export interface IChurch extends IChurchSummary {
+  email: string | null
+  pastorName: string | null
+  yearEstablished: number | null
+  googleMapsUrl: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface ISavedChurch extends IChurchSummary {
-  pastorName?: string | null
-  yearEstablished?: number | null
   savedAt: Date
 }
 
-export interface IBounds {
-  swLat: number
-  swLng: number
-  neLat: number
-  neLng: number
-}
+export type ChurchSort = 'relevance' | 'distance' | 'rating' | 'name'
 
 export interface ISearchParams {
   lat?: number
   lng?: number
   radius?: number
   q?: string
-  /**
-   * Denomination family filter. Accepts a single value or a comma-separated
-   * list; multiple values are OR-combined so "Baptist,Methodist" matches any
-   * church in either family. The backend splits on `,` and trims whitespace,
-   * so `"Baptist, Methodist"` and `"Baptist,Methodist"` behave identically.
-   */
+  /** Denomination family; comma-separated values are OR-combined. */
   denomination?: string
   day?: number
-  time?: string
-  /**
-   * Service language filter. Accepts a single value or a comma-separated list;
-   * multiple values are OR-combined ("English OR Spanish"). The backend splits
-   * on `,` and trims whitespace, so `"English, Spanish"` and `"English,Spanish"`
-   * behave identically.
-   */
+  time?: 'morning' | 'afternoon' | 'evening'
+  /** Comma-separated values are OR-combined. */
   language?: string
+  /** Comma-separated values are AND-combined. */
   amenities?: string
   wheelchairAccessible?: boolean
   goodForChildren?: boolean
   goodForGroups?: boolean
   /** Minimum effective rating (local avgRating, else googleRating). 0–5. */
   minRating?: number
-  /** Case-insensitive exact match on `churches.neighborhood`. */
   neighborhood?: string
-  /** Case-insensitive match on `church_services.serviceType` (EXISTS subquery). */
-  serviceType?: string
-  /** When `true`, only return churches that have at least one uploaded photo. */
   hasPhotos?: boolean
-  /** When `true`, only return churches marked as claimed/verified. */
-  isClaimed?: boolean
-  /** When `true`, only return churches with a service happening right now (based on server time in America/Chicago). */
-  openNow?: boolean
-  sort?: 'relevance' | 'distance' | 'rating' | 'name'
+  sort?: ChurchSort
   page?: number
   pageSize?: number
+  /** "swLat,swLng,neLat,neLng" */
   bounds?: string
 }
 
@@ -174,9 +106,13 @@ export interface ISearchResponse {
     pageSize: number
     total: number
     totalPages: number
-    center?: {
-      lat: number
-      lng: number
-    }
+    center: { lat: number; lng: number }
   }
+}
+
+export interface IFilterOptions {
+  denominations: { value: string; count: number }[]
+  languages: string[]
+  amenities: string[]
+  neighborhoods: string[]
 }

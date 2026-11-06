@@ -33,26 +33,22 @@ describe('cacheControl middleware', () => {
   })
 
   it('marks mutations no-store', () => {
-    expect(run('POST', '/api/v1/forum/posts')).toBe('no-store')
-    expect(run('DELETE', '/api/v1/visits/abc')).toBe('no-store')
+    expect(run('POST', '/api/v1/churches/abc/reviews')).toBe('no-store')
+    expect(run('DELETE', '/api/v1/reviews/abc')).toBe('no-store')
   })
 
   it('gives slow-changing public reads a short cache window', () => {
-    expect(run('GET', '/api/v1/ribbon-categories')).toBe(
-      'private, max-age=30, stale-while-revalidate=120',
-    )
     expect(run('GET', '/api/v1/churches/filter-options')).toBe(
       'private, max-age=30, stale-while-revalidate=120',
     )
   })
 
   it('forces revalidation on interactive reads so fresh writes are visible', () => {
-    // Regression guard: a blanket max-age here once hid new forum posts,
-    // reviews, and saves for up to ~150 seconds after writing.
-    expect(run('GET', '/api/v1/forum/posts')).toBe('private, no-cache')
-    expect(run('GET', '/api/v1/forum/posts/abc')).toBe('private, no-cache')
+    // Regression guard: a blanket max-age here once hid new reviews and
+    // saves for up to ~150 seconds after writing.
+    expect(run('GET', '/api/v1/churches/abc/reviews')).toBe('private, no-cache')
     expect(run('GET', '/api/v1/churches')).toBe('private, no-cache')
-    expect(run('GET', '/api/v1/users/u1/passport')).toBe('private, no-cache')
+    expect(run('GET', '/api/v1/users/u1/saved')).toBe('private, no-cache')
   })
 
   it('does not confuse church detail paths with the filter-options allowlist entry', () => {

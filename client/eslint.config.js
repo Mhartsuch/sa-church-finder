@@ -35,4 +35,9 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // Test files and helpers are never hot-reloaded.
+    files: ['src/**/*.test.{ts,tsx}', 'src/test-utils.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

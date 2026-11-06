@@ -1,146 +1,68 @@
 import { apiRequest, ApiRequestError } from '@/lib/api-client';
 import {
   ApiEnvelope,
-  AuthCredentials,
-  ChangePasswordInput,
-  DeactivateAccountInput,
-  ForgotPasswordInput,
-  ForgotPasswordResult,
-  AuthRegisterInput,
-  RequestEmailVerificationResult,
-  ResetPasswordInput,
   AuthUser,
-  UpdateProfileInput,
-  UpdateProfileResult,
-  VerifyEmailInput,
-  VerifyEmailResult,
+  ChangePasswordInput,
+  LoginInput,
+  RegisterInput,
+  ResetPasswordInput,
 } from '@/types/auth';
 
-type AuthEnvelope = ApiEnvelope<AuthUser>;
+const post = <T>(path: string, body?: unknown) =>
+  apiRequest<ApiEnvelope<T>>(path, {
+    method: 'POST',
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 
 export const fetchCurrentUser = async (): Promise<AuthUser | null> => {
   try {
-    const envelope = await apiRequest<AuthEnvelope>('/auth/me');
-    return envelope.data;
+    return (await apiRequest<ApiEnvelope<AuthUser>>('/auth/me')).data;
   } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 401) {
-      return null;
-    }
-
+    if (error instanceof ApiRequestError && error.status === 401) return null;
     throw error;
   }
 };
 
-export const loginUser = async (input: AuthCredentials): Promise<AuthUser> => {
-  const envelope = await apiRequest<AuthEnvelope>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
+export const login = async (input: LoginInput) => (await post<AuthUser>('/auth/login', input)).data;
 
-  return envelope.data;
+export const register = async (input: RegisterInput) =>
+  (await post<AuthUser>('/auth/register', input)).data;
+
+export const logout = async () => {
+  await post('/auth/logout');
 };
 
-export const registerUser = async (input: AuthRegisterInput): Promise<AuthUser> => {
-  const envelope = await apiRequest<AuthEnvelope>('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-
-  return envelope.data;
+export const requestPasswordReset = async (email: string) => {
+  await post('/auth/forgot-password', { email });
 };
 
-export const requestPasswordReset = async (
-  input: ForgotPasswordInput,
-): Promise<ForgotPasswordResult> => {
-  const envelope = await apiRequest<ApiEnvelope<ForgotPasswordResult>>('/auth/forgot-password', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-
-  return envelope.data ?? {};
+export const resetPassword = async (input: ResetPasswordInput) => {
+  await post('/auth/reset-password', input);
 };
 
-export const requestEmailVerification = async (): Promise<RequestEmailVerificationResult> => {
-  const envelope = await apiRequest<ApiEnvelope<RequestEmailVerificationResult>>(
-    '/auth/verify-email/resend',
-    {
-      method: 'POST',
-      body: JSON.stringify({}),
-    },
+export const changePassword = async (input: ChangePasswordInput) => {
+  await post('/auth/change-password', input);
+};
+
+export const verifyEmail = async (token: string) => {
+  await post('/auth/verify-email', { token });
+};
+
+export const resendVerificationEmail = async () => {
+  await post('/auth/verify-email/resend');
+};
+
+export const updateProfile = async (userId: string, name: string): Promise<AuthUser> => {
+  const envelope = await apiRequest<ApiEnvelope<AuthUser>>(
+    `/users/${encodeURIComponent(userId)}/profile`,
+    { method: 'PATCH', body: JSON.stringify({ name }) },
   );
-
   return envelope.data;
 };
 
-export const verifyEmail = async (input: VerifyEmailInput): Promise<VerifyEmailResult> => {
-  const envelope = await apiRequest<ApiEnvelope<VerifyEmailResult>>('/auth/verify-email', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-
-  return envelope.data;
-};
-
-export const resetPassword = async (input: ResetPasswordInput): Promise<void> => {
-  await apiRequest<ApiEnvelope<null>>('/auth/reset-password', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-};
-
-export const logoutUser = async (): Promise<void> => {
-  await apiRequest<ApiEnvelope<null>>('/auth/logout', {
-    method: 'POST',
-  });
-};
-
-export const updateProfile = async (
-  userId: string,
-  input: UpdateProfileInput,
-): Promise<UpdateProfileResult> => {
-  const envelope = await apiRequest<ApiEnvelope<UpdateProfileResult>>(`/users/${userId}/profile`, {
-    method: 'PATCH',
-    body: JSON.stringify(input),
-  });
-
-  return envelope.data;
-};
-
-export const changePassword = async (input: ChangePasswordInput): Promise<void> => {
-  await apiRequest<ApiEnvelope<null>>('/auth/change-password', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-};
-
-export const uploadAvatar = async (userId: string, file: File): Promise<AuthUser> => {
-  const formData = new FormData();
-
-  formData.append('avatar', file);
-
-  const envelope = await apiRequest<ApiEnvelope<AuthUser>>(`/users/${userId}/avatar`, {
-    method: 'POST',
-    body: formData,
-    skipJsonContentType: true,
-  });
-
-  return envelope.data;
-};
-
-export const removeAvatar = async (userId: string): Promise<AuthUser> => {
-  const envelope = await apiRequest<AuthEnvelope>(`/users/${userId}/avatar`, {
+export const deleteAccount = async (userId: string, password?: string) => {
+  await apiRequest(`/users/${encodeURIComponent(userId)}`, {
     method: 'DELETE',
-  });
-
-  return envelope.data;
-};
-
-export const deactivateAccount = async (
-  userId: string,
-  input: DeactivateAccountInput,
-): Promise<void> => {
-  await apiRequest<ApiEnvelope<null>>(`/users/${userId}/deactivate`, {
-    method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(password ? { password } : {}),
   });
 };

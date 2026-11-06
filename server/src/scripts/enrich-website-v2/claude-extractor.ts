@@ -37,7 +37,7 @@ export function isRateLimitMessage(text: string): boolean {
 }
 
 const EXTRACTION_PROMPT = `You are extracting structured church information from combined text pulled
-from several pages of a church website (homepage, About, Staff, Events, etc).
+from several pages of a church website (homepage, About, Staff, Services, etc).
 Return ONLY valid JSON (no markdown fences, no commentary) with this exact schema:
 
 {
@@ -82,25 +82,12 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact schem
   "newVisitorUrl": "URL or null — 'Plan Your Visit', 'New Here', or 'Connect Card' page",
   "parkingInfo": "string or null — brief description of parking (e.g. 'Free lot on Main St, overflow across the street')",
   "dressCode": "string or null — brief note on attire if explicitly mentioned (e.g. 'Come as you are', 'Business casual')",
-  "events": [
-    {
-      "title": "string — event name",
-      "description": "string or null — 1-2 sentence summary",
-      "eventType": "string — 'worship' | 'study' | 'outreach' | 'community' | 'youth' | 'men' | 'women' | 'family' | 'concert' | 'retreat' | 'other'",
-      "startTime": "ISO 8601 datetime with timezone — e.g. '2026-05-01T18:00:00-05:00'",
-      "endTime": "ISO 8601 datetime or null",
-      "locationOverride": "string or null — if hosted off-site",
-      "sourceUrl": "URL or null — the specific event page if identifiable"
-    }
-  ],
   "confidence": "number 0.0-1.0 — your confidence in the extraction overall"
 }
 
 Rules:
 - Use null for anything you cannot determine. Do NOT guess.
 - Regular services only in "services" — skip one-time events, revivals.
-- Put one-time or upcoming scheduled events in "events" instead. Assume America/Chicago timezone (Central) if unspecified.
-- Do NOT include past events (anything before today's date).
 - Convert service times to 24-hour HH:MM.
 - Prefer explicit statements over inferences.
 - staff: up to 10 named people, lead pastor first.

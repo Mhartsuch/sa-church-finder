@@ -1,186 +1,61 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import {
-  changePassword,
-  deactivateAccount,
-  fetchCurrentUser,
-  loginUser,
-  logoutUser,
-  removeAvatar,
-  requestEmailVerification,
-  requestPasswordReset,
-  registerUser,
-  resetPassword,
-  updateProfile,
-  uploadAvatar,
-  verifyEmail,
-} from '@/api/auth';
-import {
-  CHURCHES_QUERY_KEY,
-  CHURCH_QUERY_KEY,
-  SAVED_CHURCHES_QUERY_KEY,
-} from '@/hooks/useChurches';
-import {
-  AuthCredentials,
-  AuthRegisterInput,
-  AuthUser,
-  ChangePasswordInput,
-  DeactivateAccountInput,
-  ForgotPasswordInput,
-  ForgotPasswordResult,
-  RequestEmailVerificationResult,
-  ResetPasswordInput,
-  UpdateProfileInput,
-  UpdateProfileResult,
-  VerifyEmailInput,
-  VerifyEmailResult,
-} from '@/types/auth';
+import * as authApi from '@/api/auth';
+import { AuthUser } from '@/types/auth';
 
-export const AUTH_SESSION_QUERY_KEY = ['auth', 'session'] as const;
+export const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
-const AUTH_STALE_TIME = 1000 * 60 * 5;
-
-const refreshSessionAwareQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
-  void queryClient.invalidateQueries({ queryKey: CHURCHES_QUERY_KEY });
-  void queryClient.invalidateQueries({ queryKey: CHURCH_QUERY_KEY });
-  void queryClient.invalidateQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY });
-};
-
-export const useCurrentUser = () => {
-  return useQuery<AuthUser | null, Error>({
-    queryKey: AUTH_SESSION_QUERY_KEY,
-    queryFn: fetchCurrentUser,
-    staleTime: AUTH_STALE_TIME,
-    retry: false,
-    refetchOnWindowFocus: false,
+export const useCurrentUser = () =>
+  useQuery({
+    queryKey: AUTH_QUERY_KEY,
+    queryFn: authApi.fetchCurrentUser,
+    staleTime: 5 * 60 * 1000,
   });
-};
 
-export const useAuthSession = () => {
-  const sessionQuery = useCurrentUser();
-
-  return {
-    ...sessionQuery,
-    user: sessionQuery.data ?? null,
-    isAuthenticated: Boolean(sessionQuery.data),
-  };
-};
-
-export const useLogin = () => {
+/** Login/register share the same "store the session user" behaviour. */
+const useSessionMutation = <TInput>(fn: (input: TInput) => Promise<AuthUser>) => {
   const queryClient = useQueryClient();
-
-  return useMutation<AuthUser, Error, AuthCredentials>({
-    mutationFn: loginUser,
+  return useMutation({
+    mutationFn: fn,
     onSuccess: (user) => {
-      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user);
-      refreshSessionAwareQueries(queryClient);
+      queryClient.setQueryData(AUTH_QUERY_KEY, user);
+      void queryClient.invalidateQueries({ queryKey: ['churches'] });
     },
   });
 };
 
-export const useRegister = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<AuthUser, Error, AuthRegisterInput>({
-    mutationFn: registerUser,
-    onSuccess: (user) => {
-      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user);
-      refreshSessionAwareQueries(queryClient);
-    },
-  });
-};
+export const useLogin = () => useSessionMutation(authApi.login);
+export const useRegister = () => useSessionMutation(authApi.register);
 
 export const useLogout = () => {
   const queryClient = useQueryClient();
-
-  return useMutation<void, Error, void>({
-    mutationFn: logoutUser,
+  return useMutation({
+    mutationFn: authApi.logout,
     onSuccess: () => {
-      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, null);
-      refreshSessionAwareQueries(queryClient);
-      queryClient.removeQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY });
-    },
-  });
-};
-
-export const useRequestPasswordReset = () => {
-  return useMutation<ForgotPasswordResult, Error, ForgotPasswordInput>({
-    mutationFn: requestPasswordReset,
-  });
-};
-
-export const useRequestEmailVerification = () => {
-  return useMutation<RequestEmailVerificationResult, Error, void>({
-    mutationFn: requestEmailVerification,
-  });
-};
-
-export const useResetPassword = () => {
-  return useMutation<void, Error, ResetPasswordInput>({
-    mutationFn: resetPassword,
-  });
-};
-
-export const useVerifyEmail = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<VerifyEmailResult, Error, VerifyEmailInput>({
-    mutationFn: verifyEmail,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: AUTH_SESSION_QUERY_KEY });
-      refreshSessionAwareQueries(queryClient);
+      queryClient.setQueryData(AUTH_QUERY_KEY, null);
+      queryClient.removeQueries({ queryKey: ['saved'] });
+      void queryClient.invalidateQueries({ queryKey: ['churches'] });
     },
   });
 };
 
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
-
-  return useMutation<UpdateProfileResult, Error, { userId: string; input: UpdateProfileInput }>({
-    mutationFn: ({ userId, input }) => updateProfile(userId, input),
-    onSuccess: (result) => {
-      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, result.user);
-    },
+  return useMutation({
+    mutationFn: ({ userId, name }: { userId: string; name: string }) =>
+      authApi.updateProfile(userId, name),
+    onSuccess: (user) => queryClient.setQueryData(AUTH_QUERY_KEY, user),
   });
 };
 
-export const useChangePassword = () => {
-  return useMutation<void, Error, ChangePasswordInput>({
-    mutationFn: changePassword,
-  });
-};
-
-export const useUploadAvatar = () => {
+export const useDeleteAccount = () => {
   const queryClient = useQueryClient();
-
-  return useMutation<AuthUser, Error, { userId: string; file: File }>({
-    mutationFn: ({ userId, file }) => uploadAvatar(userId, file),
-    onSuccess: (user) => {
-      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user);
-    },
-  });
-};
-
-export const useRemoveAvatar = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<AuthUser, Error, string>({
-    mutationFn: removeAvatar,
-    onSuccess: (user) => {
-      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, user);
-    },
-  });
-};
-
-export const useDeactivateAccount = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, { userId: string; input: DeactivateAccountInput }>({
-    mutationFn: ({ userId, input }) => deactivateAccount(userId, input),
+  return useMutation({
+    mutationFn: ({ userId, password }: { userId: string; password?: string }) =>
+      authApi.deleteAccount(userId, password),
     onSuccess: () => {
-      queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, null);
-      refreshSessionAwareQueries(queryClient);
-      queryClient.removeQueries({ queryKey: SAVED_CHURCHES_QUERY_KEY });
+      queryClient.clear();
+      queryClient.setQueryData(AUTH_QUERY_KEY, null);
     },
   });
 };

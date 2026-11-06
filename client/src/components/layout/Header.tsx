@@ -1,203 +1,130 @@
-import { useEffect, useState } from 'react';
-import {
-  BookOpen,
-  CalendarDays,
-  Church,
-  Heart,
-  Menu,
-  MessagesSquare,
-  Moon,
-  Scale,
-  Search,
-  Sun,
-  User,
-} from 'lucide-react';
+import { Church, Heart, Menu, UserCircle2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { SearchBar } from '@/components/search/SearchBar';
-import { useAuthSession } from '@/hooks/useAuth';
-import { useCompareStore } from '@/stores/compare-store';
+import { SearchPill } from '@/components/search/SearchPill';
+import { useCurrentUser, useLogout } from '@/hooks/useAuth';
+import { buildAuthPageHref } from '@/lib/auth-redirect';
+import { cn } from '@/lib/utils';
 
-export const Header = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { isLoading, user } = useAuthSession();
-  const compareCount = useCompareStore((state) => state.selectedChurches.length);
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') {
-      return 'light';
-    }
-
-    return window.localStorage.getItem('church-finder-theme') === 'dark' ? 'dark' : 'light';
-  });
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem('church-finder-theme', theme);
-  }, [theme]);
-
-  const handleSearchSubmit = () => {
-    if (location.pathname !== '/search') {
-      navigate('/search');
-    }
-  };
-
-  const handleOpenFilters = () => {
-    if (location.pathname === '/search') {
-      navigate(
-        {
-          pathname: location.pathname,
-          search: location.search,
-        },
-        {
-          replace: true,
-          state: { openFilters: true },
-        },
-      );
-      return;
-    }
-
-    navigate('/search', {
-      state: { openFilters: true },
-    });
-  };
-
-  const firstName = user?.name.split(' ')[0] || 'Account';
-  const avatarLabel =
-    user?.name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('') || null;
-
-  const wishlistHref = user ? '/account' : '/login';
-  const menuHref = user ? '/account' : '/login';
-  const leadersHref = user ? '/leaders' : '/register';
+export const Header = ({ wide = false }: { wide?: boolean }) => {
+  const { pathname } = useLocation();
+  const showSearch = pathname === '/' || pathname.startsWith('/churches/');
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md">
-      <div className="mx-auto max-w-[1760px] px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div className="flex min-h-[64px] items-center gap-2 sm:min-h-[80px] sm:gap-4">
-          <Link to="/" className="flex flex-shrink-0 items-center gap-1.5 text-[#FF385C] sm:gap-2">
-            <Church className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.2} />
-            <span className="hidden text-[20px] font-extrabold tracking-[-0.03em] sm:inline">
-              ChurchFinder
-            </span>
-            <span className="text-[17px] font-extrabold tracking-[-0.03em] sm:hidden">CF</span>
-          </Link>
-
-          <div className="hidden flex-1 justify-center lg:flex">
-            <div className="w-full max-w-[850px]">
-              <SearchBar
-                variant="compact"
-                onSubmit={handleSearchSubmit}
-                onOpenFilters={handleOpenFilters}
-              />
-            </div>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/events"
-              className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
-            >
-              <CalendarDays className="h-3.5 w-3.5" />
-              Events
-            </Link>
-
-            <Link
-              to="/forum"
-              className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
-            >
-              <MessagesSquare className="h-3.5 w-3.5" />
-              Forum
-            </Link>
-
-            <Link
-              to="/compare"
-              className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-foreground hover:bg-muted"
-              aria-label={
-                compareCount > 0
-                  ? `Open compare with ${compareCount} selected church${compareCount === 1 ? '' : 'es'}`
-                  : 'Open compare'
-              }
-            >
-              <Scale className="h-4 w-4" />
-              {compareCount > 0 ? (
-                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-bold text-white">
-                  {compareCount}
-                </span>
-              ) : null}
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => navigate(leadersHref)}
-              className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted xl:inline-flex"
-            >
-              {user ? 'Leaders portal' : 'List your church'}
-            </button>
-
-            <Link
-              to={wishlistHref}
-              className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
-            >
-              <Heart className="h-3.5 w-3.5 fill-current" />
-              Wishlist
-            </Link>
-
-            {user ? (
-              <Link
-                to="/passport"
-                className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted lg:inline-flex"
-              >
-                <BookOpen className="h-3.5 w-3.5" />
-                Passport
-              </Link>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={() => {
-                setTheme((current) => (current === 'light' ? 'dark' : 'light'));
-              }}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
-              aria-label={
-                theme === 'light' ? 'Enable dark theme preview' : 'Enable light theme preview'
-              }
-              title={theme === 'light' ? 'Dark theme preview' : 'Light theme preview'}
-            >
-              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </button>
-
-            <Link
-              to="/search"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-foreground hover:bg-muted lg:hidden"
-              aria-label="Open search"
-            >
-              <Search className="h-4 w-4" />
-            </Link>
-
-            <Link
-              to={menuHref}
-              className="flex items-center gap-2.5 rounded-full border border-border bg-card px-3 py-2 transition-shadow hover:shadow-airbnb-subtle"
-              aria-label={
-                isLoading
-                  ? 'Checking account session'
-                  : user
-                    ? `Open ${firstName} account`
-                    : 'Open account menu'
-              }
-            >
-              <Menu className="h-4 w-4 text-foreground" />
-              <div className="flex h-[30px] min-w-[30px] items-center justify-center rounded-full bg-muted-foreground px-2 text-xs font-semibold text-white">
-                {user ? avatarLabel : <User className="h-3.5 w-3.5 text-white" />}
-              </div>
-            </Link>
-          </div>
-        </div>
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+      <div
+        className={cn(
+          'mx-auto flex h-20 items-center justify-between gap-4 px-6',
+          wide ? 'max-w-none xl:px-20' : 'max-w-7xl',
+        )}
+      >
+        <Link
+          to="/"
+          className="flex shrink-0 items-center gap-2 text-brand"
+          aria-label="SA Church Finder home"
+        >
+          <Church className="h-8 w-8" strokeWidth={2.25} />
+          <span className="hidden text-xl font-extrabold tracking-tight lg:inline">
+            sachurchfinder
+          </span>
+        </Link>
+        {showSearch && <SearchPill />}
+        <UserMenu />
       </div>
     </header>
+  );
+};
+
+const UserMenu = () => {
+  const { data: user } = useCurrentUser();
+  const logout = useLogout();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const returnTo = `${location.pathname}${location.search}`;
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  const item = 'block w-full px-4 py-3 text-left text-sm hover:bg-gray-50';
+
+  return (
+    <div ref={ref} className="relative flex shrink-0 items-center gap-1">
+      {user && (
+        <Link
+          to="/wishlists"
+          className="hidden rounded-full px-4 py-3 text-sm font-semibold hover:bg-gray-100 md:flex md:items-center md:gap-2"
+        >
+          <Heart className="h-4 w-4" /> Wishlists
+        </Link>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-label="Account menu"
+        aria-expanded={open}
+        className="flex items-center gap-3 rounded-full border border-gray-300 py-1.5 pl-3 pr-1.5 transition-shadow hover:shadow-md"
+      >
+        <Menu className="h-4 w-4" strokeWidth={2.5} />
+        {user?.avatarUrl ? (
+          <img src={user.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+        ) : user ? (
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-sm font-semibold text-white">
+            {user.name.charAt(0).toUpperCase()}
+          </span>
+        ) : (
+          <UserCircle2 className="h-8 w-8 text-gray-500" strokeWidth={1.5} />
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-14 w-60 overflow-hidden rounded-xl border border-gray-100 bg-white py-2 shadow-xl">
+          {user ? (
+            <>
+              <Link to="/wishlists" className={cn(item, 'font-semibold')}>
+                Wishlists
+              </Link>
+              <Link to="/account" className={cn(item, 'font-semibold')}>
+                Account
+              </Link>
+              <hr className="my-2 border-gray-200" />
+              <button
+                type="button"
+                className={item}
+                onClick={() => logout.mutate(undefined, { onSuccess: () => navigate('/') })}
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to={buildAuthPageHref('/register', returnTo)}
+                className={cn(item, 'font-semibold')}
+              >
+                Sign up
+              </Link>
+              <Link to={buildAuthPageHref('/login', returnTo)} className={item}>
+                Log in
+              </Link>
+              <hr className="my-2 border-gray-200" />
+              <Link to="/" className={item}>
+                Browse churches
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 };

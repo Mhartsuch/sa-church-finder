@@ -102,36 +102,5 @@ export async function applyExtraction(
     changes.push(`${extracted.services.length} service(s)`)
   }
 
-  // Events: replace auto-imported, preserve hand-curated. Filter out any
-  // events in the past (defense in depth — the parser already skips these).
-  const now = Date.now()
-  const upcomingEvents = extracted.events.filter((e) => {
-    const t = new Date(e.startTime).getTime()
-    return !isNaN(t) && t >= now - 24 * 60 * 60 * 1000
-  })
-
-  if (upcomingEvents.length > 0) {
-    if (!options.dryRun) {
-      await prisma.event.deleteMany({
-        where: { churchId: church.id, isAutoImported: true },
-      })
-      await prisma.event.createMany({
-        data: upcomingEvents.map((e) => ({
-          churchId: church.id,
-          title: e.title,
-          description: e.description,
-          eventType: e.eventType,
-          startTime: new Date(e.startTime),
-          endTime: e.endTime ? new Date(e.endTime) : null,
-          locationOverride: e.locationOverride,
-          isAutoImported: true,
-          sourceUrl: e.sourceUrl,
-        })),
-      })
-    }
-    stats.eventsCreated += upcomingEvents.length
-    changes.push(`${upcomingEvents.length} event(s)`)
-  }
-
   return changes
 }

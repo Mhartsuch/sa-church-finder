@@ -5,23 +5,25 @@
 
 ## Project
 
-SA Church Finder — Airbnb-style church discovery app for San Antonio, TX.
+SA Church Finder — Airbnb-style church discovery for San Antonio, TX: stunning photos,
+clean filters, reviews, and wishlists. Current scope: `specs/lean-overhaul.md`.
 
 ## Repo map
 
 ```
 client/          React 18 + TypeScript + Vite + Tailwind frontend
   src/api/       API client functions (one file per resource)
-  src/components/ Reusable UI (church, map, auth, layout, search, reviews)
-  src/hooks/     React Query + URL state hooks
+  src/components/ Reusable UI (church, search, map, reviews, auth, layout, ui)
+  src/hooks/     React Query + URL filter state hooks
+  src/lib/       API client, URL <-> filter mapping, formatting, Mapbox loader
   src/pages/     Route-level page components
-  src/stores/    Zustand state stores
   src/types/     Shared TypeScript types
 server/          Express 4 + TypeScript backend
   src/routes/    REST route handlers (one file per resource)
   src/services/  Business logic layer
   src/middleware/ Auth, validation, rate limiting, error handling
   src/lib/       Prisma client, session store, email, logging
+  src/scripts/   Church data pipeline (Google Places import + enrichment)
   prisma/        Schema, migrations, seed
 docs/            Architecture, API spec, conventions, decisions, progress
 specs/           One file per feature/migration spec
@@ -30,7 +32,7 @@ scripts/         Health checks, rollback, setup helpers
 
 ## Stack
 
-- **Frontend:** React 18, Vite, React Router 6, TanStack Query, Zustand, Tailwind, Mapbox GL
+- **Frontend:** React 18, Vite, React Router 6, TanStack Query, Tailwind, lucide-react, Mapbox GL (CDN)
 - **Backend:** Express 4, Prisma 5, PostgreSQL + PostGIS, Passport (local + Google OAuth), Nodemailer
 - **Quality:** ESLint 9 (flat config), Prettier, Vitest (client), Jest (server), Husky + lint-staged
 - **Deploy:** Render (SPA + API), Docker Compose for local Postgres

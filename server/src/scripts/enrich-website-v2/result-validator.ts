@@ -30,16 +30,6 @@ const extractedAmenitiesSchema = z.object({
   wheelchairAccessible: z.boolean().nullable(),
 })
 
-const extractedEventSchema = z.object({
-  title: z.string().min(1).max(200),
-  description: z.string().max(2000).nullable().catch(null),
-  eventType: z.string().min(1).max(50),
-  startTime: z.string().datetime({ offset: true }),
-  endTime: z.string().datetime({ offset: true }).nullable().catch(null),
-  locationOverride: z.string().max(200).nullable().catch(null),
-  sourceUrl: z.string().url().nullable().catch(null),
-})
-
 const extractedDataSchema = z.object({
   pastorName: z.string().max(150).nullable(),
   denomination: z.string().max(100).nullable(),
@@ -72,7 +62,6 @@ const extractedDataSchema = z.object({
   newVisitorUrl: z.string().url().nullable().catch(null),
   parkingInfo: z.string().max(500).nullable().catch(null),
   dressCode: z.string().max(200).nullable().catch(null),
-  events: z.array(extractedEventSchema).max(30).catch([]),
   confidence: z.number().min(0).max(1),
 })
 
@@ -98,7 +87,6 @@ export function validateAndClean(
 
   const anyUseful =
     data.services.length > 0 ||
-    data.events.length > 0 ||
     data.pastorName !== null ||
     data.denomination !== null ||
     data.yearEstablished !== null ||

@@ -2,13 +2,12 @@
  * Church Data Pipeline Orchestrator
  *
  * Runs the four ingestion/enrichment stages in the correct order with one
- * command, then cleans up stale auto-imported events:
+ * command:
  *
  *   1. google-import      — discover churches via Google Places grid search
  *   2. google-enrich      — refresh googleRating / googleReviewCount
  *   3. enrich-website-v2  — crawl church websites, extract details
  *   4. enrich-details     — denomination/neighborhood/language heuristics
- *   5. cleanup            — delete auto-imported events that ended > 1 day ago
  *
  * Each stage is its own process, so a crash in one stage can't corrupt
  * another and every stage keeps its own resumability semantics
@@ -18,7 +17,7 @@
  *   npx tsx src/scripts/pipeline/run.ts [flags]
  *
  * Flags:
- *   --dry-run        Pass --dry-run to every stage; cleanup is skipped
+ *   --dry-run        Pass --dry-run to every stage
  *   --limit N        Pass --limit N to every stage
  *   --stale-days N   Refresh website enrichment older than N days (default 90)
  *   --skip-import    Skip stage 1 (no Google Places quota spent on discovery)
@@ -32,11 +31,9 @@
  *   - Stage 3 runs with --retry-failed and --stale-days so failed and stale
  *     churches get another pass. Low-confidence extractions park as
  *     needs_review in enrichment_states for human inspection.
- *   - Stage 4 runs in default fill-null mode (claimed churches are never
- *     overwritten by any stage).
+ *   - Stage 4 runs in default fill-null mode.
  */
 
-import { PrismaClient } from '@prisma/client'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -111,26 +108,6 @@ function runStage(stage: Stage, options: PipelineOptions): StageResult {
   return { name: stage.name, status: ok ? 'ok' : 'failed', durationMs }
 }
 
-/**
- * Auto-imported events are replaced when their church is re-enriched, but a
- * church that never re-qualifies keeps accumulating past events. Curated
- * (non-auto-imported) events are never touched.
- */
-async function cleanupStaleAutoImportedEvents(): Promise<number> {
-  const prisma = new PrismaClient()
-  try {
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    // Recurring series keep generating future occurrences from a past
-    // startTime, so only one-off events are eligible.
-    const result = await prisma.event.deleteMany({
-      where: { isAutoImported: true, isRecurring: false, startTime: { lt: cutoff } },
-    })
-    return result.count
-  } finally {
-    await prisma.$disconnect()
-  }
-}
-
 async function main(): Promise<void> {
   const options = parseArgs()
 
@@ -173,17 +150,6 @@ async function main(): Promise<void> {
     if (result.status === 'failed' && !options.continueOnError) {
       console.error('\nStopping: stage failed (pass --continue to run remaining stages anyway).')
       break
-    }
-  }
-
-  if (!options.dryRun) {
-    console.log('\n━━━ Cleanup: stale auto-imported events ━━━')
-    try {
-      const deleted = await cleanupStaleAutoImportedEvents()
-      console.log(`Deleted ${deleted} past auto-imported event(s)`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.error(`Cleanup failed: ${message}`)
     }
   }
 

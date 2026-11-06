@@ -4,8 +4,8 @@ globs: client/**
 ---
 
 - Functional components with hooks only — no class components
-- Named exports preferred (except page components which use default)
-- Use TanStack Query for all server state; Zustand for client-only state
+- Named exports preferred (page components use default; `AuthPages.tsx` groups the small auth pages as named exports)
+- Use TanStack Query for all server state; browse filters live in the URL (`useFilters`); local UI state uses React state
 - Tailwind for styling — no CSS modules or styled-components
 - Mapbox GL JS is loaded from CDN at runtime, not bundled
 - Test with Vitest; component tests use React Testing Library

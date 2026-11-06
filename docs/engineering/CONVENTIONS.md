@@ -16,16 +16,17 @@ client/
 ├── src/
 │   ├── api/              ← API client functions (one file per resource)
 │   ├── components/       ← Reusable UI components
-│   │   ├── ui/           ← shadcn/ui primitives
-│   │   ├── church/       ← Church-specific components
-│   │   ├── map/          ← Map-related components
-│   │   ├── review/       ← Review components
-│   │   └── layout/       ← Header, Footer, Sidebar, etc.
-│   ├── hooks/            ← Custom React hooks
+│   │   ├── ui/           ← Generic primitives (Modal)
+│   │   ├── church/       ← Cards, photos, wishlist heart
+│   │   ├── search/       ← Search pill, category bar, filters modal
+│   │   ├── map/          ← Mapbox map
+│   │   ├── reviews/      ← Review list + form
+│   │   ├── auth/         ← Auth layout, form fields, RequireAuth
+│   │   └── layout/       ← Header, Footer
+│   ├── hooks/            ← React Query + URL state hooks
 │   ├── pages/            ← Route-level page components
-│   ├── stores/           ← Zustand stores
 │   ├── types/            ← Shared TypeScript types/interfaces
-│   ├── utils/            ← Pure utility functions
+│   ├── lib/              ← Pure helpers (API client, formatting, URL params)
 │   └── constants/        ← App-wide constants
 server/
 ├── src/
@@ -63,7 +64,7 @@ server/
 - Prettier for formatting (printWidth: 100, singleQuote: true, trailingComma: all)
 - ESLint with TypeScript strict rules
 - 2-space indentation
-- No semicolons (Prettier default)
+- Formatting is enforced by Prettier: `client/.prettierrc` (semicolons) and `server/.prettierrc` (no semicolons)
 - Prefer `const` over `let`, never use `var`
 - Prefer arrow functions for callbacks and inline functions
 - Use template literals over string concatenation

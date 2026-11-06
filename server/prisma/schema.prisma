@@ -12,116 +12,67 @@ datasource db {
   extensions = [postgis]
 }
 
-// Enums
-enum Role {
-  USER
-  CHURCH_ADMIN
-  SITE_ADMIN
-
-  @@map("role")
-}
-
-enum ClaimStatus {
-  PENDING
-  APPROVED
-  REJECTED
-
-  @@map("claim_status")
-}
-
-enum RibbonCategorySource {
-  MANUAL
-  AUTO
-
-  @@map("ribbon_category_source")
-}
-
-enum RibbonCategoryFilterType {
-  QUERY
-  DENOMINATION
-
-  @@map("ribbon_category_filter_type")
-}
-
 // Models
 model User {
-  id                    String                 @id @default(uuid())
-  email                 String                 @unique
-  passwordHash          String?
-  name                  String
-  avatarUrl             String?
-  role                  Role                   @default(USER)
-  googleId              String?                @unique
-  emailVerified         Boolean                @default(false)
-  deactivatedAt         DateTime?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  reviews               Review[]
-  savedChurches         UserSavedChurch[]
-  churchVisits          ChurchVisit[]
-  collections           ChurchCollection[]
-  awards                UserAward[]
-  claimedChurches       ChurchClaim[]          @relation("claimUser")
-  reviewedClaims        ChurchClaim[]          @relation("reviewedBy")
-  photos                ChurchPhoto[]
-  events                Event[]
-  reviewVotes           ReviewVote[]
-  passwordResetTokens   PasswordResetToken[]
+  id                      String                   @id @default(uuid())
+  email                   String                   @unique
+  passwordHash            String?
+  name                    String
+  avatarUrl               String?
+  googleId                String?                  @unique
+  emailVerified           Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  reviews                 Review[]
+  savedChurches           UserSavedChurch[]
+  passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
-  forumPosts            ForumPost[]            @relation("ForumPosts")
-  forumReplies          ForumReply[]           @relation("ForumReplies")
 
   @@map("users")
 }
 
 model Church {
-  id                    String                 @id @default(uuid())
-  name                  String
-  slug                  String                 @unique
-  denomination          String?
-  denominationFamily    String?
-  description           String?
-  address               String
-  city                  String                 @default("San Antonio")
-  state                 String                 @default("TX")
-  zipCode               String
-  neighborhood          String?
-  latitude              Decimal                @db.Decimal(10, 8)
-  longitude             Decimal                @db.Decimal(11, 8)
+  id                   String                                @id @default(uuid())
+  name                 String
+  slug                 String                                @unique
+  denomination         String?
+  denominationFamily   String?
+  description          String?
+  address              String
+  city                 String                                @default("San Antonio")
+  state                String                                @default("TX")
+  zipCode              String
+  neighborhood         String?
+  latitude             Decimal                               @db.Decimal(10, 8)
+  longitude            Decimal                               @db.Decimal(11, 8)
   /// PostGIS geography point — auto-populated by DB trigger from lat/lng
-  location              Unsupported("geography(Point,4326)")?
-  phone                 String?
-  email                 String?
-  website               String?
-  pastorName            String?
-  yearEstablished       Int?
-  avgRating             Decimal                @default(0) @db.Decimal(3, 2)
-  reviewCount           Int                    @default(0)
-  googleRating          Decimal?               @db.Decimal(3, 2)
-  googleReviewCount     Int?
-  isClaimed             Boolean                @default(false)
-  claimedById           String?
-  languages             String[]               @default([])
-  amenities             String[]               @default([])
-  coverImageUrl         String?
-  googlePlaceId         String?                @unique
-  businessStatus        String?
-  googleMapsUrl         String?
-  primaryType           String?
-  goodForChildren       Boolean?
-  goodForGroups         Boolean?
-  wheelchairAccessible  Boolean?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  services              ChurchService[]
-  photos                ChurchPhoto[]
-  reviews               Review[]
-  events                Event[]
-  claims                ChurchClaim[]
-  savedByUsers          UserSavedChurch[]
-  visits                ChurchVisit[]
-  collectionItems       ChurchCollectionItem[]
-  enrichmentState       EnrichmentState?
+  location             Unsupported("geography(Point,4326)")?
+  phone                String?
+  email                String?
+  website              String?
+  pastorName           String?
+  yearEstablished      Int?
+  avgRating            Decimal                               @default(0) @db.Decimal(3, 2)
+  reviewCount          Int                                   @default(0)
+  googleRating         Decimal?                              @db.Decimal(3, 2)
+  googleReviewCount    Int?
+  languages            String[]                              @default([])
+  amenities            String[]                              @default([])
+  coverImageUrl        String?
+  googlePlaceId        String?                               @unique
+  businessStatus       String?
+  googleMapsUrl        String?
+  primaryType          String?
+  goodForChildren      Boolean?
+  goodForGroups        Boolean?
+  wheelchairAccessible Boolean?
+  createdAt            DateTime                              @default(now())
+  updatedAt            DateTime                              @updatedAt
+  services             ChurchService[]
+  photos               ChurchPhoto[]
+  reviews              Review[]
+  savedByUsers         UserSavedChurch[]
+  enrichmentState      EnrichmentState?
 
   @@index([slug])
   @@index([denominationFamily])
@@ -134,7 +85,7 @@ model EnrichmentState {
   churchId      String    @unique
   church        Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
   version       String    @default("v2")
-  status        String    // pending | fetched | extracted | applied | skipped_no_data | failed | rate_limited
+  status        String // pending | fetched | extracted | applied | skipped_no_data | failed | rate_limited
   pagesFetched  Json      @default("[]")
   extractedData Json?
   confidence    Float?
@@ -150,255 +101,81 @@ model EnrichmentState {
 }
 
 model ChurchService {
-  id                    String                 @id @default(uuid())
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  dayOfWeek             Int
-  startTime             String
-  endTime               String?
-  serviceType           String
-  language              String                 @default("English")
-  description           String?
-  isAutoImported        Boolean                @default(false)
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  id             String   @id @default(uuid())
+  churchId       String
+  church         Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int
+  startTime      String
+  endTime        String?
+  serviceType    String
+  language       String   @default("English")
+  description    String?
+  isAutoImported Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@map("church_services")
 }
 
 model ChurchPhoto {
-  id                    String                 @id @default(uuid())
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  url                   String
-  altText               String?
-  displayOrder          Int                    @default(0)
-  uploadedById          String?
-  uploadedBy            User?                  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  googlePhotoRef        String?
-  createdAt             DateTime               @default(now())
+  id             String   @id @default(uuid())
+  churchId       String
+  church         Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  url            String
+  altText        String?
+  displayOrder   Int      @default(0)
+  googlePhotoRef String?
+  createdAt      DateTime @default(now())
 
   @@map("church_photos")
 }
 
 model Review {
-  id                    String                 @id @default(uuid())
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  rating                Decimal                @db.Decimal(3, 2)
-  body                  String
-  welcomeRating         Int?
-  worshipRating         Int?
-  sermonRating          Int?
-  facilitiesRating      Int?
-  helpfulCount          Int                    @default(0)
-  isFlagged             Boolean                @default(false)
-  responseBody          String?
-  respondedAt           DateTime?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  votes                 ReviewVote[]
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  churchId  String
+  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  rating    Decimal  @db.Decimal(3, 2)
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, churchId])
   @@map("reviews")
 }
 
-model ReviewVote {
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reviewId              String
-  review                Review                 @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  createdAt             DateTime               @default(now())
-
-  @@id([userId, reviewId])
-  @@map("review_votes")
-}
-
-model Event {
-  id                    String                 @id @default(uuid())
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  title                 String
-  description           String?
-  eventType             String
-  startTime             DateTime
-  endTime               DateTime?
-  locationOverride      String?
-  isRecurring           Boolean                @default(false)
-  recurrenceRule        String?
-  createdById           String?
-  createdBy             User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  isAutoImported        Boolean                @default(false)
-  sourceUrl             String?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-
-  @@index([churchId, isAutoImported])
-  @@map("events")
-}
-
-model ChurchClaim {
-  id                    String                 @id @default(uuid())
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  userId                String
-  user                  User                   @relation("claimUser", fields: [userId], references: [id], onDelete: Cascade)
-  roleTitle             String
-  verificationEmail     String
-  status                ClaimStatus            @default(PENDING)
-  reviewedById          String?
-  reviewedBy            User?                  @relation("reviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
-  createdAt             DateTime               @default(now())
-  reviewedAt            DateTime?
-
-  @@map("church_claims")
-}
-
 model PasswordResetToken {
-  id                    String                 @id @default(uuid())
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash             String                 @unique
-  expiresAt             DateTime
-  usedAt                DateTime?
-  createdAt             DateTime               @default(now())
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@map("password_reset_tokens")
 }
 
 model EmailVerificationToken {
-  id                    String                 @id @default(uuid())
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash             String                 @unique
-  expiresAt             DateTime
-  usedAt                DateTime?
-  createdAt             DateTime               @default(now())
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@map("email_verification_tokens")
 }
 
-model RibbonCategory {
-  id          String                     @id @default(uuid())
-  label       String
-  icon        String                     @default("⛪")
-  slug        String                     @unique
-  filterType  RibbonCategoryFilterType
-  filterValue String
-  position    Int                        @default(0)
-  isVisible   Boolean                    @default(true)
-  source      RibbonCategorySource       @default(MANUAL)
-  isPinned    Boolean                    @default(false)
-  createdAt   DateTime                   @default(now())
-  updatedAt   DateTime                   @updatedAt
-
-  @@index([position])
-  @@index([isVisible])
-  @@map("ribbon_categories")
-}
-
 model UserSavedChurch {
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  savedAt               DateTime               @default(now())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  churchId String
+  church   Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  savedAt  DateTime @default(now())
 
   @@id([userId, churchId])
   @@map("user_saved_churches")
-}
-
-model ChurchVisit {
-  id                    String                 @id @default(uuid())
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  visitedAt             DateTime               @db.Date
-  notes                 String?
-  rating                Int?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-
-  @@unique([userId, churchId, visitedAt])
-  @@index([userId])
-  @@map("church_visits")
-}
-
-model ChurchCollection {
-  id                    String                 @id @default(uuid())
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name                  String
-  description           String?
-  slug                  String
-  isPublic              Boolean                @default(true)
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  items                 ChurchCollectionItem[]
-
-  @@unique([userId, slug])
-  @@index([userId])
-  @@map("church_collections")
-}
-
-model ChurchCollectionItem {
-  collectionId          String
-  collection            ChurchCollection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  churchId              String
-  church                Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  notes                 String?
-  addedAt               DateTime               @default(now())
-
-  @@id([collectionId, churchId])
-  @@map("church_collection_items")
-}
-
-model UserAward {
-  id                    String                 @id @default(uuid())
-  userId                String
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  awardType             String
-  earnedAt              DateTime               @default(now())
-
-  @@unique([userId, awardType])
-  @@index([userId])
-  @@map("user_awards")
-}
-
-model ForumPost {
-  id        String       @id @default(cuid())
-  title     String
-  body      String
-  category  String       @default("general")
-  authorId  String
-  author    User         @relation("ForumPosts", fields: [authorId], references: [id], onDelete: Cascade)
-  replies   ForumReply[]
-  isPinned  Boolean      @default(false)
-  isLocked  Boolean      @default(false)
-  viewCount Int          @default(0)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  @@index([category])
-  @@index([authorId])
-  @@index([createdAt])
-  @@map("forum_posts")
-}
-
-model ForumReply {
-  id        String    @id @default(cuid())
-  body      String
-  postId    String
-  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User      @relation("ForumReplies", fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@index([postId])
-  @@index([authorId])
-  @@map("forum_replies")
 }

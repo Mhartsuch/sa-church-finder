@@ -4,7 +4,12 @@
  * against the database require a running PostgreSQL instance.
  */
 
-import { invalidateFilterOptionsCache, searchChurches } from './church.service.js'
+import {
+  getChurchBySlug,
+  getFilterOptions,
+  invalidateChurchCaches,
+  searchChurches,
+} from './church.service.js'
 
 // Mock prisma to avoid needing a database in CI
 jest.mock('../lib/prisma.js', () => ({
@@ -12,18 +17,85 @@ jest.mock('../lib/prisma.js', () => ({
   default: {
     $queryRaw: jest.fn().mockResolvedValue([]),
     church: {
-      findFirst: jest.fn().mockResolvedValue(null),
+      findUnique: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
     },
   },
 }))
 
+type MockedPrisma = {
+  $queryRaw: jest.Mock
+  church: { findUnique: jest.Mock; findMany: jest.Mock }
+}
+
+const churchRecord = (
+  id: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  id,
+  name: `Church ${id}`,
+  slug: `church-${id}`,
+  denomination: 'Baptist',
+  denominationFamily: 'Baptist',
+  description: null,
+  address: '1 Main St',
+  city: 'San Antonio',
+  state: 'TX',
+  zipCode: '78205',
+  neighborhood: 'Downtown',
+  latitude: '29.42410000',
+  longitude: '-98.49360000',
+  phone: null,
+  email: 'hello@example.com',
+  website: null,
+  pastorName: 'Pastor Ann',
+  yearEstablished: 1950,
+  avgRating: '4.50',
+  reviewCount: 2,
+  googleRating: '4.70',
+  googleReviewCount: 120,
+  languages: ['English'],
+  amenities: [],
+  coverImageUrl: null,
+  googlePlaceId: 'gp',
+  businessStatus: 'OPERATIONAL',
+  googleMapsUrl: 'https://maps.example.com',
+  primaryType: 'church',
+  goodForChildren: true,
+  goodForGroups: null,
+  wheelchairAccessible: null,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  services: [
+    {
+      id: 's1',
+      churchId: id,
+      dayOfWeek: 0,
+      startTime: '09:00',
+      endTime: null,
+      serviceType: 'Worship',
+      language: 'English',
+      description: null,
+      isAutoImported: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ],
+  photos: [],
+  savedByUsers: [],
+  ...overrides,
+})
+
+const getPrisma = (): MockedPrisma => jest.requireMock('../lib/prisma.js').default as MockedPrisma
+
 describe('church service', () => {
   beforeEach(() => {
     // Clears the anonymous search cache so each test sees real query calls.
-    invalidateFilterOptionsCache()
-    const prisma = jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock }
-    prisma.$queryRaw.mockClear()
+    invalidateChurchCaches()
+    const prisma = jest.requireMock('../lib/prisma.js').default as MockedPrisma
+    prisma.$queryRaw.mockReset().mockResolvedValue([])
+    prisma.church.findMany.mockReset().mockResolvedValue([])
+    prisma.church.findUnique.mockReset().mockResolvedValue(null)
   })
 
   it('searchChurches returns proper response shape with empty results', async () => {
@@ -49,20 +121,21 @@ describe('church service', () => {
   describe('non-congregational demotion in default ordering', () => {
     // The generated SQL is inspected through the mocked $queryRaw call args
     // (Prisma.Sql exposes .sql and .values).
-    const getQueries = () => {
+    const getQueries = (): { sql: string; values: unknown[] }[] => {
       const prisma = jest.requireMock('../lib/prisma.js').default as {
         $queryRaw: jest.Mock
       }
-      return prisma.$queryRaw.mock.calls.map((call) => call[0] as { sql: string; values: unknown[] })
+      return prisma.$queryRaw.mock.calls.map(
+        (call) => call[0] as { sql: string; values: unknown[] },
+      )
     }
 
     it('applies the demotion term to the relevance ranking score', async () => {
       await searchChurches({})
-      const mainQuery = getQueries().find((q) => q.sql.includes('ranking_score'))
+      const mainQuery = getQueries().find((q) => q.sql.includes('DEFAULT-ORDER DEMOTION'))
       expect(mainQuery).toBeDefined()
-      expect(mainQuery!.sql).toContain('DEFAULT-ORDER DEMOTION')
       expect(mainQuery!.values.flat()).toEqual(
-        expect.arrayContaining(['Latter-day Saints', "Jehovah's Witnesses"])
+        expect.arrayContaining(['Latter-day Saints', "Jehovah's Witnesses"]),
       )
     })
 
@@ -75,7 +148,7 @@ describe('church service', () => {
   })
 
   describe('anonymous search cache', () => {
-    const getMock = () =>
+    const getMock = (): jest.Mock =>
       (jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock }).$queryRaw
 
     it('serves repeat anonymous searches from cache without re-querying', async () => {
@@ -100,10 +173,112 @@ describe('church service', () => {
       await searchChurches({ q: 'grace' })
       const callsAfterFirst = getMock().mock.calls.length
 
-      invalidateFilterOptionsCache()
+      invalidateChurchCaches()
 
       await searchChurches({ q: 'grace' })
       expect(getMock().mock.calls.length).toBeGreaterThan(callsAfterFirst)
+    })
+  })
+  describe('result hydration', () => {
+    it('returns churches in ranked order with distance and no internal fields', async () => {
+      const prisma = getPrisma()
+      prisma.$queryRaw.mockResolvedValueOnce([{ count: BigInt(2) }]).mockResolvedValueOnce([
+        { id: 'b', distance_miles: 1.26 },
+        { id: 'a', distance_miles: null },
+      ])
+      prisma.church.findMany.mockResolvedValueOnce([
+        churchRecord('a'),
+        churchRecord('b', { savedByUsers: [{ userId: 'u1' }] }),
+      ])
+
+      const result = await searchChurches({ sort: 'distance' }, 'u1')
+
+      expect(result.meta.total).toBe(2)
+      expect(result.data.map((c) => c.id)).toEqual(['b', 'a'])
+      expect(result.data[0]).toMatchObject({ distance: 1.3, isSaved: true, latitude: 29.4241 })
+      expect(result.data[1].distance).toBeUndefined()
+      expect(result.data[1].isSaved).toBe(false)
+      expect(result.data[0]).not.toHaveProperty('savedByUsers')
+      expect(result.data[0]).not.toHaveProperty('email')
+      expect(result.data[0].services[0]).not.toHaveProperty('isAutoImported')
+    })
+
+    it('skips hydration when the page is empty', async () => {
+      await searchChurches({ q: 'nothing-matches' })
+      expect(getPrisma().church.findMany).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('getChurchBySlug', () => {
+    it('returns null for an unknown slug', async () => {
+      expect(await getChurchBySlug('missing')).toBeNull()
+    })
+
+    it('returns the full profile with all photos ordered by displayOrder', async () => {
+      const photos = Array.from({ length: 8 }, (_, i) => ({
+        id: `p${i}`,
+        churchId: 'a',
+        url: `https://img/${i}.jpg`,
+        altText: null,
+        displayOrder: i,
+        googlePhotoRef: null,
+        createdAt: new Date(),
+      }))
+      getPrisma().church.findUnique.mockResolvedValueOnce(churchRecord('a', { photos }))
+
+      const church = await getChurchBySlug('church-a')
+
+      expect(church?.photos).toHaveLength(8)
+      expect(church?.photos[0]).toEqual({
+        id: 'p0',
+        url: 'https://img/0.jpg',
+        altText: null,
+        displayOrder: 0,
+      })
+      expect(church).toMatchObject({
+        email: 'hello@example.com',
+        pastorName: 'Pastor Ann',
+        isSaved: false,
+      })
+      expect(church).not.toHaveProperty('googlePlaceId')
+      const args = getPrisma().church.findUnique.mock.calls[0][0]
+      expect(args.include.photos).toEqual({ orderBy: { displayOrder: 'asc' } })
+    })
+  })
+
+  describe('getFilterOptions', () => {
+    it('derives counted denominations and sorted distinct values', async () => {
+      getPrisma().church.findMany.mockResolvedValueOnce([
+        {
+          denominationFamily: 'Baptist',
+          neighborhood: 'Downtown',
+          languages: ['Spanish', 'English'],
+          amenities: ['Parking'],
+        },
+        {
+          denominationFamily: 'Catholic',
+          neighborhood: null,
+          languages: ['English'],
+          amenities: [],
+        },
+        {
+          denominationFamily: 'Baptist',
+          neighborhood: 'Alamo Heights',
+          languages: [],
+          amenities: ['Childcare'],
+        },
+        { denominationFamily: null, neighborhood: 'Downtown', languages: [], amenities: [] },
+      ])
+
+      expect(await getFilterOptions()).toEqual({
+        denominations: [
+          { value: 'Baptist', count: 2 },
+          { value: 'Catholic', count: 1 },
+        ],
+        languages: ['English', 'Spanish'],
+        amenities: ['Childcare', 'Parking'],
+        neighborhoods: ['Alamo Heights', 'Downtown'],
+      })
     })
   })
 })

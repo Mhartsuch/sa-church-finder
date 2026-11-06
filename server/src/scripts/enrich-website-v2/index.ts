@@ -300,7 +300,7 @@ async function processChurch(
 
   // ── Pass 2: Claude CLI unless Pass 1 already produced the full picture ──
   // We run Claude whenever Pass 1 is missing any of the high-value fields so
-  // that description, ministries, events, etc. get populated even on sites
+  // that description, ministries, etc. get populated even on sites
   // with good JSON-LD.
   const pass1Complete =
     extracted.pastorName !== null &&
@@ -315,7 +315,7 @@ async function processChurch(
       const aiResult = await extractWithClaude(combinedText)
       if (aiResult) {
         // Union-merge with Pass 1 — AI tends to win scalars via mergeData's
-        // "first wins" semantics, but Pass 1's arrays (events, services,
+        // "first wins" semantics, but Pass 1's arrays (services,
         // ministries) survive even if AI missed them.
         let merged: ExtractedChurchData = { ...aiResult, source: 'claude-ai' }
         merged = mergeData(merged, extracted)
@@ -589,7 +589,6 @@ function printStats(stats: EnrichV2Stats, dryRun: boolean): void {
   console.log(`Pass 1 (structured) hits:    ${stats.pass1Extracted}`)
   console.log(`Pass 2 (Claude AI) hits:     ${stats.pass2Extracted}`)
   console.log(`Services ${verb} created:    ${stats.servicesCreated}`)
-  console.log(`Events ${verb} created:      ${stats.eventsCreated}`)
   console.log(`Fields ${verb} updated:      ${stats.fieldsUpdated}`)
   console.log(`Low confidence (flagged):    ${stats.lowConfidenceFlagged}`)
   console.log(`Skipped (no website):        ${stats.skippedNoWebsite}`)

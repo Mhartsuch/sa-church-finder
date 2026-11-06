@@ -10,20 +10,17 @@
  *  4. Cover image — first photo from the ChurchPhoto table (by displayOrder)
  *
  * This script is safe to run multiple times. By default it only fills in
- * fields that are currently null/empty. Claimed churches are treated as
- * leader-curated: their existing values are never overwritten (null fields
- * are still filled), regardless of flags.
+ * fields that are currently null/empty.
  *
  * Usage:
  *   npx tsx src/scripts/enrich-details/index.ts [flags]
  *
  * Flags:
  *   --dry-run                    Show what would change without writing
- *   --overwrite                  Re-derive all fields on unclaimed churches,
+ *   --overwrite                  Re-derive all fields,
  *                                overwriting existing values
- *   --reclassify-denominations   Re-derive ONLY denomination fields on
- *                                unclaimed churches (use after classifier
- *                                rule changes to correct old labels)
+ *   --reclassify-denominations   Re-derive ONLY denomination fields (use
+ *                                after classifier rule changes)
  *   --limit N                    Only process the first N churches
  *   --verbose                    Print per-church details even when nothing changed
  *
@@ -98,7 +95,6 @@ async function main(): Promise<void> {
         id: true,
         name: true,
         zipCode: true,
-        isClaimed: true,
         denomination: true,
         denominationFamily: true,
         neighborhood: true,
@@ -125,11 +121,8 @@ async function main(): Promise<void> {
       try {
         const updates: Record<string, unknown> = {}
 
-        // Claimed churches carry leader-curated values — never overwrite
-        // them, only fill fields that are still empty.
-        const allowOverwrite = options.overwrite && !church.isClaimed
-        const allowReclassify =
-          (options.overwrite || options.reclassifyDenominations) && !church.isClaimed
+        const allowOverwrite = options.overwrite
+        const allowReclassify = options.overwrite || options.reclassifyDenominations
 
         // ── 1. Denomination ──
         const shouldSetDenom =
