@@ -182,6 +182,20 @@ export const formatList = (items: string[]): string => {
 export const serviceLabel = (service: Pick<IChurchService, 'serviceType'>): string =>
   service.serviceType.trim().toLowerCase() === 'service' ? 'Worship service' : service.serviceType;
 
+/**
+ * "Mass · Spanish", "Worship service" — the gathering's name plus its
+ * language, unless the name already says it ("Spanish Service").
+ */
+export const serviceCaption = (
+  service: Pick<IChurchService, 'serviceType' | 'language'>,
+): string => {
+  const label = serviceLabel(service);
+  const language = service.language?.trim();
+  if (!language || language === 'English') return label;
+  const stem = language.toLowerCase().slice(0, 5); // "spani" also matches "Español"-free labels
+  return label.toLowerCase().includes(stem) ? label : `${label} · ${language}`;
+};
+
 export const CONTACT_EMAIL = 'admin@sachurchfinder.com';
 
 /** Pre-addressed email for telling us a listing is wrong. */

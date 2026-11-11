@@ -36,7 +36,7 @@ import {
   getNextService,
   getRating,
   plural,
-  serviceLabel,
+  serviceCaption,
   streetAddress,
 } from '@/lib/format';
 import { IChurch } from '@/types/church';
@@ -261,10 +261,7 @@ const Services = ({ church }: { church: IChurch }) => {
                     {formatTime(service.startTime)}
                     {service.endTime && ` – ${formatTime(service.endTime)}`}
                   </span>
-                  <span className="text-right text-gray-500">
-                    {serviceLabel(service)}
-                    {service.language !== 'English' && ` · ${service.language}`}
-                  </span>
+                  <span className="text-right text-gray-500">{serviceCaption(service)}</span>
                 </li>
               ))}
             </ul>

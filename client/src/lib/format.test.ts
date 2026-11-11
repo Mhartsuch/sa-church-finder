@@ -15,6 +15,7 @@ import {
   getNextService,
   getRating,
   isWorshipService,
+  serviceCaption,
   serviceLabel,
   streetAddress,
 } from '@/lib/format';
@@ -232,6 +233,20 @@ describe('service labels and corrections', () => {
   it('shows the generic import label as a worship service', () => {
     expect(serviceLabel({ serviceType: 'Service' })).toBe('Worship service');
     expect(serviceLabel({ serviceType: 'Vigil Mass' })).toBe('Vigil Mass');
+  });
+
+  it('adds the language unless the name already says it', () => {
+    expect(serviceCaption({ serviceType: 'Mass', language: 'Spanish' })).toBe('Mass · Spanish');
+    expect(serviceCaption({ serviceType: 'Spanish Service', language: 'Spanish' })).toBe(
+      'Spanish Service',
+    );
+    expect(serviceCaption({ serviceType: 'Bible Study (Spanish)', language: 'Spanish' })).toBe(
+      'Bible Study (Spanish)',
+    );
+    expect(serviceCaption({ serviceType: 'Service', language: 'English' })).toBe('Worship service');
+    expect(serviceCaption({ serviceType: 'Service', language: 'Bilingual' })).toBe(
+      'Worship service · Bilingual',
+    );
   });
 
   it('builds a correction email that names the listing', () => {
