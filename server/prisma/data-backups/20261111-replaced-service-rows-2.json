@@ -1,0 +1,572 @@
+[
+  {
+    "id": "6168075b-860c-4191-bf39-669b6f434404",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 0,
+    "startTime": "08:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "Tamil",
+    "description": null
+  },
+  {
+    "id": "fdc7a445-5113-4f6c-a51a-e6b4b6ed4ea2",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 0,
+    "startTime": "09:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "8d4a737a-1e63-43e8-9615-c476123d4da9",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 0,
+    "startTime": "10:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "34599fbe-9262-4211-8a78-bd40eb3bd118",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 0,
+    "startTime": "18:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "Telugu",
+    "description": null
+  },
+  {
+    "id": "227ed567-0dd2-4614-bf91-3b2a31d7f3b2",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 5,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "6f00834d-90cf-4e8e-8a16-8d45221a127c",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 6,
+    "startTime": "08:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "10aa0119-5798-487b-b718-7bd45c4f4e83",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 6,
+    "startTime": "09:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "Telugu",
+    "description": null
+  },
+  {
+    "id": "30d0d6d6-7b2b-4cac-9508-30b80ca7a1f4",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 6,
+    "startTime": "09:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "be6c97f5-f129-4211-b29e-8b46f0c646ae",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 6,
+    "startTime": "09:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "Tamil",
+    "description": null
+  },
+  {
+    "id": "5e606f91-734f-4f66-ac37-00a468a39950",
+    "churchId": "94df8463-6f63-457f-ba5c-84693cba7c68",
+    "dayOfWeek": 6,
+    "startTime": "10:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "d3948423-c665-427f-9e7b-ae0988ea7b20",
+    "churchId": "3412b4ad-2650-4b93-a867-bce7f47a5c42",
+    "dayOfWeek": 0,
+    "startTime": "10:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "e603aaa4-7e65-4d74-91b6-609a77821ad4",
+    "churchId": "3412b4ad-2650-4b93-a867-bce7f47a5c42",
+    "dayOfWeek": 0,
+    "startTime": "12:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "Spanish",
+    "description": null
+  },
+  {
+    "id": "997cd918-e045-4f51-92ff-7bad17cfbc0c",
+    "churchId": "3412b4ad-2650-4b93-a867-bce7f47a5c42",
+    "dayOfWeek": 0,
+    "startTime": "18:30",
+    "endTime": null,
+    "serviceType": "Youth",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "035a3690-c3f1-4fe0-8484-1ff5cf7ad441",
+    "churchId": "3412b4ad-2650-4b93-a867-bce7f47a5c42",
+    "dayOfWeek": 2,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Young Adults",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "42716a73-1fdb-4f4b-b974-f223113b772f",
+    "churchId": "ca427787-9758-4450-8e98-e1e4587cbbda",
+    "dayOfWeek": 0,
+    "startTime": "10:00",
+    "endTime": null,
+    "serviceType": "Sunday School",
+    "language": "Spanish",
+    "description": null
+  },
+  {
+    "id": "1d98237a-23b7-4721-b70e-02538eb90e9a",
+    "churchId": "ca427787-9758-4450-8e98-e1e4587cbbda",
+    "dayOfWeek": 0,
+    "startTime": "11:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "Spanish",
+    "description": null
+  },
+  {
+    "id": "658f1bdb-d226-420b-aca4-492acbedcc49",
+    "churchId": "ca427787-9758-4450-8e98-e1e4587cbbda",
+    "dayOfWeek": 0,
+    "startTime": "18:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "Spanish",
+    "description": null
+  },
+  {
+    "id": "08d47afc-41e7-4227-a4db-a02222b6afb5",
+    "churchId": "ca427787-9758-4450-8e98-e1e4587cbbda",
+    "dayOfWeek": 2,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Bible Study",
+    "language": "Spanish",
+    "description": null
+  },
+  {
+    "id": "1926d58b-1bed-4799-ab7b-6c36ce90f546",
+    "churchId": "ca427787-9758-4450-8e98-e1e4587cbbda",
+    "dayOfWeek": 3,
+    "startTime": "19:00",
+    "endTime": "20:00",
+    "serviceType": "Bible Study",
+    "language": "Spanish",
+    "description": null
+  },
+  {
+    "id": "b6aa5b6d-da0d-4307-8603-5d272288c4cc",
+    "churchId": "a9a182e3-0d92-495d-b9fd-342452e38bf9",
+    "dayOfWeek": 0,
+    "startTime": "11:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "9e63081d-c3f6-43df-9a8c-38602dc1802e",
+    "churchId": "a9a182e3-0d92-495d-b9fd-342452e38bf9",
+    "dayOfWeek": 5,
+    "startTime": "19:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "f7f4c516-2949-439b-a8cb-fe1d67fe5eb1",
+    "churchId": "48c67f75-909d-4431-af0a-18a374e8793d",
+    "dayOfWeek": 0,
+    "startTime": "11:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "2c55c7fb-42a4-401e-bc84-8ac5dc8661b6",
+    "churchId": "48c67f75-909d-4431-af0a-18a374e8793d",
+    "dayOfWeek": 3,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "5013e935-b677-4198-ae9c-3033e3c6c322",
+    "churchId": "48c67f75-909d-4431-af0a-18a374e8793d",
+    "dayOfWeek": 5,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "b5386561-4557-46b4-b51c-67d6a19fe535",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 0,
+    "startTime": "08:45",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "301acef3-67e1-4c1d-8027-fc50172754b9",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 0,
+    "startTime": "09:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "8fa85df4-a1a1-4c6f-9204-bf47a07e06d4",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 0,
+    "startTime": "11:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "e3525347-61cd-4f50-8c6c-86ee2034f9a2",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 0,
+    "startTime": "16:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "f249dd60-4286-4a6b-873b-86d0f0a4fe44",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 4,
+    "startTime": "12:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "d561d105-cb61-42f2-b411-f5652ba30f59",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 4,
+    "startTime": "14:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "6c6febbd-deb8-47e9-878a-d799c90a0356",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 4,
+    "startTime": "18:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "6755ee95-16a4-4375-94d0-f81c7e88df14",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 4,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "73a1cb56-7fa5-41e4-934e-7325c9e39e4b",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 4,
+    "startTime": "21:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "3fe5d1af-d3b9-4a91-8125-be014b5394f3",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 5,
+    "startTime": "16:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "174f6192-8c99-450d-bdc1-9129311518cb",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 5,
+    "startTime": "16:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "86bfa6a5-30fb-4355-aa8b-0d5074f6d0d1",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 5,
+    "startTime": "18:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "b41bcee8-9d48-4693-ab96-3e1e99f5514e",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 5,
+    "startTime": "20:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "25093f54-c048-41d6-86df-9b023d0c18a7",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 6,
+    "startTime": "09:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "01b3800b-8a13-4217-a870-c5554137d887",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 6,
+    "startTime": "11:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "2b00cec5-9d61-4b36-90d8-67abcc5e4379",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 6,
+    "startTime": "16:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "23b439cb-6fd3-4e98-8807-b8a79b2b3d16",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 6,
+    "startTime": "17:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "db11e6af-8397-4a77-b342-bc7ec1451409",
+    "churchId": "aabf5f95-4761-4e6a-9e6c-a92b872a2966",
+    "dayOfWeek": 6,
+    "startTime": "18:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "d460ae60-2dea-41d7-9346-d30f16b1ef60",
+    "churchId": "d5858f5d-a973-49c1-ac53-677c0d866639",
+    "dayOfWeek": 0,
+    "startTime": "10:00",
+    "endTime": null,
+    "serviceType": "Bible Study",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "6d980e88-d690-4538-9831-a6f5c1be3972",
+    "churchId": "d5858f5d-a973-49c1-ac53-677c0d866639",
+    "dayOfWeek": 0,
+    "startTime": "11:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "33db869e-9358-4816-a0ea-96cc32b3c358",
+    "churchId": "d5858f5d-a973-49c1-ac53-677c0d866639",
+    "dayOfWeek": 1,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Bible Study",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "20cc7adb-7c9c-421c-b5ac-67b38303246a",
+    "churchId": "d5858f5d-a973-49c1-ac53-677c0d866639",
+    "dayOfWeek": 2,
+    "startTime": "18:30",
+    "endTime": null,
+    "serviceType": "Bible Study",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "1dca3fa8-0813-430c-9a25-153840ffc8a1",
+    "churchId": "d4174f30-8efe-4070-91bc-76202da2f5c1",
+    "dayOfWeek": 0,
+    "startTime": "09:15",
+    "endTime": null,
+    "serviceType": "Hours (3rd and 6th)",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "2df51914-8a7f-48ce-bdf7-d328131cbb87",
+    "churchId": "d4174f30-8efe-4070-91bc-76202da2f5c1",
+    "dayOfWeek": 0,
+    "startTime": "09:30",
+    "endTime": null,
+    "serviceType": "Divine Liturgy",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "0266d220-fcff-44ea-9483-49042216d3d4",
+    "churchId": "d4174f30-8efe-4070-91bc-76202da2f5c1",
+    "dayOfWeek": 5,
+    "startTime": "10:00",
+    "endTime": null,
+    "serviceType": "Akathist",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "f7f9c4aa-7a13-4fa0-90c4-40ce47d70d1d",
+    "churchId": "d4174f30-8efe-4070-91bc-76202da2f5c1",
+    "dayOfWeek": 6,
+    "startTime": "16:00",
+    "endTime": null,
+    "serviceType": "Pannikhida",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "3dec5d17-23c0-469d-9a2c-96327cb74507",
+    "churchId": "d4174f30-8efe-4070-91bc-76202da2f5c1",
+    "dayOfWeek": 6,
+    "startTime": "17:00",
+    "endTime": null,
+    "serviceType": "Vespers",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "722f29c5-51d0-4757-b4e2-4e61d9074ac0",
+    "churchId": "c8fd182c-a2a6-45fe-8d82-a0cab53ceb24",
+    "dayOfWeek": 0,
+    "startTime": "11:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "d7bd3d0a-29bc-4c13-86ce-fb00d990b886",
+    "churchId": "c8fd182c-a2a6-45fe-8d82-a0cab53ceb24",
+    "dayOfWeek": 0,
+    "startTime": "19:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "6a8af288-ac0f-4a70-8947-9912924f4a70",
+    "churchId": "c8fd182c-a2a6-45fe-8d82-a0cab53ceb24",
+    "dayOfWeek": 0,
+    "startTime": "19:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "776afbd1-aa46-44db-b537-0edb18e5bfaa",
+    "churchId": "c8fd182c-a2a6-45fe-8d82-a0cab53ceb24",
+    "dayOfWeek": 3,
+    "startTime": "19:30",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "1a72778a-bf78-40f2-9c71-e32d33ddb3cd",
+    "churchId": "48c2f681-4448-46c0-94ce-d33f62121fbe",
+    "dayOfWeek": 0,
+    "startTime": "09:45",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  },
+  {
+    "id": "a39dc393-6b94-448d-b33f-a93d83e31051",
+    "churchId": "48c2f681-4448-46c0-94ce-d33f62121fbe",
+    "dayOfWeek": 5,
+    "startTime": "18:00",
+    "endTime": null,
+    "serviceType": "Service",
+    "language": "English",
+    "description": null
+  }
+]

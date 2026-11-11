@@ -97,6 +97,13 @@ fragments stored as pastor names were cleared first
 (`20261111000700_clear_junk_pastor_names`). 96 sites could not be read (dead
 links or bot protection).
 
+A second pass loaded JavaScript-rendered and browser-only sites in a real
+browser, seeded the stage's HTML cache with the rendered pages, and re-ran
+it (`20261111000900_website_verified_details_rendered`): 36 more schedules
+(26 for churches that had none). The stage itself still uses plain `fetch`;
+a rendering fetcher would need a browser dependency, so sites built on Wix
+and similar remain a known gap for unattended runs.
+
 Still open after the repair (figures from before website verification): ~270 visible churches with no known
 denomination, ~450 with no service times, ~360 with no description and ~130
 with no photos. Those need the website and Google stages re-run against
