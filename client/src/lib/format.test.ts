@@ -149,7 +149,19 @@ describe('worship services', () => {
     ]) {
       expect(isWorshipService(typed(0, '10:00', type))).toBe(true);
     }
-    for (const type of ['Bible Study', 'Sunday School', 'Youth', 'Confession', 'Prayer Meeting']) {
+    for (const type of [
+      'Bible Study',
+      'Sunday School',
+      'Youth',
+      'Confession',
+      'Prayer Meeting',
+      'Adult Catechesis',
+      'The Atrium (Kids)',
+      'Bible College',
+      'Servicio de Oración',
+      'Estudio Bíblico',
+      "Women's Prayer",
+    ]) {
       expect(isWorshipService(typed(0, '10:00', type))).toBe(false);
     }
     expect(isWorshipService(typed(0, '10:00', 'Meeting for Worship'))).toBe(true);

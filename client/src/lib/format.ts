@@ -47,7 +47,7 @@ export interface INextService {
 }
 
 const NON_WORSHIP =
-  /bible|study|school|class|youth|child|kids|nursery|prayer|confession|reconciliation|adoration|rosary|fellowship|formation|rehearsal|choir|young adults|small group|men's|women's|recovery|office|vespers|meeting(?! for worship)/i;
+  /bible|study|estudio|school|escuela|class|clase|college|catech|youth|j[oó]venes|student|child|ni[nñ]os|kids|nursery|atrium|prayer|oraci[oó]n|confession|reconciliation|adoration|rosary|rosario|fellowship|formation|discipleship|training|rehearsal|choir|young adults|small group|life group|men's|women's|recovery|office|vespers|matins|evensong|meeting(?! for worship)/i;
 
 /** Whether a listed gathering is a worship service, as opposed to a class or prayer group. */
 export const isWorshipService = (service: IChurchService): boolean =>
