@@ -17,7 +17,9 @@
 - Auth is session-based (HTTP-only cookie). Protected routes return `401 AUTH_ERROR`
   without a session; `/users/:id/*` routes return `403 FORBIDDEN` when `:id` is not
   the signed-in user.
-- Invalid input returns `400 VALIDATION_ERROR`; missing resources `404 NOT_FOUND`;
+- Invalid input returns `400 VALIDATION_ERROR` with a human-readable `message`
+  ("Password must be at least 8 characters") and
+  `details.issues: [{ field, message }]` for per-field display; missing resources `404 NOT_FOUND`;
   duplicates `409 CONFLICT`. Auth mutation endpoints are rate limited (`429 RATE_LIMITED`).
 - Dates are ISO 8601 strings. Nullable fields are always present (as `null`).
 - Cache: `/auth/*` and all mutations are `no-store`; `/churches/filter-options` is

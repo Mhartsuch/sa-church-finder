@@ -53,10 +53,12 @@ describe('ChurchPage', () => {
     expect(screen.getAllByText('9 AM').length).toBeGreaterThan(0);
     expect(screen.getByText('Free parking')).toBeInTheDocument();
     expect(screen.getByText('Great for kids')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /visit website/i })).toHaveAttribute(
-      'href',
-      'https://grace.example.org',
-    );
+    // Once in the desktop visit card, once in the mobile "Get in touch" section.
+    const websiteLinks = screen.getAllByRole('link', { name: /visit website/i });
+    expect(websiteLinks).toHaveLength(2);
+    for (const link of websiteLinks) {
+      expect(link).toHaveAttribute('href', 'https://grace.example.org');
+    }
     expect(screen.getAllByRole('link', { name: /directions/i })[0]).toHaveAttribute(
       'href',
       expect.stringContaining('google.com/maps/dir'),

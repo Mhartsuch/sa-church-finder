@@ -4,7 +4,9 @@ import { z } from 'zod'
 import { validate } from './validate.js'
 import { ValidationError } from './error-handler.js'
 
-const createMockReqResNext = (overrides: Partial<Request> = {}): { req: Request; res: Response; next: jest.MockedFunction<NextFunction> } => {
+const createMockReqResNext = (
+  overrides: Partial<Request> = {},
+): { req: Request; res: Response; next: jest.MockedFunction<NextFunction> } => {
   const req = {
     body: {},
     query: {},
@@ -72,7 +74,9 @@ describe('validate middleware', () => {
       params: z.object({ id: z.string().min(1) }).passthrough(),
     })
 
-    const { req, res, next } = createMockReqResNext({ params: { id: 'abc' } as Record<string, string> })
+    const { req, res, next } = createMockReqResNext({
+      params: { id: 'abc' } as Record<string, string>,
+    })
 
     validate(schemaWithParams)(req, res, next)
 
@@ -91,5 +95,43 @@ describe('validate middleware', () => {
     validate(schemaWithParams)(req, res, next)
 
     expect(next).toHaveBeenCalledWith(expect.any(ValidationError))
+  })
+})
+
+describe('validation error wording', () => {
+  const run = (schema: z.ZodSchema, overrides: Partial<Request>): ValidationError => {
+    const { req, res, next } = createMockReqResNext(overrides)
+    validate(schema)(req, res, next)
+    return next.mock.calls[0][0] as unknown as ValidationError
+  }
+
+  it('sends a readable sentence, never the raw Zod issue JSON', () => {
+    const schema = z.object({
+      body: z.object({
+        email: z.string().email('Please provide a valid email address'),
+        password: z.string().min(8, 'Password must be at least 8 characters'),
+      }),
+    })
+
+    const error = run(schema, { body: { email: 'bad', password: '1' } })
+
+    expect(error.message).toBe(
+      'Please provide a valid email address. Password must be at least 8 characters',
+    )
+    expect(error.message).not.toContain('{')
+    expect(error.details).toEqual({
+      issues: [
+        { field: 'email', message: 'Please provide a valid email address' },
+        { field: 'password', message: 'Password must be at least 8 characters' },
+      ],
+    })
+  })
+
+  it('names the field when the schema message does not', () => {
+    const schema = z.object({ query: z.object({ radius: z.coerce.number().max(25) }) })
+
+    const error = run(schema, { query: { radius: '50' } as unknown as Request['query'] })
+
+    expect(error.message).toBe('radius: Number must be less than or equal to 25')
   })
 })

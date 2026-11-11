@@ -18,6 +18,7 @@ import { Link, useParams } from 'react-router-dom';
 import { HeartButton } from '@/components/church/HeartButton';
 import { PhotoMosaic } from '@/components/church/PhotoMosaic';
 import { ReviewSection } from '@/components/reviews/ReviewSection';
+import { cn } from '@/lib/utils';
 import { useChurch } from '@/hooks/useChurches';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
@@ -126,6 +127,14 @@ const ChurchPage = () => {
           {church.description && <About text={church.description} />}
 
           <Services church={church} />
+
+          {/* Desktop shows these in the sticky visit card. */}
+          {(church.website || church.phone) && (
+            <section className="py-8 md:hidden">
+              <h2 className="text-[22px] font-semibold">Get in touch</h2>
+              <ContactLinks church={church} className="mt-4" />
+            </section>
+          )}
 
           <Offers church={church} />
 
@@ -355,29 +364,38 @@ const VisitCard = ({ church }: { church: IChurch }) => {
       >
         <Navigation className="h-4 w-4" /> Get directions
       </a>
-      <div className="mt-3 space-y-2">
-        {church.website && (
-          <a
-            href={church.website}
-            target="_blank"
-            rel="noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-900 py-3 font-semibold hover:bg-gray-50"
-          >
-            <Globe className="h-4 w-4" /> Visit website
-          </a>
-        )}
-        {church.phone && (
-          <a
-            href={`tel:${church.phone}`}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-3 font-semibold hover:bg-gray-50"
-          >
-            <Phone className="h-4 w-4" /> {church.phone}
-          </a>
-        )}
-      </div>
+      <ContactLinks church={church} className="mt-3" />
       <p className="mt-4 text-center text-sm text-gray-500">
         Everyone is welcome. No reservation needed.
       </p>
+    </div>
+  );
+};
+
+/** Website and phone buttons. Only http(s) websites are linked. */
+const ContactLinks = ({ church, className }: { church: IChurch; className?: string }) => {
+  const website = church.website && /^https?:\/\//i.test(church.website) ? church.website : null;
+  if (!website && !church.phone) return null;
+  return (
+    <div className={cn('space-y-2', className)}>
+      {website && (
+        <a
+          href={website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-900 py-3 font-semibold hover:bg-gray-50"
+        >
+          <Globe className="h-4 w-4" /> Visit website
+        </a>
+      )}
+      {church.phone && (
+        <a
+          href={`tel:${church.phone.replace(/[^\d+]/g, '')}`}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-3 font-semibold hover:bg-gray-50"
+        >
+          <Phone className="h-4 w-4" /> {church.phone}
+        </a>
+      )}
     </div>
   );
 };
