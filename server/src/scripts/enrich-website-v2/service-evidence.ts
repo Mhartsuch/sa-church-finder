@@ -60,7 +60,7 @@ export function partitionByEvidence(
 }
 
 const NAME_STOPWORDS =
-  /\b(?:the|and|of|our|church|ministr(?:y|ies)|staff|team|pastor|pastors|father|son|holy|spirit|god|jesus|christ|lord|welcome|parish|office|leadership)\b/i
+  /\b(?:the|and|of|our|church|ministr(?:y|ies)|staff|team|pastor|pastors|father|son|holy|spirit|god|jesus|christ|lord|welcome|welcomes|parish|office|leadership|search|updates?|letter|news|click|here|more|page|home|you|us)\b/i
 
 /**
  * Whether a string looks like a person's name: two to four capitalized
@@ -70,11 +70,16 @@ const NAME_STOPWORDS =
 export function isPlausiblePersonName(value: string): boolean {
   const name = value
     .trim()
+    .replace(/^the\s+/i, '')
     .replace(
       /^(?:(?:rev(?:erend)?|fr|father|pastor|dr|bishop|deacon|msgr|monsignor|elder|apostle)\.?\s+)+/i,
       '',
     )
     .replace(/,?\s+(?:jr|sr|ii|iii|iv|ph\.?d|d\.?min|m\.?div)\.?$/i, '')
+  // A couple who pastor together: "Eliezer and Dorcas Bonilla".
+  const couple =
+    /^(\p{Lu}[\p{L}'’.-]*)\s+(?:and|&|y)\s+(\p{Lu}[\p{L}'’.-]*\s+\p{Lu}[\p{L}'’.-]*)$/u.exec(name)
+  if (couple) return !NAME_STOPWORDS.test(`${couple[1]} ${couple[2]}`)
   if (NAME_STOPWORDS.test(name)) return false
   return /^\p{Lu}[\p{L}'’.-]*(?:\s+(?:\p{Lu}[\p{L}'’.-]*|de|del|la|van|von)){1,3}$/u.test(name)
 }

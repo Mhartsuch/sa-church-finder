@@ -57,6 +57,10 @@ describe('isPlausiblePersonName', () => {
     'Fr. Peter Hall',
     "Sean O'Brien Jr.",
     'Bishop T. D. Jones',
+    'Eliezer and Dorcas Bonilla',
+    'DAVID WALKER',
+    'Kevin L. Nelson',
+    'The Rev. Christopher O. Cole',
   ])('accepts %s', (name) => {
     expect(isPlausiblePersonName(name)).toBe(true)
   })
@@ -69,6 +73,16 @@ describe('isPlausiblePersonName', () => {
     'the Church Staff',
     'Jesus Christ',
     'welcome to our church',
+    'and of the Son',
+    'Office Hours',
+    'Martin and Staff',
+    'Charles and Co',
+    'holding his toddler daughter',
+    'Joseph Ward at Grady',
+    'Leslie Christ Lutheran Church',
+    'Search Updates',
+    'Kevin Shanahan Welcomes You',
+    'JOHNS LETTER',
   ])('rejects %s', (name) => {
     expect(isPlausiblePersonName(name)).toBe(false)
   })

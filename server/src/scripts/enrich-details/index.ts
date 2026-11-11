@@ -41,6 +41,7 @@ import { resolveDenomination } from './denomination-classifier.js'
 import { inferLanguages } from './language-inferrer.js'
 import { detectNonChurch, findDuplicates, isJunkDescription } from './listing-quality.js'
 import { getNeighborhood } from './neighborhood-mapper.js'
+import { isPlausiblePersonName } from '../enrich-website-v2/service-evidence.js'
 import { findServiceArtifacts } from './service-cleaner.js'
 
 dotenv.config()
@@ -114,6 +115,7 @@ async function main(): Promise<void> {
         website: true,
         phone: true,
         description: true,
+        pastorName: true,
         latitude: true,
         longitude: true,
         googleReviewCount: true,
@@ -195,6 +197,11 @@ async function main(): Promise<void> {
         // is worse than none: the profile shows it as "About this church".
         if (church.description && isJunkDescription(church.description, church.name)) {
           updates.description = null
+        }
+
+        // "Led by and of the Son": a scraped phrase is not a pastor's name.
+        if (church.pastorName && !isPlausiblePersonName(church.pastorName)) {
+          updates.pastorName = null
         }
 
         // ── 2. Denomination ──
