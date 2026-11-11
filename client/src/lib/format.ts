@@ -46,12 +46,25 @@ export interface INextService {
   dayLabel: string;
 }
 
-/** The next upcoming service relative to `now` (San Antonio time), wrapping around the week. */
+const NON_WORSHIP =
+  /bible|study|school|class|youth|child|kids|nursery|prayer|confession|reconciliation|adoration|rosary|fellowship|formation|rehearsal|choir|young adults|small group|men's|women's|recovery|office|vespers|meeting(?! for worship)/i;
+
+/** Whether a listed gathering is a worship service, as opposed to a class or prayer group. */
+export const isWorshipService = (service: IChurchService): boolean =>
+  !NON_WORSHIP.test(service.serviceType);
+
+/**
+ * The next upcoming worship service relative to `now` (San Antonio time),
+ * wrapping around the week. Classes and prayer groups only count when the
+ * church lists no worship service at all.
+ */
 export const getNextService = (
   services: IChurchService[],
   now: Date = new Date(),
 ): INextService | null => {
   if (!services.length) return null;
+  const worship = services.filter(isWorshipService);
+  if (worship.length) services = worship;
   const { day, minutes } = nowInSanAntonio(now);
   let best: { service: IChurchService; offset: number } | null = null;
 
@@ -98,17 +111,72 @@ export const plural = (count: number, word: string, pluralWord = `${word}s`): st
 
 export const churchCount = (count: number) => plural(count, 'church', 'churches');
 
+/** Display names for denomination families whose stored value is jargon. */
+const FAMILY_LABELS: Record<string, string> = {
+  'Restoration Movement': 'Church of Christ',
+  Other: 'Other traditions',
+};
+
+export const familyLabel = (family: string): string => FAMILY_LABELS[family] ?? family;
+
 export const churchSubtitle = (
   church: Pick<IChurchSummary, 'neighborhood' | 'denomination' | 'denominationFamily'>,
-): string =>
-  [church.neighborhood, church.denominationFamily ?? church.denomination]
-    .filter(Boolean)
-    .join(' · ');
+): string => {
+  const family =
+    church.denominationFamily && church.denominationFamily !== 'Other'
+      ? familyLabel(church.denominationFamily)
+      : church.denomination;
+  return [church.neighborhood, family].filter(Boolean).join(' · ');
+};
 
-export const directionsUrl = (church: Pick<IChurchSummary, 'address' | 'city' | 'state'>) =>
-  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-    `${church.address}, ${church.city}, ${church.state}`,
-  )}`;
+/** Denomination labels that already name a body of people and read badly before "church". */
+const SELF_DESCRIBING = /church|assembl|witnesses|army|saints|chapel|quaker|unity|science/i;
+
+/** "Catholic church", "Church of Christ congregation", "Christian church". */
+export const churchKind = (
+  church: Pick<IChurchSummary, 'denomination' | 'denominationFamily'>,
+): string => {
+  const label = church.denomination ?? church.denominationFamily;
+  if (!label || label === 'Other') return 'Christian church';
+  return SELF_DESCRIBING.test(label) ? `${label} congregation` : `${label} church`;
+};
+
+/** "West Side, San Antonio, TX" — or just "Windcrest, TX" when the area is the city. */
+export const churchLocation = (
+  church: Pick<IChurchSummary, 'neighborhood' | 'city' | 'state'>,
+): string =>
+  [church.neighborhood === church.city ? null : church.neighborhood, church.city, church.state]
+    .filter(Boolean)
+    .join(', ');
+
+type AddressParts = Pick<IChurchSummary, 'address' | 'city' | 'state' | 'zipCode'>;
+
+/**
+ * The street line of a church's address. Imported addresses are full postal
+ * addresses ("1321 El Paso St, San Antonio, TX 78207, USA"); hand-entered
+ * ones are just the street.
+ */
+export const streetAddress = (church: AddressParts): string => {
+  const [street, ...rest] = church.address.split(',').map((part) => part.trim());
+  // No comma, or a comma that is part of the street itself ("Suite 4, Bldg B").
+  const isFullAddress = rest.some(
+    (part) => part.toLowerCase() === church.city.toLowerCase() || part.includes(church.zipCode),
+  );
+  return isFullAddress ? street : church.address.trim();
+};
+
+/** "1321 El Paso St, San Antonio, TX 78207" — each part exactly once. */
+export const formatAddress = (church: AddressParts): string =>
+  `${streetAddress(church)}, ${church.city}, ${church.state} ${church.zipCode}`.trim();
+
+export const directionsUrl = (church: AddressParts) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(formatAddress(church))}`;
+
+/** "English", "English and Spanish", "English, Korean, and Spanish". */
+export const formatList = (items: string[]): string => {
+  if (items.length <= 2) return items.join(' and ');
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+};
 
 /** Photo list for a church, falling back to the cover image. */
 export const churchPhotos = (

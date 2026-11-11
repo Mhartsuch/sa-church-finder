@@ -5,7 +5,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { fetchChurches } from '@/api/churches';
 import { Modal } from '@/components/ui/Modal';
 import { useFilterOptions } from '@/hooks/useChurches';
-import { churchCount, DAY_NAMES } from '@/lib/format';
+import { churchCount, DAY_NAMES, familyLabel } from '@/lib/format';
 import { EMPTY_FILTERS } from '@/lib/search-params';
 import { cn } from '@/lib/utils';
 import { IChurchFilters, SortOption, TimeOfDay } from '@/types/church';
@@ -102,7 +102,7 @@ export const FiltersModal = ({ open, filters, onClose, onApply }: FiltersModalPr
                 active={draft.denominations.includes(option.value)}
                 onClick={() => set({ denominations: toggleIn(draft.denominations, option.value) })}
               >
-                {option.value} <span className="text-gray-400">· {option.count}</span>
+                {familyLabel(option.value)} <span className="text-gray-400">· {option.count}</span>
               </Chip>
             ))}
           </div>

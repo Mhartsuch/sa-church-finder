@@ -15,7 +15,7 @@ export const PhotoMosaic = ({ photos, name }: PhotoMosaicProps) => {
   const [galleryOpen, setGalleryOpen] = useState(false);
 
   if (!photos.length) {
-    return <PhotoPlaceholder name={name} className="aspect-[2/1] rounded-2xl" />;
+    return <PhotoPlaceholder name={name} className="h-[200px] rounded-2xl sm:h-[280px]" />;
   }
 
   const [hero, ...rest] = photos;
@@ -39,7 +39,8 @@ export const PhotoMosaic = ({ photos, name }: PhotoMosaicProps) => {
           onClick={() => setGalleryOpen(true)}
           className={cn('h-full w-full', thumbs.length >= 4 && 'md:col-span-2 md:row-span-2')}
         >
-          <img src={hero.url} alt={hero.alt} fetchPriority="high" className={tile} />
+          {/* React 18 only knows the lowercase attribute; the camelCase prop logs a warning. */}
+          <img src={hero.url} alt={hero.alt} {...{ fetchpriority: 'high' }} className={tile} />
         </button>
         {thumbs.length >= 4
           ? thumbs.map((photo) => (

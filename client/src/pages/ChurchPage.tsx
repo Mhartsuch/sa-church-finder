@@ -21,14 +21,19 @@ import { ReviewSection } from '@/components/reviews/ReviewSection';
 import { useChurch } from '@/hooks/useChurches';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
+  churchKind,
+  churchLocation,
   churchPhotos,
   DAY_NAMES,
   directionsUrl,
+  formatAddress,
+  formatList,
   formatRating,
   formatTime,
   getNextService,
   getRating,
   plural,
+  streetAddress,
 } from '@/lib/format';
 import { IChurch } from '@/types/church';
 
@@ -61,9 +66,7 @@ const ChurchPage = () => {
   }
 
   const rating = getRating(church);
-  const location = [church.neighborhood, `${church.city}, ${church.state}`]
-    .filter(Boolean)
-    .join(', ');
+  const location = churchLocation(church);
 
   return (
     <main className="mx-auto max-w-6xl px-6 pb-24 pt-6">
@@ -105,8 +108,7 @@ const ChurchPage = () => {
         <div className="divide-y divide-gray-200">
           <section className="pb-8">
             <h2 className="text-[22px] font-semibold">
-              {church.denomination ?? church.denominationFamily ?? 'Christian'} church in{' '}
-              {church.neighborhood ?? 'San Antonio'}
+              {churchKind(church)} in {church.neighborhood ?? 'San Antonio'}
             </h2>
             <p className="mt-1 text-gray-600">
               {[
@@ -162,7 +164,7 @@ const Highlights = ({ church }: { church: IChurch }) => {
     items.push({
       icon: <Languages className="h-6 w-6" />,
       title: 'Multilingual worship',
-      body: `Services in ${church.languages.join(' and ')}.`,
+      body: `Services in ${formatList(church.languages)}.`,
     });
   }
   if (church.goodForGroups) {
@@ -219,7 +221,9 @@ const Services = ({ church }: { church: IChurch }) => {
           Service times aren’t listed yet.{' '}
           {church.website
             ? 'Check the church website before you visit.'
-            : 'Call ahead before you visit.'}
+            : church.phone
+              ? 'Call ahead before you visit.'
+              : 'Stop by on a Sunday morning, or ask a neighbor who attends.'}
         </p>
       </section>
     );
@@ -295,9 +299,7 @@ const LocationSection = ({ church }: { church: IChurch }) => {
   return (
     <section className="py-12">
       <h2 className="text-[22px] font-semibold">Where you’ll worship</h2>
-      <p className="mt-2 text-gray-600">
-        {church.address}, {church.city}, {church.state} {church.zipCode}
-      </p>
+      <p className="mt-2 text-gray-600">{formatAddress(church)}</p>
       <a
         href={directionsUrl(church)}
         target="_blank"
@@ -456,7 +458,7 @@ const useChurchJsonLd = (church: IChurch | undefined) => {
         .slice(0, 5),
       address: {
         '@type': 'PostalAddress',
-        streetAddress: church.address,
+        streetAddress: streetAddress(church),
         addressLocality: church.city,
         addressRegion: church.state,
         postalCode: church.zipCode,

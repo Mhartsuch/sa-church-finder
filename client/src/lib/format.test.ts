@@ -2,11 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 import {
   churchCount,
+  churchKind,
+  churchLocation,
+  churchSubtitle,
+  directionsUrl,
+  formatAddress,
+  formatList,
   formatNextService,
   formatRating,
   formatTime,
   getNextService,
   getRating,
+  isWorshipService,
+  streetAddress,
 } from '@/lib/format';
 import { IChurchService } from '@/types/church';
 
@@ -80,5 +88,128 @@ describe('ratings', () => {
   it('pluralizes church counts', () => {
     expect(churchCount(1)).toBe('1 church');
     expect(churchCount(1200)).toBe('1,200 churches');
+  });
+});
+
+describe('addresses', () => {
+  const imported = {
+    address: '1321 El Paso St, San Antonio, TX 78207, USA',
+    city: 'San Antonio',
+    state: 'TX',
+    zipCode: '78207',
+  };
+  const handEntered = { ...imported, address: '1321 El Paso St' };
+
+  it('shows each part of an imported full address exactly once', () => {
+    expect(formatAddress(imported)).toBe('1321 El Paso St, San Antonio, TX 78207');
+    expect(streetAddress(imported)).toBe('1321 El Paso St');
+  });
+
+  it('completes a street-only address', () => {
+    expect(formatAddress(handEntered)).toBe('1321 El Paso St, San Antonio, TX 78207');
+  });
+
+  it('keeps a comma that belongs to the street line', () => {
+    expect(streetAddress({ ...imported, address: '100 Main St, Suite 4' })).toBe(
+      '100 Main St, Suite 4',
+    );
+  });
+
+  it('builds a directions link from the de-duplicated address', () => {
+    expect(directionsUrl(imported)).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=1321%20El%20Paso%20St%2C%20San%20Antonio%2C%20TX%2078207',
+    );
+  });
+});
+
+describe('formatList', () => {
+  it('joins languages naturally', () => {
+    expect(formatList(['English'])).toBe('English');
+    expect(formatList(['English', 'Spanish'])).toBe('English and Spanish');
+    expect(formatList(['English', 'Korean', 'Spanish'])).toBe('English, Korean, and Spanish');
+  });
+});
+
+describe('worship services', () => {
+  const typed = (dayOfWeek: number, startTime: string, serviceType: string): IChurchService => ({
+    ...service(dayOfWeek, startTime),
+    serviceType,
+  });
+
+  it('tells worship from the rest of the weekly calendar', () => {
+    for (const type of [
+      'Service',
+      'Mass',
+      'Vigil Mass',
+      'Traditional',
+      'Divine Liturgy',
+      'Worship',
+    ]) {
+      expect(isWorshipService(typed(0, '10:00', type))).toBe(true);
+    }
+    for (const type of ['Bible Study', 'Sunday School', 'Youth', 'Confession', 'Prayer Meeting']) {
+      expect(isWorshipService(typed(0, '10:00', type))).toBe(false);
+    }
+    expect(isWorshipService(typed(0, '10:00', 'Meeting for Worship'))).toBe(true);
+  });
+
+  it('announces the next worship service, not the next Bible study', () => {
+    const services = [typed(3, '19:00', 'Bible Study'), typed(0, '10:30', 'Traditional')];
+    expect(formatNextService(services, WEDNESDAY_NOON)).toBe('Sunday · 10:30 AM');
+  });
+
+  it('falls back to any gathering when no worship service is listed', () => {
+    const services = [typed(3, '19:00', 'Bible Study')];
+    expect(formatNextService(services, WEDNESDAY_NOON)).toBe('Today · 7 PM');
+  });
+});
+
+describe('church labels', () => {
+  it('names the kind of church without doubling the word', () => {
+    expect(churchKind({ denomination: 'Catholic', denominationFamily: 'Catholic' })).toBe(
+      'Catholic church',
+    );
+    expect(
+      churchKind({ denomination: 'Church of Christ', denominationFamily: 'Restoration Movement' }),
+    ).toBe('Church of Christ congregation');
+    expect(
+      churchKind({
+        denomination: "Jehovah's Witnesses",
+        denominationFamily: "Jehovah's Witnesses",
+      }),
+    ).toBe("Jehovah's Witnesses congregation");
+    expect(churchKind({ denomination: null, denominationFamily: null })).toBe('Christian church');
+  });
+
+  it('does not repeat a suburb that is both neighborhood and city', () => {
+    expect(churchLocation({ neighborhood: 'Windcrest', city: 'Windcrest', state: 'TX' })).toBe(
+      'Windcrest, TX',
+    );
+    expect(churchLocation({ neighborhood: 'West Side', city: 'San Antonio', state: 'TX' })).toBe(
+      'West Side, San Antonio, TX',
+    );
+    expect(churchLocation({ neighborhood: null, city: 'San Antonio', state: 'TX' })).toBe(
+      'San Antonio, TX',
+    );
+  });
+
+  it('uses plain-language family names on cards', () => {
+    expect(
+      churchSubtitle({
+        neighborhood: 'Leon Valley',
+        denomination: 'Church of Christ',
+        denominationFamily: 'Restoration Movement',
+      }),
+    ).toBe('Leon Valley · Church of Christ');
+    expect(
+      churchSubtitle({
+        neighborhood: 'Downtown',
+        denomination: 'Quaker',
+        denominationFamily: 'Other',
+      }),
+    ).toBe('Downtown · Quaker');
+    expect(
+      churchSubtitle({ neighborhood: 'Downtown', denomination: null, denominationFamily: null }),
+    ).toBe('Downtown');
   });
 });
