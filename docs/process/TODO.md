@@ -31,7 +31,7 @@ left needs the pipeline run against production, from a machine that has
       map shows an "unavailable" message.
 - [ ] Mailbox check: profiles now link "Report a correction" to
       `admin@sachurchfinder.com` — make sure someone reads it.
-- [ ] Cover photos were hand-curated for the top 100 churches only. Spot-check
+- [ ] Cover photos were hand-curated for the top 200 churches only. Spot-check
       further down the ranking and reorder via `church_photos.displayOrder`
       (keep `churches.coverImageUrl` in step).
 
