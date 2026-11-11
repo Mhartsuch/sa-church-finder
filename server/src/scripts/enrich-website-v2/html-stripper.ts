@@ -1,8 +1,13 @@
+/** Budget for one page, and for all pages combined, in characters. */
 const MAX_TEXT_LENGTH = 16_000
+const MAX_COMBINED_LENGTH = 28_000
+const MIN_PAGE_BUDGET = 4_000
 
 export interface StripOptions {
   /** Prepend an optional section header like "=== ABOUT PAGE ===". */
   header?: string
+  /** Maximum characters to keep (default 16,000). */
+  maxLength?: number
 }
 
 /**
@@ -58,20 +63,12 @@ export function stripHtml(html: string, options: StripOptions = {}): string {
     if (hit) harvested.push(`[social-${platform}] ${hit[1]}`)
   }
 
-  // Isolate <main> or <article> content when present
-  const mainMatch = text.match(/<main[^>]*>([\s\S]*?)<\/main>/i)
-  const articleMatch = text.match(/<article[^>]*>([\s\S]*?)<\/article>/i)
-  if (mainMatch) {
-    text = mainMatch[1]
-  } else if (articleMatch) {
-    text = articleMatch[1]
-  }
-
   // Remove tags whose content is not useful
   text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
   text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
-  text = text.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+  // <footer> is kept on purpose: churches routinely put their service times
+  // and address there and nowhere else.
   text = text.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
   text = text.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
   text = text.replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
@@ -104,24 +101,30 @@ export function stripHtml(html: string, options: StripOptions = {}): string {
   const hintsBlock = harvested.length > 0 ? harvested.join('\n') + '\n' : ''
   const combined = header + hintsBlock + text
 
-  return combined.length > MAX_TEXT_LENGTH
-    ? combined.slice(0, MAX_TEXT_LENGTH) + '\n[truncated]'
-    : combined
+  const maxLength = options.maxLength ?? MAX_TEXT_LENGTH
+  return combined.length > maxLength ? combined.slice(0, maxLength) + '\n[truncated]' : combined
 }
 
 /**
  * Strip multiple pages into a single combined text block for extraction.
+ * Every page gets a share of the budget, so a long homepage cannot crowd out
+ * the service-times page behind it.
  */
 export function stripPages(pages: Array<{ url: string; html: string; label?: string }>): string {
+  const pageBudget = Math.max(
+    MIN_PAGE_BUDGET,
+    Math.floor(MAX_COMBINED_LENGTH / Math.max(pages.length, 1)),
+  )
   const blocks = pages.map((p) =>
     stripHtml(p.html, {
       header: p.label ?? deriveLabel(p.url),
+      maxLength: pageBudget,
     }),
   )
 
   const combined = blocks.join('\n\n')
-  return combined.length > MAX_TEXT_LENGTH
-    ? combined.slice(0, MAX_TEXT_LENGTH) + '\n[truncated]'
+  return combined.length > MAX_COMBINED_LENGTH
+    ? combined.slice(0, MAX_COMBINED_LENGTH) + '\n[truncated]'
     : combined
 }
 

@@ -73,4 +73,32 @@ describe('discoverSubpages', () => {
     const result = discoverSubpages(html([{ href: '/about' }]), 'not-a-url', 5)
     expect(result).toEqual([])
   })
+
+  it('finds the service-times page first, by link text or path', () => {
+    const html = `
+      <a href="/about-our-parish/">About Our Parish</a>
+      <a href="/staff/">Staff</a>
+      <a href="/page-7/">Mass Times</a>
+      <a href="/im-new">Plan Your Visit</a>
+      <a href="/events/2026/11/all-souls-day-mass/">All Souls Day Mass</a>
+    `
+    const links = discoverSubpages(html, 'https://grace.example/', 5)
+    expect(links.map((l) => new URL(l.url).pathname)).toEqual([
+      '/page-7/',
+      '/im-new',
+      '/about-our-parish/',
+      '/staff/',
+    ])
+  })
+
+  it('treats www and bare hostnames as the same site', () => {
+    const html = '<a href="https://grace.example/mass-times/">Mass | Confession Times</a>'
+    const links = discoverSubpages(html, 'https://www.grace.example/', 5)
+    expect(links.map((l) => l.url)).toEqual(['https://grace.example/mass-times/'])
+  })
+
+  it('ignores links to other sites', () => {
+    const html = '<a href="https://facebook.com/grace/about">About</a>'
+    expect(discoverSubpages(html, 'https://grace.example/', 5)).toEqual([])
+  })
 })

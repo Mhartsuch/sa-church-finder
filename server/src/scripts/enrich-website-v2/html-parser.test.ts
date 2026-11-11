@@ -56,7 +56,7 @@ describe('parsePage', () => {
     expect(result.socialLinks.facebook).toContain('facebook.com')
   })
 
-  it('picks up service times and pastor from prose', () => {
+  it('reads the founding year and accessibility from prose, but never a schedule or pastor', () => {
     const html = `
       <html><body>
         <h1>Welcome</h1>
@@ -67,8 +67,9 @@ describe('parsePage', () => {
       </body></html>
     `
     const result = parsePage(html)
-    expect(result.services.length).toBeGreaterThanOrEqual(2)
-    expect(result.pastorName).toBe('John Wesley')
+    // Schedules and names come only from structured data or the reading pass.
+    expect(result.services).toHaveLength(0)
+    expect(result.pastorName).toBeNull()
     expect(result.yearEstablished).toBe(1985)
     expect(result.amenities.wheelchairAccessible).toBe(true)
   })
@@ -99,20 +100,20 @@ describe('parsePages', () => {
       { url: 'https://test.church/', html: homepage },
       { url: 'https://test.church/about', html: about },
     ])
-    expect(result.pastorName).toBe('Alice Brown')
     expect(result.yearEstablished).toBe(1970)
     expect(result.email).toBe('contact@test.church')
-    expect(result.services.length).toBeGreaterThan(0)
   })
 
-  it('deduplicates services with identical day+time', () => {
-    const html1 = '<body><p>Sunday 10:00 AM service</p></body>'
-    const html2 = '<body><p>Sunday 10:00am worship</p></body>'
-    const result = parsePages([
-      { url: 'https://x.church/', html: html1 },
-      { url: 'https://x.church/services', html: html2 },
-    ])
-    const sundayAt10 = result.services.filter((s) => s.dayOfWeek === 0 && s.startTime === '10:00')
-    expect(sundayAt10).toHaveLength(1)
+  it('does not turn announcements or office hours into weekly services', () => {
+    const html = `
+      <body>
+        <p>All Souls' Day Masses: Monday 8:00 am and 6:30 pm</p>
+        <p>Office hours: Monday - Thursday 9:00 AM to 4:00 PM</p>
+        <p>God the Father and the Son. Pastor appreciation Sunday is at 10:00 AM.</p>
+      </body>
+    `
+    const result = parsePages([{ url: 'https://x.church/', html }])
+    expect(result.services).toHaveLength(0)
+    expect(result.pastorName).toBeNull()
   })
 })

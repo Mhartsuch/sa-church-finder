@@ -35,6 +35,8 @@
  *   --force-refetch        Ignore disk cache; fetch pages fresh
  *   --max-subpages N       Cap discovered subpages per church (default 5)
  *   --max-attempts N       Max retry attempts per church before giving up (default 3)
+ *   --shard I/N            Process only shard I (1-based) of N. Run N processes
+ *                          with I = 1..N to work through the table in parallel.
  *   --stale-days N         Also re-process churches whose last successful run
  *                          finished more than N days ago (freshness refresh)
  *
@@ -52,6 +54,8 @@ import { applyExtraction, type ChurchRow } from './applier.js'
 import { extractWithClaude, RateLimitError } from './claude-extractor.js'
 import { parsePages, hasAnyData, mergeData } from './html-parser.js'
 import { stripPages } from './html-stripper.js'
+import { isPlausiblePersonName, partitionByEvidence } from './service-evidence.js'
+import { shardOf } from './shard.js'
 import { discoverSubpages } from './subpage-discovery.js'
 import {
   createEmptyStats,
@@ -76,6 +80,7 @@ function parseArgs(): EnrichWebsiteV2Options {
   const maxSubpagesIdx = args.indexOf('--max-subpages')
   const maxAttemptsIdx = args.indexOf('--max-attempts')
   const staleDaysIdx = args.indexOf('--stale-days')
+  const shardIdx = args.indexOf('--shard')
 
   return {
     dryRun: args.includes('--dry-run'),
@@ -90,7 +95,37 @@ function parseArgs(): EnrichWebsiteV2Options {
     maxSubpages: maxSubpagesIdx !== -1 ? parseInt(args[maxSubpagesIdx + 1], 10) : 5,
     maxAttempts: maxAttemptsIdx !== -1 ? parseInt(args[maxAttemptsIdx + 1], 10) : 3,
     staleDays: staleDaysIdx !== -1 ? parseInt(args[staleDaysIdx + 1], 10) : null,
+    shard: shardIdx !== -1 ? parseShard(args[shardIdx + 1]) : null,
   }
+}
+
+const SHARED_SITE_HOSTS =
+  /(^|\.)(jw\.org|lds\.org|facebook\.com|instagram\.com|youtube\.com|twitter\.com|x\.com|linktr\.ee|yelp\.com|google\.com)$/i
+
+/** Whether a church's "website" is a shared platform rather than its own site. */
+export function isSharedSite(website: string | null): boolean {
+  if (!website) return false
+  try {
+    const url = new URL(website)
+    if (SHARED_SITE_HOSTS.test(url.hostname)) return true
+    // The Latter-day Saints' global site; local.churchofjesuschrist.org pages
+    // are per-meetinghouse and worth reading.
+    return /^(www\.)?churchofjesuschrist\.org$/i.test(url.hostname)
+  } catch {
+    return true
+  }
+}
+
+/** Parses "2/6" into a zero-based shard; exits on a malformed value. */
+function parseShard(value: string | undefined): { index: number; count: number } {
+  const match = /^(\d+)\/(\d+)$/.exec(value ?? '')
+  const index = match ? parseInt(match[1], 10) : 0
+  const count = match ? parseInt(match[2], 10) : 0
+  if (!match || count < 1 || index < 1 || index > count) {
+    console.error(`Invalid --shard "${value}". Expected I/N with 1 <= I <= N, e.g. --shard 2/6`)
+    process.exit(1)
+  }
+  return { index: index - 1, count }
 }
 
 // ── Claude CLI availability ───────────────────────────────────────
@@ -314,6 +349,17 @@ async function processChurch(
     try {
       const aiResult = await extractWithClaude(combinedText)
       if (aiResult) {
+        // Keep only service times that are actually written on the site.
+        const { supported, unsupported } = partitionByEvidence(aiResult.services, combinedText)
+        if (unsupported.length > 0 && options.verbose) {
+          console.log(
+            `    dropped ${unsupported.length} service time(s) not found on ${church.name}'s site`,
+          )
+        }
+        aiResult.services = supported
+        if (aiResult.pastorName && !isPlausiblePersonName(aiResult.pastorName)) {
+          aiResult.pastorName = null
+        }
         // Union-merge with Pass 1 — AI tends to win scalars via mergeData's
         // "first wins" semantics, but Pass 1's arrays (services,
         // ministries) survive even if AI missed them.
@@ -447,7 +493,9 @@ async function main(): Promise<void> {
 
     // Pull all churches with websites, plus their current enrichment state
     const churches = await prisma.church.findMany({
-      where: { website: { not: null } },
+      // Hidden listings (non-churches, duplicates) are never shown, so they
+      // are not worth crawling.
+      where: { website: { not: null }, isHidden: false },
       select: {
         id: true,
         name: true,
@@ -477,6 +525,10 @@ async function main(): Promise<void> {
     // Filter to eligible churches (respects --limit)
     const eligible: ChurchRow[] = []
     for (const c of churches) {
+      // A link to a denomination's global site or a social-media page says
+      // nothing about this congregation's schedule, pastor or history.
+      if (isSharedSite(c.website)) continue
+      if (options.shard && shardOf(c.id, options.shard.count) !== options.shard.index) continue
       if (!isEligible(c.enrichmentState, options)) {
         stats.skippedAlreadyDone++
         continue

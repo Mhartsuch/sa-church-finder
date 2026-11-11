@@ -87,10 +87,16 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact schem
 
 Rules:
 - Use null for anything you cannot determine. Do NOT guess.
-- Regular weekly gatherings only in "services" — skip one-time events, revivals.
-- NEVER list office hours, building hours, or the times a bookstore, café or school is open as services.
-- One entry per gathering: put its end in "endTime", never as a separate entry.
-- Name each gathering's "serviceType" as the site does ('Mass', 'Traditional', 'Bible Study'); use 'Service' only for a worship service the site does not name.
+- "services" is the STANDING WEEKLY SCHEDULE only: gatherings that happen every week at the same day and time.
+  - Include worship services / Masses first; also weekly Bible studies, youth nights and prayer meetings the site lists with a day and time.
+  - EXCLUDE anything tied to a date or occasion: holy days, "First Friday", "this Sunday", Christmas/Easter schedules, conferences, VBS, fundraisers, calendar entries, announcements.
+  - EXCLUDE office hours, building or chapel opening hours, adoration-chapel hours, confession by appointment, and the hours of a bookstore, café, school or food pantry.
+  - Copy each time exactly as the site states it. If the site does not state a weekly day AND time, return an empty "services" array — never infer a typical schedule.
+  - One entry per gathering: put its end in "endTime", never as a separate entry.
+  - "serviceType": name it as the site does ('Mass', 'Vigil Mass', 'Traditional', 'Contemporary', 'Bible Study'); use 'Service' only for a worship service the site does not name.
+  - "language": the language the gathering is held in when the site says ('Spanish', 'Bilingual'); otherwise 'English'.
+- "pastorName": a person's full name (e.g. "John Smith", without titles), only when the site names the senior/lead pastor or parish priest. Otherwise null.
+- "description": 1-3 plain sentences about who the church is, written from what the site says. No slogans, no page titles, no invitations to "visit our website".
 - "denomination": only what the site states or its affiliations make certain. Never the church's own name or network.
 - Convert service times to 24-hour HH:MM.
 - Prefer explicit statements over inferences.
@@ -100,6 +106,29 @@ Rules:
 
 Church website text:
 `
+
+/**
+ * Arguments for a lean, single-shot extraction call. Extraction needs no
+ * tools, MCP servers, skills or session history; loading them made each call
+ * roughly a thousand times more expensive than the extraction itself.
+ * `ENRICH_CLAUDE_MODEL` picks the model (default: the CLI's own default).
+ */
+export function claudeArgs(prompt: string, model = process.env.ENRICH_CLAUDE_MODEL): string[] {
+  return [
+    '-p',
+    prompt,
+    '--output-format',
+    'json',
+    '--tools',
+    '',
+    '--strict-mcp-config',
+    '--disable-slash-commands',
+    '--no-session-persistence',
+    '--system-prompt',
+    'You extract structured data from church websites and reply with JSON only.',
+    ...(model ? ['--model', model] : []),
+  ]
+}
 
 function stripCodeFences(text: string): string {
   const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/)
@@ -120,7 +149,7 @@ export async function extractWithClaude(combinedText: string): Promise<Extracted
   let stderr = ''
 
   try {
-    const result = await execFileAsync('claude', ['-p', fullPrompt, '--output-format', 'json'], {
+    const result = await execFileAsync('claude', claudeArgs(fullPrompt), {
       timeout: CLAUDE_TIMEOUT_MS,
       maxBuffer: 2 * 1024 * 1024, // 2 MB
     })

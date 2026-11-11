@@ -6,45 +6,6 @@ import type {
 } from './types.js'
 import { emptyExtracted } from './types.js'
 
-const DAY_MAP: Record<string, number> = {
-  su: 0,
-  sun: 0,
-  sunday: 0,
-  mo: 1,
-  mon: 1,
-  monday: 1,
-  tu: 2,
-  tue: 2,
-  tuesday: 2,
-  we: 3,
-  wed: 3,
-  wednesday: 3,
-  th: 4,
-  thu: 4,
-  thursday: 4,
-  fr: 5,
-  fri: 5,
-  friday: 5,
-  sa: 6,
-  sat: 6,
-  saturday: 6,
-}
-
-function to24Hour(time: string): string | null {
-  const match = time.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i)
-  if (!match) return null
-
-  let hours = parseInt(match[1], 10)
-  const minutes = match[2] ?? '00'
-  const meridiem = match[3]?.toLowerCase()
-
-  if (meridiem === 'pm' && hours < 12) hours += 12
-  if (meridiem === 'am' && hours === 12) hours = 0
-
-  if (hours < 0 || hours > 23) return null
-  return `${String(hours).padStart(2, '0')}:${minutes}`
-}
-
 // ────────────────────────────────────────────────────────────────
 // JSON-LD
 // ────────────────────────────────────────────────────────────────
@@ -377,50 +338,14 @@ function tryHtmlPatterns(html: string): Partial<ExtractedChurchData> {
     .replace(/&#xf1;/gi, 'ñ')
     .replace(/&nbsp;/g, ' ')
 
+  // Service times and the pastor's name are deliberately NOT pattern-matched
+  // here. "Any weekday followed by a time" swept one-off announcements
+  // ("All Souls' Day Masses 8:00 am and 6:30 pm") and office hours into the
+  // weekly schedule, and "pastor <words>" produced names like "and the Son".
+  // Both now come only from structured data or the reading pass, which can
+  // tell a standing schedule from an announcement.
   const services: ExtractedService[] = []
-  const seen = new Set<string>()
-
-  // For each day-name occurrence, look ahead up to ~120 chars for time
-  // expressions and associate them with that day. This catches both
-  // "Sunday at 9am" and "Sunday services at 9am and 11am".
-  const dayRegex = /\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?\b/gi
-  const timeRegex = /(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/gi
-  let dm: RegExpExecArray | null = null
-  while ((dm = dayRegex.exec(decoded)) !== null) {
-    const dayOfWeek = DAY_MAP[dm[1].toLowerCase()]
-    if (dayOfWeek === undefined) continue
-    const windowStart = dm.index + dm[0].length
-    const window = decoded.slice(windowStart, windowStart + 120)
-    let tm: RegExpExecArray | null = null
-    timeRegex.lastIndex = 0
-    while ((tm = timeRegex.exec(window)) !== null) {
-      const startTime = to24Hour(tm[1].trim())
-      if (!startTime) continue
-      const key = `${dayOfWeek}-${startTime}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      services.push({
-        dayOfWeek,
-        startTime,
-        endTime: null,
-        serviceType: 'Service',
-        language: 'English',
-      })
-    }
-  }
-
-  let pastorName: string | null = null
-  const pastorPatterns = [
-    /(?:senior\s+|lead\s+)?pastor[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})/i,
-    /(?:rev(?:erend)?|father|fr\.|minister|rector)[.\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})/i,
-  ]
-  for (const pattern of pastorPatterns) {
-    const m = decoded.match(pattern)
-    if (m) {
-      pastorName = m[1].trim()
-      break
-    }
-  }
+  const pastorName: string | null = null
 
   // Spanish language hints
   const languages = new Set<string>()

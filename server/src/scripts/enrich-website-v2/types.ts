@@ -12,6 +12,8 @@ export interface EnrichWebsiteV2Options {
   maxAttempts: number
   /** Re-process applied/skipped churches whose last run is older than this many days (null = never). */
   staleDays: number | null
+  /** Process only churches in shard `index` of `count` (for parallel runs); null = all. */
+  shard: { index: number; count: number } | null
 }
 
 export interface EnrichV2Stats {

@@ -6,19 +6,36 @@
  * shop, privacy policy) are skipped.
  */
 
-// Ordered by priority: if we only have budget for N subpages, these are
-// the patterns we want to match first.
-const SUBPAGE_PATTERNS: RegExp[] = [
-  /\/about(?:-us)?\/?$/i,
-  /\/who-we-are\/?$/i,
-  /\/our-church\/?$/i,
-  /\/what-we-believe\/?$/i,
-  /\/beliefs\/?$/i,
-  /\/(?:staff|leadership|pastors?|team|clergy)\/?$/i,
-  /\/(?:services|service-times|worship|mass-times)\/?$/i,
-  /\/ministries\/?$/i,
-  /\/contact(?:-us)?\/?$/i,
-  /\/visit\/?$/i,
+// Ordered by priority: if we only have budget for N subpages, these are the
+// kinds of page we want first. Each kind is recognized by its URL path or by
+// the link's visible text ("Mass Times", "Plan Your Visit", "Horarios"),
+// because many sites use opaque paths like /im-new or /page-3.
+//
+// Service times come first: they are the single most useful fact on a
+// profile and the one most often missing from the homepage.
+const SUBPAGE_KINDS: { path: RegExp; text: RegExp }[] = [
+  {
+    path: /\/(?:mass(?:-|_)?(?:times|schedule)|service(?:-|_)?times|services|worship(?:-|_)?(?:times|services|schedule)?|schedule|times|gatherings?|sundays?|horarios?|servicios|misas?)\/?$/i,
+    text: /\b(?:mass(?:es)?(?: times| schedule)?|service times?|worship (?:times|services|schedule)|sunday (?:services?|worship|mornings?)|times? (?:&|and) (?:locations?|directions)|when we meet|gatherings?|horarios?|servicios|misas?)\b/i,
+  },
+  {
+    path: /\/(?:visit|plan(?:-|_)?(?:your|a)(?:-|_)?visit|new(?:-|_)?here|im(?:-|_)?new|i-am-new|first(?:-|_)?time|what(?:-|_)?to(?:-|_)?expect|welcome|guests?|visitors?)\/?$/i,
+    text: /\b(?:plan (?:your|a) visit|visit(?: us)?|new here|i['’]?m new|first[- ]time|what to expect|guests?|visitors?)\b/i,
+  },
+  {
+    path: /\/(?:about(?:-[\w-]+)?|who-we-are|our-church|our-story|nosotros|quienes-somos)\/?$/i,
+    text: /^(?:about(?: [\w ]{1,24})?|who we are|our (?:church|story)|nosotros)$/i,
+  },
+  {
+    path: /\/(?:staff|leadership|pastors?|team|clergy|our-team|our-staff)\/?$/i,
+    text: /^(?:(?:our )?(?:staff|leadership|pastors?|team|clergy))$/i,
+  },
+  {
+    path: /\/(?:what-we-believe|beliefs|our-beliefs|statement-of-faith)\/?$/i,
+    text: /^(?:what we believe|(?:our )?beliefs|statement of faith)$/i,
+  },
+  { path: /\/contact(?:-us)?\/?$/i, text: /^contact(?: us)?$/i },
+  { path: /\/ministries\/?$/i, text: /^ministries$/i },
 ]
 
 // Pages we explicitly do NOT want to crawl.
@@ -36,6 +53,8 @@ export interface DiscoveredLink {
   priority: number
   anchorText: string
 }
+
+const bareHost = (url: URL): string => url.hostname.toLowerCase().replace(/^www\./, '')
 
 /**
  * Extract href + anchor text from an `<a>` tag.
@@ -64,9 +83,11 @@ export function discoverSubpages(
   homepageUrl: string,
   maxPages = 5,
 ): DiscoveredLink[] {
-  let origin: string
+  // Sites freely mix "www." and bare hostnames (and http/https) in their own
+  // links, so "same site" means the same host ignoring a leading "www.".
+  let siteHost: string
   try {
-    origin = new URL(homepageUrl).origin
+    siteHost = bareHost(new URL(homepageUrl))
   } catch {
     return []
   }
@@ -87,7 +108,7 @@ export function discoverSubpages(
     let normalized: string
     try {
       const u = new URL(absolute)
-      if (u.origin !== origin) continue
+      if (!/^https?:$/.test(u.protocol) || bareHost(u) !== siteHost) continue
       u.hash = ''
       u.search = ''
       normalized = u.toString()
@@ -98,12 +119,14 @@ export function discoverSubpages(
     if (seen.has(normalized)) continue
     seen.add(normalized)
 
-    if (normalized === homepageUrl) continue
+    if (normalized.replace(/\/$/, '') === homepageUrl.replace(/\/$/, '')) continue
     if (DENY_PATTERNS.some((p) => p.test(normalized))) continue
 
     const path = new URL(normalized).pathname
+    // Deep paths are articles and event pages, not the site's standing pages.
+    if (path.split('/').filter(Boolean).length > 3) continue
 
-    const priority = SUBPAGE_PATTERNS.findIndex((p) => p.test(path))
+    const priority = SUBPAGE_KINDS.findIndex((kind) => kind.path.test(path) || kind.text.test(text))
     if (priority === -1) continue
 
     candidates.push({ url: normalized, priority, anchorText: text })
