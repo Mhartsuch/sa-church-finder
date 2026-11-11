@@ -31,7 +31,8 @@ describe('parsePage', () => {
     expect(result.email).toBe('info@grace.example')
     expect(result.phone).toBe('+1-210-555-1234')
     expect(result.yearEstablished).toBe(1952)
-    expect(result.services).toHaveLength(2)
+    // openingHours are office/building hours, never worship services.
+    expect(result.services).toHaveLength(0)
     expect(result.socialLinks.facebook).toContain('facebook.com')
     expect(result.staff).toHaveLength(2)
     expect(result.source).toBe('json-ld')

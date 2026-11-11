@@ -1,5 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 
+import { resolveDenomination } from '../enrich-details/denomination-classifier.js'
+import { findServiceArtifacts } from '../enrich-details/service-cleaner.js'
 import type { EnrichV2Stats, EnrichWebsiteV2Options, ExtractedChurchData } from './types.js'
 
 export interface ChurchRow {
@@ -45,10 +47,25 @@ export async function applyExtraction(
   }
 
   trySetScalar('pastorName', extracted.pastorName)
-  trySetScalar('denomination', extracted.denomination)
+  // Denomination: the extracted label is one signal among several. The
+  // classifier weighs it against the church's name and website and returns a
+  // canonical label + family, so a page that says "Roman Catholic" is stored
+  // as Catholic and a label that contradicts the name does not win.
   if (extracted.denomination && (options.overwrite || !church.denomination)) {
-    if (extracted.denominationFamily) {
-      updates.denominationFamily = extracted.denominationFamily
+    const resolved = resolveDenomination({
+      name: church.name,
+      website: church.website,
+      denomination: extracted.denomination,
+      denominationFamily: extracted.denominationFamily,
+    })
+    if (resolved) {
+      if (resolved.denomination !== church.denomination) {
+        updates.denomination = resolved.denomination
+        changes.push(`denomination=${JSON.stringify(resolved.denomination).slice(0, 40)}`)
+      }
+      if (resolved.denominationFamily !== church.denominationFamily) {
+        updates.denominationFamily = resolved.denominationFamily
+      }
     }
   }
   trySetScalar('yearEstablished', extracted.yearEstablished)
@@ -80,14 +97,20 @@ export async function applyExtraction(
     stats.fieldsUpdated += Object.keys(updates).length
   }
 
-  // Services: replace auto-imported, preserve hand-curated
-  if (extracted.services.length > 0) {
+  // Services: replace auto-imported, preserve hand-curated. Office hours and
+  // other artifacts are dropped first — a wrong time is worse than none.
+  const artifacts = findServiceArtifacts(
+    extracted.services.map((s, index) => ({ ...s, id: String(index), description: null })),
+  )
+  const services = extracted.services.filter((_, index) => !artifacts.has(String(index)))
+  if (artifacts.size > 0) changes.push(`dropped ${artifacts.size} service artifact(s)`)
+  if (services.length > 0) {
     if (!options.dryRun) {
       await prisma.churchService.deleteMany({
         where: { churchId: church.id, isAutoImported: true },
       })
       await prisma.churchService.createMany({
-        data: extracted.services.map((s) => ({
+        data: services.map((s) => ({
           churchId: church.id,
           dayOfWeek: s.dayOfWeek,
           startTime: s.startTime,
@@ -98,8 +121,8 @@ export async function applyExtraction(
         })),
       })
     }
-    stats.servicesCreated += extracted.services.length
-    changes.push(`${extracted.services.length} service(s)`)
+    stats.servicesCreated += services.length
+    changes.push(`${services.length} service(s)`)
   }
 
   return changes

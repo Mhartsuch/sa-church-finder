@@ -49,15 +49,6 @@ export interface ChurchUpdateData {
   wheelchairAccessible: boolean | null
 }
 
-export interface DerivedServiceTime {
-  dayOfWeek: number
-  startTime: string
-  endTime: string | null
-  serviceType: string
-  language: string
-  isAutoImported: true
-}
-
 function generateSlug(name: string): string {
   return name
     .toLowerCase()
@@ -159,40 +150,6 @@ export function mergeAmenities(existing: string[], derived: string[]): string[] 
     set.add(a)
   }
   return [...set]
-}
-
-/**
- * Derive service times from Google opening hours.
- */
-export function deriveServiceTimes(place: GooglePlaceResult): DerivedServiceTime[] {
-  const periods = place.regularOpeningHours?.periods
-  if (!periods || periods.length === 0) return []
-
-  const services: DerivedServiceTime[] = []
-
-  for (const period of periods) {
-    const startHour = String(period.open.hour).padStart(2, '0')
-    const startMin = String(period.open.minute).padStart(2, '0')
-    const startTime = `${startHour}:${startMin}`
-
-    let endTime: string | null = null
-    if (period.close) {
-      const endHour = String(period.close.hour).padStart(2, '0')
-      const endMin = String(period.close.minute).padStart(2, '0')
-      endTime = `${endHour}:${endMin}`
-    }
-
-    services.push({
-      dayOfWeek: period.open.day,
-      startTime,
-      endTime,
-      serviceType: 'Service',
-      language: 'English',
-      isAutoImported: true,
-    })
-  }
-
-  return services
 }
 
 export async function mapPlaceToCreateData(

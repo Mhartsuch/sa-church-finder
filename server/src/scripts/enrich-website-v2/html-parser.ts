@@ -45,10 +45,6 @@ function to24Hour(time: string): string | null {
   return `${String(hours).padStart(2, '0')}:${minutes}`
 }
 
-function parseSchemaDayAbbrev(abbrev: string): number | null {
-  return DAY_MAP[abbrev.toLowerCase()] ?? null
-}
-
 // ────────────────────────────────────────────────────────────────
 // JSON-LD
 // ────────────────────────────────────────────────────────────────
@@ -74,47 +70,6 @@ function matchesChurchType(typeField: string | string[] | undefined): boolean {
   if (!typeField) return false
   const types = Array.isArray(typeField) ? typeField : [typeField]
   return types.some((t) => CHURCH_TYPES.includes(t.toLowerCase()))
-}
-
-function parseOpeningHours(openingHours: string | string[]): ExtractedService[] {
-  const entries = Array.isArray(openingHours) ? openingHours : [openingHours]
-  const services: ExtractedService[] = []
-
-  for (const entry of entries) {
-    const match = entry.match(/^(\w{2})(?:-(\w{2}))?\s+(\d{2}:\d{2})(?:-(\d{2}:\d{2}))?$/)
-    if (!match) continue
-
-    const startDay = parseSchemaDayAbbrev(match[1])
-    const endDay = match[2] ? parseSchemaDayAbbrev(match[2]) : null
-    const startTime = match[3]
-    const endTime = match[4] ?? null
-
-    if (startDay === null) continue
-
-    if (endDay !== null) {
-      let day = startDay
-      while (day !== (endDay + 1) % 7) {
-        services.push({
-          dayOfWeek: day,
-          startTime,
-          endTime,
-          serviceType: 'Service',
-          language: 'English',
-        })
-        day = (day + 1) % 7
-      }
-    } else {
-      services.push({
-        dayOfWeek: startDay,
-        startTime,
-        endTime,
-        serviceType: 'Service',
-        language: 'English',
-      })
-    }
-  }
-
-  return services
 }
 
 function extractEmployees(raw: unknown): ExtractedStaffMember[] {
@@ -189,7 +144,9 @@ function tryJsonLd(html: string): Partial<ExtractedChurchData> | null {
 
   if (!churchObj) return null
 
-  const services = churchObj.openingHours ? parseOpeningHours(churchObj.openingHours) : []
+  // schema.org `openingHours` is when the building or office is open, not when
+  // the congregation worships, so it is never turned into service times.
+  const services: ExtractedService[] = []
   const staff = extractEmployees(churchObj.employee)
   const pastorName =
     typeof churchObj.founder === 'string'

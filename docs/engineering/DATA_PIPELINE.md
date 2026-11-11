@@ -29,6 +29,12 @@ Requirements: `GOOGLE_PLACES_API_KEY` (stages 1–2), Supabase storage env vars
 
 ## Data-safety rules
 
+- **Opening hours are not service times.** Google's `regularOpeningHours` and
+  a website's schema.org `openingHours` say when the office is open. Neither
+  stage turns them into `church_services` rows any more (they used to, which
+  is where "Monday 9:00 AM service" rows came from), and the website stage
+  runs every extracted schedule through `service-cleaner` before saving it.
+
 - **Hand-curated services are preserved.** Stages only replace or delete
   rows flagged `isAutoImported`.
 - **Listings are hidden, never deleted.** Non-churches and duplicates get

@@ -87,7 +87,11 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact schem
 
 Rules:
 - Use null for anything you cannot determine. Do NOT guess.
-- Regular services only in "services" — skip one-time events, revivals.
+- Regular weekly gatherings only in "services" — skip one-time events, revivals.
+- NEVER list office hours, building hours, or the times a bookstore, café or school is open as services.
+- One entry per gathering: put its end in "endTime", never as a separate entry.
+- Name each gathering's "serviceType" as the site does ('Mass', 'Traditional', 'Bible Study'); use 'Service' only for a worship service the site does not name.
+- "denomination": only what the site states or its affiliations make certain. Never the church's own name or network.
 - Convert service times to 24-hour HH:MM.
 - Prefer explicit statements over inferences.
 - staff: up to 10 named people, lead pastor first.

@@ -26,7 +26,6 @@ import dotenv from 'dotenv'
 
 import {
   deriveAmenities,
-  deriveServiceTimes,
   mapPlaceToCreateData,
   mapPlaceToUpdateData,
   mergeAmenities,
@@ -63,36 +62,6 @@ function getRequiredEnv(name: string, fallback?: string): string {
     )
   }
   return value
-}
-
-/**
- * Upsert auto-imported service times for a church.
- * Deletes existing auto-imported services, then creates new ones from Google hours.
- * Hand-curated services (isAutoImported=false) are preserved.
- */
-async function upsertAutoImportedServices(
-  prisma: PrismaClient,
-  churchId: string,
-  place: GooglePlaceResult,
-  stats: ReturnType<typeof createEmptyStats>,
-): Promise<void> {
-  const derivedServices = deriveServiceTimes(place)
-  if (derivedServices.length === 0) return
-
-  // Delete old auto-imported services for this church
-  await prisma.churchService.deleteMany({
-    where: { churchId, isAutoImported: true },
-  })
-
-  // Create new ones
-  await prisma.churchService.createMany({
-    data: derivedServices.map((s) => ({
-      churchId,
-      ...s,
-    })),
-  })
-
-  stats.servicesCreated += derivedServices.length
 }
 
 async function runEnrichOnly(
@@ -152,9 +121,6 @@ async function runEnrichOnly(
           amenities: mergedAmenities,
         },
       })
-
-      // Upsert auto-imported services
-      await upsertAutoImportedServices(prisma, church.id, place, stats)
 
       // Photos
       if (!options.skipPhotos && storageClient) {
@@ -337,9 +303,6 @@ async function main(): Promise<void> {
           console.log(`  [created] ${place.displayName.text}`)
         }
 
-        // Upsert auto-imported services
-        await upsertAutoImportedServices(prisma, churchId, place, stats)
-
         // Phase 3: Photos
         if (!options.skipPhotos && storageClient) {
           await processPhotosForChurch(
@@ -379,7 +342,6 @@ function printStats(stats: ReturnType<typeof createEmptyStats>): void {
   console.log(`Churches created:     ${stats.churchesCreated}`)
   console.log(`Churches updated:     ${stats.churchesUpdated}`)
   console.log(`Churches skipped:     ${stats.churchesSkipped}`)
-  console.log(`Services created:     ${stats.servicesCreated}`)
   console.log(`Photos uploaded:      ${stats.photosUploaded}`)
   console.log(`Photos skipped:       ${stats.photosSkipped}`)
   console.log(`Errors:               ${stats.errors}`)
