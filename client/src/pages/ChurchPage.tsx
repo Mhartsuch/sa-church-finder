@@ -7,6 +7,7 @@ import {
   Languages,
   MapPin,
   Navigation,
+  Mail,
   Phone,
   Share,
   Star,
@@ -131,7 +132,7 @@ const ChurchPage = () => {
           <Services church={church} />
 
           {/* Desktop shows these in the sticky visit card. */}
-          {(church.website || church.phone) && (
+          {(church.website || church.phone || church.email) && (
             <section className="py-8 md:hidden">
               <h2 className="text-[22px] font-semibold">Get in touch</h2>
               <ContactLinks church={church} className="mt-4" />
@@ -389,7 +390,9 @@ const VisitCard = ({ church }: { church: IChurch }) => {
 /** Website and phone buttons. Only http(s) websites are linked. */
 const ContactLinks = ({ church, className }: { church: IChurch; className?: string }) => {
   const website = church.website && /^https?:\/\//i.test(church.website) ? church.website : null;
-  if (!website && !church.phone) return null;
+  const email =
+    church.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(church.email) ? church.email : null;
+  if (!website && !church.phone && !email) return null;
   return (
     <div className={cn('space-y-2', className)}>
       {website && (
@@ -408,6 +411,14 @@ const ContactLinks = ({ church, className }: { church: IChurch; className?: stri
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-3 font-semibold hover:bg-gray-50"
         >
           <Phone className="h-4 w-4" /> {church.phone}
+        </a>
+      )}
+      {email && (
+        <a
+          href={`mailto:${email}`}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-3 font-semibold hover:bg-gray-50"
+        >
+          <Mail className="h-4 w-4 shrink-0" /> <span className="truncate">{email}</span>
         </a>
       )}
     </div>

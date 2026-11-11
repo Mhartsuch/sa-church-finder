@@ -39,6 +39,7 @@ describe('ChurchPage', () => {
       pastorName: 'Rev. Ana Ruiz',
       yearEstablished: 1952,
       googleMapsUrl: null,
+      email: 'office@grace.example.org',
     };
     churchResponse = () => Promise.resolve(church);
     renderWithProviders(<ChurchPage />, route);
@@ -53,6 +54,9 @@ describe('ChurchPage', () => {
     expect(screen.getAllByText('9 AM').length).toBeGreaterThan(0);
     expect(screen.getByText('Free parking')).toBeInTheDocument();
     expect(screen.getByText('Great for kids')).toBeInTheDocument();
+    for (const link of screen.getAllByRole('link', { name: 'office@grace.example.org' })) {
+      expect(link).toHaveAttribute('href', 'mailto:office@grace.example.org');
+    }
     // Once in the desktop visit card, once in the mobile "Get in touch" section.
     const websiteLinks = screen.getAllByRole('link', { name: /visit website/i });
     expect(websiteLinks).toHaveLength(2);
