@@ -9,6 +9,8 @@
  *  3. The website host (jw.org, churchofjesuschrist.org).
  *  4. A denomination label already stored on the record (website extraction),
  *     normalized to a canonical label and family.
+ *  5. The church's own description, but only when it states what the church
+ *     is ("a non-denominational church", "is a Korean Baptist congregation").
  *
  * Name rules are tried in order and the first match wins. Explicit
  * denominational words come BEFORE the Catholic naming heuristics, so
@@ -27,6 +29,7 @@ export interface DenominationInput {
   denomination?: string | null
   denominationFamily?: string | null
   website?: string | null
+  description?: string | null
 }
 
 /** Every family the app can show. `Other` holds traditions too small to list. */
@@ -311,6 +314,26 @@ const CANONICAL_LABELS: Record<string, string> = {
 
 const KNOWN_FAMILIES = new Set<string>(DENOMINATION_FAMILIES)
 
+/** Name fragments the retired rules mistook for Catholic markers. */
+const LEGACY_CATHOLIC_TRIGGER = /\bsan\s+antonio\b|\bcathedral\b|\bparish\b/i
+
+/**
+ * "…is a Korean Baptist congregation" — the tradition must sit directly before
+ * the noun, inside an is-a statement. A passing mention ("we partner with
+ * Baptist missions") is not a self-description.
+ */
+const SELF_DESCRIPTION =
+  /\b(?:is|are|we\s+are|we['’]re)\s+an?\s+(?:[\w'’-]+,?\s+){0,4}?(baptist|lutheran|methodist|presbyterian|pentecostal|episcopal|anglican|catholic|nazarene|adventist|non[- ]?denominational)(?:\s+christian)?\s+(?:church|congregation|parish|community|fellowship)\b/i
+
+/** Classify from a description, only when it says outright what the church is. */
+export function classifyFromDescription(description: string): DenominationResult | null {
+  const match = SELF_DESCRIPTION.exec(description)
+  if (!match) return null
+  return /^non/i.test(match[1])
+    ? { denomination: 'Non-denominational', denominationFamily: 'Non-denominational' }
+    : classifyDenomination(match[1])
+}
+
 /**
  * Classify a church's denomination from its name alone.
  * Returns null when the name carries no denominational signal.
@@ -389,14 +412,21 @@ export function resolveDenomination(input: DenominationInput): DenominationResul
   }
 
   // Earlier classifier versions labelled every "... San Antonio" church (and
-  // every "Cathedral" or "Parish") as Catholic. A bare stored "Catholic" with
-  // no Catholic signal in the name is that bug, not evidence.
-  const isLegacyCatholicGuess =
+  // every "Cathedral" or "Parish") as Catholic. A bare stored "Catholic" on
+  // such a name, with no Catholic signal of its own, is that bug rather than
+  // evidence. Any other stored "Catholic" came from the church's website and
+  // is trusted — which also keeps this function stable when re-run on its
+  // own output.
+  const storedBareCatholic =
     input.denomination?.trim() === 'Catholic' ||
     (!input.denomination && input.denominationFamily === 'Catholic')
-  if (isLegacyCatholicGuess) return null
+  const isLegacyCatholicGuess = storedBareCatholic && LEGACY_CATHOLIC_TRIGGER.test(input.name)
 
-  if (stored) return stored
+  if (stored && !isLegacyCatholicGuess) return stored
+
+  const fromDescription = input.description ? classifyFromDescription(input.description) : null
+  if (fromDescription) return fromDescription
+  if (isLegacyCatholicGuess) return null
 
   // An unrecognized label (often the church's own network name) with a known
   // family: keep the family, keep the label.

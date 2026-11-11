@@ -1,5 +1,6 @@
 import {
   classifyDenomination,
+  classifyFromDescription,
   normalizeDenominationLabel,
   resolveDenomination,
 } from './denomination-classifier'
@@ -232,8 +233,109 @@ describe('classifyDenomination', () => {
       ).toBe('Non-denominational')
     })
 
+    it('keeps a website-confirmed Catholic label on a cross-tradition saint name', () => {
+      expect(
+        resolveDenomination({
+          name: "St Mary's Church",
+          denomination: 'Roman Catholic',
+          denominationFamily: 'Catholic',
+        }),
+      ).toEqual({ denomination: 'Catholic', denominationFamily: 'Catholic' })
+    })
+
+    it('is stable when re-run on its own output', () => {
+      const inputs = [
+        {
+          name: "St Mary's Church",
+          denomination: 'Roman Catholic',
+          denominationFamily: 'Catholic',
+        },
+        {
+          name: 'First Baptist Church of San Antonio',
+          denomination: 'Catholic',
+          denominationFamily: 'Catholic',
+        },
+        {
+          name: 'All Nations Church - San Antonio',
+          denomination: 'Catholic',
+          denominationFamily: 'Catholic',
+        },
+        {
+          name: 'Casa Del Rey Church',
+          denomination: 'Assemblies of God',
+          denominationFamily: 'Pentecostal',
+        },
+        {
+          name: 'Cross Roads Church',
+          denomination: 'Presbyterian Church (USA)',
+          denominationFamily: null,
+        },
+        {
+          name: 'Freedom Hill Church',
+          denomination: 'SEND Network',
+          denominationFamily: 'Baptist',
+        },
+        {
+          name: 'Taproot Church',
+          denomination: 'Non-denominational (Collegiate Church Network)',
+          denominationFamily: 'Non-denominational',
+        },
+        {
+          name: 'Greater Works Ministries Church',
+          denomination: 'Greater Works Ministries',
+          denominationFamily: null,
+        },
+        { name: 'The Gathering Place', denomination: null, denominationFamily: null },
+      ]
+      for (const input of inputs) {
+        const once = resolveDenomination(input)
+        const twice = resolveDenomination({
+          name: input.name,
+          denomination: once?.denomination ?? null,
+          denominationFamily: once?.denominationFamily ?? null,
+        })
+        expect(twice).toEqual(once)
+      }
+    })
+
     it('returns null when nothing is known', () => {
       expect(resolveDenomination({ name: 'The Gathering Place' })).toBeNull()
+    })
+  })
+
+  describe('classifyFromDescription', () => {
+    it.each([
+      [
+        'Cross Church is a family-friendly, non-denominational Christian church in Stone Oak.',
+        'Non-denominational',
+      ],
+      ['We are a vibrant, spirit filled non-denominational church.', 'Non-denominational'],
+      ['Han-Ma-Eum is a Korean Baptist congregation serving San Antonio.', 'Baptist'],
+    ])('reads %s', (description, family) => {
+      expect(classifyFromDescription(description)?.denominationFamily).toBe(family)
+    })
+
+    it.each([
+      'We partner with Baptist missions around the world.',
+      'A Bible-believing, Bible-teaching church where families are welcome.',
+      'Founded by former members of a Methodist church, we are a house of prayer.',
+    ])('ignores a passing mention: %s', (description) => {
+      expect(classifyFromDescription(description)).toBeNull()
+    })
+
+    it('is only consulted when the name, website and stored label are silent', () => {
+      expect(
+        resolveDenomination({
+          name: 'Grace Lutheran Church',
+          description: 'Grace is a non-denominational church at heart.',
+        })?.denominationFamily,
+      ).toBe('Lutheran')
+      expect(
+        resolveDenomination({
+          name: 'The Rock San Antonio',
+          description: 'We are a vibrant, spirit filled non-denominational church.',
+        }),
+      ).toEqual({ denomination: 'Non-denominational', denominationFamily: 'Non-denominational' })
     })
   })
 })
