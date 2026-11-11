@@ -9,7 +9,7 @@ import { useChurchSearch } from '@/hooks/useChurches';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useFilters } from '@/hooks/useFilters';
 import { churchCount } from '@/lib/format';
-import { countActiveFilters, EMPTY_FILTERS } from '@/lib/search-params';
+import { countActiveFilters, describeFilters, EMPTY_FILTERS } from '@/lib/search-params';
 import { cn } from '@/lib/utils';
 
 const ChurchMap = lazy(() =>
@@ -25,9 +25,12 @@ const BrowsePage = () => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const slowLoad = useSlowFlag();
 
+  const filterTitle = describeFilters(filters);
   useDocumentTitle(
-    undefined,
-    'Find a church home in San Antonio. Browse photos, service times, and reviews from local churches.',
+    filterTitle && `${filterTitle} · San Antonio`,
+    filterTitle
+      ? `${filterTitle} in San Antonio, TX — photos, service times, and reviews.`
+      : 'Find a church home in San Antonio. Browse photos, service times, and reviews from local churches.',
   );
 
   // Map bounds only apply while the map is open, and reset when filters change.

@@ -37,6 +37,5 @@ left needs the pipeline run against production, from a machine that has
 
 ## P2 — Nice to have
 
-- [ ] Neighborhood landing pages (`/?neighborhood=...`) linked from the footer for SEO.
 - [ ] Major-upgrade train: React 19, Vite 6+, Vitest 3+, Prisma 6, Express 5, Tailwind 4, Zod 4.
 - [ ] Delete stale `claude/*` remote branches (needs a credentialed environment).

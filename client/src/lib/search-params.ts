@@ -1,3 +1,4 @@
+import { familyLabel } from '@/lib/format';
 import { IChurchFilters, ISearchRequest, SortOption, TimeOfDay } from '@/types/church';
 
 const SORTS: SortOption[] = ['relevance', 'rating', 'distance', 'name'];
@@ -96,4 +97,24 @@ export const toApiQuery = (request: ISearchRequest): string => {
   if (request.page) params.set('page', String(request.page));
   if (request.pageSize) params.set('pageSize', String(request.pageSize));
   return params.toString();
+};
+
+/**
+ * A short human title for a set of filters — "Lutheran churches in Stone Oak",
+ * "Churches matching “grace”" — or undefined when nothing narrows the list.
+ * Used for the browser tab, history entries and shared links.
+ */
+export const describeFilters = (filters: IChurchFilters): string | undefined => {
+  const kind =
+    filters.denominations.length === 1 ? `${familyLabel(filters.denominations[0])} churches` : null;
+  const place = filters.neighborhood ? `in ${filters.neighborhood}` : null;
+  const language =
+    filters.languages.length === 1 && filters.languages[0] !== 'English'
+      ? `with ${filters.languages[0]} services`
+      : null;
+  const query = filters.q?.trim() ? `matching “${filters.q.trim()}”` : null;
+
+  const parts = [kind ?? (place || language || query ? 'Churches' : null), place, language, query];
+  const title = parts.filter(Boolean).join(' ');
+  return title || undefined;
 };

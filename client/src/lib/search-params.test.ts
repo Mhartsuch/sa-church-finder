@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  describeFilters,
   countActiveFilters,
   EMPTY_FILTERS,
   filtersToParams,
@@ -67,5 +68,35 @@ describe('search params', () => {
     const query = new URLSearchParams(toApiQuery({ ...EMPTY_FILTERS, bounds: '29,-99,30,-98' }));
     expect(query.get('bounds')).toBe('29,-99,30,-98');
     expect(query.has('radius')).toBe(false);
+  });
+});
+
+describe('describeFilters', () => {
+  it('is empty when nothing narrows the list', () => {
+    expect(describeFilters(EMPTY_FILTERS)).toBeUndefined();
+    expect(describeFilters({ ...EMPTY_FILTERS, sort: 'rating', minRating: 4 })).toBeUndefined();
+  });
+
+  it('names the tradition, place, language and search term', () => {
+    expect(
+      describeFilters({ ...EMPTY_FILTERS, denominations: ['Lutheran'], neighborhood: 'Stone Oak' }),
+    ).toBe('Lutheran churches in Stone Oak');
+    expect(describeFilters({ ...EMPTY_FILTERS, denominations: ['Restoration Movement'] })).toBe(
+      'Church of Christ churches',
+    );
+    expect(describeFilters({ ...EMPTY_FILTERS, languages: ['Spanish'] })).toBe(
+      'Churches with Spanish services',
+    );
+    expect(describeFilters({ ...EMPTY_FILTERS, q: ' grace ' })).toBe('Churches matching “grace”');
+  });
+
+  it('does not name a tradition when several are selected', () => {
+    expect(
+      describeFilters({
+        ...EMPTY_FILTERS,
+        denominations: ['Baptist', 'Methodist'],
+        neighborhood: 'Downtown',
+      }),
+    ).toBe('Churches in Downtown');
   });
 });
