@@ -303,6 +303,8 @@ const LABEL_FAMILIES: Record<string, string> = {
   'el rey jesús texas': 'Pentecostal',
   'church of god, anderson, indiana': 'Holiness',
   interdenominacional: 'Non-denominational',
+  independent: 'Non-denominational',
+  'independent christian': 'Non-denominational',
 }
 
 const CANONICAL_LABELS: Record<string, string> = {
@@ -310,6 +312,8 @@ const CANONICAL_LABELS: Record<string, string> = {
   'non-denominational': 'Non-denominational',
   interdenominacional: 'Non-denominational',
   'send network': 'Southern Baptist',
+  independent: 'Non-denominational',
+  'independent christian': 'Non-denominational',
 }
 
 const KNOWN_FAMILIES = new Set<string>(DENOMINATION_FAMILIES)

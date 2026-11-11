@@ -162,6 +162,13 @@ describe('classifyDenomination', () => {
       )
     })
 
+    it('reads "Independent" as non-denominational', () => {
+      expect(normalizeDenominationLabel('Independent')).toEqual({
+        denomination: 'Non-denominational',
+        denominationFamily: 'Non-denominational',
+      })
+    })
+
     it('returns null for a label it cannot place', () => {
       expect(normalizeDenominationLabel('Greater Works Ministries')).toBeNull()
       expect(normalizeDenominationLabel('  ')).toBeNull()

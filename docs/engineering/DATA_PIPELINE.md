@@ -87,7 +87,17 @@ audited value):
 - 75 churches listed as Spanish-speaking only because of the city name.
 - 835 service rows at 107 churches that were office hours or artifacts.
 
-Still open after the repair: ~270 visible churches with no known
+**Website verification, same day.** With the website stage reworked (see
+"A service time needs evidence"), it was run against a copy of production
+and the result shipped as `20261111000800_website_verified_details`: 549 of
+the 660 churches with their own website were read successfully; 387 got a
+verified weekly schedule (46 had none), plus 191 pastor names, 65
+descriptions, 96 emails and 101 founding years. 154 scraped sentence
+fragments stored as pastor names were cleared first
+(`20261111000700_clear_junk_pastor_names`). 96 sites could not be read (dead
+links or bot protection).
+
+Still open after the repair (figures from before website verification): ~270 visible churches with no known
 denomination, ~450 with no service times, ~360 with no description and ~130
 with no photos. Those need the website and Google stages re-run against
 production (`npm run pipeline:run`).

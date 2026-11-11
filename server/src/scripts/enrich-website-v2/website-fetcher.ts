@@ -5,7 +5,7 @@ import type { FetchedPage } from './types.js'
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
 const USER_AGENT = 'SAChurchFinder/2.0 (church directory; contact@sachurchfinder.com)'
-const FETCH_TIMEOUT_MS = 10_000
+const FETCH_TIMEOUT_MS = 20_000
 const MAX_BYTES = 2 * 1024 * 1024 // 2 MB cap per page
 
 export interface FetchSuccess {
