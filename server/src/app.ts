@@ -11,7 +11,7 @@ import prisma from './lib/prisma.js'
 import { createSessionMiddleware, resolveClientUrls } from './lib/session.js'
 import { initializeServerSentry } from './lib/sentry.js'
 import { cacheControl } from './middleware/cache-control.js'
-import { errorHandler } from './middleware/error-handler.js'
+import { AppError, errorHandler } from './middleware/error-handler.js'
 import authRoutes from './routes/auth.routes.js'
 import churchRoutes from './routes/church.routes.js'
 import reviewRoutes from './routes/review.routes.js'
@@ -49,7 +49,9 @@ export const createApp = (): Express => {
         if (!origin) return callback(null, true)
         if (clientUrls === '*') return callback(null, true)
         if (clientUrls.includes(origin)) return callback(null, true)
-        callback(new Error(`CORS: origin ${origin} not allowed`))
+        // An operational 403, not an unhandled 500: a foreign origin is the
+        // caller's mistake, and it must not page anyone or leak a stack.
+        callback(new AppError(403, 'FORBIDDEN', 'This origin is not allowed to use the API'))
       },
       credentials: true,
     }),

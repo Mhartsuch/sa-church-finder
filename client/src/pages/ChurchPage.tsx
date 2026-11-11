@@ -25,6 +25,7 @@ import {
   churchKind,
   churchLocation,
   churchPhotos,
+  correctionUrl,
   DAY_NAMES,
   directionsUrl,
   formatAddress,
@@ -34,6 +35,7 @@ import {
   getNextService,
   getRating,
   plural,
+  serviceLabel,
   streetAddress,
 } from '@/lib/format';
 import { IChurch } from '@/types/church';
@@ -259,7 +261,7 @@ const Services = ({ church }: { church: IChurch }) => {
                     {service.endTime && ` – ${formatTime(service.endTime)}`}
                   </span>
                   <span className="text-right text-gray-500">
-                    {service.serviceType}
+                    {serviceLabel(service)}
                     {service.language !== 'English' && ` · ${service.language}`}
                   </span>
                 </li>
@@ -268,6 +270,13 @@ const Services = ({ church }: { church: IChurch }) => {
           </div>
         ))}
       </div>
+      <p className="mt-4 text-sm text-gray-500">
+        Times come from the church’s own website and can change, especially around holidays —
+        confirm with the church before your first visit.{' '}
+        <a href={correctionUrl(church)} className="font-medium text-gray-700 underline">
+          Report a correction
+        </a>
+      </p>
     </section>
   );
 };
@@ -354,7 +363,12 @@ const VisitCard = ({ church }: { church: IChurch }) => {
           </span>
         )}
       </div>
-      {next && <p className="text-sm text-gray-500">Next service · {next.service.serviceType}</p>}
+      {next && (
+        <p className="text-sm text-gray-500">
+          Next service
+          {next.service.serviceType.toLowerCase() !== 'service' && ` · ${next.service.serviceType}`}
+        </p>
+      )}
 
       <a
         href={directionsUrl(church)}

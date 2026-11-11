@@ -5,6 +5,7 @@ import {
   churchKind,
   churchLocation,
   churchSubtitle,
+  correctionUrl,
   directionsUrl,
   formatAddress,
   formatList,
@@ -14,6 +15,7 @@ import {
   getNextService,
   getRating,
   isWorshipService,
+  serviceLabel,
   streetAddress,
 } from '@/lib/format';
 import { IChurchService } from '@/types/church';
@@ -211,5 +213,20 @@ describe('church labels', () => {
     expect(
       churchSubtitle({ neighborhood: 'Downtown', denomination: null, denominationFamily: null }),
     ).toBe('Downtown');
+  });
+});
+
+describe('service labels and corrections', () => {
+  it('shows the generic import label as a worship service', () => {
+    expect(serviceLabel({ serviceType: 'Service' })).toBe('Worship service');
+    expect(serviceLabel({ serviceType: 'Vigil Mass' })).toBe('Vigil Mass');
+  });
+
+  it('builds a correction email that names the listing', () => {
+    const url = correctionUrl({ name: "St. Mary's Church", slug: 'st-marys-church' });
+    expect(url).toContain('mailto:admin@sachurchfinder.com?subject=Correction%20for%20St.%20Mary');
+    expect(decodeURIComponent(url)).toContain(
+      'https://sachurchfinder.com/churches/st-marys-church',
+    );
   });
 });

@@ -178,6 +178,18 @@ export const formatList = (items: string[]): string => {
   return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
 };
 
+/** A gathering's name as shown on the profile; the generic import label reads as worship. */
+export const serviceLabel = (service: Pick<IChurchService, 'serviceType'>): string =>
+  service.serviceType.trim().toLowerCase() === 'service' ? 'Worship service' : service.serviceType;
+
+export const CONTACT_EMAIL = 'admin@sachurchfinder.com';
+
+/** Pre-addressed email for telling us a listing is wrong. */
+export const correctionUrl = (church: Pick<IChurchSummary, 'name' | 'slug'>): string =>
+  `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Correction for ${church.name}`)}&body=${encodeURIComponent(
+    `Listing: https://sachurchfinder.com/churches/${church.slug}\n\nWhat needs fixing:\n`,
+  )}`;
+
 /** Photo list for a church, falling back to the cover image. */
 export const churchPhotos = (
   church: Pick<IChurchSummary, 'photos' | 'coverImageUrl' | 'name'>,

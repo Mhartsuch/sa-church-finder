@@ -92,3 +92,38 @@ describe('app health endpoint', () => {
     })
   })
 })
+
+describe('CORS', () => {
+  const originalClientUrl = process.env.CLIENT_URL
+
+  afterEach(() => {
+    if (originalClientUrl === undefined) delete process.env.CLIENT_URL
+    else process.env.CLIENT_URL = originalClientUrl
+  })
+
+  it('allows the configured site origin', async () => {
+    process.env.CLIENT_URL = 'https://sachurchfinder.com'
+
+    const response = await request(createApp())
+      .get('/api/v1/health')
+      .set('Origin', 'https://sachurchfinder.com')
+
+    expect(response.status).toBe(200)
+    expect(response.headers['access-control-allow-origin']).toBe('https://sachurchfinder.com')
+  })
+
+  it('refuses a foreign origin with a clean 403, not an unhandled 500', async () => {
+    process.env.CLIENT_URL = 'https://sachurchfinder.com'
+
+    const response = await request(createApp())
+      .get('/api/v1/health')
+      .set('Origin', 'https://evil.example')
+
+    expect(response.status).toBe(403)
+    expect(response.body.error).toEqual({
+      code: 'FORBIDDEN',
+      message: 'This origin is not allowed to use the API',
+    })
+    expect(response.headers['access-control-allow-origin']).toBeUndefined()
+  })
+})
