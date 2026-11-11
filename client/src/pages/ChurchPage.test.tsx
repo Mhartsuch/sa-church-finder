@@ -94,4 +94,22 @@ describe('ChurchPage', () => {
     expect(screen.getByAltText('Sanctuary')).toBeInTheDocument();
     expect(requestedSlugs).toContain('grace-community-church');
   });
+
+  it('invites visitors to share service times when none are listed', async () => {
+    churchResponse = () =>
+      Promise.resolve({
+        ...makeChurch({ services: [] }),
+        pastorName: null,
+        yearEstablished: null,
+        googleMapsUrl: null,
+        email: null,
+      });
+    renderWithProviders(<ChurchPage />, route);
+
+    expect(await screen.findByText(/Service times aren’t listed yet/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Share the times with us' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('mailto:admin@sachurchfinder.com?subject=Correction%20for%20'),
+    );
+  });
 });

@@ -235,7 +235,12 @@ const Services = ({ church }: { church: IChurch }) => {
             ? 'Check the church website before you visit.'
             : church.phone
               ? 'Call ahead before you visit.'
-              : 'Stop by on a Sunday morning, or ask a neighbor who attends.'}
+              : 'Stop by on a Sunday morning, or ask a neighbor who attends.'}{' '}
+          Know when this church meets?{' '}
+          <a href={correctionUrl(church)} className="font-medium text-gray-800 underline">
+            Share the times with us
+          </a>
+          .
         </p>
       </section>
     );
