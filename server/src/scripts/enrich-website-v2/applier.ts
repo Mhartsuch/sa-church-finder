@@ -1,6 +1,9 @@
 import type { PrismaClient } from '@prisma/client'
 
-import { resolveDenomination } from '../enrich-details/denomination-classifier.js'
+import {
+  normalizeDenominationLabel,
+  resolveDenomination,
+} from '../enrich-details/denomination-classifier.js'
 import { isJunkDescription } from '../enrich-details/listing-quality.js'
 import { findServiceArtifacts } from '../enrich-details/service-cleaner.js'
 import type { EnrichV2Stats, EnrichWebsiteV2Options, ExtractedChurchData } from './types.js'
@@ -52,11 +55,18 @@ export async function applyExtraction(
   // classifier weighs it against the church's name and website and returns a
   // canonical label + family, so a page that says "Roman Catholic" is stored
   // as Catholic and a label that contradicts the name does not win.
-  if (extracted.denomination && (options.overwrite || !church.denomination)) {
+  // A site that names no denomination often still names the body it belongs
+  // to ("Assemblies of God", "Southern Baptist Convention") among its
+  // affiliations; the first one the classifier recognizes is used.
+  const statedLabel =
+    extracted.denomination ??
+    extracted.affiliations.find((affiliation) => normalizeDenominationLabel(affiliation)) ??
+    null
+  if (statedLabel && (options.overwrite || !church.denomination)) {
     const resolved = resolveDenomination({
       name: church.name,
       website: church.website,
-      denomination: extracted.denomination,
+      denomination: statedLabel,
       denominationFamily: extracted.denominationFamily,
     })
     if (resolved) {

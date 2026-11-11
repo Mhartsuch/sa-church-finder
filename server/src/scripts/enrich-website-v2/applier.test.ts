@@ -159,4 +159,21 @@ describe('applyExtraction', () => {
 
     expect(update).not.toHaveBeenCalled()
   })
+
+  it('falls back to a recognized affiliation when no denomination is stated', async () => {
+    const { prisma, update } = mockPrisma()
+
+    await applyExtraction(
+      prisma,
+      church({ name: 'Camelot Christian Center' }),
+      extracted({ affiliations: ['Presence Driven Network', 'Assemblies of God'] }),
+      options,
+      stats(),
+    )
+
+    expect(update.mock.calls[0][0].data).toMatchObject({
+      denomination: 'Assemblies of God',
+      denominationFamily: 'Pentecostal',
+    })
+  })
 })
