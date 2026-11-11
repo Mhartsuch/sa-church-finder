@@ -7,6 +7,10 @@
  *
  * Sources: USPS, SA city planning maps, and local convention.
  * A zip can span multiple neighborhoods — we pick the most recognizable name.
+ *
+ * Incorporated suburbs inside the metro (Windcrest, Castle Hills, Live Oak…)
+ * share zip codes with San Antonio proper, so when the postal city is one of
+ * them it wins over the zip lookup.
  */
 
 /**
@@ -15,72 +19,74 @@
  */
 const ZIP_TO_NEIGHBORHOOD: Record<string, string> = {
   // ── Downtown & Inner City ──
-  '78201': 'Prospect Hill',
-  '78202': 'Eastside',
+  '78201': 'Jefferson',
+  '78202': 'East Side',
   '78203': 'Denver Heights',
   '78204': 'Southtown',
   '78205': 'Downtown',
   '78206': 'Downtown',
   '78207': 'West Side',
   '78208': 'Government Hill',
-  '78210': 'South Side',
+  '78209': 'Alamo Heights',
+  '78210': 'Highland Park',
   '78211': 'Southwest Side',
   '78212': 'Monte Vista',
-  '78213': 'Balcones Heights',
+  '78213': 'Castle Hills',
   '78214': 'Harlandale',
   '78215': 'River North',
   '78216': 'Airport Area',
-  '78217': 'Windcrest',
-  '78218': 'Terrell Hills',
-  '78219': 'East Terrell Hills',
+  '78217': 'Northeast Side',
+  '78218': 'Northeast Side',
+  '78219': 'East Side',
   '78220': 'East Side',
   '78221': 'South Side',
   '78222': 'Southeast Side',
   '78223': 'Southeast Side',
   '78224': 'Southwest Side',
   '78225': 'Palm Heights',
-  '78226': 'Lackland',
-  '78227': 'Marbach',
-  '78228': 'Culebra',
+  '78226': 'Port San Antonio',
+  '78227': 'Southwest Side',
+  '78228': 'West Side',
   '78229': 'Medical Center',
   '78230': 'Northwest Side',
-  '78231': 'Northwest Side',
+  '78231': 'Shavano Park',
   '78232': 'North Central',
-  '78233': 'Thousand Oaks',
+  '78233': 'Northeast Side',
   '78234': 'Fort Sam Houston',
-  '78235': 'Kelly',
+  '78235': 'Brooks',
   '78236': 'Lackland AFB',
   '78237': 'West Side',
   '78238': 'Leon Valley',
-  '78239': 'Northeast Side',
-  '78240': 'USAA / Northwest',
+  '78239': 'Windcrest',
+  '78240': 'Northwest Side',
   '78241': 'South Side',
-  '78242': 'Lackland',
-  '78243': 'Lackland',
+  '78242': 'Southwest Side',
+  '78243': 'Lackland AFB',
   '78244': 'Kirby',
   '78245': 'Far West Side',
   '78246': 'Downtown',
-  '78247': 'Stone Oak',
-  '78248': 'North Side',
+  '78247': 'Thousand Oaks',
+  '78248': 'North Central',
   '78249': 'Northwest Side',
-  '78250': 'Westover Hills',
-  '78251': 'Sea World',
+  '78250': 'Northwest Side',
+  '78251': 'Westover Hills',
   '78252': 'Far West Side',
-  '78253': 'Helotes',
-  '78254': 'Alamo Ranch',
-  '78255': 'The Dominion',
-  '78256': 'Shavano Park',
+  '78253': 'Alamo Ranch',
+  '78254': 'Northwest Side',
+  '78255': 'Leon Springs',
+  '78256': 'La Cantera',
   '78257': 'The Dominion',
   '78258': 'Stone Oak',
   '78259': 'Stone Oak',
-  '78260': 'Stone Oak',
-  '78261': 'Stone Oak',
+  '78260': 'Timberwood Park',
+  '78261': 'Far North Side',
   '78263': 'Far East Side',
   '78264': 'South Side',
   '78265': 'Downtown',
-  '78266': 'Bulverde',
+  '78266': 'Garden Ridge',
 
   // ── Surrounding cities ──
+  '78002': 'Atascosa',
   '78006': 'Boerne',
   '78015': 'Boerne',
   '78023': 'Helotes',
@@ -116,10 +122,67 @@ const ZIP_TO_NEIGHBORHOOD: Record<string, string> = {
   '78135': 'New Braunfels',
 }
 
+/** Postal city names that should be shown under a different label. */
+const CITY_ALIASES: Record<string, string> = {
+  'lackland air force base': 'Lackland AFB',
+  'jbsa lackland': 'Lackland AFB',
+  'jbsa fort sam houston': 'Fort Sam Houston',
+  'randolph air force base': 'Randolph AFB',
+  'jbsa randolph': 'Randolph AFB',
+  'saint hedwig': 'St. Hedwig',
+}
+
+/** Municipalities in the metro that are their own place, not a part of San Antonio. */
+const METRO_CITIES = new Set(
+  [
+    'Adkins',
+    'Alamo Heights',
+    'Atascosa',
+    'Balcones Heights',
+    'Boerne',
+    'Bulverde',
+    'Castle Hills',
+    'China Grove',
+    'Cibolo',
+    'Converse',
+    'Elmendorf',
+    'Fair Oaks Ranch',
+    'Floresville',
+    'Garden Ridge',
+    'Helotes',
+    'Hill Country Village',
+    'Hollywood Park',
+    'Kirby',
+    'La Vernia',
+    'Leon Valley',
+    'Live Oak',
+    'Lytle',
+    'New Braunfels',
+    'Olmos Park',
+    'Schertz',
+    'Selma',
+    'Shavano Park',
+    'Somerset',
+    'St. Hedwig',
+    'Terrell Hills',
+    'Universal City',
+    'Von Ormy',
+    'Windcrest',
+  ].map((city) => city.toLowerCase()),
+)
+
 /**
- * Look up the neighborhood for a given zip code.
- * Returns null if the zip code isn't in our SA metro map.
+ * Look up the neighborhood for a church.
+ *
+ * A postal city that is its own municipality wins; otherwise the zip code
+ * decides. Returns null if neither is in our SA metro map.
  */
-export function getNeighborhood(zipCode: string): string | null {
+export function getNeighborhood(zipCode: string, city?: string | null): string | null {
+  const trimmedCity = city?.trim()
+  if (trimmedCity) {
+    const alias = CITY_ALIASES[trimmedCity.toLowerCase()]
+    if (alias) return alias
+    if (METRO_CITIES.has(trimmedCity.toLowerCase())) return trimmedCity
+  }
   return ZIP_TO_NEIGHBORHOOD[zipCode] ?? null
 }

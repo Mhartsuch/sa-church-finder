@@ -9,13 +9,13 @@ jest.mock('../lib/prisma.js', () => ({
   default: {
     $disconnect: jest.fn(),
     $queryRaw: jest.fn(),
-    church: { findUnique: jest.fn(), findMany: jest.fn() },
+    church: { findFirst: jest.fn(), findMany: jest.fn() },
   },
 }))
 
 type MockedPrisma = {
   $queryRaw: jest.Mock
-  church: { findUnique: jest.Mock; findMany: jest.Mock }
+  church: { findFirst: jest.Mock; findMany: jest.Mock }
 }
 
 const mockedPrisma = prisma as unknown as MockedPrisma
@@ -136,7 +136,7 @@ describe('church routes', () => {
 
   describe('GET /api/v1/churches/:slug', () => {
     it('returns the church profile', async () => {
-      mockedPrisma.church.findUnique.mockResolvedValueOnce(churchRecord)
+      mockedPrisma.church.findFirst.mockResolvedValueOnce(churchRecord)
 
       const response = await request(createApp()).get('/api/v1/churches/grace-fellowship')
 
@@ -151,13 +151,13 @@ describe('church routes', () => {
       })
       expect(response.body.data).not.toHaveProperty('viewerClaim')
       expect(response.body.data).not.toHaveProperty('claimedById')
-      expect(mockedPrisma.church.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { slug: 'grace-fellowship' } }),
+      expect(mockedPrisma.church.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { slug: 'grace-fellowship', isHidden: false } }),
       )
     })
 
     it('returns 404 for an unknown slug', async () => {
-      mockedPrisma.church.findUnique.mockResolvedValueOnce(null)
+      mockedPrisma.church.findFirst.mockResolvedValueOnce(null)
 
       const response = await request(createApp()).get('/api/v1/churches/missing')
 

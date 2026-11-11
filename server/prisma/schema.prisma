@@ -66,6 +66,10 @@ model Church {
   goodForChildren      Boolean?
   goodForGroups        Boolean?
   wheelchairAccessible Boolean?
+  /// Hidden listings (non-churches, duplicates) are excluded from every public surface
+  isHidden             Boolean                               @default(false)
+  /// Why the listing is hidden: office | school | cemetery | charity | facility | residence | business | not_a_congregation | duplicate | manual
+  hiddenReason         String?
   createdAt            DateTime                              @default(now())
   updatedAt            DateTime                              @updatedAt
   services             ChurchService[]
@@ -77,6 +81,7 @@ model Church {
   @@index([slug])
   @@index([denominationFamily])
   @@index([latitude, longitude])
+  @@index([isHidden])
   @@map("churches")
 }
 

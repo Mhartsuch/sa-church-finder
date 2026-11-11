@@ -35,35 +35,37 @@ church cascades to its services, photos, reviews, saves and enrichment state.
 
 ### churches
 
-| Column                                               | Type                  | Constraints            | Notes                                                       |
-| ---------------------------------------------------- | --------------------- | ---------------------- | ----------------------------------------------------------- |
-| id                                                   | UUID                  | PK                     |                                                             |
-| name                                                 | TEXT                  | NOT NULL               |                                                             |
-| slug                                                 | TEXT                  | UNIQUE, NOT NULL       | URL identifier                                              |
-| denomination                                         | TEXT                  | NULLABLE               | e.g. "Southern Baptist"                                     |
-| denominationFamily                                   | TEXT                  | NULLABLE, indexed      | e.g. "Baptist" — the search filter value                    |
-| description                                          | TEXT                  | NULLABLE               |                                                             |
-| address                                              | TEXT                  | NOT NULL               |                                                             |
-| city / state                                         | TEXT                  | default San Antonio/TX |                                                             |
-| zipCode                                              | TEXT                  | NOT NULL               |                                                             |
-| neighborhood                                         | TEXT                  | NULLABLE               | Derived from zip by `enrich-details`                        |
-| latitude / longitude                                 | DECIMAL(10,8)/(11,8)  | NOT NULL               |                                                             |
-| location                                             | geography(Point,4326) | NULLABLE, GiST index   | Maintained by a DB trigger from lat/lng (raw SQL migration) |
-| phone, email, website, pastorName                    | TEXT                  | NULLABLE               |                                                             |
-| yearEstablished                                      | INT                   | NULLABLE               |                                                             |
-| avgRating                                            | DECIMAL(3,2)          | default 0              | Recomputed from `reviews` on every review write/delete      |
-| reviewCount                                          | INT                   | default 0              | Same                                                        |
-| googleRating                                         | DECIMAL(3,2)          | NULLABLE               | From Google Places                                          |
-| googleReviewCount                                    | INT                   | NULLABLE               |                                                             |
-| languages, amenities                                 | TEXT[]                | default []             |                                                             |
-| coverImageUrl                                        | TEXT                  | NULLABLE               |                                                             |
-| googlePlaceId                                        | TEXT                  | UNIQUE, NULLABLE       | Import dedup key                                            |
-| businessStatus                                       | TEXT                  | NULLABLE, indexed      | `CLOSED_PERMANENTLY` rows are hidden from search            |
-| googleMapsUrl, primaryType                           | TEXT                  | NULLABLE               |                                                             |
-| goodForChildren, goodForGroups, wheelchairAccessible | BOOLEAN               | NULLABLE               | null = unknown                                              |
-| createdAt / updatedAt                                | TIMESTAMP             |                        |                                                             |
+| Column                                               | Type                  | Constraints                      | Notes                                                                                                                                                           |
+| ---------------------------------------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                                                   | UUID                  | PK                               |                                                                                                                                                                 |
+| name                                                 | TEXT                  | NOT NULL                         |                                                                                                                                                                 |
+| slug                                                 | TEXT                  | UNIQUE, NOT NULL                 | URL identifier                                                                                                                                                  |
+| denomination                                         | TEXT                  | NULLABLE                         | e.g. "Southern Baptist"                                                                                                                                         |
+| denominationFamily                                   | TEXT                  | NULLABLE, indexed                | e.g. "Baptist" — the search filter value                                                                                                                        |
+| description                                          | TEXT                  | NULLABLE                         |                                                                                                                                                                 |
+| address                                              | TEXT                  | NOT NULL                         |                                                                                                                                                                 |
+| city / state                                         | TEXT                  | default San Antonio/TX           |                                                                                                                                                                 |
+| zipCode                                              | TEXT                  | NOT NULL                         |                                                                                                                                                                 |
+| neighborhood                                         | TEXT                  | NULLABLE                         | Derived from zip by `enrich-details`                                                                                                                            |
+| latitude / longitude                                 | DECIMAL(10,8)/(11,8)  | NOT NULL                         |                                                                                                                                                                 |
+| location                                             | geography(Point,4326) | NULLABLE, GiST index             | Maintained by a DB trigger from lat/lng (raw SQL migration)                                                                                                     |
+| phone, email, website, pastorName                    | TEXT                  | NULLABLE                         |                                                                                                                                                                 |
+| yearEstablished                                      | INT                   | NULLABLE                         |                                                                                                                                                                 |
+| avgRating                                            | DECIMAL(3,2)          | default 0                        | Recomputed from `reviews` on every review write/delete                                                                                                          |
+| reviewCount                                          | INT                   | default 0                        | Same                                                                                                                                                            |
+| googleRating                                         | DECIMAL(3,2)          | NULLABLE                         | From Google Places                                                                                                                                              |
+| googleReviewCount                                    | INT                   | NULLABLE                         |                                                                                                                                                                 |
+| languages, amenities                                 | TEXT[]                | default []                       |                                                                                                                                                                 |
+| coverImageUrl                                        | TEXT                  | NULLABLE                         |                                                                                                                                                                 |
+| googlePlaceId                                        | TEXT                  | UNIQUE, NULLABLE                 | Import dedup key                                                                                                                                                |
+| businessStatus                                       | TEXT                  | NULLABLE, indexed                | `CLOSED_PERMANENTLY` rows are hidden from search                                                                                                                |
+| googleMapsUrl, primaryType                           | TEXT                  | NULLABLE                         |                                                                                                                                                                 |
+| goodForChildren, goodForGroups, wheelchairAccessible | BOOLEAN               | NULLABLE                         | null = unknown                                                                                                                                                  |
+| isHidden                                             | BOOLEAN               | NOT NULL, default false, indexed | Hidden listings (non-churches, duplicates) are excluded from search, filter options, profiles and the sitemap                                                   |
+| hiddenReason                                         | TEXT                  | NULLABLE                         | `office`, `school`, `cemetery`, `charity`, `facility`, `residence`, `business`, `not_a_congregation`, `duplicate`, or `manual` (never reversed by the pipeline) |
+| createdAt / updatedAt                                | TIMESTAMP             |                                  |                                                                                                                                                                 |
 
-Indexes: `slug`, `denominationFamily`, `(latitude, longitude)`, GiST on `location`, `businessStatus`.
+Indexes: `slug`, `denominationFamily`, `(latitude, longitude)`, GiST on `location`, `businessStatus`, `isHidden`.
 
 ### church_services
 

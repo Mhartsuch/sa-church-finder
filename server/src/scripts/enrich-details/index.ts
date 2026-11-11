@@ -4,10 +4,14 @@
  * Fills in fields that the Google Places API doesn't provide by using
  * heuristics derived from each church's name, zip code, and existing data:
  *
- *  1. Denomination & denomination family — name-based pattern matching
- *  2. Neighborhood — zip code lookup against an SA metro mapping
- *  3. Languages — inferred from name, denomination, and zip demographics
- *  4. Cover image — first photo from the ChurchPhoto table (by displayOrder)
+ *  1. Listing quality — hides non-churches (offices, schools, cemeteries)
+ *     and duplicate listings; never un-hides a manually hidden listing
+ *  2. Denomination & denomination family — name, website and stored label
+ *  3. Neighborhood — zip code lookup against an SA metro mapping
+ *  4. Languages — inferred from name, denomination, and zip demographics
+ *  5. Cover image — first photo from the ChurchPhoto table (by displayOrder)
+ *  6. Service times — deletes auto-imported rows that are office hours or
+ *     other import artifacts (hand-entered rows are never touched)
  *
  * This script is safe to run multiple times. By default it only fills in
  * fields that are currently null/empty.
@@ -19,8 +23,11 @@
  *   --dry-run                    Show what would change without writing
  *   --overwrite                  Re-derive all fields,
  *                                overwriting existing values
+ *   --remap-neighborhoods        Re-derive ONLY the neighborhood (use after
+ *                                neighborhood map changes)
  *   --reclassify-denominations   Re-derive ONLY denomination fields (use
- *                                after classifier rule changes)
+ *                                after classifier rule changes). Also clears
+ *                                labels the classifier no longer supports.
  *   --limit N                    Only process the first N churches
  *   --verbose                    Print per-church details even when nothing changed
  *
@@ -30,9 +37,11 @@
 import { PrismaClient } from '@prisma/client'
 import dotenv from 'dotenv'
 
-import { classifyDenomination } from './denomination-classifier.js'
+import { resolveDenomination } from './denomination-classifier.js'
 import { inferLanguages } from './language-inferrer.js'
+import { detectNonChurch, findDuplicates } from './listing-quality.js'
 import { getNeighborhood } from './neighborhood-mapper.js'
+import { findServiceArtifacts } from './service-cleaner.js'
 
 dotenv.config()
 
@@ -40,16 +49,19 @@ interface EnrichOptions {
   dryRun: boolean
   overwrite: boolean
   reclassifyDenominations: boolean
+  remapNeighborhoods: boolean
   limit: number | null
   verbose: boolean
 }
 
 interface EnrichStats {
   totalProcessed: number
+  hiddenSet: number
   denominationSet: number
   neighborhoodSet: number
   languagesSet: number
   coverImageSet: number
+  serviceRowsRemoved: number
   skippedNoChange: number
   errors: number
 }
@@ -62,6 +74,7 @@ function parseArgs(): EnrichOptions {
     dryRun: args.includes('--dry-run'),
     overwrite: args.includes('--overwrite'),
     reclassifyDenominations: args.includes('--reclassify-denominations'),
+    remapNeighborhoods: args.includes('--remap-neighborhoods'),
     limit: limitIndex !== -1 ? parseInt(args[limitIndex + 1], 10) : null,
     verbose: args.includes('--verbose'),
   }
@@ -70,10 +83,12 @@ function parseArgs(): EnrichOptions {
 function createEmptyStats(): EnrichStats {
   return {
     totalProcessed: 0,
+    hiddenSet: 0,
     denominationSet: 0,
     neighborhoodSet: 0,
     languagesSet: 0,
     coverImageSet: 0,
+    serviceRowsRemoved: 0,
     skippedNoChange: 0,
     errors: 0,
   }
@@ -95,6 +110,28 @@ async function main(): Promise<void> {
         id: true,
         name: true,
         zipCode: true,
+        city: true,
+        website: true,
+        phone: true,
+        description: true,
+        latitude: true,
+        longitude: true,
+        googleReviewCount: true,
+        isHidden: true,
+        hiddenReason: true,
+        _count: { select: { photos: true, services: true } },
+        services: {
+          select: {
+            id: true,
+            dayOfWeek: true,
+            startTime: true,
+            endTime: true,
+            serviceType: true,
+            language: true,
+            description: true,
+            isAutoImported: true,
+          },
+        },
         denomination: true,
         denominationFamily: true,
         neighborhood: true,
@@ -115,6 +152,27 @@ async function main(): Promise<void> {
 
     const stats = createEmptyStats()
 
+    // Duplicates are judged across the whole table, so compute them up front.
+    // Listings already hidden for another reason can't be the record we keep.
+    const duplicateOf = findDuplicates(
+      churches
+        .filter((c) => !c.isHidden || c.hiddenReason === 'duplicate')
+        .filter((c) => !detectNonChurch(c.name))
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          latitude: Number(c.latitude),
+          longitude: Number(c.longitude),
+          completeness:
+            c._count.photos * 2 +
+            c._count.services * 3 +
+            (c.description ? 5 : 0) +
+            (c.website ? 5 : 0) +
+            (c.phone ? 3 : 0) +
+            Math.min(c.googleReviewCount ?? 0, 50) / 10,
+        })),
+    )
+
     for (const church of churches) {
       stats.totalProcessed++
 
@@ -124,36 +182,50 @@ async function main(): Promise<void> {
         const allowOverwrite = options.overwrite
         const allowReclassify = options.overwrite || options.reclassifyDenominations
 
-        // ── 1. Denomination ──
+        // ── 1. Listing quality ──
+        // A manual hide is a human decision; the pipeline never reverses it.
+        if (church.hiddenReason !== 'manual') {
+          const hiddenReason =
+            detectNonChurch(church.name) ?? (duplicateOf.has(church.id) ? 'duplicate' : null)
+          if ((hiddenReason !== null) !== church.isHidden) updates.isHidden = hiddenReason !== null
+          if (hiddenReason !== church.hiddenReason) updates.hiddenReason = hiddenReason
+        }
+
+        // ── 2. Denomination ──
         const shouldSetDenom =
           allowReclassify || (!church.denomination && !church.denominationFamily)
         if (shouldSetDenom) {
-          const result = classifyDenomination(church.name)
-          if (result) {
-            if (result.denomination !== church.denomination) {
-              updates.denomination = result.denomination
-            }
-            if (result.denominationFamily !== church.denominationFamily) {
-              updates.denominationFamily = result.denominationFamily
+          const result = resolveDenomination(church)
+          // Only a reclassify may clear a label; a fill-in run never removes one.
+          if (result || allowReclassify) {
+            const denomination = result?.denomination ?? null
+            const denominationFamily = result?.denominationFamily ?? null
+            if (denomination !== church.denomination) updates.denomination = denomination
+            if (denominationFamily !== church.denominationFamily) {
+              updates.denominationFamily = denominationFamily
             }
           }
         }
 
-        // ── 2. Neighborhood ──
-        const shouldSetNeighborhood = allowOverwrite || !church.neighborhood
+        // ── 3. Neighborhood ──
+        const shouldSetNeighborhood =
+          allowOverwrite || options.remapNeighborhoods || !church.neighborhood
         if (shouldSetNeighborhood && church.zipCode) {
-          const neighborhood = getNeighborhood(church.zipCode)
+          const neighborhood = getNeighborhood(church.zipCode, church.city)
           if (neighborhood && neighborhood !== church.neighborhood) {
             updates.neighborhood = neighborhood
           }
         }
 
-        // ── 3. Languages ──
+        // ── 4. Languages ──
         const shouldSetLanguages =
           allowOverwrite || !church.languages || church.languages.length === 0
         if (shouldSetLanguages) {
           // Use the denomination we just derived (or existing one)
-          const denom = (updates.denomination as string | undefined) ?? church.denomination
+          const denom =
+            'denomination' in updates
+              ? (updates.denomination as string | null)
+              : church.denomination
           const inferred = inferLanguages({
             churchName: church.name,
             denomination: denom ?? null,
@@ -170,12 +242,31 @@ async function main(): Promise<void> {
           }
         }
 
-        // ── 4. Cover image ──
+        // ── 5. Cover image ──
         const shouldSetCoverImage = allowOverwrite || !church.coverImageUrl
         if (shouldSetCoverImage && church.photos.length > 0) {
           const firstPhoto = church.photos[0].url
           if (firstPhoto !== church.coverImageUrl) {
             updates.coverImageUrl = firstPhoto
+          }
+        }
+
+        // ── 6. Service-time artifacts ──
+        // Judged against the full schedule, but only auto-imported rows are
+        // ever deleted.
+        const artifacts = findServiceArtifacts(church.services)
+        const artifactIds = church.services
+          .filter((service) => service.isAutoImported && artifacts.has(service.id))
+          .map((service) => service.id)
+        if (artifactIds.length > 0) {
+          stats.serviceRowsRemoved += artifactIds.length
+          if (options.dryRun) {
+            console.log(
+              `  [would remove] ${church.name} → ${artifactIds.length} service artifact(s)`,
+            )
+          } else {
+            await prisma.churchService.deleteMany({ where: { id: { in: artifactIds } } })
+            console.log(`  [removed] ${church.name} → ${artifactIds.length} service artifact(s)`)
           }
         }
 
@@ -190,7 +281,8 @@ async function main(): Promise<void> {
         }
 
         // Count what we're setting
-        if (updates.denomination || updates.denominationFamily) stats.denominationSet++
+        if ('isHidden' in updates || 'hiddenReason' in updates) stats.hiddenSet++
+        if ('denomination' in updates || 'denominationFamily' in updates) stats.denominationSet++
         if (updates.neighborhood) stats.neighborhoodSet++
         if (updates.languages) stats.languagesSet++
         if (updates.coverImageUrl) stats.coverImageSet++
@@ -199,8 +291,18 @@ async function main(): Promise<void> {
 
         if (options.dryRun) {
           console.log(`  [would update] ${church.name} → ${changeList}`)
-          if (updates.denomination) {
-            console.log(`    denomination: ${updates.denomination} (${updates.denominationFamily})`)
+          if ('hiddenReason' in updates) {
+            console.log(`    hidden: ${updates.hiddenReason ?? 'no (restored)'}`)
+          }
+          if ('denomination' in updates || 'denominationFamily' in updates) {
+            const denom = 'denomination' in updates ? updates.denomination : church.denomination
+            const family =
+              'denominationFamily' in updates
+                ? updates.denominationFamily
+                : church.denominationFamily
+            console.log(
+              `    denomination: ${church.denomination ?? '—'} (${church.denominationFamily ?? '—'}) → ${denom ?? '—'} (${family ?? '—'})`,
+            )
           }
           if (updates.neighborhood) {
             console.log(`    neighborhood: ${updates.neighborhood}`)
@@ -236,10 +338,12 @@ function printStats(stats: EnrichStats, dryRun: boolean): void {
   console.log('')
   console.log('=== Enrichment Summary ===')
   console.log(`Churches processed:       ${stats.totalProcessed}`)
+  console.log(`Hidden flag ${verb} changed: ${stats.hiddenSet}`)
   console.log(`Denomination ${verb} set:  ${stats.denominationSet}`)
   console.log(`Neighborhood ${verb} set:  ${stats.neighborhoodSet}`)
   console.log(`Languages ${verb} set:     ${stats.languagesSet}`)
   console.log(`Cover image ${verb} set:   ${stats.coverImageSet}`)
+  console.log(`Service artifacts ${verb} removed: ${stats.serviceRowsRemoved}`)
   console.log(`Skipped (no change):      ${stats.skippedNoChange}`)
   console.log(`Errors:                   ${stats.errors}`)
 }

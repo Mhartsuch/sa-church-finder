@@ -1,4 +1,8 @@
-import { classifyDenomination } from './denomination-classifier'
+import {
+  classifyDenomination,
+  normalizeDenominationLabel,
+  resolveDenomination,
+} from './denomination-classifier'
 
 describe('classifyDenomination', () => {
   describe('Latter-day Saints (must win over the Spanish saint-name rule)', () => {
@@ -66,6 +70,170 @@ describe('classifyDenomination', () => {
 
     it('returns null for unrecognizable names', () => {
       expect(classifyDenomination('The Gathering Place')).toBeNull()
+    })
+  })
+
+  describe('explicit denominational words beat Catholic naming heuristics', () => {
+    it.each([
+      ['Holy Trinity Presbyterian Church', 'Presbyterian/Reformed'],
+      ['The Episcopal Church of the Holy Spirit', 'Anglican/Episcopal'],
+      ['Santa Fe Episcopal Church', 'Anglican/Episcopal'],
+      ['San Pedro Church of Christ', 'Restoration Movement'],
+      ['St Paul Baptist Church', 'Baptist'],
+      ["St. Matthew's United Methodist Church", 'Methodist'],
+      ['Praise Cathedral Church Of God In Christ', 'Pentecostal'],
+      ['Emmanuel AME Church', 'Methodist'],
+      ['Grace Orthodox Presbyterian Church', 'Presbyterian/Reformed'],
+      ['St. Sophia Greek Orthodox Church', 'Orthodox'],
+      ['St George Maronite Catholic Church', 'Catholic'],
+    ])('classifies %s → %s', (name, family) => {
+      expect(classifyDenomination(name)?.denominationFamily).toBe(family)
+    })
+  })
+
+  describe('Spanish and Portuguese denominational names', () => {
+    it.each([
+      ['Iglesia Bautista Cristo Rey', 'Baptist'],
+      ['Igreja Batista Atitude em San Antonio', 'Baptist'],
+      ['Iglesia de Cristo Atascosa', 'Restoration Movement'],
+      ['Alfa y Omega Asamblea De Dios', 'Pentecostal'],
+      ['Primera Iglesia Pentecostal Unida San Antonio', 'Pentecostal'],
+      ['2a Iglesia Apostolica de la Fe en Cristo Jesus', 'Pentecostal'],
+      ['Iglesia Cristiana Metodista Libre', 'Methodist'],
+      ['Iglesia Adventista del Séptimo Día Hispana de San Antonio', 'Adventist'],
+      ['Salon Del Reino De Los Testigos De Jehova--Apple Valley Spanish', "Jehovah's Witnesses"],
+    ])('classifies %s → %s', (name, family) => {
+      expect(classifyDenomination(name)?.denominationFamily).toBe(family)
+    })
+
+    it('does not read "Jehova" in a Pentecostal church name as Jehovah\'s Witnesses', () => {
+      expect(
+        classifyDenomination('Iglesia pentecostal Jehova Dios De Los Ejercitos')
+          ?.denominationFamily,
+      ).toBe('Pentecostal')
+    })
+  })
+
+  describe('saint names', () => {
+    it('treats a distinctly Catholic saint name as Catholic', () => {
+      expect(classifyDenomination('St John Berchmans Church')?.denominationFamily).toBe('Catholic')
+      expect(classifyDenomination('St. Leo the Great')?.denominationFamily).toBe('Catholic')
+      expect(classifyDenomination('st francis of assisi')?.denominationFamily).toBe('Catholic')
+    })
+
+    it('leaves saints shared across traditions unclassified', () => {
+      expect(classifyDenomination("St. Andrew's Church & School")).toBeNull()
+      expect(classifyDenomination("Saint Stephen's Chapel")).toBeNull()
+    })
+  })
+
+  describe('ambiguous names stay unknown rather than guessed', () => {
+    it.each([
+      'Cathedral of Faith',
+      'All Nations Church - San Antonio',
+      'Vietnamese Christian Church',
+      'New Covenant Fellowship',
+      'Bethany Church',
+    ])('returns null for %s', (name) => {
+      expect(classifyDenomination(name)).toBeNull()
+    })
+  })
+
+  describe('normalizeDenominationLabel', () => {
+    it('canonicalizes spelling variants', () => {
+      expect(normalizeDenominationLabel('Roman Catholic')).toEqual({
+        denomination: 'Catholic',
+        denominationFamily: 'Catholic',
+      })
+      expect(normalizeDenominationLabel('Non-Denominational')).toEqual({
+        denomination: 'Non-denominational',
+        denominationFamily: 'Non-denominational',
+      })
+    })
+
+    it('keeps a specific label and derives its family', () => {
+      expect(normalizeDenominationLabel('Presbyterian Church (USA)')).toEqual({
+        denomination: 'Presbyterian Church (USA)',
+        denominationFamily: 'Presbyterian/Reformed',
+      })
+      expect(normalizeDenominationLabel('Cooperative Baptist Fellowship')?.denominationFamily).toBe(
+        'Baptist',
+      )
+    })
+
+    it('returns null for a label it cannot place', () => {
+      expect(normalizeDenominationLabel('Greater Works Ministries')).toBeNull()
+      expect(normalizeDenominationLabel('  ')).toBeNull()
+    })
+  })
+
+  describe('resolveDenomination', () => {
+    it('clears the legacy "San Antonio" Catholic mislabel', () => {
+      expect(
+        resolveDenomination({
+          name: 'All Nations Church - San Antonio',
+          denomination: 'Catholic',
+          denominationFamily: 'Catholic',
+        }),
+      ).toBeNull()
+    })
+
+    it('re-labels a mislabelled church from its name', () => {
+      expect(
+        resolveDenomination({
+          name: 'First Baptist Church of San Antonio',
+          denomination: 'Catholic',
+          denominationFamily: 'Catholic',
+        }),
+      ).toEqual({ denomination: 'Baptist', denominationFamily: 'Baptist' })
+    })
+
+    it('trusts a website-extracted label when the name says nothing', () => {
+      expect(
+        resolveDenomination({
+          name: 'Casa Del Rey Church',
+          denomination: 'Assemblies of God',
+          denominationFamily: 'Pentecostal',
+        }),
+      ).toEqual({ denomination: 'Assemblies of God', denominationFamily: 'Pentecostal' })
+      expect(
+        resolveDenomination({
+          name: 'Mary Mother of the Church',
+          denomination: 'Roman Catholic',
+          denominationFamily: 'Catholic',
+        })?.denominationFamily,
+      ).toBe('Catholic')
+    })
+
+    it('keeps the more specific stored label within the same family', () => {
+      expect(
+        resolveDenomination({
+          name: 'Trinity Baptist Church',
+          denomination: 'Southern Baptist',
+          denominationFamily: 'Baptist',
+        }),
+      ).toEqual({ denomination: 'Southern Baptist', denominationFamily: 'Baptist' })
+    })
+
+    it('uses the website host when the name is silent', () => {
+      expect(
+        resolveDenomination({ name: 'Helotes Building', website: 'http://www.lds.org/' })
+          ?.denominationFamily,
+      ).toBe('Latter-day Saints')
+    })
+
+    it('repairs a family that contradicts the stored label', () => {
+      expect(
+        resolveDenomination({
+          name: 'The Promised Land Church',
+          denomination: 'Non-denominational',
+          denominationFamily: 'Pentecostal',
+        })?.denominationFamily,
+      ).toBe('Non-denominational')
+    })
+
+    it('returns null when nothing is known', () => {
+      expect(resolveDenomination({ name: 'The Gathering Place' })).toBeNull()
     })
   })
 })

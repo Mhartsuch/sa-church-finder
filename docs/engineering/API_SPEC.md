@@ -140,7 +140,9 @@ Search. Response: `{ data: ChurchSummary[], meta: { page, pageSize, total, total
 | `bounds`                                                                | `swLat,swLng,neLat,neLng`                                 | Replaces the radius filter when valid                |
 | `page`, `pageSize`                                                      | int; pageSize ≤ 50 (default 20)                           |                                                      |
 
-Permanently closed churches are always excluded. Relevance ranking rewards
+Permanently closed churches and hidden listings (`isHidden`: non-churches
+such as parish offices, schools and cemeteries, plus duplicates) are always
+excluded. Relevance ranking rewards
 photos (churches without photos always rank last), profile completeness,
 service variety, rating/review volume, proximity, freshness, accessibility and
 operational status; Latter-day Saints and Jehovah's Witnesses are demoted (not
@@ -149,7 +151,7 @@ excluded) in default orderings. Anonymous responses are cached in-process for 60
 #### `GET /churches/filter-options`
 
 `{ data: { denominations: { value, count }[], languages: string[], amenities: string[], neighborhoods: string[] } }`
-— derived from non-closed churches; denominations sorted by count desc. Cached in-process for 5 minutes.
+— derived from visible (non-closed, non-hidden) churches; denominations sorted by count desc. Cached in-process for 5 minutes.
 
 #### `GET /churches/:slug`
 
@@ -235,4 +237,4 @@ All return `{ data, message }` unless noted. `data` is an `AuthUser` where a use
 
 #### `GET /sitemap.xml`
 
-XML sitemap of `/`, `/privacy`, `/terms` and every non-closed `/churches/:slug`.
+XML sitemap of `/`, `/privacy`, `/terms` and every visible (non-closed, non-hidden) `/churches/:slug`.

@@ -62,7 +62,12 @@ const TIME_RANGES: Record<NonNullable<ISearchParams['time']>, [string, string]> 
   evening: ['17:00', '23:59'],
 }
 
-const NOT_CLOSED: Prisma.ChurchWhereInput = {
+/**
+ * Listings the public may see: not hidden (non-churches, duplicates) and not
+ * permanently closed. Every public read path applies this.
+ */
+export const PUBLIC_CHURCH_WHERE: Prisma.ChurchWhereInput = {
+  isHidden: false,
   OR: [{ businessStatus: null }, { businessStatus: { not: 'CLOSED_PERMANENTLY' } }],
 }
 
@@ -173,6 +178,7 @@ function parseBounds(value: string): [number, number, number, number] | null {
 
 function buildWhere(params: ISearchParams, center: { lat: number; lng: number }): Prisma.Sql {
   const conditions: Prisma.Sql[] = [
+    Prisma.sql`c."isHidden" = false`,
     Prisma.sql`(c."businessStatus" IS NULL OR c."businessStatus" != 'CLOSED_PERMANENTLY')`,
   ]
   const bounds = params.bounds ? parseBounds(params.bounds) : null
@@ -396,8 +402,8 @@ export async function searchChurches(
 // ── Detail ──
 
 export async function getChurchBySlug(slug: string, userId?: string): Promise<IChurch | null> {
-  const church = await prisma.church.findUnique({
-    where: { slug },
+  const church = await prisma.church.findFirst({
+    where: { slug, isHidden: false },
     include: {
       services: servicesInclude,
       photos: { orderBy: { displayOrder: 'asc' } },
@@ -431,7 +437,7 @@ export async function getFilterOptions(): Promise<IFilterOptions> {
   }
 
   const churches = await prisma.church.findMany({
-    where: NOT_CLOSED,
+    where: PUBLIC_CHURCH_WHERE,
     select: { denominationFamily: true, neighborhood: true, languages: true, amenities: true },
   })
 

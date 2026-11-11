@@ -8,7 +8,8 @@
  *     predominantly Hispanic communities)
  *
  * This is a heuristic — it assigns *likely* languages, not confirmed ones.
- * Church admins can always override via the Leaders Portal.
+ * Languages confirmed by the website stage always take precedence: this
+ * module only fills an empty `languages` array.
  */
 
 /**
@@ -48,7 +49,9 @@ const SPANISH_NAME_PATTERNS = [
   /\bsagrado\b/i,
   /\bsanta\b/i,
   /\bsanto\b/i,
-  /\bsan\s/i,
+  // "San <saint>" — but never the city name, which is in hundreds of
+  // English-speaking churches' names ("First Baptist Church of San Antonio").
+  /\bsan\s(?!antonio\b(?!\sde\s))/i,
   /\bvida\b/i,
   /\bcasa\sde\b/i,
   /\bel\sseñor\b/i,
@@ -63,16 +66,11 @@ const SPANISH_NAME_PATTERNS = [
 ]
 
 /**
- * Denominations where bilingual (English + Spanish) services are common
- * in San Antonio, regardless of church name or zip code.
+ * Denominations whose parishes in predominantly Hispanic San Antonio zip
+ * codes offer Spanish services almost without exception. Kept to Catholic:
+ * for other traditions the zip code alone is a guess, not evidence.
  */
-const COMMONLY_BILINGUAL_DENOMINATIONS = new Set([
-  'Catholic',
-  'Assemblies of God',
-  'Pentecostal',
-  'Apostolic',
-  'Full Gospel',
-])
+const COMMONLY_BILINGUAL_DENOMINATIONS = new Set(['Catholic', 'Eastern Catholic'])
 
 interface LanguageInput {
   churchName: string

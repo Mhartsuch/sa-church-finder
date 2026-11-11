@@ -17,7 +17,7 @@ jest.mock('../lib/prisma.js', () => ({
   default: {
     $queryRaw: jest.fn().mockResolvedValue([]),
     church: {
-      findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
     },
   },
@@ -25,7 +25,7 @@ jest.mock('../lib/prisma.js', () => ({
 
 type MockedPrisma = {
   $queryRaw: jest.Mock
-  church: { findUnique: jest.Mock; findMany: jest.Mock }
+  church: { findFirst: jest.Mock; findMany: jest.Mock }
 }
 
 const churchRecord = (
@@ -95,7 +95,7 @@ describe('church service', () => {
     const prisma = jest.requireMock('../lib/prisma.js').default as MockedPrisma
     prisma.$queryRaw.mockReset().mockResolvedValue([])
     prisma.church.findMany.mockReset().mockResolvedValue([])
-    prisma.church.findUnique.mockReset().mockResolvedValue(null)
+    prisma.church.findFirst.mockReset().mockResolvedValue(null)
   })
 
   it('searchChurches returns proper response shape with empty results', async () => {
@@ -224,7 +224,7 @@ describe('church service', () => {
         googlePhotoRef: null,
         createdAt: new Date(),
       }))
-      getPrisma().church.findUnique.mockResolvedValueOnce(churchRecord('a', { photos }))
+      getPrisma().church.findFirst.mockResolvedValueOnce(churchRecord('a', { photos }))
 
       const church = await getChurchBySlug('church-a')
 
@@ -241,8 +241,10 @@ describe('church service', () => {
         isSaved: false,
       })
       expect(church).not.toHaveProperty('googlePlaceId')
-      const args = getPrisma().church.findUnique.mock.calls[0][0]
+      const args = getPrisma().church.findFirst.mock.calls[0][0]
       expect(args.include.photos).toEqual({ orderBy: { displayOrder: 'asc' } })
+      // Hidden listings (non-churches, duplicates) must 404 like a missing slug.
+      expect(args.where).toEqual({ slug: 'church-a', isHidden: false })
     })
   })
 

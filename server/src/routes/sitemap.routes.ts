@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 
 import prisma from '../lib/prisma.js'
+import { PUBLIC_CHURCH_WHERE } from '../services/church.service.js'
 
 const router = Router()
 
@@ -27,10 +28,7 @@ const escapeXml = (str: string): string =>
 router.get('/sitemap.xml', async (_req: Request, res: Response) => {
   try {
     const churches = await prisma.church.findMany({
-      // `not` alone would also drop rows whose status is NULL.
-      where: {
-        OR: [{ businessStatus: null }, { businessStatus: { not: 'CLOSED_PERMANENTLY' } }],
-      },
+      where: PUBLIC_CHURCH_WHERE,
       select: {
         slug: true,
         updatedAt: true,

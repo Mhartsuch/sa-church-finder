@@ -11,18 +11,17 @@ npm run pipeline:run -- [--dry-run] [--limit N] [--stale-days N] \
 ```
 
 `server/src/scripts/pipeline/run.ts` sequences the four stages below in
-order (each as its own process), then deletes one-off auto-imported events
-that ended more than a day ago. A failed stage stops the run unless
+order (each as its own process). A failed stage stops the run unless
 `--continue` is passed.
 
 ## Stages
 
-| # | npm script (root)        | Source                              | What it does                                                                                         |
-| - | ------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 1 | `import:google-churches` | `google-import/`                    | Grid-searches Google Places (New) over the SA metro, upserts churches by `googlePlaceId`, imports photos to Supabase Storage. Saturated grid cells (20-result cap) are subdivided automatically; requests retry with backoff on 429/5xx. |
-| 2 | `enrich:google-ratings`  | `google-enrich/`                    | Refreshes `googleRating` / `googleReviewCount` per place. Default only fills NULLs; `--all` refreshes everything (the orchestrator passes `--all`). |
-| 3 | `enrich:website-v2`      | `enrich-website-v2/`                | Crawls each church's website (homepage + up to 5 subpages), extracts details deterministically then via `claude -p`, applies high-confidence results. Resumable via the `enrichment_states` table; low-confidence extractions park as `needs_review` with the snapshot kept in `extractedData`. `--stale-days N` re-processes applied churches older than N days. |
-| 4 | `enrich:church-details`  | `enrich-details/`                   | Local heuristics: denomination from name, neighborhood from zip, languages, cover image. `--reclassify-denominations` re-derives ONLY denomination fields (use after classifier rule changes). |
+| #   | npm script (root)        | Source               | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --- | ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `import:google-churches` | `google-import/`     | Grid-searches Google Places (New) over the SA metro, upserts churches by `googlePlaceId`, imports photos to Supabase Storage. Saturated grid cells (20-result cap) are subdivided automatically; requests retry with backoff on 429/5xx.                                                                                                                                                                                                                                                                                                                     |
+| 2   | `enrich:google-ratings`  | `google-enrich/`     | Refreshes `googleRating` / `googleReviewCount` per place. Default only fills NULLs; `--all` refreshes everything (the orchestrator passes `--all`).                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 3   | `enrich:website-v2`      | `enrich-website-v2/` | Crawls each church's website (homepage + up to 5 subpages), extracts details deterministically then via `claude -p`, applies high-confidence results. Resumable via the `enrichment_states` table; low-confidence extractions park as `needs_review` with the snapshot kept in `extractedData`. `--stale-days N` re-processes applied churches older than N days.                                                                                                                                                                                            |
+| 4   | `enrich:church-details`  | `enrich-details/`    | Local heuristics, no network: hides non-church listings and duplicates (`listing-quality`), derives denomination from name / website host / stored label (`denomination-classifier`), neighborhood from postal city + zip (`neighborhood-mapper`), languages, cover image, and deletes auto-imported service rows that are office hours or other artifacts (`service-cleaner`). `--reclassify-denominations` re-derives ONLY denomination fields and clears labels the classifier no longer supports; `--remap-neighborhoods` re-derives ONLY neighborhoods. |
 
 Requirements: `GOOGLE_PLACES_API_KEY` (stages 1–2), Supabase storage env vars
 (stage 1 photos), `claude` CLI on PATH (stage 3, or `--skip-websites` /
@@ -30,12 +29,19 @@ Requirements: `GOOGLE_PLACES_API_KEY` (stages 1–2), Supabase storage env vars
 
 ## Data-safety rules
 
-- **Claimed churches are leader-curated.** No stage overwrites a claimed
-  church's existing values — null fields are still filled.
-- **Hand-curated services/events are preserved.** Stages only replace rows
-  flagged `isAutoImported`.
-- **Nothing is deleted by enrichment** except past one-off auto-imported
-  events in the orchestrator's cleanup step.
+- **Hand-curated services are preserved.** Stages only replace or delete
+  rows flagged `isAutoImported`.
+- **Listings are hidden, never deleted.** Non-churches and duplicates get
+  `isHidden = true` with a `hiddenReason`; a re-import leaves the flag alone.
+  Set `hiddenReason = 'manual'` to hide a listing by hand — the pipeline never
+  un-hides those.
+- **Unknown stays unknown.** The classifier returns no denomination rather
+  than a guess, and the service cleaner deletes times it cannot stand behind;
+  a blank field is better than a wrong one.
+- **Only auto-imported service rows are deleted**, and only when they match
+  an artifact pattern (same generic time on 3+ weekdays, a start equal to
+  another service's end, a generic row beside a typed Mass schedule,
+  implausible hours).
 - **Low confidence ≠ failed.** Website extractions below the 0.5 confidence
   gate get `status = 'needs_review'` in `enrichment_states`; inspect
   `extractedData` and either re-run with `--force-low-confidence` or fix the
@@ -46,11 +52,30 @@ Requirements: `GOOGLE_PLACES_API_KEY` (stages 1–2), Supabase storage env vars
 - **Full refresh (quarterly-ish):** `npm run pipeline:run -- --stale-days 90`
 - **Cheap refresh (no Google quota):**
   `npm run pipeline:run -- --skip-import --skip-ratings`
-- **After classifier rule changes:**
-  `npm run enrich:church-details -- --reclassify-denominations` (add
-  `--dry-run` first to review the diff)
-- **Ribbon categories backfill:** `npm run db:seed:ribbon` (idempotent,
-  upserts only — safe against production)
+- **After classifier or neighborhood-map changes:**
+  `npm run enrich:church-details -- --reclassify-denominations --remap-neighborhoods`
+  (add `--dry-run` first to review the diff). Rule fixes do nothing for
+  existing rows until this runs — the 2026-11 audit found 119 churches still
+  carrying a Catholic label from a rule that had been fixed months earlier.
+
+## Data audit, 2026-11-11
+
+All 955 live listings were audited through the public API. Findings, all
+repaired by migration `20261111000100_repair_church_data` (generated from the
+enrich-details modules; guarded so it only touches rows still holding the
+audited value):
+
+- 51 listings that are not places of worship or are duplicates → hidden.
+- 225 wrong or missing denominations, 119 of them "Catholic" labels left by
+  an old "San Antonio" name rule.
+- 446 neighborhood labels (wrong zip mapping, suburbs, duplicate spellings).
+- 75 churches listed as Spanish-speaking only because of the city name.
+- 835 service rows at 107 churches that were office hours or artifacts.
+
+Still open after the repair: ~270 visible churches with no known
+denomination, ~450 with no service times, ~360 with no description and ~130
+with no photos. Those need the website and Google stages re-run against
+production (`npm run pipeline:run`).
 
 ## History
 
