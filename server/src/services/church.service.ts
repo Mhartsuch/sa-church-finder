@@ -200,9 +200,18 @@ function buildWhere(params: ISearchParams, center: { lat: number; lng: number })
 
   const q = params.q?.trim().toLowerCase()
   if (q) {
-    const term = `%${q}%`
+    // Escape LIKE wildcards so "100%" or "st_john" match literally.
+    const term = `%${q.replace(/[\\%_]/g, '\\$&')}%`
+    // Visitors type what they know: a name, a tradition ("lutheran"), a part
+    // of town ("stone oak"), a street or a zip code.
     conditions.push(Prisma.sql`(
       LOWER(c."name") LIKE ${term}
+      OR LOWER(COALESCE(c."denomination", '')) LIKE ${term}
+      OR LOWER(COALESCE(c."denominationFamily", '')) LIKE ${term}
+      OR LOWER(COALESCE(c."neighborhood", '')) LIKE ${term}
+      OR LOWER(c."city") LIKE ${term}
+      OR c."zipCode" LIKE ${term}
+      OR LOWER(c."address") LIKE ${term}
       OR LOWER(COALESCE(c."description", '')) LIKE ${term}
       OR EXISTS (SELECT 1 FROM unnest(c."amenities") AS a WHERE LOWER(a) LIKE ${term})
       OR EXISTS (

@@ -120,9 +120,7 @@ function buildVerificationCopy(input: VerificationEmailInput): {
   }
 }
 
-export async function sendPasswordResetEmail(
-  input: PasswordResetEmailInput,
-): Promise<void> {
+export async function sendPasswordResetEmail(input: PasswordResetEmailInput): Promise<void> {
   const message = buildPasswordResetCopy(input)
 
   await sendEmail({
@@ -133,9 +131,7 @@ export async function sendPasswordResetEmail(
   })
 }
 
-export async function sendEmailVerificationEmail(
-  input: VerificationEmailInput,
-): Promise<void> {
+export async function sendEmailVerificationEmail(input: VerificationEmailInput): Promise<void> {
   const message = buildVerificationCopy(input)
 
   await sendEmail({

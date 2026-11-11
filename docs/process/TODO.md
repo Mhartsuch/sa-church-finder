@@ -2,28 +2,38 @@
 
 > Check before starting work; update when finishing. History lives in git.
 
-## P0 — Ship the lean overhaul (see `specs/lean-overhaul.md`)
+## P0 — Fill the remaining data gaps (needs production credentials)
 
-- [ ] Merge the overhaul branch and redeploy **both** Render services. The API build runs
-      `prisma migrate deploy`, which applies `20261106000000_lean_overhaul` and **drops** the
-      events, forum, passport, claims, review-vote, and ribbon-category tables.
-- [ ] Smoke-test the live site: browse grid, category bar, filters modal, map toggle, church
-      profile, log in / sign up (email + Google), save to wishlist, write a review.
-- [ ] Confirm the Render static site still sets `VITE_MAPBOX_TOKEN`; without it the map shows
-      an "unavailable" message.
+The 2026-11-11 audit repaired everything that could be fixed from the data we
+already hold (see `docs/engineering/DATA_PIPELINE.md` → "Data audit"). What is
+left needs the pipeline run against production, from a machine that has
+`DATABASE_URL`, `GOOGLE_PLACES_API_KEY`, the Supabase storage keys and the
+`claude` CLI:
 
-## P1 — Photos are the product
+- [ ] `npm run pipeline:run -- --stale-days 30` — of 904 visible churches,
+      ~450 have no service times, ~360 no description, ~270 no known
+      denomination and ~130 no photos. The website stage now refuses office
+      hours and self-named denominations, so a re-run is safe.
+- [ ] Work the `needs_review` queue in `enrichment_states` afterwards.
+- [ ] Coverage check: the import found 955 places; Bexar County has more
+      congregations than that. Re-run `import:google-churches` and compare.
+- [ ] Decide whether to schedule the pipeline (GitHub Actions or a Render Cron
+      Job). `enrich:church-details` alone needs only `DATABASE_URL` and keeps
+      hidden-listing, denomination and service-artifact rules applied.
 
-- [ ] Run `npm run pipeline:run` against production so every church has Google Places photos;
-      churches without photos rank last and show a placeholder.
-- [ ] Spot-check the top 50 churches for low-quality or off-topic photos and reorder via
-      `displayOrder`.
-- [ ] **Fix API cold starts (the main cause of slow profile loads).** The free Render API
-      sleeps after ~15 idle minutes and takes 30–60s to wake. The `keepalive` workflow was
-      auto-disabled by GitHub on 2026-09-11 (`disabled_inactivity`), and even when enabled
-      GitHub only ran it every 2–5 hours. Best fix: upgrade the API to Render's Starter plan.
-      Free fallback: a 5-minute uptime monitor (e.g. UptimeRobot) on `/api/v1/health`, or
-      re-enable the workflow under Actions → keepalive.
+## P1 — Operations
+
+- [ ] **Fix API cold starts.** The free Render API sleeps after ~15 idle
+      minutes and takes 30–60s to wake. Best fix: Render Starter plan. Free
+      fallback: a 5-minute uptime monitor on `/api/v1/health`, or re-enable the
+      `keepalive` workflow (GitHub auto-disabled it on 2026-09-11).
+- [ ] Confirm the Render static site sets `VITE_MAPBOX_TOKEN`; without it the
+      map shows an "unavailable" message.
+- [ ] Mailbox check: profiles now link "Report a correction" to
+      `admin@sachurchfinder.com` — make sure someone reads it.
+- [ ] Cover photos were hand-curated for the top 100 churches only. Spot-check
+      further down the ranking and reorder via `church_photos.displayOrder`
+      (keep `churches.coverImageUrl` in step).
 
 ## P2 — Nice to have
 

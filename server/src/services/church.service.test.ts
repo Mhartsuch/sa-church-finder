@@ -147,6 +147,37 @@ describe('church service', () => {
     })
   })
 
+  describe('keyword search', () => {
+    const lastCountQuery = (): { sql: string; values: unknown[] } => {
+      const mock = (jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock })
+        .$queryRaw
+      const calls = mock.mock.calls as [{ sql: string; values: unknown[] }][]
+      return calls.map(([query]) => query).find((query) => query.sql.includes('COUNT(*)'))!
+    }
+
+    it('matches tradition, part of town, zip code and street as well as the name', async () => {
+      await searchChurches({ q: 'Stone Oak' }, 'user-keyword-1')
+      const { sql, values } = lastCountQuery()
+
+      for (const column of ['denomination', 'denominationFamily', 'neighborhood', 'zipCode']) {
+        expect(sql).toContain(`c."${column}"`)
+      }
+      expect(sql).toContain('LOWER(c."city") LIKE')
+      expect(sql).toContain('LOWER(c."address") LIKE')
+      expect(values).toContain('%stone oak%')
+    })
+
+    it('escapes LIKE wildcards in the search term', async () => {
+      await searchChurches({ q: '100%_x' }, 'user-keyword-2')
+      expect(lastCountQuery().values).toContain('%100\\%\\_x%')
+    })
+
+    it('never returns hidden listings', async () => {
+      await searchChurches({}, 'user-keyword-3')
+      expect(lastCountQuery().sql).toContain('c."isHidden" = false')
+    })
+  })
+
   describe('anonymous search cache', () => {
     const getMock = (): jest.Mock =>
       (jest.requireMock('../lib/prisma.js').default as { $queryRaw: jest.Mock }).$queryRaw

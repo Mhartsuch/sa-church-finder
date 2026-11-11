@@ -126,21 +126,21 @@ type AuthUser = {
 
 Search. Response: `{ data: ChurchSummary[], meta: { page, pageSize, total, totalPages, center: { lat, lng } } }`.
 
-| Param                                                                   | Type                                                      | Notes                                                |
-| ----------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
-| `q`                                                                     | string ≤ 200                                              | Name, description, amenities, service types          |
-| `denomination`                                                          | csv                                                       | Denomination families, OR-combined, case-insensitive |
-| `day`                                                                   | 0–6                                                       | Has a service that day                               |
-| `time`                                                                  | `morning` \| `afternoon` \| `evening`                     | Service start <12:00, 12–17, ≥17:00                  |
-| `language`                                                              | csv                                                       | OR-combined                                          |
-| `amenities`                                                             | csv                                                       | AND-combined, exact (case-insensitive)               |
-| `wheelchairAccessible`, `goodForChildren`, `goodForGroups`, `hasPhotos` | `true`/`false`/`1`/`0`                                    | Only `true` filters; unknown (null) never matches    |
-| `minRating`                                                             | 0–5                                                       | Local avg when reviewed, else Google rating          |
-| `neighborhood`                                                          | string                                                    | Exact, case-insensitive                              |
-| `sort`                                                                  | `relevance` (default) \| `distance` \| `rating` \| `name` | `rating` is Bayesian-weighted                        |
-| `lat`, `lng`, `radius`                                                  | number; radius ≤ 25 mi (default 10)                       | Default center is downtown San Antonio               |
-| `bounds`                                                                | `swLat,swLng,neLat,neLng`                                 | Replaces the radius filter when valid                |
-| `page`, `pageSize`                                                      | int; pageSize ≤ 50 (default 20)                           |                                                      |
+| Param                                                                   | Type                                                      | Notes                                                                                       |
+| ----------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `q`                                                                     | string ≤ 200                                              | Name, denomination, neighborhood, city, zip, address, description, amenities, service types |
+| `denomination`                                                          | csv                                                       | Denomination families, OR-combined, case-insensitive                                        |
+| `day`                                                                   | 0–6                                                       | Has a service that day                                                                      |
+| `time`                                                                  | `morning` \| `afternoon` \| `evening`                     | Service start <12:00, 12–17, ≥17:00                                                         |
+| `language`                                                              | csv                                                       | OR-combined                                                                                 |
+| `amenities`                                                             | csv                                                       | AND-combined, exact (case-insensitive)                                                      |
+| `wheelchairAccessible`, `goodForChildren`, `goodForGroups`, `hasPhotos` | `true`/`false`/`1`/`0`                                    | Only `true` filters; unknown (null) never matches                                           |
+| `minRating`                                                             | 0–5                                                       | Local avg when reviewed, else Google rating                                                 |
+| `neighborhood`                                                          | string                                                    | Exact, case-insensitive                                                                     |
+| `sort`                                                                  | `relevance` (default) \| `distance` \| `rating` \| `name` | `rating` is Bayesian-weighted                                                               |
+| `lat`, `lng`, `radius`                                                  | number; radius ≤ 25 mi (default 10)                       | Default center is downtown San Antonio                                                      |
+| `bounds`                                                                | `swLat,swLng,neLat,neLng`                                 | Replaces the radius filter when valid                                                       |
+| `page`, `pageSize`                                                      | int; pageSize ≤ 50 (default 20)                           |                                                                                             |
 
 Permanently closed churches and hidden listings (`isHidden`: non-churches
 such as parish offices, schools and cemeteries, plus duplicates) are always
