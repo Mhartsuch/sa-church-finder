@@ -39,7 +39,7 @@ import dotenv from 'dotenv'
 
 import { resolveDenomination } from './denomination-classifier.js'
 import { inferLanguages } from './language-inferrer.js'
-import { detectNonChurch, findDuplicates } from './listing-quality.js'
+import { detectNonChurch, findDuplicates, isJunkDescription } from './listing-quality.js'
 import { getNeighborhood } from './neighborhood-mapper.js'
 import { findServiceArtifacts } from './service-cleaner.js'
 
@@ -189,6 +189,12 @@ async function main(): Promise<void> {
             detectNonChurch(church.name) ?? (duplicateOf.has(church.id) ? 'duplicate' : null)
           if ((hiddenReason !== null) !== church.isHidden) updates.isHidden = hiddenReason !== null
           if (hiddenReason !== church.hiddenReason) updates.hiddenReason = hiddenReason
+        }
+
+        // A description that is only a page title or a social-media placeholder
+        // is worse than none: the profile shows it as "About this church".
+        if (church.description && isJunkDescription(church.description, church.name)) {
+          updates.description = null
         }
 
         // ── 2. Denomination ──

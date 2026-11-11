@@ -187,3 +187,22 @@ export function findDuplicates(candidates: DuplicateCandidate[]): Map<string, st
   }
   return duplicates
 }
+
+// ── Description quality ──
+
+const JUNK_DESCRIPTION =
+  /^see posts, photos and more on facebook|^home\s*[|–-]|\bp[aá]gina web\b|\bbuscanos en facebook\b|^(welcome|home|about( us)?|contact( us)?)\.?$/i
+
+const MIN_DESCRIPTION_LENGTH = 30
+
+/**
+ * Whether a scraped description says nothing about the church: a page title,
+ * the church's own name, a social-media placeholder, or a fragment.
+ */
+export function isJunkDescription(description: string, churchName: string): boolean {
+  const text = description.trim().replace(/\s+/g, ' ')
+  if (text.length < MIN_DESCRIPTION_LENGTH) return true
+  if (JUNK_DESCRIPTION.test(text)) return true
+  const name = normalizeNameForMatch(churchName)
+  return name.length > 0 && normalizeNameForMatch(text) === name
+}

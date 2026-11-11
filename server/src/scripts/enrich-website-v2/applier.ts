@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { resolveDenomination } from '../enrich-details/denomination-classifier.js'
+import { isJunkDescription } from '../enrich-details/listing-quality.js'
 import { findServiceArtifacts } from '../enrich-details/service-cleaner.js'
 import type { EnrichV2Stats, EnrichWebsiteV2Options, ExtractedChurchData } from './types.js'
 
@@ -69,7 +70,9 @@ export async function applyExtraction(
     }
   }
   trySetScalar('yearEstablished', extracted.yearEstablished)
-  trySetScalar('description', extracted.description)
+  if (!extracted.description || !isJunkDescription(extracted.description, church.name)) {
+    trySetScalar('description', extracted.description)
+  }
   trySetScalar('email', extracted.email)
   trySetScalar('phone', extracted.phone)
   trySetScalar('goodForChildren', extracted.amenities.goodForChildren)

@@ -3,6 +3,7 @@ import {
   DuplicateCandidate,
   distanceMeters,
   findDuplicates,
+  isJunkDescription,
   normalizeNameForMatch,
 } from './listing-quality'
 
@@ -109,5 +110,34 @@ describe('distanceMeters', () => {
     )
     expect(d).toBeGreaterThan(109)
     expect(d).toBeLessThan(113)
+  })
+})
+
+describe('isJunkDescription', () => {
+  it.each([
+    ['See posts, photos and more on Facebook.', 'MC Church'],
+    ['Home | University Presbyterian Church San Antonio', 'University Presbyterian Church'],
+    ['Brookhill Baptist Church', 'Brookhill Baptist Church'],
+    ['Iglesia La Mies Pagina Web', 'Iglesia Cristiana La Mies'],
+    ['BUSCANOS EN FACEBOOK@cristotellamadallas', 'Iglesia El Renuevo'],
+    ['Are you free born?', 'Free Born Church'],
+    ['My Friend', 'My Friend’s House Christian Fellowship'],
+  ])('rejects %s', (description, name) => {
+    expect(isJunkDescription(description, name)).toBe(true)
+  })
+
+  it('keeps a real description', () => {
+    expect(
+      isJunkDescription(
+        "A Southern Baptist church committed to growing God's family and making every person count.",
+        'Shavano Baptist Church',
+      ),
+    ).toBe(false)
+    expect(
+      isJunkDescription(
+        'A Parish of The Holy Roman Catholic Church',
+        'St Rose of Lima Catholic Church',
+      ),
+    ).toBe(false)
   })
 })
