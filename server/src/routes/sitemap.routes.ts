@@ -7,6 +7,9 @@ const router = Router()
 
 const BASE_URL = 'https://sachurchfinder.com'
 
+/** An area or tradition needs this many churches to get a landing page. */
+const MIN_LANDING_CHURCHES = 5
+
 const STATIC_PAGES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
   { path: '/privacy', changefreq: 'monthly', priority: '0.2' },
@@ -36,6 +39,40 @@ router.get('/sitemap.xml', async (_req: Request, res: Response) => {
       orderBy: { updatedAt: 'desc' },
     })
 
+    // Landing pages for each tradition and each area with enough churches to
+    // be worth a visit — the same links the site footer offers.
+    const [families, areas] = await Promise.all([
+      prisma.church.groupBy({
+        by: ['denominationFamily'],
+        where: { ...PUBLIC_CHURCH_WHERE, denominationFamily: { not: null } },
+        _count: { _all: true },
+      }),
+      prisma.church.groupBy({
+        by: ['neighborhood'],
+        where: { ...PUBLIC_CHURCH_WHERE, neighborhood: { not: null } },
+        _count: { _all: true },
+      }),
+    ])
+    const landingEntries = [
+      ...families
+        .filter(
+          (row) => row._count._all >= MIN_LANDING_CHURCHES && row.denominationFamily !== 'Other',
+        )
+        .map((row) => `denomination=${encodeURIComponent(row.denominationFamily ?? '')}`),
+      ...areas
+        .filter((row) => row._count._all >= MIN_LANDING_CHURCHES)
+        .map((row) => `neighborhood=${encodeURIComponent(row.neighborhood ?? '')}`),
+    ]
+      .sort()
+      .map(
+        (query) =>
+          `  <url>
+    <loc>${BASE_URL}/?${escapeXml(query)}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`,
+      )
+
     const staticEntries = STATIC_PAGES.map(
       (page) =>
         `  <url>
@@ -57,7 +94,7 @@ router.get('/sitemap.xml', async (_req: Request, res: Response) => {
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...staticEntries, ...churchEntries].join('\n')}
+${[...staticEntries, ...landingEntries, ...churchEntries].join('\n')}
 </urlset>`
 
     res.set('Content-Type', 'application/xml')

@@ -239,4 +239,5 @@ All return `{ data, message }` unless noted. `data` is an `AuthUser` where a use
 
 #### `GET /sitemap.xml`
 
-XML sitemap of `/`, `/privacy`, `/terms` and every visible (non-closed, non-hidden) `/churches/:slug`.
+XML sitemap of `/`, `/privacy`, `/terms` and every visible (non-closed, non-hidden) `/churches/:slug`, plus a landing page
+(`/?denomination=…`, `/?neighborhood=…`) for each tradition and area with at least five churches.
