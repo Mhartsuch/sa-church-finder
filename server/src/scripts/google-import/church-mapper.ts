@@ -4,6 +4,7 @@
 
 import { Prisma, PrismaClient } from '@prisma/client'
 
+import { cleanWebsiteUrl, normalizeChurchName } from './normalizers.js'
 import type { GooglePlaceResult } from './types.js'
 
 export interface ChurchCreateData {
@@ -37,8 +38,8 @@ export interface ChurchUpdateData {
   zipCode: string
   latitude: Prisma.Decimal
   longitude: Prisma.Decimal
-  phone: string | null
-  website: string | null
+  phone?: string
+  website?: string
   googleRating: Prisma.Decimal | null
   googleReviewCount: number | null
   businessStatus: string | null
@@ -160,7 +161,7 @@ export async function mapPlaceToCreateData(
   const slug = await generateUniqueSlug(prisma, place.displayName.text, place.id)
 
   return {
-    name: place.displayName.text,
+    name: normalizeChurchName(place.displayName.text),
     slug,
     address: place.formattedAddress,
     city: address.city,
@@ -169,7 +170,7 @@ export async function mapPlaceToCreateData(
     latitude: new Prisma.Decimal(place.location.latitude.toFixed(8)),
     longitude: new Prisma.Decimal(place.location.longitude.toFixed(8)),
     phone: place.nationalPhoneNumber ?? null,
-    website: place.websiteUri ?? null,
+    website: cleanWebsiteUrl(place.websiteUri),
     description: place.editorialSummary?.text ?? null,
     googlePlaceId: place.id,
     googleRating: place.rating != null ? new Prisma.Decimal(place.rating.toFixed(2)) : null,
@@ -186,6 +187,7 @@ export async function mapPlaceToCreateData(
 
 export function mapPlaceToUpdateData(place: GooglePlaceResult): ChurchUpdateData {
   const address = parseAddressComponents(place)
+  const website = cleanWebsiteUrl(place.websiteUri)
 
   return {
     address: place.formattedAddress,
@@ -194,8 +196,10 @@ export function mapPlaceToUpdateData(place: GooglePlaceResult): ChurchUpdateData
     zipCode: address.zipCode,
     latitude: new Prisma.Decimal(place.location.latitude.toFixed(8)),
     longitude: new Prisma.Decimal(place.location.longitude.toFixed(8)),
-    phone: place.nationalPhoneNumber ?? null,
-    website: place.websiteUri ?? null,
+    // Only overwrite contact details Google actually has: a missing value
+    // must not erase a phone or website found by the website stage.
+    ...(place.nationalPhoneNumber ? { phone: place.nationalPhoneNumber } : {}),
+    ...(website ? { website } : {}),
     googleRating: place.rating != null ? new Prisma.Decimal(place.rating.toFixed(2)) : null,
     googleReviewCount: place.userRatingCount ?? null,
     businessStatus: place.businessStatus ?? null,
