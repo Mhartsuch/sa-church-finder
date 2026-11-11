@@ -36,6 +36,11 @@ left needs the pipeline run against production, from a machine that has
       `keepalive` workflow (GitHub auto-disabled it on 2026-09-11).
 - [ ] Confirm the Render static site sets `VITE_MAPBOX_TOKEN`; without it the
       map shows an "unavailable" message.
+- [ ] **Photo weight.** Card photos are served at 1200px (median 260 KB, up to
+      2 MB) for a ~300px slot, so the first screen of the grid is 3–6 MB.
+      Supabase image transforms are not on the current plan (the render
+      endpoint returns 403). Fix in the photo pipeline: store a ~480px
+      thumbnail beside each photo and use it on cards.
 - [ ] Mailbox check: profiles now link "Report a correction" to
       `admin@sachurchfinder.com` — make sure someone reads it.
 - [ ] Cover photos were hand-curated for the top 200 churches only. Spot-check
